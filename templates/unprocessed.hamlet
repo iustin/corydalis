@@ -1,0 +1,24 @@
+<h1>Unprocessed NEFs status
+
+$if null unprocessed
+  <p>No unprocessed nefs, yay!
+$else
+ <div style="width: 90%; margin-left: auto; margin-right: auto">
+  <table id="unprocessed" class="tablesorter">
+    <thead>
+      <tr>
+        <th>Name
+        <th>path
+        <th>Nefs
+        <th>Nef % of total
+    <tbody>
+      $forall (n, p) <- npairs
+        <tr>
+          <td>#{nfName n}
+          <td>#{nfPath n}
+          <td class="number">#{nfNefCount n}
+          <td class="number">#{p}
+    <tfoot>
+      <tr>
+       <td colspan=2>Total unprocessed NEFs
+       <td class="number">#{allnefs}

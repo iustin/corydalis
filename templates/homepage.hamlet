@@ -1,0 +1,8 @@
+<h1>PicMan
+
+$if null unprocessed
+  <p>No unprocessed nefs, yay!
+$else
+  <p>#{allnefs} <a href=@{UnprocessedR}>unprocessed</a> NEFs.</p>
+
+<p>#{jstandalone} standalone JPEGs.
