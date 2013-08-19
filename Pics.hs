@@ -1,7 +1,17 @@
 {-# LANGUAGE TupleSections, OverloadedStrings #-}
-module Pics where
+module Pics ( Config
+            , NefDir(..)
+            , JpegDir(..)
+            , scanAll
+            , computeUnprocessed
+            , computeStandaloneJpegs
+            ) where
 
-import Import
+--import Import
+import Prelude
+import Control.Applicative ((<$>), (<*>))
+import Data.Aeson
+import qualified Data.Text as Text
 
 import Control.Monad
 import qualified Data.Map as Map
@@ -9,49 +19,74 @@ import Data.List
 import System.Directory
 import System.FilePath
 import System.Posix.Files
-import Text.Regex.PCRE as PCRE
+import qualified Text.Regex.PCRE as PCRE
 
-nefBase :: String
-nefBase = undefined
+data Regex = Regex
+    { reString :: String
+    , reRegex  :: PCRE.Regex
+    }
 
-jpegBase :: String
-jpegBase = undefined
+instance Show Regex where
+  show (Regex str _) = show str
 
-nefExts :: [String]
-nefExts = ["nef"]
+instance FromJSON Regex where
+  parseJSON (String txt) =
+    let str = Text.unpack txt
+    in case PCRE.makeRegexM str of
+         Nothing -> mzero
+         Just r -> return $ Regex str r
+  parseJSON _ = mzero
 
-nefExtsRev :: [String]
-nefExtsRev = map reverse nefExts
+data Config = Config
+    { cfgRawBase         :: FilePath
+    , cfgJpegBase        :: FilePath
+    , cfgBlacklistedDirs :: [FilePath]
+    , cfgRawExts         :: [FilePath]
+    , cfgJpegExts        :: [FilePath]
+    , cfgSidecarExts     :: [FilePath]
+    , cfgOtherImgExts    :: [FilePath]
+    , cfgDirRegex        :: Regex
+    } deriving (Show)
 
-jpegExts :: [String]
-jpegExts = ["jpg", "jpeg"]
+instance FromJSON Config where
+  parseJSON (Object v) =
+    Config <$>
+         v .: "rawbase" <*>
+         v .: "jpegbase" <*>
+         v .: "blacklisteddirs" <*>
+         v .: "rawexts" <*>
+         v .: "jpegexts" <*>
+         v .: "sidecarexts" <*>
+         v .: "otherexts" <*>
+         v .: "dirregex"
 
-jpegExtsRev :: [String]
-jpegExtsRev = map reverse jpegExts
+  parseJSON _ = mzero
 
-xmpExts :: [String]
-xmpExts = ["xmp"]
+rawExtsRev :: Config -> [FilePath]
+rawExtsRev = map reverse . cfgRawExts
 
-xmpExtsRev :: [String]
-xmpExtsRev = map reverse xmpExts
+jpegExtsRev :: Config -> [FilePath]
+jpegExtsRev = map reverse . cfgJpegExts
 
-fileExts :: [String]
-fileExts = nefExts ++ xmpExts ++ ["png", "jpg", "jpeg"]
+sidecarExtsRev :: Config -> [FilePath]
+sidecarExtsRev = map reverse . cfgSidecarExts
 
-fileDotExts :: [String]
-fileDotExts = map ('.':) fileExts
+fileExts :: Config -> [String]
+fileExts config =
+  concat [ cfgRawExts config
+         , cfgSidecarExts config
+         , cfgJpegExts config
+         , cfgOtherImgExts config
+         ]
 
-dateREString :: String
-dateREString = "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
+fileDotExts :: Config -> [String]
+fileDotExts = map ('.':) . fileExts
 
-dirRegex :: PCRE.Regex
-dirRegex = PCRE.makeRegex dateREString
+blacklistedDirs :: Config -> [String]
+blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
 
-blacklistedDirs :: [String]
-blacklistedDirs = [".", "..", ".thumbnails"]
-
-isOKDir :: String -> Bool
-isOKDir = PCRE.match dirRegex
+isOKDir :: Config -> String -> Bool
+isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 
 data NefDir = NefDir { nfName :: String
                      , nfPath :: String
@@ -86,30 +121,33 @@ instance HasName PicDir where
   nameOf (PicBoth v _) = nameOf v
 
 
-getDownContents :: FilePath -> IO [FilePath]
-getDownContents base = do
+getDownContents :: Config -> FilePath -> IO [FilePath]
+getDownContents config base = do
   contents <- getDirectoryContents base
-  return $ filter (\d -> d `notElem` blacklistedDirs) contents
+  let blkdirs = blacklistedDirs config
+  return $ filter (\d -> d `notElem` blkdirs) contents
 
 isDir :: FilePath -> IO Bool
 isDir = liftM isDirectory . getSymbolicLinkStatus
 
 scanDir :: (HasName a) =>
-           String
+           Config
+        -> String
         -> (String -> String -> IO a)
         -> IO (Map.Map String a)
-scanDir base builder = do
-  paths <- getDownContents base
+scanDir config base builder = do
+  paths <- getDownContents config base
   dirs <- filterM (isDir . (base </>)) paths
-  ndirs <- mapM (\p -> scanSubDir (base </> p) builder) dirs
+  ndirs <- mapM (\p -> scanSubDir config (base </> p) builder) dirs
   let ndirs' = concat ndirs
   return $ foldl (\a v -> Map.insert (nameOf v) v a) Map.empty ndirs'
 
-scanSubDir :: (HasName a) => String -> (String -> String -> IO a) -> IO [a]
-scanSubDir path builder = do
-  allpaths <- getDownContents path
+scanSubDir :: (HasName a) =>
+              Config -> String -> (String -> String -> IO a) -> IO [a]
+scanSubDir config path builder = do
+  allpaths <- getDownContents config path
   dirpaths <- filterM (isDir . (path </>)) allpaths
-  let allpaths' = filter isOKDir dirpaths
+  let allpaths' = filter (isOKDir config) dirpaths
   mapM (\s -> builder s (path </> s)) allpaths'
 
 mergeDirs :: Map.Map String NefDir -> Map.Map String JpegDir ->
@@ -128,28 +166,34 @@ mergeDirs nefs jpegs =
                              Just _ -> a) withnefs $ Map.elems jpegs
   in withjpegs
 
-recursiveScanDir :: FilePath -> IO [FilePath]
-recursiveScanDir base = do
-  contents <- getDownContents base
-  let potentialdirs =
-        filter (\s -> all (\e -> not (e `isSuffixOf` s)) fileDotExts) contents
+recursiveScanDir :: Config -> FilePath -> IO [FilePath]
+recursiveScanDir config base = do
+  contents <- getDownContents config base
+  let allexts = fileDotExts config
+      potentialdirs =
+        filter (\s -> all (\e -> not (e `isSuffixOf` s)) allexts) contents
   dirs <- filterM (isDir . (base </>)) potentialdirs
-  subdirs <- mapM (\s -> recursiveScanDir (base </> s)) dirs
+  subdirs <- mapM (\s -> recursiveScanDir config (base </> s)) dirs
   return $ contents ++ concat subdirs
 
-loadNefDir :: String -> FilePath -> IO NefDir
-loadNefDir name path = do
-  contents <- recursiveScanDir path
+isInteresting :: [FilePath] -> FilePath -> Bool
+isInteresting rev_exts file = any (`isPrefixOf` file) rev_exts
+
+loadNefDir :: Config -> String -> FilePath -> IO NefDir
+loadNefDir config name path = do
+  contents <- recursiveScanDir config path
   let rcontent = map reverse contents
-  let nefs = length $ filter (\s -> any (`isPrefixOf` s) nefExtsRev) rcontent
-      xmps = length $ filter (\s -> any (`isPrefixOf` s) xmpExtsRev) rcontent
+  let nefs = length $
+             filter (isInteresting (rawExtsRev config)) rcontent
+      xmps = length $
+             filter (isInteresting (sidecarExtsRev config)) rcontent
   return $ NefDir name path False nefs xmps
 
-loadJpegDir :: String -> FilePath -> IO JpegDir
-loadJpegDir name path = do
-  contents <- recursiveScanDir path
+loadJpegDir :: Config -> String -> FilePath -> IO JpegDir
+loadJpegDir config name path = do
+  contents <- recursiveScanDir config path
   let rcontent = map reverse contents
-  let jpegs = length $ filter (\s -> any (`isPrefixOf` s) jpegExtsRev) rcontent
+      jpegs = length $ filter (isInteresting (jpegExtsRev config)) rcontent
   return $ JpegDir name path jpegs
 
 numUnprocessed :: NefDir -> Int
@@ -164,10 +208,10 @@ showUnprocessed n =
   if u > 0 then "(" ++ show u ++ " unprocessed )" else ""
     where u = numUnprocessed n
 
-scanAll :: IO (Map.Map String PicDir)
-scanAll = do
-  nefs <- scanDir nefBase loadNefDir
-  jpegs <- scanDir jpegBase loadJpegDir
+scanAll :: Config -> IO (Map.Map String PicDir)
+scanAll config = do
+  nefs <- scanDir config (cfgRawBase config) (loadNefDir config)
+  jpegs <- scanDir config (cfgJpegBase config) (loadJpegDir config)
   let pics = mergeDirs nefs jpegs
   return pics
 

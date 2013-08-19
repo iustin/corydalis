@@ -16,6 +16,7 @@ import Control.Applicative
 import Settings.Development
 import Data.Default (def)
 import Text.Hamlet
+import Pics (Config)
 
 -- Static setting below. Changing these requires a recompile
 
@@ -64,13 +65,11 @@ widgetFile = (if development then widgetFileReload
 data Extra = Extra
     { extraCopyright :: Text
     , extraJSUrl     :: String
-    , extraRawDir    :: FilePath
-    , extraJpegDir   :: FilePath
+    , extraConfig    :: Config
     } deriving Show
 
 parseExtra :: DefaultEnv -> Object -> Parser Extra
 parseExtra _ o = Extra
     <$> o .:  "copyright"
     <*> o .:  "javascripturl"
-    <*> o .:  "rawdir"
-    <*> o .:  "jpegdir"
+    <*> o .:  "config"

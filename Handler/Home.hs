@@ -9,7 +9,8 @@ import Text.Printf
 
 getHomeR :: Handler RepHtml
 getHomeR = do
-  pics <- liftIO scanAll
+  config <- extraConfig `fmap` getExtra
+  pics <- liftIO $ scanAll config
   let unprocessed = computeUnprocessed pics
       allnefs = foldl' (\s n -> s + nfNefCount n) 0 unprocessed
       standalone = computeStandaloneJpegs pics
@@ -20,7 +21,8 @@ getHomeR = do
 
 getUnprocessedR :: Handler RepHtml
 getUnprocessedR = do
-  pics <- liftIO scanAll
+  config <- extraConfig `fmap` getExtra
+  pics <- liftIO $ scanAll config
   let unprocessed = computeUnprocessed pics
       allnefs = foldl' (\s n -> s + nfNefCount n) 0 unprocessed
       allnefs' = fromIntegral allnefs::Double
