@@ -7,7 +7,7 @@ import Pics
 import Data.List
 import Text.Printf
 
-getHomeR :: Handler RepHtml
+getHomeR :: Handler Html
 getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
@@ -19,7 +19,7 @@ getHomeR = do
     setTitle "<PicMan>"
     $(widgetFile "homepage")
 
-getUnprocessedR :: Handler RepHtml
+getUnprocessedR :: Handler Html
 getUnprocessedR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
