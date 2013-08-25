@@ -141,7 +141,7 @@ isUnprocessed (Image { imgRawPath = Just _, imgJpegPath = Nothing }) = True
 isUnprocessed _ = False
 
 isProcessed :: Image -> Bool
-isProcessed (Image { imgRawPath = Just _, imgJpegPath = _ }) = True
+isProcessed (Image { imgRawPath = Just _, imgJpegPath = Just _ }) = True
 isProcessed _ = False
 
 numPics :: PicDir -> Int
