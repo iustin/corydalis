@@ -1,10 +1,19 @@
 {-# LANGUAGE TupleSections, OverloadedStrings #-}
 module Pics ( Config
-            , NefDir(..)
-            , JpegDir(..)
+            , PicDir(..)
+            , Image(..)
             , scanAll
-            , computeUnprocessed
-            , computeStandaloneJpegs
+            , computeUnprocessedDirs
+            , computeStandaloneDirs
+            , numPics
+            , numRawPics
+            , numUnprocessedPics
+            , numStandalonePics
+            , totalPics
+            , totalUnprocessedPics
+            , totalProcessedPics
+            , totalRawPics
+            , totalStandalonePics
             ) where
 
 --import Import
@@ -16,6 +25,7 @@ import qualified Data.Text as Text
 import Control.Monad
 import qualified Data.Map as Map
 import Data.List
+import Data.Maybe
 import System.Directory
 import System.FilePath
 import System.Posix.Files
@@ -71,6 +81,9 @@ jpegExtsRev = map reverse . cfgJpegExts
 sidecarExtsRev :: Config -> [FilePath]
 sidecarExtsRev = map reverse . cfgSidecarExts
 
+hasExts:: FilePath -> [FilePath] -> Bool
+hasExts p = any (`isPrefixOf` p)
+
 fileExts :: Config -> [String]
 fileExts config =
   concat [ cfgRawExts config
@@ -88,38 +101,72 @@ blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
 isOKDir :: Config -> String -> Bool
 isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 
-data NefDir = NefDir { nfName :: String
-                     , nfPath :: String
-                     , nfWritten :: Bool
-                     , nfNefCount :: Int
-                     , nfXmpCount :: Int
-                     }
+data Image = Image
+    { imgName        :: String
+    , imgParent      :: String
+    , imgRawPath     :: Maybe FilePath
+    , imgSidecarPath :: Maybe FilePath
+    , imgJpegPath    :: Maybe FilePath
+    }
 
-data JpegDir = JpegDir { jpName :: String
-                       , jpPath :: String
-                       , jpJpegCount :: Int
-                       }
-
-data PicDir = PicNef NefDir
-            | PicJpeg JpegDir
-            | PicBoth NefDir JpegDir
+data PicDir = PicDir
+  { pdName :: String
+  , pdPaths :: [FilePath]
+  , pdImages :: Map.Map String Image
+  }
 
 type Repository = Map.Map String PicDir
 
-class HasName a where
-  nameOf :: a -> String
+mergePictures :: Image -> Image -> Image
+mergePictures x y =
+  x { imgRawPath     = imgRawPath     x `mplus` imgRawPath     y
+    , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
+    , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y
+    }
 
-instance HasName NefDir where
-  nameOf = nfName
+mergeFolders :: PicDir -> PicDir -> PicDir
+mergeFolders x y =
+  x { pdPaths = pdPaths x ++ pdPaths y
+    , pdImages = Map.unionWith mergePictures (pdImages x) (pdImages y)
+    }
 
-instance HasName JpegDir where
-  nameOf = jpName
+computeRawPics :: PicDir -> [Image]
+computeRawPics =
+  filter (isJust . imgRawPath) . Map.elems . pdImages
 
-instance HasName PicDir where
-  nameOf (PicNef v) = nameOf v
-  nameOf (PicJpeg v) = nameOf v
-  nameOf (PicBoth v _) = nameOf v
+isUnprocessed :: Image -> Bool
+isUnprocessed (Image { imgRawPath = Just _, imgJpegPath = Nothing }) = True
+isUnprocessed _ = False
 
+isProcessed :: Image -> Bool
+isProcessed (Image { imgRawPath = Just _, imgJpegPath = _ }) = True
+isProcessed _ = False
+
+numPics :: PicDir -> Int
+numPics = Map.size . pdImages
+
+computeUnprocessedPics :: PicDir -> [Image]
+computeUnprocessedPics =
+  filter isUnprocessed . Map.elems . pdImages
+
+numUnprocessedPics :: PicDir -> Int
+numUnprocessedPics = length . computeUnprocessedPics
+
+hasUnprocessedPics :: PicDir -> Bool
+hasUnprocessedPics =
+  not . null . computeUnprocessedPics
+
+isStandalone :: Image -> Bool
+isStandalone (Image { imgRawPath = Nothing, imgJpegPath = Just _ }) = True
+isStandalone _ = False
+
+computeStandalonePics :: PicDir -> [Image]
+computeStandalonePics =
+  filter isStandalone . Map.elems . pdImages
+
+hasStandalonePics :: PicDir -> Bool
+hasStandalonePics =
+  not . null . computeStandalonePics
 
 getDownContents :: Config -> FilePath -> IO [FilePath]
 getDownContents config base = do
@@ -130,41 +177,27 @@ getDownContents config base = do
 isDir :: FilePath -> IO Bool
 isDir = liftM isDirectory . getSymbolicLinkStatus
 
-scanDir :: (HasName a) =>
-           Config
+scanDir :: Config
+        -> Repository
         -> String
-        -> (String -> String -> IO a)
-        -> IO (Map.Map String a)
-scanDir config base builder = do
+        -> IO Repository
+scanDir config repo base = do
   paths <- getDownContents config base
   dirs <- filterM (isDir . (base </>)) paths
-  ndirs <- mapM (\p -> scanSubDir config (base </> p) builder) dirs
-  let ndirs' = concat ndirs
-  return $ foldl (\a v -> Map.insert (nameOf v) v a) Map.empty ndirs'
+  foldM (\r p -> scanSubDir config r (base </> p)) repo dirs
 
-scanSubDir :: (HasName a) =>
-              Config -> String -> (String -> String -> IO a) -> IO [a]
-scanSubDir config path builder = do
+scanSubDir :: Config
+           -> Repository
+           -> String
+           -> IO Repository
+scanSubDir config repository path = do
   allpaths <- getDownContents config path
   dirpaths <- filterM (isDir . (path </>)) allpaths
   let allpaths' = filter (isOKDir config) dirpaths
-  mapM (\s -> builder s (path </> s)) allpaths'
-
-mergeDirs :: Map.Map String NefDir -> Map.Map String JpegDir ->
-             Map.Map String PicDir
-mergeDirs nefs jpegs =
-  let withnefs = foldl (\a n ->
-                          let name = nameOf n in
-                          case Map.lookup name jpegs of
-                            Nothing -> Map.insert name (PicNef n) a
-                            Just j -> Map.insert name (PicBoth n j) a
-                       ) Map.empty $ Map.elems nefs
-      withjpegs = foldl (\a j ->
-                           let name = nameOf j in
-                           case Map.lookup name a of
-                             Nothing -> Map.insert name (PicJpeg j) a
-                             Just _ -> a) withnefs $ Map.elems jpegs
-  in withjpegs
+  foldM (\r s -> do
+           dir <- loadDir config s (path </> s)
+           return $ Map.insertWith mergeFolders (pdName dir) dir r)
+        repository allpaths'
 
 recursiveScanDir :: Config -> FilePath -> IO [FilePath]
 recursiveScanDir config base = do
@@ -179,59 +212,65 @@ recursiveScanDir config base = do
 isInteresting :: [FilePath] -> FilePath -> Bool
 isInteresting rev_exts file = any (`isPrefixOf` file) rev_exts
 
-loadNefDir :: Config -> String -> FilePath -> IO NefDir
-loadNefDir config name path = do
+loadDir :: Config -> String -> FilePath -> IO PicDir
+loadDir config name path = do
   contents <- recursiveScanDir config path
-  let rcontent = map reverse contents
-  let nefs = length $
-             filter (isInteresting (rawExtsRev config)) rcontent
-      xmps = length $
-             filter (isInteresting (sidecarExtsRev config)) rcontent
-  return $ NefDir name path False nefs xmps
+  let rawe = rawExtsRev config
+      side = sidecarExtsRev config
+      jpeg = jpegExtsRev config
+      images = map (\f -> let (_, fname) = splitFileName f
+                              base = dropExtensions fname
+                              f' = reverse f
+                              nfp = if hasExts f' rawe
+                                      then Just f
+                                      else Nothing
+                              sdc = if hasExts f' side
+                                      then Just f
+                                      else Nothing
+                              jpe = if hasExts f' jpeg
+                                      then Just f
+                                      else Nothing
+                          in (base, Image base name nfp sdc jpe)
+                   ) contents
+  return $ PicDir name [path] (Map.fromListWith mergePictures images)
 
-loadJpegDir :: Config -> String -> FilePath -> IO JpegDir
-loadJpegDir config name path = do
-  contents <- recursiveScanDir config path
-  let rcontent = map reverse contents
-      jpegs = length $ filter (isInteresting (jpegExtsRev config)) rcontent
-  return $ JpegDir name path jpegs
+numStandalonePics :: PicDir -> Int
+numStandalonePics = length . computeStandalonePics
 
-numUnprocessed :: NefDir -> Int
-numUnprocessed n =
-  if delta > 0
-    then delta
-    else 0
-  where delta = nfNefCount n - nfXmpCount n
-
-showUnprocessed :: NefDir -> String
-showUnprocessed n =
-  if u > 0 then "(" ++ show u ++ " unprocessed )" else ""
-    where u = numUnprocessed n
+numRawPics :: PicDir -> Int
+numRawPics = length . computeRawPics
 
 scanAll :: Config -> IO (Map.Map String PicDir)
 scanAll config = do
-  nefs <- scanDir config (cfgRawBase config) (loadNefDir config)
-  jpegs <- scanDir config (cfgJpegBase config) (loadJpegDir config)
-  let pics = mergeDirs nefs jpegs
-  return pics
+  foldM (\r d -> scanDir config r d) Map.empty
+          [cfgRawBase config, cfgJpegBase config]
 
-computeUnprocessed :: Repository -> [NefDir]
-computeUnprocessed =
-  reverse .
-  foldl (\a e -> case e of
-                   -- it could be (rare) that a given directory only
-                   -- has movies, so nothing to process
-                   PicNef n | nfNefCount n > 0 -> n:a
-                   _ -> a) [] .
-  Map.elems
+computeUnprocessedDirs :: Repository -> [PicDir]
+computeUnprocessedDirs =
+  filter hasUnprocessedPics . Map.elems
 
+computeStandaloneDirs :: Repository -> [PicDir]
+computeStandaloneDirs =
+  filter hasStandalonePics . Map.elems
 
-computeStandaloneJpegs :: Repository -> [JpegDir]
-computeStandaloneJpegs =
-  reverse .
-  foldl (\a e -> case e of
-                   -- it could be (rare) that a given directory only
-                   -- has movies, so nothing to process
-                   PicJpeg j -> j:a
-                   _ -> a) [] .
-  Map.elems
+totalPicsOfType :: (Image -> Bool) -> Repository -> Integer
+totalPicsOfType extractor =
+  Map.foldr (\dir a -> Map.foldr (\i a' -> if extractor i
+                                             then a' + 1
+                                             else a') a (pdImages dir)
+            ) 0
+
+totalPics :: Repository -> Integer
+totalPics = totalPicsOfType (const True)
+
+totalRawPics :: Repository -> Integer
+totalRawPics = totalPicsOfType (isJust . imgRawPath)
+
+totalUnprocessedPics :: Repository -> Integer
+totalUnprocessedPics = totalPicsOfType isUnprocessed
+
+totalStandalonePics :: Repository -> Integer
+totalStandalonePics = totalPicsOfType isStandalone
+
+totalProcessedPics :: Repository -> Integer
+totalProcessedPics = totalPicsOfType isProcessed

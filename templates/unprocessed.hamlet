@@ -10,14 +10,24 @@ $else
         <th>Name
         <th>path
         <th>Nefs
-        <th>Nef % of total
+        <th>Unprocessed
+        <th>U. %
+        <th>U. % of total
     <tbody>
-      $forall (n, p) <- npairs
+      $forall (n, lp, tp) <- npairs
         <tr>
-          <td>#{nfName n}
-          <td>#{nfPath n}
-          <td class="number">#{nfNefCount n}
-          <td class="number">#{p}
+          <td>#{pdName n}
+          <td>
+            $case pdPaths n
+              $of []
+              $of _
+                $forall path <- init $ pdPaths n
+                 #{path}<br />
+                #{last $ pdPaths n}
+          <td class="number">#{numRawPics n}
+          <td class="number">#{numUnprocessedPics n}
+          <td class="number">#{lp}
+          <td class="number">#{tp}
     <tfoot>
       <tr>
        <td colspan=2>Total unprocessed NEFs

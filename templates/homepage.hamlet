@@ -1,8 +1,10 @@
 <h1>PicMan
 
-$if null unprocessed
-  <p>No unprocessed nefs, yay!
-$else
-  <p>#{allnefs} <a href=@{UnprocessedR}>unprocessed</a> NEFs.</p>
-
-<p>#{jstandalone} standalone JPEGs.
+The repository contains #{allpics} images, out of which:
+<ul>
+  $if processed > 0
+    <li>#{processed} fully processed images backed by RAW files.
+  $if unprocessed > 0
+    <li>#{unprocessed} <a href=@{UnprocessedR}>unprocessed</a> RAW files.
+  $if standalone > 0
+    <li>#{standalone} standalone JPEGs.

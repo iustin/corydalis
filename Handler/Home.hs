@@ -7,14 +7,18 @@ import Pics
 import Data.List
 import Text.Printf
 
+formatPercent :: Double -> String
+formatPercent = printf "%.02f"
+
 getHomeR :: Handler Html
 getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  let unprocessed = computeUnprocessed pics
-      allnefs = foldl' (\s n -> s + nfNefCount n) 0 unprocessed
-      standalone = computeStandaloneJpegs pics
-      jstandalone = foldl' (\s n -> s + jpJpegCount n) 0 standalone
+  let allpics = totalPics pics
+      allnefs = totalRawPics pics
+      standalone = totalStandalonePics pics
+      unprocessed = totalUnprocessedPics pics
+      processed = totalProcessedPics pics
   defaultLayout $ do
     setTitle "<PicMan>"
     $(widgetFile "homepage")
@@ -23,12 +27,14 @@ getUnprocessedR :: Handler Html
 getUnprocessedR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  let unprocessed = computeUnprocessed pics
-      allnefs = foldl' (\s n -> s + nfNefCount n) 0 unprocessed
+  let unprocessed = computeUnprocessedDirs pics
+      allnefs = totalUnprocessedPics pics
       allnefs' = fromIntegral allnefs::Double
-      npairs = map (\n -> (n, printf "%.02f" $
-                              fromIntegral (nfNefCount n) * 100 / allnefs'
-                                ::String))
+      npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
+                              numraw = fromIntegral (numRawPics n)
+                          in (n,
+                              formatPercent $ unproc * 100 / numraw,
+                              formatPercent $ unproc * 100 / allnefs'))
                unprocessed
   let handlerName = "getHomeR" :: Text
   defaultLayout $ do
