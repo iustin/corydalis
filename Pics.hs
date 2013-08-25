@@ -77,14 +77,17 @@ instance FromJSON Config where
 
   parseJSON _ = mzero
 
+addRevDot :: [FilePath] -> [FilePath]
+addRevDot = map (reverse . ('.':))
+
 rawExtsRev :: Config -> [FilePath]
-rawExtsRev = map reverse . cfgRawExts
+rawExtsRev = addRevDot . cfgRawExts
 
 jpegExtsRev :: Config -> [FilePath]
-jpegExtsRev = map reverse . cfgJpegExts
+jpegExtsRev = addRevDot . cfgJpegExts
 
 sidecarExtsRev :: Config -> [FilePath]
-sidecarExtsRev = map reverse . cfgSidecarExts
+sidecarExtsRev = addRevDot . cfgSidecarExts
 
 hasExts:: FilePath -> [FilePath] -> Bool
 hasExts p = any (`isPrefixOf` p)
