@@ -2,10 +2,13 @@
 module Pics ( Config
             , PicDir(..)
             , Image(..)
+            , FolderClass(..)
             , scanAll
             , isProcessed
             , isUnprocessed
             , isStandalone
+            , folderClass
+            , computeFolderStats
             , computeUnprocessedDirs
             , computeStandaloneDirs
             , numPics
@@ -119,6 +122,14 @@ data PicDir = PicDir
 
 type Repository = Map.Map String PicDir
 
+data FolderClass = FolderEmpty
+                 | FolderRaw
+                 | FolderStandalone
+                 | FolderUnprocessed
+                 | FolderProcessed
+                 | FolderMixed
+                   deriving (Eq, Ord)
+
 mergePictures :: Image -> Image -> Image
 mergePictures x y =
   x { imgRawPath     = imgRawPath     x `mplus` imgRawPath     y
@@ -135,6 +146,10 @@ mergeFolders x y =
 computeRawPics :: PicDir -> [Image]
 computeRawPics =
   filter (isJust . imgRawPath) . Map.elems . pdImages
+
+numRawPics :: PicDir -> Int
+numRawPics =
+  length . computeRawPics
 
 isUnprocessed :: Image -> Bool
 isUnprocessed (Image { imgRawPath = Just _, imgJpegPath = Nothing }) = True
@@ -173,9 +188,31 @@ computeStandalonePics :: PicDir -> [Image]
 computeStandalonePics =
   filter isStandalone . Map.elems . pdImages
 
+numStandalonePics :: PicDir -> Int
+numStandalonePics =
+  length . computeStandalonePics
+
 hasStandalonePics :: PicDir -> Bool
 hasStandalonePics =
   not . null . computeStandalonePics
+
+folderClass :: PicDir -> FolderClass
+folderClass dir =
+  let npics = numPics dir
+      has_pics = npics /= 0
+      unproc = numUnprocessedPics dir
+      has_unproc = unproc /= 0
+      has_standalone = numStandalonePics dir /= 0
+      all_unproc = unproc == npics
+      conditions = (has_pics, all_unproc, has_unproc, has_standalone)
+  in case conditions of
+       (False, _   , _    , _    ) -> FolderEmpty
+       (True, True , True , False) -> FolderRaw
+       (True, False, True , False) -> FolderUnprocessed
+       (True, False, False, True ) -> FolderStandalone
+       (True, False, True , True ) -> FolderMixed
+       (True, False, False, False) -> FolderProcessed
+       _ -> error $ "Wrong computation in folderClass: " ++ show conditions
 
 getDownContents :: Config -> FilePath -> IO [FilePath]
 getDownContents config base = do
@@ -246,12 +283,6 @@ loadDir config name path = do
                    ) contents
   return $ PicDir name [path] (Map.fromListWith mergePictures images)
 
-numStandalonePics :: PicDir -> Int
-numStandalonePics = length . computeStandalonePics
-
-numRawPics :: PicDir -> Int
-numRawPics = length . computeRawPics
-
 scanAll :: Config -> IO (Map.Map String PicDir)
 scanAll config = do
   foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
@@ -285,3 +316,9 @@ totalStandalonePics = totalPicsOfType isStandalone
 
 totalProcessedPics :: Repository -> Integer
 totalProcessedPics = totalPicsOfType isProcessed
+
+computeFolderStats :: Repository -> Map.Map FolderClass Int
+computeFolderStats =
+  Map.fromListWith (+) .
+  map ((, 1) . folderClass) .
+  Map.elems

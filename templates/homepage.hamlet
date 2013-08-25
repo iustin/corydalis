@@ -8,3 +8,8 @@ The repository contains #{allpics} images, out of which:
     <li>#{unprocessed} <a href=@{UnprocessedR}>unprocessed</a> RAW files.
   $if standalone > 0
     <li>#{standalone} standalone JPEGs.
+
+The repository is split across #{numfolders} folders, classified as follows:
+<ul>
+  $forall (fc, count) <- fstats
+    <li>#{count} folders of type '#{fcName fc}': folder #{fcDescription fc}
