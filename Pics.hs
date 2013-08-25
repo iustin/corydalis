@@ -3,12 +3,16 @@ module Pics ( Config
             , PicDir(..)
             , Image(..)
             , scanAll
+            , isProcessed
+            , isUnprocessed
+            , isStandalone
             , computeUnprocessedDirs
             , computeStandaloneDirs
             , numPics
             , numRawPics
             , numUnprocessedPics
             , numStandalonePics
+            , numProcessedPics
             , totalPics
             , totalUnprocessedPics
             , totalProcessedPics
@@ -149,6 +153,13 @@ computeUnprocessedPics =
 
 numUnprocessedPics :: PicDir -> Int
 numUnprocessedPics = length . computeUnprocessedPics
+
+computeProcessedPics :: PicDir -> [Image]
+computeProcessedPics =
+  filter isProcessed . Map.elems . pdImages
+
+numProcessedPics :: PicDir -> Int
+numProcessedPics = length . computeProcessedPics
 
 hasUnprocessedPics :: PicDir -> Bool
 hasUnprocessedPics =

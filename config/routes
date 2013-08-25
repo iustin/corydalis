@@ -5,3 +5,4 @@
 
 / HomeR GET
 /unprocessed UnprocessedR GET
+/folder/#String FolderR GET

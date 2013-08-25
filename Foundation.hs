@@ -144,3 +144,5 @@ instance YesodBreadcrumbs App where
   breadcrumb RobotsR = return ("Robots", Nothing)
   breadcrumb HomeR = return ("Home", Nothing)
   breadcrumb UnprocessedR = return ("Unprocessed NEFs", Just HomeR)
+  breadcrumb (FolderR name) = return (Data.Text.pack $ "Folder " ++ name,
+                                      Just HomeR)

@@ -1,0 +1,47 @@
+<h1>Folder #{name}
+
+$case pdPaths dir
+  $of []
+    This folder has no backing folder (this is an error!)
+  $of [single]
+    This folder is backed by the single directory:
+    <ul>
+      <li>#{single}
+  $of _
+    This folder is backed up by the following directories:
+    <ul>
+      $forall path <- pdPaths dir
+        <li>#{path}
+
+Picture contents:
+<ul>
+  $if numProcessedPics dir > 0
+    <li>#{numProcessedPics dir} fully processed pics
+  $if numUnprocessedPics dir > 0
+    <li>#{numUnprocessedPics dir} raw pictures still awaiting processing
+  $if numStandalonePics dir > 0
+    <li>#{numStandalonePics dir} final files without a source raw file.
+
+Picture list:
+
+ <div style="width: 90%; margin-left: auto; margin-right: auto">
+  <table id="folder" class="tablesorter">
+    <thead>
+      <tr>
+        <th>Name
+        <th>Type
+    <tbody>
+      $forall img <- pdImages dir
+        <tr>
+          <td>#{imgName img}
+          <td>
+            $case (isProcessed img, isUnprocessed img, isStandalone img)
+              $of (True, _, _)
+                processed
+              $of (_, True, _)
+                unprocessed
+              $of (_, _, True)
+                standalone
+              $of (False, False, False)
+                (internal error)
+    <tfoot>

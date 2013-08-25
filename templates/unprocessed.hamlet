@@ -16,7 +16,7 @@ $else
     <tbody>
       $forall (n, lp, tp) <- npairs
         <tr>
-          <td>#{pdName n}
+          <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
           <td>
             $case pdPaths n
               $of []
