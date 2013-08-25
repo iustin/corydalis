@@ -227,7 +227,8 @@ loadDir config name path = do
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
-      images = map (\f -> let (_, fname) = splitFileName f
+      images = catMaybes $
+               map (\f -> let (_, fname) = splitFileName f
                               base = dropExtensions fname
                               f' = reverse f
                               nfp = if hasExts f' rawe
@@ -239,7 +240,9 @@ loadDir config name path = do
                               jpe = if hasExts f' jpeg
                                       then Just f
                                       else Nothing
-                          in (base, Image base name nfp sdc jpe)
+                          in case (nfp, jpe) of
+                               (Nothing, Nothing) -> Nothing
+                               _ -> Just (base, Image base name nfp sdc jpe)
                    ) contents
   return $ PicDir name [path] (Map.fromListWith mergePictures images)
 
