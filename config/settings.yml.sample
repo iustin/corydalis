@@ -1,11 +1,19 @@
+# -*- yaml -*-
+
 Default: &defaults
   host: "*4" # any IPv4 host
   port: 3000
   approot: "http://localhost:3000"
   copyright: Insert copyright statement here
   javascripturl: "http://localhost/javascript/"
-  rawdir: "/raw/"
-  jpegdir: "/jpegs/"
+  config:
+    dirs: ["/pics"]
+    blacklisteddirs: [".thumbnails"]
+    rawexts: ["nef"]
+    jpegexts: ["jpg", "jpeg"]
+    sidecarexts: ["xmp"]
+    otherexts: ["png"]
+    dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
 
 Development:
   <<: *defaults

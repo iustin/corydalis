@@ -48,8 +48,7 @@ instance FromJSON Regex where
   parseJSON _ = mzero
 
 data Config = Config
-    { cfgRawBase         :: FilePath
-    , cfgJpegBase        :: FilePath
+    { cfgDirs            :: [FilePath]
     , cfgBlacklistedDirs :: [FilePath]
     , cfgRawExts         :: [FilePath]
     , cfgJpegExts        :: [FilePath]
@@ -61,8 +60,7 @@ data Config = Config
 instance FromJSON Config where
   parseJSON (Object v) =
     Config <$>
-         v .: "rawbase" <*>
-         v .: "jpegbase" <*>
+         v .: "dirs" <*>
          v .: "blacklisteddirs" <*>
          v .: "rawexts" <*>
          v .: "jpegexts" <*>
@@ -242,8 +240,7 @@ numRawPics = length . computeRawPics
 
 scanAll :: Config -> IO (Map.Map String PicDir)
 scanAll config = do
-  foldM (\r d -> scanDir config r d) Map.empty
-          [cfgRawBase config, cfgJpegBase config]
+  foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
 
 computeUnprocessedDirs :: Repository -> [PicDir]
 computeUnprocessedDirs =
