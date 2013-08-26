@@ -26,8 +26,12 @@ $else
                 #{last $ pdPaths n}
           <td class="number">#{numRawPics n}
           <td class="number">#{numUnprocessedPics n}
-          <td class="number">#{lp}
-          <td class="number">#{tp}
+          <td class="number">
+            $maybe jlp <- lp
+              #{jlp}
+          <td class="number">
+            $maybe jtp <- tp
+              #{jtp}
     <tfoot>
       <tr>
        <td colspan=2>Total unprocessed NEFs

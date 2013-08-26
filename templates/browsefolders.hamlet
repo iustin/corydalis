@@ -1,0 +1,44 @@
+<h1>Browsing folders of type #{kinds_string}
+
+$if null folders
+  <p>No folders found that match the requested types
+$else
+ <div style="width: 90%; margin-left: auto; margin-right: auto">
+  <table id="folderlist" class="tablesorter">
+    <thead>
+      <tr>
+        <th>Name
+        <th>Path
+        <th>Images
+        <th>Unprocessed
+        <th>U. %
+        <th>Standalone
+        <th>Processed
+    <tbody>
+      $forall (n, lp) <- npairs
+        <tr>
+          <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
+          <td>
+            $case pdPaths n
+              $of []
+              $of _
+                $forall path <- init $ pdPaths n
+                 #{path}<br />
+                #{last $ pdPaths n}
+          <td class="number">#{numPics n}
+          <td class="number">#{numUnprocessedPics n}
+          <td class="number">
+            $maybe prc <- lp
+              #{prc}
+          <td class="number">#{numStandalonePics n}
+          <td class="number">#{numProcessedPics n}
+    <tfoot>
+      <tr>
+       <td colspan=2>Total files
+       <td class="number">#{allpics}
+       <td class="number">#{allunproc}
+       <td class="number">
+         $maybe tprc <- tp
+           #{tprc}
+       <td class="number">#{allstandalone}
+       <td class="number">#{allprocessed}

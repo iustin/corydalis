@@ -9,8 +9,11 @@ import qualified Data.Map as Map
 import qualified Data.Text as T
 import Text.Printf
 
-formatPercent :: Double -> String
-formatPercent = printf "%.02f"
+-- | Formats a double as a percent value. NaN values are transformed
+-- into a Nothing.
+formatPercent :: Double -> Maybe String
+formatPercent v | isNaN v = Nothing
+                | otherwise = Just $ printf "%.02f" v
 
 fcName :: FolderClass -> Text
 fcName FolderRaw = "raw"
@@ -74,18 +77,23 @@ getFolderR name = do
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
 getBrowseFoldersR kinds = do
+  let kinds_string = T.intercalate "," . map fcName $ kinds
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
   let folders = filterDirsByClass kinds pics
-      unprocessed = folders
-      allnefs = totalUnprocessedPics pics
-      allnefs' = fromIntegral allnefs::Double
+      allpics = sum . map numPics $ folders
+      allraws = sum . map numRawPics $ folders
+      allunproc = sum . map numUnprocessedPics $ folders
+      allunproc' = fromIntegral allunproc::Double
+      allprocessed = sum . map numProcessedPics $ folders
+      allstandalone = sum . map numStandalonePics $ folders
+      tp = formatPercent $
+           (fromIntegral allunproc) * 100 / fromIntegral allpics
       npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
                               numraw = fromIntegral (numRawPics n)
-                          in (n,
-                              formatPercent $ unproc * 100 / numraw,
-                              formatPercent $ unproc * 100 / allnefs'))
+                          in (n, formatPercent $ unproc * 100 / numraw))
                folders
   defaultLayout $ do
-    setTitle "<PicMan>"
-    $(widgetFile "unprocessed")
+    setTitle . toHtml $
+      "PicMan: browsing folders of type " `T.append` kinds_string
+    $(widgetFile "browsefolders")
