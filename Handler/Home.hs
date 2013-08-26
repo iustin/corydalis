@@ -59,7 +59,7 @@ getFolderR name = do
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
 getBrowseFoldersR kinds = do
-  let kinds_string = T.intercalate "," . map fcName $ kinds
+  let kinds_string = T.intercalate ", " . map fcName $ kinds
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
   let folders = filterDirsByClass kinds pics
