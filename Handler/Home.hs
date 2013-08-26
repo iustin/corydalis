@@ -66,7 +66,6 @@ getBrowseFoldersR kinds = do
       allpics = sum . map numPics $ folders
       allraws = sum . map numRawPics $ folders
       allunproc = sum . map numUnprocessedPics $ folders
-      allunproc' = fromIntegral allunproc::Double
       allprocessed = sum . map numProcessedPics $ folders
       allstandalone = sum . map numStandalonePics $ folders
       tp = formatPercent $
