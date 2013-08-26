@@ -70,3 +70,21 @@ getFolderR name = do
     Just dir -> defaultLayout $ do
       setTitle . toHtml $ "PicMan: folder " ++ name
       $(widgetFile "folder")
+
+getBrowseFoldersR :: [FolderClass] -> Handler Html
+getBrowseFoldersR kinds = do
+  config <- extraConfig `fmap` getExtra
+  pics <- liftIO $ scanAll config
+  let folders = filterDirsByClass kinds pics
+      unprocessed = folders
+      allnefs = totalUnprocessedPics pics
+      allnefs' = fromIntegral allnefs::Double
+      npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
+                              numraw = fromIntegral (numRawPics n)
+                          in (n,
+                              formatPercent $ unproc * 100 / numraw,
+                              formatPercent $ unproc * 100 / allnefs'))
+               folders
+  defaultLayout $ do
+    setTitle "<PicMan>"
+    $(widgetFile "unprocessed")

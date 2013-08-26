@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Foundation where
 
 import Prelude
@@ -15,7 +17,29 @@ import Text.Jasmine (minifym)
 import Web.ClientSession (getKey)
 import Text.Hamlet (hamletFile)
 import System.Log.FastLogger (Logger)
-import qualified Data.Text (pack)
+import qualified Data.Text as T
+import Pics (FolderClass(..))
+
+-- | Custom yesod instance for FolderClass. This really could use some TH.
+instance PathPiece FolderClass where
+  toPathPiece FolderEmpty       = "empty"
+  toPathPiece FolderRaw         = "raw"
+  toPathPiece FolderStandalone  = "standalone"
+  toPathPiece FolderUnprocessed = "unprocessed"
+  toPathPiece FolderProcessed   = "processed"
+  toPathPiece FolderMixed       = "mixed"
+  fromPathPiece "empty"       = Just FolderEmpty
+  fromPathPiece "raw"         = Just FolderRaw
+  fromPathPiece "standalone"  = Just FolderStandalone
+  fromPathPiece "unprocessed" = Just FolderUnprocessed
+  fromPathPiece "processed"   = Just FolderProcessed
+  fromPathPiece "mixed"       = Just FolderMixed
+  fromPathPiece _             = Nothing
+
+-- | Custom Path piece instance for [FolderClass].
+instance PathPiece [FolderClass] where
+  toPathPiece = T.intercalate "+" . map toPathPiece
+  fromPathPiece = mapM fromPathPiece . T.split (=='+')
 
 -- | The site argument for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -79,7 +103,7 @@ instance Yesod App where
         -- you to use normal widget features in default-layout.
 
         extra <- getExtra
-        let add f path = f $ Data.Text.pack $ extraJSUrl extra ++ path
+        let add f path = f $ T.pack $ extraJSUrl extra ++ path
 
         pc <- widgetToPageContent $ do
           add addScriptRemote "jquery/jquery.js"
@@ -144,5 +168,7 @@ instance YesodBreadcrumbs App where
   breadcrumb RobotsR = return ("Robots", Nothing)
   breadcrumb HomeR = return ("Home", Nothing)
   breadcrumb UnprocessedR = return ("Unprocessed NEFs", Just HomeR)
-  breadcrumb (FolderR name) = return (Data.Text.pack $ "Folder " ++ name,
+  breadcrumb (FolderR name) = return (T.pack $ "Folder " ++ name,
                                       Just HomeR)
+  breadcrumb (BrowseFoldersR kind) =
+    return (T.pack $ "Browsing folders of type " ++ show kind, Just HomeR)

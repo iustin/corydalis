@@ -21,6 +21,7 @@ module Pics ( Config
             , totalProcessedPics
             , totalRawPics
             , totalStandalonePics
+            , filterDirsByClass
             ) where
 
 --import Import
@@ -131,7 +132,7 @@ data FolderClass = FolderEmpty
                  | FolderUnprocessed
                  | FolderProcessed
                  | FolderMixed
-                   deriving (Eq, Ord)
+                   deriving (Show, Read, Eq, Ord)
 
 mergePictures :: Image -> Image -> Image
 mergePictures x y =
@@ -324,4 +325,9 @@ computeFolderStats :: Repository -> Map.Map FolderClass Int
 computeFolderStats =
   Map.fromListWith (+) .
   map ((, 1) . folderClass) .
+  Map.elems
+
+filterDirsByClass :: [FolderClass] -> Repository -> [PicDir]
+filterDirsByClass classes =
+  filter ((`elem` classes) . folderClass) .
   Map.elems
