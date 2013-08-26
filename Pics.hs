@@ -133,7 +133,7 @@ data FolderClass = FolderEmpty
                  | FolderUnprocessed
                  | FolderProcessed
                  | FolderMixed
-                   deriving (Show, Read, Eq, Ord)
+                   deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 mergePictures :: Image -> Image -> Image
 mergePictures x y =
