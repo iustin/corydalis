@@ -7,11 +7,11 @@ $else
   <table id="folderlist" class="tablesorter">
     <thead>
       <tr>
-        <th>Name
-        <th>Path
+        <th class="{sorter: 'text'}">Name
+        <th class="{sorter: 'text'}">Path
         <th>Images
         <th>Unprocessed
-        <th>U. %
+        <th class="{sorter: 'procent'}">U. %
         <th>Standalone
         <th>Processed
     <tbody>
