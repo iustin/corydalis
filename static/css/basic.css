@@ -1,3 +1,7 @@
 td.number {
     text-align: right
 }
+
+body {
+    padding: 5px;
+}
