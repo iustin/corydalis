@@ -37,7 +37,6 @@ getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
   let allpics = totalPics pics
-      allnefs = totalRawPics pics
       standalone = totalStandalonePics pics
       unprocessed = totalUnprocessedPics pics
       processed = totalProcessedPics pics
