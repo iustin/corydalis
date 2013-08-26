@@ -39,8 +39,8 @@ instance PathPiece FolderClass where
 
 -- | Custom Path piece instance for [FolderClass].
 instance PathPiece [FolderClass] where
-  toPathPiece = T.intercalate "+" . map toPathPiece
-  fromPathPiece = mapM fromPathPiece . T.split (=='+')
+  toPathPiece = T.intercalate "," . map toPathPiece
+  fromPathPiece = mapM fromPathPiece . T.split (==',')
 
 -- | The site argument for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
