@@ -209,14 +209,15 @@ folderClass dir =
       has_unproc = unproc /= 0
       has_standalone = numStandalonePics dir /= 0
       all_unproc = unproc == npics
-      conditions = (has_pics, all_unproc, has_unproc, has_standalone)
+      has_raw = numRawPics dir /= 0
+      conditions = (has_pics, all_unproc, has_unproc, has_standalone, has_raw)
   in case conditions of
-       (False, _   , _    , _    ) -> FolderEmpty
-       (True, True , True , False) -> FolderRaw
-       (True, False, True , False) -> FolderUnprocessed
-       (True, False, False, True ) -> FolderStandalone
-       (True, False, True , True ) -> FolderMixed
-       (True, False, False, False) -> FolderProcessed
+       (False, _   , _    , _    , _    ) -> FolderEmpty
+       (True, True , True , False, _    ) -> FolderRaw
+       (True, False, True , False, _    ) -> FolderUnprocessed
+       (True, False, False, True , False) -> FolderStandalone
+       (True, False, _    , True , True ) -> FolderMixed
+       (True, False, False, False, _    ) -> FolderProcessed
        _ -> error $ "Wrong computation in folderClass: " ++ show conditions
 
 getDownContents :: Config -> FilePath -> IO [FilePath]

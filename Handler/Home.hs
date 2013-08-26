@@ -21,7 +21,7 @@ fcName FolderStandalone = "standalone"
 fcName FolderUnprocessed = "not fully processed"
 fcName FolderProcessed = "fully processed"
 fcName FolderEmpty = "empty"
-fcName FolderMixed = "desynchronised"
+fcName FolderMixed = "mixed"
 
 fcDescription :: FolderClass -> Text
 fcDescription FolderRaw = "contains only RAW files"
@@ -29,8 +29,8 @@ fcDescription FolderStandalone = "contains only files without a RAW format"
 fcDescription FolderUnprocessed = "contains RAW files and some processed files"
 fcDescription FolderProcessed = "contains RAW files, all processed"
 fcDescription FolderEmpty = "contains no image files"
-fcDescription FolderMixed = "contains both unprocessed RAW files and\
-                            \ files without RAW storage (unexpected)"
+fcDescription FolderMixed = "contains both RAW files (either processed or\
+                            \ not) and files without RAW storage"
 
 getHomeR :: Handler Html
 getHomeR = do
