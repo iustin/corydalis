@@ -1,5 +1,0 @@
-$(document).ready(function() {
-  $("#unprocessed").tablesorter({
-        sortList: [[3,1]]
-    });
-});

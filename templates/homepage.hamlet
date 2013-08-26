@@ -5,11 +5,12 @@ The repository contains #{allpics} images, out of which:
   $if processed > 0
     <li>#{processed} fully processed images backed by RAW files.
   $if unprocessed > 0
-    <li>#{unprocessed} <a href=@{UnprocessedR}>unprocessed</a> RAW files.
+    <li>#{unprocessed} <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>unprocessed</a> RAW files.
   $if standalone > 0
     <li>#{standalone} standalone JPEGs.
 
 The repository is split across #{numfolders} folders, classified as follows:
 <ul>
   $forall (fc, count) <- fstats
-    <li>#{count} folders of type '#{fcName fc}': folder #{fcDescription fc}
+    $with fclist <- [fc]
+      <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}

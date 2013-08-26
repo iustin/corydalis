@@ -47,24 +47,6 @@ getHomeR = do
     setTitle "<PicMan>"
     $(widgetFile "homepage")
 
-getUnprocessedR :: Handler Html
-getUnprocessedR = do
-  config <- extraConfig `fmap` getExtra
-  pics <- liftIO $ scanAll config
-  let unprocessed = computeUnprocessedDirs pics
-      allnefs = totalUnprocessedPics pics
-      allnefs' = fromIntegral allnefs::Double
-      npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
-                              numraw = fromIntegral (numRawPics n)
-                          in (n,
-                              formatPercent $ unproc * 100 / numraw,
-                              formatPercent $ unproc * 100 / allnefs'))
-               unprocessed
-  let handlerName = "getHomeR" :: Text
-  defaultLayout $ do
-    setTitle "<PicMan>"
-    $(widgetFile "unprocessed")
-
 getFolderR :: Text -> Handler Html
 getFolderR name = do
   config <- extraConfig `fmap` getExtra

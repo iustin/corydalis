@@ -4,6 +4,5 @@
 /robots.txt RobotsR GET
 
 / HomeR GET
-/unprocessed UnprocessedR GET
 /folder/#Text FolderR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET

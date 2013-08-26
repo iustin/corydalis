@@ -168,7 +168,6 @@ instance YesodBreadcrumbs App where
   breadcrumb FaviconR = return ("Favicon", Nothing)
   breadcrumb RobotsR = return ("Robots", Nothing)
   breadcrumb HomeR = return ("Home", Nothing)
-  breadcrumb UnprocessedR = return ("Unprocessed NEFs", Just HomeR)
   breadcrumb (FolderR name) = return ("Folder " `T.append` name,
                                       Just HomeR)
   breadcrumb (BrowseFoldersR kind) =
