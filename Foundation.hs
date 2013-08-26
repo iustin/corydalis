@@ -172,4 +172,5 @@ instance YesodBreadcrumbs App where
   breadcrumb (FolderR name) = return ("Folder " `T.append` name,
                                       Just HomeR)
   breadcrumb (BrowseFoldersR kind) =
-    return (T.pack $ "Browsing folders of type " ++ show kind, Just HomeR)
+    return ("Browsing folders of type " `T.append`
+            T.intercalate ", " (map toPathPiece kind), Just HomeR)
