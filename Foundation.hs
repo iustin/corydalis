@@ -18,6 +18,7 @@ import Web.ClientSession (getKey)
 import Text.Hamlet (hamletFile)
 import System.Log.FastLogger (Logger)
 import qualified Data.Text as T
+import Data.Text (Text)
 import Pics (FolderClass(..))
 
 -- | Custom yesod instance for FolderClass. This really could use some TH.
@@ -168,7 +169,7 @@ instance YesodBreadcrumbs App where
   breadcrumb RobotsR = return ("Robots", Nothing)
   breadcrumb HomeR = return ("Home", Nothing)
   breadcrumb UnprocessedR = return ("Unprocessed NEFs", Just HomeR)
-  breadcrumb (FolderR name) = return (T.pack $ "Folder " ++ name,
+  breadcrumb (FolderR name) = return ("Folder " `T.append` name,
                                       Just HomeR)
   breadcrumb (BrowseFoldersR kind) =
     return (T.pack $ "Browsing folders of type " ++ show kind, Just HomeR)

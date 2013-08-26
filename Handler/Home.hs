@@ -6,6 +6,7 @@ import Pics
 
 import Data.List
 import qualified Data.Map as Map
+import qualified Data.Text as T
 import Text.Printf
 
 formatPercent :: Double -> String
@@ -61,14 +62,14 @@ getUnprocessedR = do
     setTitle "<PicMan>"
     $(widgetFile "unprocessed")
 
-getFolderR :: String -> Handler Html
+getFolderR :: Text -> Handler Html
 getFolderR name = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
   case Map.lookup name pics of
     Nothing -> notFound
     Just dir -> defaultLayout $ do
-      setTitle . toHtml $ "PicMan: folder " ++ name
+      setTitle . toHtml $ "PicMan: folder " `T.append` name
       $(widgetFile "folder")
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html

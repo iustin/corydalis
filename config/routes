@@ -5,5 +5,5 @@
 
 / HomeR GET
 /unprocessed UnprocessedR GET
-/folder/#String FolderR GET
+/folder/#Text FolderR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET

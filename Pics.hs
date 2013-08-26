@@ -28,7 +28,8 @@ module Pics ( Config
 import Prelude
 import Control.Applicative ((<$>), (<*>))
 import Data.Aeson
-import qualified Data.Text as Text
+import qualified Data.Text as T
+import Data.Text (Text)
 
 import Control.Monad
 import qualified Data.Map as Map
@@ -49,7 +50,7 @@ instance Show Regex where
 
 instance FromJSON Regex where
   parseJSON (String txt) =
-    let str = Text.unpack txt
+    let str = T.unpack txt
     in case PCRE.makeRegexM str of
          Nothing -> mzero
          Just r -> return $ Regex str r
@@ -111,20 +112,20 @@ isOKDir :: Config -> String -> Bool
 isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 
 data Image = Image
-    { imgName        :: String
-    , imgParent      :: String
-    , imgRawPath     :: Maybe FilePath
-    , imgSidecarPath :: Maybe FilePath
-    , imgJpegPath    :: Maybe FilePath
+    { imgName        :: Text
+    , imgParent      :: Text
+    , imgRawPath     :: Maybe Text
+    , imgSidecarPath :: Maybe Text
+    , imgJpegPath    :: Maybe Text
     }
 
 data PicDir = PicDir
-  { pdName :: String
-  , pdPaths :: [FilePath]
-  , pdImages :: Map.Map String Image
+  { pdName   :: Text
+  , pdPaths  :: [Text]
+  , pdImages :: Map.Map Text Image
   }
 
-type Repository = Map.Map String PicDir
+type Repository = Map.Map Text PicDir
 
 data FolderClass = FolderEmpty
                  | FolderRaw
@@ -268,26 +269,29 @@ loadDir config name path = do
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
+      tname = T.pack name
       images = catMaybes $
                map (\f -> let (_, fname) = splitFileName f
                               base = dropExtensions fname
+                              tbase = T.pack base
                               f' = reverse f
+                              tf = T.pack f
                               nfp = if hasExts f' rawe
-                                      then Just f
+                                      then Just tf
                                       else Nothing
                               sdc = if hasExts f' side
-                                      then Just f
+                                      then Just tf
                                       else Nothing
                               jpe = if hasExts f' jpeg
-                                      then Just f
+                                      then Just tf
                                       else Nothing
                           in case (nfp, jpe) of
                                (Nothing, Nothing) -> Nothing
-                               _ -> Just (base, Image base name nfp sdc jpe)
+                               _ -> Just (tbase, Image tbase tname nfp sdc jpe)
                    ) contents
-  return $ PicDir name [path] (Map.fromListWith mergePictures images)
+  return $ PicDir tname [T.pack path] (Map.fromListWith mergePictures images)
 
-scanAll :: Config -> IO (Map.Map String PicDir)
+scanAll :: Config -> IO Repository
 scanAll config = do
   foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
 
