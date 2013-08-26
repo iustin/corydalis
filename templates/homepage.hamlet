@@ -9,7 +9,7 @@ The repository contains #{allpics} images, out of which:
   $if standalone > 0
     <li>#{standalone} standalone JPEGs.
 
-The repository is split across #{numfolders} folders, classified as follows:
+The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
 <ul>
   $forall (fc, count) <- fstats
     $with fclist <- [fc]

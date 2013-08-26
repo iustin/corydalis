@@ -43,8 +43,9 @@ getHomeR = do
       processed = totalProcessedPics pics
       fstats = Map.toAscList $ computeFolderStats pics
       numfolders = length $ Map.elems pics
+      all_fc = [minBound..maxBound]
   defaultLayout $ do
-    setTitle "<PicMan>"
+    setTitle "PicMan: home"
     $(widgetFile "homepage")
 
 getFolderR :: Text -> Handler Html
