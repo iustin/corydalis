@@ -3,6 +3,8 @@
 $if null folders
   <p>No folders found that match the requested types
 $else
+ <p>The selected filter matches #{length folders} entries.
+
  <div style="width: 90%; margin-left: auto; margin-right: auto">
   <table id="folderlist" class="tablesorter">
     <thead>
