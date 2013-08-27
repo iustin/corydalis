@@ -24,7 +24,7 @@ $newline never
           document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/,'js');
     <body>
         <nav #breadcrumbs>
-          <span>
+          <span class="breadcrumbs">
             You are here: #
           $forall bc <- parents
               <span>

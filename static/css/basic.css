@@ -5,3 +5,7 @@ td.number {
 body {
     padding: 5px;
 }
+
+span.breadcrumbs {
+    font-style: italic;
+}
