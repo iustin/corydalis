@@ -48,10 +48,10 @@ instance PathPiece [FolderClass] where
 -- starts running, such as database connections. Every handler will have
 -- access to the data present here.
 data App = App
-    { settings :: AppConfig DefaultEnv Extra
-    , getStatic :: Static -- ^ Settings for static file serving.
+    { settings    :: AppConfig DefaultEnv Extra
+    , getStatic   :: Static -- ^ Settings for static file serving.
     , httpManager :: Manager
-    , appLogger :: Logger
+    , appLogger   :: Logger
     }
 
 -- Set up i18n messages. See the message folder.
@@ -165,10 +165,10 @@ getExtra = fmap (appExtra . settings) getYesod
 -- https://github.com/yesodweb/yesod/wiki/Sending-email
 
 instance YesodBreadcrumbs App where
-  breadcrumb (StaticR _) = return ("Static route", Nothing)
-  breadcrumb FaviconR = return ("Favicon", Nothing)
-  breadcrumb RobotsR = return ("Robots", Nothing)
-  breadcrumb HomeR = return ("Home", Nothing)
+  breadcrumb (StaticR _)    = return ("Static route" , Nothing)
+  breadcrumb FaviconR       = return ("Favicon"      , Nothing)
+  breadcrumb RobotsR        = return ("Robots"       , Nothing)
+  breadcrumb HomeR          = return ("Home"         , Nothing)
   breadcrumb (FolderR name) = return ("Folder " `T.append` name,
                                       Just HomeR)
   breadcrumb (BrowseFoldersR kind) =
