@@ -27,9 +27,11 @@ module Pics ( Config
 --import Import
 import Prelude
 import Control.Applicative ((<$>), (<*>))
+import Control.Concurrent.MVar
 import Data.Aeson
 import qualified Data.Text as T
 import Data.Text (Text)
+import System.IO.Unsafe
 
 import Control.Monad
 import qualified Data.Map as Map
@@ -126,6 +128,10 @@ data PicDir = PicDir
   }
 
 type Repository = Map.Map Text PicDir
+
+{-# NOINLINE repoCache #-}
+repoCache :: MVar (Maybe Repository)
+repoCache = unsafePerformIO $ newMVar Nothing
 
 data FolderClass = FolderEmpty
                  | FolderRaw
@@ -292,9 +298,21 @@ loadDir config name path = do
                    ) contents
   return $ PicDir tname [T.pack path] (Map.fromListWith mergePictures images)
 
+scanFilesystem :: Config -> IO Repository
+scanFilesystem config = do
+  foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
+
+maybeUpdateCache :: Config
+                 -> Maybe Repository
+                 -> IO (Maybe Repository, Repository)
+maybeUpdateCache config Nothing = do
+  r <- scanFilesystem config
+  return (Just r, r)
+maybeUpdateCache _ orig@(Just r) = return (orig, r)
+
 scanAll :: Config -> IO Repository
 scanAll config = do
-  foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
+  modifyMVar repoCache (maybeUpdateCache config)
 
 computeUnprocessedDirs :: Repository -> [PicDir]
 computeUnprocessedDirs =
