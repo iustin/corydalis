@@ -18,11 +18,13 @@ MAIN = app/main.hs
 
 standard:
 	ghc $(EXTENSIONS) $(FLAGS) --make $(MAIN)
+	@echo done
 
 profiling:
 	ghc $(EXTENSIONS) $(FLAGS) \
 	  -osuf prof_o -prof -auto-all \
 	  --make \
 	  $(MAIN)
+	@echo done
 
 .PHONY: standard profiling
