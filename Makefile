@@ -28,4 +28,10 @@ profiling:
 	  $(MAIN)
 	@echo done
 
-.PHONY: standard profiling
+%.ps: %.hp
+	hp2ps -c $<
+
+view: main.ps
+	gv -orientation seascape $<
+
+.PHONY: standard profiling view
