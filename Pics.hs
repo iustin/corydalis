@@ -131,7 +131,8 @@ computeUnprocessedPics =
 
 numPicsOfType :: (Image -> Bool) -> PicDir -> Int
 numPicsOfType criterion =
-  Map.foldl (\a i -> if criterion i then a + 1 else a) 0 . pdImages
+  Map.foldl go 0 . pdImages
+    where go a i = if criterion i then a + 1 else a
 
 numUnprocessedPics :: PicDir -> Int
 numUnprocessedPics = numPicsOfType isUnprocessed
