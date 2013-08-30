@@ -37,11 +37,9 @@ getHomeR :: Handler Html
 getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  let allpics = totalPics pics
-      standalone = totalStandalonePics pics
-      unprocessed = totalUnprocessedPics pics
-      processed = totalProcessedPics pics
-      fstats = Map.toAscList $ computeFolderStats pics
+  let ((Stats unprocessed standalone processed), fcm) = computeRepoStats pics
+      allpics = unprocessed + standalone + processed
+      fstats = Map.toAscList fcm
       numfolders = Map.size pics
       all_fc = [minBound..maxBound]
   defaultLayout $ do

@@ -14,12 +14,9 @@ module Pics ( PicDir(..)
             , numUnprocessedPics
             , numStandalonePics
             , numProcessedPics
-            , totalPics
-            , totalUnprocessedPics
-            , totalProcessedPics
-            , totalRawPics
-            , totalStandalonePics
             , filterDirsByClass
+            , computeRepoStats
+            , Stats(..)
             ) where
 
 import Types
@@ -89,6 +86,48 @@ data PicDir = PicDir
   }
 
 type Repository = Map.Map Text PicDir
+
+type FolderClassStats = Map.Map FolderClass Int
+
+-- | Data type holding per-folder picture statistics.
+data Stats = Stats
+  { sRaw        :: !Int
+  , sStandalone :: !Int
+  , sProcessed  :: !Int
+  }
+
+-- | The empty (zero) stats.
+zeroStats :: Stats
+zeroStats = Stats 0 0 0
+
+sumStats :: Stats -> Stats -> Stats
+sumStats (Stats r1 s1 p1) (Stats r2 s2 p2) =
+  Stats (r1 + r2) (s1 + s2) (p1 + p2)
+
+updateStatsWithPic :: Stats -> Image -> Stats
+updateStatsWithPic orig img =
+  case () of
+    _ | isUnprocessed img -> orig { sRaw = sRaw orig + 1 }
+      | isStandalone img -> orig { sStandalone = sStandalone orig + 1 }
+      | isProcessed img -> orig { sProcessed = sProcessed orig + 1 }
+      | otherwise -> error "Picture type handling error"
+
+computeFolderStats :: PicDir -> Stats
+computeFolderStats =
+  Map.foldl' updateStatsWithPic zeroStats . pdImages
+
+data StrictPair a b = StrictPair !a !b
+
+computeRepoStats :: Repository -> (Stats, FolderClassStats)
+computeRepoStats =
+  (\(StrictPair a b) -> (a, b)) .
+  Map.foldl' (\(StrictPair picstats fcstats) dir ->
+                let stats = computeFolderStats dir
+                    fc = folderClassFromStats stats
+                    picstats' = sumStats picstats stats
+                    fcstats' = Map.insertWith (+) fc 1 fcstats
+                in StrictPair picstats' fcstats'
+             ) (StrictPair zeroStats Map.empty)
 
 {-# NOINLINE repoCache #-}
 repoCache :: MVar (Maybe Repository)
@@ -164,14 +203,16 @@ hasStandalonePics =
   not . null . computeStandalonePics
 
 folderClass :: PicDir -> FolderClass
-folderClass dir =
-  let npics = numPics dir
+folderClass = folderClassFromStats . computeFolderStats
+
+folderClassFromStats :: Stats -> FolderClass
+folderClassFromStats (Stats unproc standalone processed) =
+  let npics = unproc + standalone + processed
       has_pics = npics /= 0
-      unproc = numUnprocessedPics dir
       has_unproc = unproc /= 0
-      has_standalone = numStandalonePics dir /= 0
+      has_standalone = standalone /= 0
       all_unproc = unproc == npics
-      has_raw = numRawPics dir /= 0
+      has_raw = unproc /= 0 || processed /= 0
       conditions = (has_pics, all_unproc, has_unproc, has_standalone, has_raw)
   in case conditions of
        (False, _   , _    , _    , _    ) -> FolderEmpty
@@ -286,33 +327,6 @@ computeUnprocessedDirs =
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =
   filter hasStandalonePics . Map.elems
-
-totalPicsOfType :: (Image -> Bool) -> Repository -> Int
-totalPicsOfType criterion =
-  Map.foldl (\a dir ->
-                 a + numPicsOfType criterion dir
-            ) 0
-
-totalPics :: Repository -> Int
-totalPics = totalPicsOfType (const True)
-
-totalRawPics :: Repository -> Int
-totalRawPics = totalPicsOfType (isJust . imgRawPath)
-
-totalUnprocessedPics :: Repository -> Int
-totalUnprocessedPics = totalPicsOfType isUnprocessed
-
-totalStandalonePics :: Repository -> Int
-totalStandalonePics = totalPicsOfType isStandalone
-
-totalProcessedPics :: Repository -> Int
-totalProcessedPics = totalPicsOfType isProcessed
-
-computeFolderStats :: Repository -> Map.Map FolderClass Int
-computeFolderStats =
-  Map.fromListWith (+) .
-  map ((, 1) . folderClass) .
-  Map.elems
 
 filterDirsByClass :: [FolderClass] -> Repository -> [PicDir]
 filterDirsByClass classes =
