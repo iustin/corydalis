@@ -20,6 +20,7 @@ library
                      Settings.Development
                      Handler.Home
                      Pics
+                     Types
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT

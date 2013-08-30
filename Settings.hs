@@ -16,7 +16,7 @@ import Control.Applicative
 import Settings.Development
 import Data.Default (def)
 import Text.Hamlet
-import Pics (Config)
+import Types (Config)
 
 -- Static setting below. Changing these requires a recompile
 

@@ -3,6 +3,7 @@ module Handler.Home where
 
 import Import
 import Pics
+import Types
 
 import Data.List
 import qualified Data.Map as Map

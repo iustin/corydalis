@@ -1,8 +1,6 @@
 {-# LANGUAGE TupleSections, OverloadedStrings #-}
-module Pics ( Config
-            , PicDir(..)
+module Pics ( PicDir(..)
             , Image(..)
-            , FolderClass(..)
             , scanAll
             , isProcessed
             , isUnprocessed
@@ -24,6 +22,8 @@ module Pics ( Config
             , filterDirsByClass
             ) where
 
+import Types
+
 --import Import
 import Prelude
 import Control.Applicative ((<$>), (<*>))
@@ -41,45 +41,6 @@ import System.Directory
 import System.FilePath
 import System.Posix.Files
 import qualified Text.Regex.PCRE as PCRE
-
-data Regex = Regex
-    { reString :: String
-    , reRegex  :: PCRE.Regex
-    }
-
-instance Show Regex where
-  show (Regex str _) = show str
-
-instance FromJSON Regex where
-  parseJSON (String txt) =
-    let str = T.unpack txt
-    in case PCRE.makeRegexM str of
-         Nothing -> mzero
-         Just r -> return $ Regex str r
-  parseJSON _ = mzero
-
-data Config = Config
-    { cfgDirs            :: [FilePath]
-    , cfgBlacklistedDirs :: [FilePath]
-    , cfgRawExts         :: [FilePath]
-    , cfgJpegExts        :: [FilePath]
-    , cfgSidecarExts     :: [FilePath]
-    , cfgOtherImgExts    :: [FilePath]
-    , cfgDirRegex        :: Regex
-    } deriving (Show)
-
-instance FromJSON Config where
-  parseJSON (Object v) =
-    Config <$>
-         v .: "dirs" <*>
-         v .: "blacklisteddirs" <*>
-         v .: "rawexts" <*>
-         v .: "jpegexts" <*>
-         v .: "sidecarexts" <*>
-         v .: "otherexts" <*>
-         v .: "dirregex"
-
-  parseJSON _ = mzero
 
 addRevDot :: [FilePath] -> [FilePath]
 addRevDot = map (reverse . ('.':))
@@ -132,14 +93,6 @@ type Repository = Map.Map Text PicDir
 {-# NOINLINE repoCache #-}
 repoCache :: MVar (Maybe Repository)
 repoCache = unsafePerformIO $ newMVar Nothing
-
-data FolderClass = FolderEmpty
-                 | FolderRaw
-                 | FolderStandalone
-                 | FolderUnprocessed
-                 | FolderProcessed
-                 | FolderMixed
-                   deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 mergePictures :: Image -> Image -> Image
 mergePictures x y =

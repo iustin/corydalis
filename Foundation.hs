@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Foundation where
 
 import Prelude
@@ -19,29 +17,7 @@ import Text.Hamlet (hamletFile)
 import System.Log.FastLogger (Logger)
 import qualified Data.Text as T
 import Data.Text (Text)
-import Pics (FolderClass(..))
-
--- | Custom yesod instance for FolderClass. This really could use some TH.
-instance PathPiece FolderClass where
-  toPathPiece FolderEmpty       = "empty"
-  toPathPiece FolderRaw         = "raw"
-  toPathPiece FolderStandalone  = "standalone"
-  toPathPiece FolderUnprocessed = "unprocessed"
-  toPathPiece FolderProcessed   = "processed"
-  toPathPiece FolderMixed       = "mixed"
-  fromPathPiece "empty"       = Just FolderEmpty
-  fromPathPiece "raw"         = Just FolderRaw
-  fromPathPiece "standalone"  = Just FolderStandalone
-  fromPathPiece "unprocessed" = Just FolderUnprocessed
-  fromPathPiece "processed"   = Just FolderProcessed
-  fromPathPiece "mixed"       = Just FolderMixed
-  fromPathPiece _             = Nothing
-
--- | Custom Path piece instance for [FolderClass].
-instance PathPiece [FolderClass] where
-  toPathPiece = T.intercalate "," . map toPathPiece
-  fromPathPiece "all" = Just [minBound..maxBound]
-  fromPathPiece v     = mapM fromPathPiece $ T.split (==',') v
+import Types (FolderClass(..))
 
 -- | The site argument for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
