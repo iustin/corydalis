@@ -159,8 +159,7 @@ computeRawPics =
   filter (isJust . imgRawPath) . Map.elems . pdImages
 
 numRawPics :: PicDir -> Int
-numRawPics =
-  length . computeRawPics
+numRawPics = numPicsOfType (isJust . imgRawPath)
 
 isUnprocessed :: Image -> Bool
 isUnprocessed (Image { imgRawPath = Just _, imgJpegPath = Nothing }) = True
@@ -177,15 +176,19 @@ computeUnprocessedPics :: PicDir -> [Image]
 computeUnprocessedPics =
   filter isUnprocessed . Map.elems . pdImages
 
+numPicsOfType :: (Image -> Bool) -> PicDir -> Int
+numPicsOfType criterion =
+  Map.foldl (\a i -> if criterion i then a + 1 else a) 0 . pdImages
+
 numUnprocessedPics :: PicDir -> Int
-numUnprocessedPics = length . computeUnprocessedPics
+numUnprocessedPics = numPicsOfType isUnprocessed
 
 computeProcessedPics :: PicDir -> [Image]
 computeProcessedPics =
   filter isProcessed . Map.elems . pdImages
 
 numProcessedPics :: PicDir -> Int
-numProcessedPics = length . computeProcessedPics
+numProcessedPics = numPicsOfType isProcessed
 
 hasUnprocessedPics :: PicDir -> Bool
 hasUnprocessedPics =
@@ -200,8 +203,7 @@ computeStandalonePics =
   filter isStandalone . Map.elems . pdImages
 
 numStandalonePics :: PicDir -> Int
-numStandalonePics =
-  length . computeStandalonePics
+numStandalonePics = numPicsOfType isStandalone
 
 hasStandalonePics :: PicDir -> Bool
 hasStandalonePics =
@@ -322,26 +324,25 @@ computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =
   filter hasStandalonePics . Map.elems
 
-totalPicsOfType :: (Image -> Bool) -> Repository -> Integer
-totalPicsOfType extractor =
-  Map.foldr (\dir a -> Map.foldr (\i a' -> if extractor i
-                                             then a' + 1
-                                             else a') a (pdImages dir)
+totalPicsOfType :: (Image -> Bool) -> Repository -> Int
+totalPicsOfType criterion =
+  Map.foldl (\a dir ->
+                 a + numPicsOfType criterion dir
             ) 0
 
-totalPics :: Repository -> Integer
+totalPics :: Repository -> Int
 totalPics = totalPicsOfType (const True)
 
-totalRawPics :: Repository -> Integer
+totalRawPics :: Repository -> Int
 totalRawPics = totalPicsOfType (isJust . imgRawPath)
 
-totalUnprocessedPics :: Repository -> Integer
+totalUnprocessedPics :: Repository -> Int
 totalUnprocessedPics = totalPicsOfType isUnprocessed
 
-totalStandalonePics :: Repository -> Integer
+totalStandalonePics :: Repository -> Int
 totalStandalonePics = totalPicsOfType isStandalone
 
-totalProcessedPics :: Repository -> Integer
+totalProcessedPics :: Repository -> Int
 totalProcessedPics = totalPicsOfType isProcessed
 
 computeFolderStats :: Repository -> Map.Map FolderClass Int
