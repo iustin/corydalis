@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections, OverloadedStrings #-}
+{-# LANGUAGE TupleSections, OverloadedStrings, BangPatterns #-}
 module Pics ( PicDir(..)
             , Image(..)
             , scanAll
@@ -226,6 +226,11 @@ recursiveScanDir config base = do
 isInteresting :: [FilePath] -> FilePath -> Bool
 isInteresting rev_exts file = any (`isPrefixOf` file) rev_exts
 
+-- | Strict application of the 'Just' constructor. This is useful as
+-- the Maybe type is not strict in its contained value.
+strictJust :: a -> Maybe a
+strictJust !a = Just a
+
 loadDir :: Config -> String -> FilePath -> IO PicDir
 loadDir config name path = do
   contents <- recursiveScanDir config path
@@ -239,13 +244,13 @@ loadDir config name path = do
                               f' = reverse f
                               tf = T.pack f
                               nfp = if hasExts f' rawe
-                                      then Just tf
+                                      then strictJust tf
                                       else Nothing
                               sdc = if hasExts f' side
-                                      then Just tf
+                                      then strictJust tf
                                       else Nothing
                               jpe = if hasExts f' jpeg
-                                      then Just tf
+                                      then strictJust tf
                                       else Nothing
                           in case (nfp, jpe) of
                                (Nothing, Nothing) -> Nothing
