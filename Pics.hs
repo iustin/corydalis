@@ -34,7 +34,7 @@ import Data.Text (Text)
 import System.IO.Unsafe
 
 import Control.Monad
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.List
 import Data.Maybe
 import System.Directory
@@ -75,17 +75,17 @@ isOKDir :: Config -> String -> Bool
 isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 
 data Image = Image
-    { imgName        :: Text
-    , imgParent      :: Text
-    , imgRawPath     :: Maybe Text
-    , imgSidecarPath :: Maybe Text
-    , imgJpegPath    :: Maybe Text
+    { imgName        :: !Text
+    , imgParent      :: !Text
+    , imgRawPath     :: !(Maybe Text)
+    , imgSidecarPath :: !(Maybe Text)
+    , imgJpegPath    :: !(Maybe Text)
     }
 
 data PicDir = PicDir
-  { pdName   :: Text
-  , pdPaths  :: [Text]
-  , pdImages :: Map.Map Text Image
+  { pdName   :: !Text
+  , pdPaths  :: !([Text])
+  , pdImages :: !(Map.Map Text Image)
   }
 
 type Repository = Map.Map Text PicDir
