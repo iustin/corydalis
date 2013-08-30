@@ -238,25 +238,30 @@ loadDir config name path = do
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
       tname = T.pack name
-      images = catMaybes $
-               map (\f -> let base = dropExtensions f
-                              tbase = T.pack base
-                              f' = reverse f
-                              tf = T.pack f
-                              nfp = if hasExts f' rawe
-                                      then strictJust tf
-                                      else Nothing
-                              sdc = if hasExts f' side
-                                      then strictJust tf
-                                      else Nothing
-                              jpe = if hasExts f' jpeg
-                                      then strictJust tf
-                                      else Nothing
-                          in case (nfp, jpe) of
-                               (Nothing, Nothing) -> Nothing
-                               _ -> Just (tbase, Image tbase tname nfp sdc jpe)
-                   ) contents
-  return $ PicDir tname [T.pack path] (Map.fromListWith mergePictures images)
+      loadImage f = let base = dropExtensions f
+                        tbase = T.pack base
+                        f' = reverse f
+                        tf = T.pack f
+                        jtf = strictJust tf
+                        nfp = if hasExts f' rawe
+                                then jtf
+                                else Nothing
+                        sdc = if hasExts f' side
+                                then jtf
+                                else Nothing
+                        jpe = if hasExts f' jpeg
+                                then jtf
+                                else Nothing
+                    in case (nfp, jpe) of
+                         (Nothing, Nothing) -> Nothing
+                         _ -> Just (tbase, Image tbase tname nfp sdc jpe)
+      images = foldl' (\acc f ->
+                         case loadImage f of
+                           Nothing -> acc
+                           Just (k, img) ->
+                             Map.insertWith mergePictures k img acc
+                      ) Map.empty contents
+  return $ PicDir tname [T.pack path] images
 
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
