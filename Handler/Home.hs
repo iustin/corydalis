@@ -42,7 +42,7 @@ getHomeR = do
       unprocessed = totalUnprocessedPics pics
       processed = totalProcessedPics pics
       fstats = Map.toAscList $ computeFolderStats pics
-      numfolders = length $ Map.elems pics
+      numfolders = Map.size pics
       all_fc = [minBound..maxBound]
   defaultLayout $ do
     setTitle "PicMan: home"
