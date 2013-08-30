@@ -12,6 +12,7 @@ EXTENSIONS = \
 
 FLAGS = \
 	-funbox-strict-fields \
+	-rtsopts \
 	-O2
 
 MAIN = app/main.hs
