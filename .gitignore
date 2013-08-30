@@ -3,8 +3,10 @@ static/tmp/
 config/client_session_key.aes
 *.hi
 *.o
+*.prof_o
 *.sqlite3
 .hsenv*
 yesod-devel/
 /_run/
 /config/settings.yml
+/app/main
