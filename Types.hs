@@ -13,6 +13,7 @@ import Data.Aeson
 import qualified Data.Text as T
 import qualified Text.Regex.PCRE as PCRE
 import Yesod
+import Prelude
 
 data Regex = Regex
     { reString :: String
