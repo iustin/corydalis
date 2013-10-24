@@ -145,6 +145,7 @@ instance YesodBreadcrumbs App where
   breadcrumb FaviconR       = return ("Favicon"      , Nothing)
   breadcrumb RobotsR        = return ("Robots"       , Nothing)
   breadcrumb HomeR          = return ("Home"         , Nothing)
+  breadcrumb ReloadR        = return ("Reload cache" , Nothing)
   breadcrumb (FolderR name) = return ("Folder " `T.append` name,
                                       Just HomeR)
   breadcrumb (BrowseFoldersR kind) =

@@ -2,6 +2,7 @@
 module Pics ( PicDir(..)
             , Image(..)
             , scanAll
+            , forceScanAll
             , isProcessed
             , isUnprocessed
             , isStandalone
@@ -316,9 +317,18 @@ maybeUpdateCache config Nothing = do
   return (Just r, r)
 maybeUpdateCache _ orig@(Just r) = return (orig, r)
 
+forceUpdateCache :: Config
+                 -> Maybe Repository
+                 -> IO (Maybe Repository, Repository)
+forceUpdateCache config _ = maybeUpdateCache config Nothing
+
 scanAll :: Config -> IO Repository
-scanAll config = do
+scanAll config =
   modifyMVar repoCache (maybeUpdateCache config)
+
+forceScanAll :: Config -> IO Repository
+forceScanAll config = modifyMVar repoCache (forceUpdateCache config)
+
 
 computeUnprocessedDirs :: Repository -> [PicDir]
 computeUnprocessedDirs =

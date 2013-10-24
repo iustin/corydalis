@@ -77,3 +77,10 @@ getBrowseFoldersR kinds = do
     setTitle . toHtml $
       "PicMan: browsing folders of type " `T.append` kinds_string
     $(widgetFile "browsefolders")
+
+getReloadR :: Handler Html
+getReloadR = do
+  config <- extraConfig `fmap` getExtra
+  _ <- liftIO $ forceScanAll config
+  setMessage "Cache reloaded"
+  redirect HomeR

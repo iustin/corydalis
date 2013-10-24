@@ -4,5 +4,6 @@
 /robots.txt RobotsR GET
 
 / HomeR GET
+/reload ReloadR GET
 /folder/#Text FolderR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET

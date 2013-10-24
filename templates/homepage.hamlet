@@ -14,3 +14,5 @@ The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>fo
   $forall (fc, count) <- fstats
     $with fclist <- [fc]
       <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
+
+You can also <a href=@{ReloadR}>reload</a> the cache.
