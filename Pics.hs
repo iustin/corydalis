@@ -95,15 +95,16 @@ data Stats = Stats
   { sRaw        :: !Int
   , sStandalone :: !Int
   , sProcessed  :: !Int
+  , sOutdated   :: !Int
   }
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0
+zeroStats = Stats 0 0 0 0
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1) (Stats r2 s2 p2) =
-  Stats (r1 + r2) (s1 + s2) (p1 + p2)
+sumStats (Stats r1 s1 p1 o1) (Stats r2 s2 p2 o2) =
+  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2)
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
@@ -207,21 +208,23 @@ folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
-folderClassFromStats (Stats unproc standalone processed) =
+folderClassFromStats (Stats unproc standalone processed outdated) =
   let npics = unproc + standalone + processed
       has_pics = npics /= 0
       has_unproc = unproc /= 0
       has_standalone = standalone /= 0
       all_unproc = unproc == npics
       has_raw = unproc /= 0 || processed /= 0
-      conditions = (has_pics, all_unproc, has_unproc, has_standalone, has_raw)
+      has_outdated = outdated /= 0
+      conditions = (has_pics, all_unproc, has_unproc,
+                    has_standalone, has_raw, has_outdated)
   in case conditions of
-       (False, _   , _    , _    , _    ) -> FolderEmpty
-       (True, True , True , False, _    ) -> FolderRaw
-       (True, False, True , False, _    ) -> FolderUnprocessed
-       (True, False, False, True , False) -> FolderStandalone
-       (True, False, _    , True , True ) -> FolderMixed
-       (True, False, False, False, _    ) -> FolderProcessed
+       (False, _   , _    , _    , _    , _) -> FolderEmpty
+       (True, True , True , False, _    , _) -> FolderRaw
+       (True, False, True , False, _    , _) -> FolderUnprocessed
+       (True, False, False, True , False, _) -> FolderStandalone
+       (True, False, _    , True , True , _) -> FolderMixed
+       (True, False, False, False, _    , _) -> FolderProcessed
        _ -> error $ "Wrong computation in folderClass: " ++ show conditions
 
 getDownContents :: Config -> FilePath -> IO [FilePath]
