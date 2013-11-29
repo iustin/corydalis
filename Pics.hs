@@ -231,7 +231,7 @@ getDirContents :: Config -> FilePath -> IO [FilePath]
 getDirContents config base = do
   contents <- getDirectoryContents base
   let blkdirs = blacklistedDirs config
-  return $ filter (\d -> d `notElem` blkdirs) contents
+  return $ filter (`notElem` blkdirs) contents
 
 isDir :: FilePath -> IO Bool
 isDir = liftM isDirectory . getSymbolicLinkStatus
