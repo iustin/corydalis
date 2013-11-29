@@ -227,8 +227,8 @@ folderClassFromStats (Stats unproc standalone processed outdated) =
        (True, False, False, False, _    , _) -> FolderProcessed
        _ -> error $ "Wrong computation in folderClass: " ++ show conditions
 
-getDownContents :: Config -> FilePath -> IO [FilePath]
-getDownContents config base = do
+getDirContents :: Config -> FilePath -> IO [FilePath]
+getDirContents config base = do
   contents <- getDirectoryContents base
   let blkdirs = blacklistedDirs config
   return $ filter (\d -> d `notElem` blkdirs) contents
@@ -241,7 +241,7 @@ scanDir :: Config
         -> String
         -> IO Repository
 scanDir config repo base = do
-  paths <- getDownContents config base
+  paths <- getDirContents config base
   dirs <- filterM (isDir . (base </>)) paths
   foldM (\r p -> scanSubDir config r (base </> p)) repo dirs
 
@@ -250,7 +250,7 @@ scanSubDir :: Config
            -> String
            -> IO Repository
 scanSubDir config repository path = do
-  allpaths <- getDownContents config path
+  allpaths <- getDirContents config path
   dirpaths <- filterM (isDir . (path </>)) allpaths
   let allpaths' = filter (isOKDir config) dirpaths
   foldM (\r s -> do
@@ -260,7 +260,7 @@ scanSubDir config repository path = do
 
 recursiveScanDir :: Config -> FilePath -> IO [FilePath]
 recursiveScanDir config base = do
-  contents <- getDownContents config base
+  contents <- getDirContents config base
   let allexts = fileDotExts config
       potentialdirs =
         filter (\s -> all (\e -> not (e `isSuffixOf` s)) allexts) contents
