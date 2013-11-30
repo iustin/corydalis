@@ -10,6 +10,7 @@ module Types ( Config(..)
 import Control.Applicative
 import Control.Monad
 import Data.Aeson
+import Data.Time.Clock
 import qualified Data.Text as T
 import qualified Text.Regex.PCRE as PCRE
 import Yesod
@@ -31,6 +32,10 @@ instance FromJSON Regex where
          Just r -> return $ Regex str r
   parseJSON _ = mzero
 
+instance FromJSON NominalDiffTime where
+  parseJSON (Number num) = return . fromRational . toRational $ num
+  parseJSON _ = mzero
+
 data Config = Config
     { cfgDirs            :: [FilePath]
     , cfgBlacklistedDirs :: [FilePath]
@@ -39,6 +44,7 @@ data Config = Config
     , cfgSidecarExts     :: [FilePath]
     , cfgOtherImgExts    :: [FilePath]
     , cfgDirRegex        :: Regex
+    , cfgOudatedError    :: NominalDiffTime
     } deriving (Show)
 
 instance FromJSON Config where
@@ -50,7 +56,8 @@ instance FromJSON Config where
          v .: "jpegexts" <*>
          v .: "sidecarexts" <*>
          v .: "otherexts" <*>
-         v .: "dirregex"
+         v .: "dirregex" <*>
+         v .: "outdatederror"
 
   parseJSON _ = mzero
 

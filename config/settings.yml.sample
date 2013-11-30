@@ -14,6 +14,7 @@ Default: &defaults
     sidecarexts: ["xmp"]
     otherexts: ["png"]
     dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
+    outdatederror: 5
 
 Development:
   <<: *defaults
