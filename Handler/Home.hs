@@ -17,21 +17,25 @@ formatPercent v | isNaN v = Nothing
                 | otherwise = Just $ printf "%.02f" v
 
 fcName :: FolderClass -> Text
-fcName FolderRaw = "raw"
-fcName FolderStandalone = "standalone"
+fcName FolderRaw         = "raw"
+fcName FolderStandalone  = "standalone"
 fcName FolderUnprocessed = "not fully processed"
-fcName FolderProcessed = "fully processed"
-fcName FolderEmpty = "empty"
-fcName FolderMixed = "mixed"
+fcName FolderProcessed   = "fully processed"
+fcName FolderEmpty       = "empty"
+fcName FolderMixed       = "mixed"
+fcName FolderOutdated    = "outdated"
 
 fcDescription :: FolderClass -> Text
-fcDescription FolderRaw = "contains only RAW files"
-fcDescription FolderStandalone = "contains only files without a RAW format"
+fcDescription FolderRaw         = "contains only RAW files"
+fcDescription FolderStandalone  = "contains only files without a RAW format"
 fcDescription FolderUnprocessed = "contains RAW files and some processed files"
-fcDescription FolderProcessed = "contains RAW files, all processed"
-fcDescription FolderEmpty = "contains no image files"
-fcDescription FolderMixed = "contains both RAW files (either processed or\
-                            \ not) and files without RAW storage"
+fcDescription FolderProcessed   = "contains RAW files, all processed"
+fcDescription FolderEmpty       = "contains no image files"
+fcDescription FolderMixed       = "contains both RAW files (either processed or \
+                                  \not) and files without RAW storage"
+fcDescription FolderOutdated    = "contains RAW files, all processed, but some of \
+                                  \the processed files are outdated (corresponding \
+                                  \RAW file has been retouched more recently)"
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -68,6 +72,7 @@ getBrowseFoldersR kinds = do
       allunproc = sum . map numUnprocessedPics $ folders
       allprocessed = sum . map numProcessedPics $ folders
       allstandalone = sum . map numStandalonePics $ folders
+      alloutdated = sum . map numOutdatedPics $ folders
       tp = formatPercent $
            (fromIntegral allunproc) * 100 / fromIntegral allpics
       npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)

@@ -5,6 +5,7 @@ module Pics ( PicDir(..)
             , forceScanAll
             , isProcessed
             , isUnprocessed
+            , isOutdated
             , isStandalone
             , folderClass
             , computeFolderStats
@@ -13,6 +14,7 @@ module Pics ( PicDir(..)
             , numPics
             , numRawPics
             , numUnprocessedPics
+            , numOutdatedPics
             , numStandalonePics
             , numProcessedPics
             , filterDirsByClass
@@ -102,7 +104,7 @@ data Stats = Stats
   , sStandalone :: !Int
   , sProcessed  :: !Int
   , sOutdated   :: !Int
-  }
+  } deriving Show
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
@@ -118,6 +120,7 @@ updateStatsWithPic orig img =
     _ | isUnprocessed img -> orig { sRaw = sRaw orig + 1 }
       | isStandalone img -> orig { sStandalone = sStandalone orig + 1 }
       | isProcessed img -> orig { sProcessed = sProcessed orig + 1 }
+      | isOutdated img -> orig { sOutdated = sOutdated orig + 1 }
       | otherwise -> error "Picture type handling error"
 
 computeFolderStats :: PicDir -> Stats
@@ -166,8 +169,19 @@ isUnprocessed (Image { imgRawPath = Just _, imgJpegPath = Nothing }) = True
 isUnprocessed _ = False
 
 isProcessed :: Image -> Bool
-isProcessed (Image { imgRawPath = Just _, imgJpegPath = Just _ }) = True
+isProcessed img@(Image { imgRawPath = Just _, imgJpegPath = Just _ }) =
+  not $ isOutdated img
 isProcessed _ = False
+
+isOutdated :: Image -> Bool
+isOutdated (Image { imgRawPath = Just (File _ mr)
+                  , imgJpegPath = Just (File _ mj)
+                  , imgSidecarPath = sd }) =
+  newest_raw > mj
+    where
+      newest_raw = max mr sd_ts
+      sd_ts = maybe mr fileMTime sd
+isOutdated _ = False
 
 numPics :: PicDir -> Int
 numPics = Map.size . pdImages
@@ -199,6 +213,9 @@ isStandalone :: Image -> Bool
 isStandalone (Image { imgRawPath = Nothing, imgJpegPath = Just _ }) = True
 isStandalone _ = False
 
+numOutdatedPics :: PicDir -> Int
+numOutdatedPics = numPicsOfType isOutdated
+
 computeStandalonePics :: PicDir -> [Image]
 computeStandalonePics =
   filter isStandalone . Map.elems . pdImages
@@ -214,24 +231,33 @@ folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
-folderClassFromStats (Stats unproc standalone processed outdated) =
-  let npics = unproc + standalone + processed
+folderClassFromStats stats@(Stats unproc standalone processed outdated) =
+  let npics = unproc + standalone + processed + outdated
       has_pics = npics /= 0
       has_unproc = unproc /= 0
       has_standalone = standalone /= 0
       all_unproc = unproc == npics
-      has_raw = unproc /= 0 || processed /= 0
+      has_raw = unproc /= 0 || processed /= 0 || outdated /= 0
       has_outdated = outdated /= 0
       conditions = (has_pics, all_unproc, has_unproc,
                     has_standalone, has_raw, has_outdated)
   in case conditions of
-       (False, _   , _    , _    , _    , _) -> FolderEmpty
-       (True, True , True , False, _    , _) -> FolderRaw
-       (True, False, True , False, _    , _) -> FolderUnprocessed
-       (True, False, False, True , False, _) -> FolderStandalone
-       (True, False, _    , True , True , _) -> FolderMixed
-       (True, False, False, False, _    , _) -> FolderProcessed
-       _ -> error $ "Wrong computation in folderClass: " ++ show conditions
+       -- folder with no pics is empty
+       (False, True , False, False, False, False) -> FolderEmpty
+       -- folder with all unprocessed is raw
+       (True,  True , True , False, _    , False) -> FolderRaw
+       -- folder with some unprocessed is unprocessed
+       (True,  False, True , False, _    , _    ) -> FolderUnprocessed
+       -- folder with no raw files is standalone
+       (True,  False, False, True , False, False) -> FolderStandalone
+       -- folder with both standalone and some raw is mixed
+       (True,  False, _    , True , True , _    ) -> FolderMixed
+       -- folder with outdated pictures is outdated
+       (True,  False, False, False, True , True ) -> FolderOutdated
+       -- othewise, folder is perfect - has only processed files
+       (True,  False, False, False, True , False) -> FolderProcessed
+       _ -> error $ "Wrong computation in folderClass: stats=" ++ show stats
+                    ++ ", conditions=" ++ show conditions
 
 getDirContents :: Config -> FilePath -> IO [(FilePath, FileStatus)]
 getDirContents config base = do

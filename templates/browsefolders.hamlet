@@ -14,6 +14,7 @@ $else
         <th>Images
         <th>Unprocessed
         <th class="{sorter: 'procent'}">U. %
+        <th>Outdated
         <th>Standalone
         <th>Processed
     <tbody>
@@ -32,6 +33,7 @@ $else
           <td class="number">
             $maybe prc <- lp
               #{prc}
+          <td class="number">#{numOutdatedPics n}
           <td class="number">#{numStandalonePics n}
           <td class="number">#{numProcessedPics n}
     <tfoot>
@@ -42,5 +44,6 @@ $else
        <td class="number">
          $maybe tprc <- tp
            #{tprc}
+       <td class="number">#{alloutdated}
        <td class="number">#{allstandalone}
        <td class="number">#{allprocessed}

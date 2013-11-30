@@ -59,6 +59,7 @@ data FolderClass = FolderEmpty
                  | FolderStandalone
                  | FolderUnprocessed
                  | FolderProcessed
+                 | FolderOutdated
                  | FolderMixed
                    deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
@@ -69,12 +70,14 @@ instance PathPiece FolderClass where
   toPathPiece FolderStandalone  = "standalone"
   toPathPiece FolderUnprocessed = "unprocessed"
   toPathPiece FolderProcessed   = "processed"
+  toPathPiece FolderOutdated    = "outdated"
   toPathPiece FolderMixed       = "mixed"
   fromPathPiece "empty"       = Just FolderEmpty
   fromPathPiece "raw"         = Just FolderRaw
   fromPathPiece "standalone"  = Just FolderStandalone
   fromPathPiece "unprocessed" = Just FolderUnprocessed
   fromPathPiece "processed"   = Just FolderProcessed
+  fromPathPiece "outdated"    = Just FolderOutdated
   fromPathPiece "mixed"       = Just FolderMixed
   fromPathPiece _             = Nothing
 

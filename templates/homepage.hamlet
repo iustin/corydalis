@@ -4,6 +4,7 @@ The repository contains #{allpics} images, out of which:
 <ul>
   $if processed > 0
     <li>#{processed} fully processed images backed by RAW files.
+    <li>#{outdated} outdated images - backed by RAW files which are newer or more recently modified
   $if unprocessed > 0
     <li>#{unprocessed} <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>unprocessed</a> RAW files.
   $if standalone > 0

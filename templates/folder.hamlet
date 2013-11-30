@@ -19,8 +19,10 @@ Picture contents:
     <li>#{numProcessedPics dir} fully processed pics
   $if numUnprocessedPics dir > 0
     <li>#{numUnprocessedPics dir} raw pictures still awaiting processing
+  $if numOutdatedPics dir > 0
+    <li>#{numOutdatedPics dir} processed but outdated pictures
   $if numStandalonePics dir > 0
-    <li>#{numStandalonePics dir} final files without a source raw file.
+    <li>#{numStandalonePics dir} final files without a source raw file
 
 Picture list:
 
@@ -35,13 +37,15 @@ Picture list:
         <tr>
           <td>#{imgName img}
           <td>
-            $case (isProcessed img, isUnprocessed img, isStandalone img)
-              $of (True, _, _)
+            $case (isProcessed img, isUnprocessed img, isStandalone img, isOutdated img)
+              $of (True, False, False, False)
                 processed
-              $of (_, True, _)
+              $of (False, True, False, False)
                 unprocessed
-              $of (_, _, True)
+              $of (False, False, True, False)
                 standalone
-              $of (False, False, False)
+              $of (False, False, False, True)
+                outdated
+              $of (_, _, _, _)
                 (internal error)
     <tfoot>
