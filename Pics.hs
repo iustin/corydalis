@@ -283,23 +283,24 @@ loadDir config name path = do
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
       tname = T.pack name
-      loadImage f = let base = dropExtensions f
-                        tbase = T.pack base
-                        f' = reverse f
-                        tf = T.pack f
-                        jtf = strictJust tf
-                        nfp = if hasExts f' rawe
-                                then jtf
-                                else Nothing
-                        sdc = if hasExts f' side
-                                then jtf
-                                else Nothing
-                        jpe = if hasExts f' jpeg
-                                then jtf
-                                else Nothing
-                    in case (nfp, jpe) of
-                         (Nothing, Nothing) -> Nothing
-                         _ -> Just (tbase, Image tbase tname nfp sdc jpe)
+      loadImage f =
+        let base = dropExtensions f
+            tbase = T.pack base
+            f' = reverse f
+            tf = T.pack f
+            jtf = strictJust tf
+            nfp = if hasExts f' rawe
+                    then jtf
+                    else Nothing
+            sdc = if hasExts f' side
+                    then jtf
+                    else Nothing
+            jpe = if hasExts f' jpeg
+                    then jtf
+                    else Nothing
+        in case (nfp, jpe) of
+             (Nothing, Nothing) -> Nothing
+             _ -> Just (tbase, Image tbase tname nfp sdc jpe)
       images = foldl' (\acc f ->
                          case loadImage f of
                            Nothing -> acc
