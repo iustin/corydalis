@@ -73,6 +73,7 @@ getBrowseFoldersR kinds = do
       allprocessed = sum . map numProcessedPics $ folders
       allstandalone = sum . map numStandalonePics $ folders
       alloutdated = sum . map numOutdatedPics $ folders
+      allorphaned = sum . map numOrphanedPics $ folders
       tp = formatPercent $
            (fromIntegral allunproc) * 100 / fromIntegral allpics
       npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)

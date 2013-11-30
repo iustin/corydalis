@@ -16,6 +16,7 @@ module Pics ( PicDir(..)
             , numUnprocessedPics
             , numOutdatedPics
             , numStandalonePics
+            , numOrphanedPics
             , numProcessedPics
             , filterDirsByClass
             , computeRepoStats
@@ -90,9 +91,12 @@ data Image = Image
     }
 
 mkImageStatus :: Config -> Maybe File -> Maybe File -> Maybe File -> ImageStatus
-mkImageStatus _ Nothing  Nothing  _ = error "imageStatus - neither raw nor standalone"
-mkImageStatus _ (Just _) Nothing  _ = ImageRaw
-mkImageStatus _ Nothing  (Just _) _ = ImageStandalone
+mkImageStatus _ Nothing  Nothing  Nothing   =
+  error "imageStatus - neither raw nor standalone nor orphaned"
+mkImageStatus _ Nothing  Nothing  (Just _)  = ImageOrphaned
+mkImageStatus _ Nothing  (Just _) (Just _)  = error "imageStatus - orphaned + jpeg?"
+mkImageStatus _ (Just _) Nothing  _         = ImageRaw
+mkImageStatus _ Nothing  (Just _) _         = ImageStandalone
 mkImageStatus c (Just (File _ raw_ts)) (Just (File _ jpeg_ts)) sidecar =
   if raw_ts' > jpeg_ts + max_skew
     then ImageOutdated
@@ -194,6 +198,9 @@ isProcessed = (== ImageProcessed) . imgStatus
 isOutdated :: Image -> Bool
 isOutdated = (== ImageOutdated) . imgStatus
 
+isOrphaned :: Image -> Bool
+isOrphaned = (== ImageOrphaned) . imgStatus
+
 numPics :: PicDir -> Int
 numPics = Map.size . pdImages
 
@@ -236,6 +243,9 @@ numStandalonePics = numPicsOfType isStandalone
 hasStandalonePics :: PicDir -> Bool
 hasStandalonePics =
   not . null . computeStandalonePics
+
+numOrphanedPics :: PicDir -> Int
+numOrphanedPics = numPicsOfType isOrphaned
 
 folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
@@ -345,8 +355,8 @@ loadDir config name path = do
             jpe = if hasExts f' jpeg
                     then jtf
                     else Nothing
-        in case (nfp, jpe) of
-             (Nothing, Nothing) -> Nothing
+        in case (nfp, jpe, sdc) of
+             (Nothing, Nothing, Nothing) -> Nothing
              _ -> Just (tbase, mkImage config tbase tname nfp sdc jpe)
       images = foldl' (\acc f ->
                          case loadImage f of

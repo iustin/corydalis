@@ -16,6 +16,7 @@ $else
         <th class="{sorter: 'procent'}">U. %
         <th>Outdated
         <th>Standalone
+        <th>Orphaned
         <th>Processed
     <tbody>
       $forall (n, lp) <- npairs
@@ -35,6 +36,7 @@ $else
               #{prc}
           <td class="number">#{numOutdatedPics n}
           <td class="number">#{numStandalonePics n}
+          <td class="number">#{numOrphanedPics n}
           <td class="number">#{numProcessedPics n}
     <tfoot>
       <tr>
@@ -46,4 +48,5 @@ $else
            #{tprc}
        <td class="number">#{alloutdated}
        <td class="number">#{allstandalone}
+       <td class="number">#{allorphaned}
        <td class="number">#{allprocessed}
