@@ -35,6 +35,7 @@ import Control.Monad
 import qualified Data.Map.Strict as Map
 import Data.List
 import Data.Maybe
+import Data.Time.Clock.POSIX
 import System.Directory
 import System.FilePath
 import System.Posix.Files
@@ -72,12 +73,17 @@ blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
 isOKDir :: Config -> String -> Bool
 isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 
+data File = File
+  { fileName  :: !Text
+  , fileMTime :: !POSIXTime
+  }
+
 data Image = Image
     { imgName        :: !Text
     , imgParent      :: !Text
-    , imgRawPath     :: !(Maybe Text)
-    , imgSidecarPath :: !(Maybe Text)
-    , imgJpegPath    :: !(Maybe Text)
+    , imgRawPath     :: !(Maybe File)
+    , imgSidecarPath :: !(Maybe File)
+    , imgJpegPath    :: !(Maybe File)
     }
 
 data PicDir = PicDir
@@ -227,11 +233,15 @@ folderClassFromStats (Stats unproc standalone processed outdated) =
        (True, False, False, False, _    , _) -> FolderProcessed
        _ -> error $ "Wrong computation in folderClass: " ++ show conditions
 
-getDirContents :: Config -> FilePath -> IO [FilePath]
+getDirContents :: Config -> FilePath -> IO [(FilePath, FileStatus)]
 getDirContents config base = do
   contents <- getDirectoryContents base
   let blkdirs = blacklistedDirs config
-  return $ filter (`notElem` blkdirs) contents
+      allowed_names = filter (`notElem` blkdirs) contents
+  mapM (\path -> do
+           stat <- getSymbolicLinkStatus $ base </> path
+           return (path, stat)
+       ) allowed_names
 
 isDir :: FilePath -> IO Bool
 isDir = liftM isDirectory . getSymbolicLinkStatus
@@ -242,8 +252,8 @@ scanDir :: Config
         -> IO Repository
 scanDir config repo base = do
   paths <- getDirContents config base
-  dirs <- filterM (isDir . (base </>)) paths
-  foldM (\r p -> scanSubDir config r (base </> p)) repo dirs
+  let dirs = filter (isDirectory . snd) paths
+  foldM (\r p -> scanSubDir config r (base </> fst p)) repo dirs
 
 scanSubDir :: Config
            -> Repository
@@ -251,21 +261,18 @@ scanSubDir :: Config
            -> IO Repository
 scanSubDir config repository path = do
   allpaths <- getDirContents config path
-  dirpaths <- filterM (isDir . (path </>)) allpaths
-  let allpaths' = filter (isOKDir config) dirpaths
+  let dirpaths = filter (isDirectory . snd) allpaths
+  let allpaths' = filter (isOKDir config) . map fst $ dirpaths
   foldM (\r s -> do
            dir <- loadDir config s (path </> s)
            return $ Map.insertWith mergeFolders (pdName dir) dir r)
         repository allpaths'
 
-recursiveScanDir :: Config -> FilePath -> IO [FilePath]
+recursiveScanDir :: Config -> FilePath -> IO [(FilePath, FileStatus)]
 recursiveScanDir config base = do
   contents <- getDirContents config base
-  let allexts = fileDotExts config
-      potentialdirs =
-        filter (\s -> all (\e -> not (e `isSuffixOf` s)) allexts) contents
-  dirs <- filterM (isDir . (base </>)) potentialdirs
-  subdirs <- mapM (\s -> recursiveScanDir config (base </> s)) dirs
+  let dirs = filter (isDirectory . snd) contents
+  subdirs <- mapM (\s -> recursiveScanDir config (base </> fst s)) dirs
   return $ contents ++ concat subdirs
 
 isInteresting :: [FilePath] -> FilePath -> Bool
@@ -283,12 +290,13 @@ loadDir config name path = do
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
       tname = T.pack name
-      loadImage f =
+      loadImage (f, stat) =
         let base = dropExtensions f
             tbase = T.pack base
             f' = reverse f
             tf = T.pack f
-            jtf = strictJust tf
+            jtf = strictJust $ File tf mtime
+            mtime = modificationTimeHiRes stat
             nfp = if hasExts f' rawe
                     then jtf
                     else Nothing
