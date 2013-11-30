@@ -122,15 +122,16 @@ data Stats = Stats
   , sStandalone :: !Int
   , sProcessed  :: !Int
   , sOutdated   :: !Int
+  , sOrphaned   :: !Int
   } deriving Show
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0
+zeroStats = Stats 0 0 0 0 0
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 o1) (Stats r2 s2 p2 o2) =
-  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2)
+sumStats (Stats r1 s1 p1 o1 h1) (Stats r2 s2 p2 o2 h2) =
+  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h2 + h2)
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
@@ -139,6 +140,7 @@ updateStatsWithPic orig img =
     ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
     ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
     ImageOutdated   -> orig { sOutdated   = sOutdated orig   + 1 }
+    ImageOrphaned   -> orig { sOrphaned   = sOrphaned orig   + 1 }
 
 computeFolderStats :: PicDir -> Stats
 computeFolderStats =
@@ -239,31 +241,34 @@ folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
-folderClassFromStats stats@(Stats unproc standalone processed outdated) =
-  let npics = unproc + standalone + processed + outdated
+folderClassFromStats stats@(Stats unproc standalone processed outdated orphaned) =
+  let npics = unproc + standalone + processed + outdated + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0
       has_standalone = standalone /= 0
       all_unproc = unproc == npics
       has_raw = unproc /= 0 || processed /= 0 || outdated /= 0
       has_outdated = outdated /= 0
+      has_orphaned = orphaned /= 0
       conditions = (has_pics, all_unproc, has_unproc,
-                    has_standalone, has_raw, has_outdated)
+                    has_standalone, has_raw, has_outdated, has_orphaned)
   in case conditions of
        -- folder with no pics is empty
-       (False, True , False, False, False, False) -> FolderEmpty
+       (False, True , False, False, False, False, False) -> FolderEmpty
        -- folder with all unprocessed is raw
-       (True,  True , True , False, _    , False) -> FolderRaw
+       (True,  True , True , False, _    , False, False) -> FolderRaw
        -- folder with some unprocessed is unprocessed
-       (True,  False, True , False, _    , _    ) -> FolderUnprocessed
+       (True,  False, True , False, _    , _    , False) -> FolderUnprocessed
        -- folder with no raw files is standalone
-       (True,  False, False, True , False, False) -> FolderStandalone
+       (True,  False, False, True , False, False, False) -> FolderStandalone
        -- folder with both standalone and some raw is mixed
-       (True,  False, _    , True , True , _    ) -> FolderMixed
+       (True,  False, _    , True , True , _    , False) -> FolderMixed
+       -- folder with orphaned pictures is mixed
+       (True,  False, _    , _    , _    , _    , True ) -> FolderMixed
        -- folder with outdated pictures is outdated
-       (True,  False, False, False, True , True ) -> FolderOutdated
+       (True,  False, False, False, True , True , False) -> FolderOutdated
        -- othewise, folder is perfect - has only processed files
-       (True,  False, False, False, True , False) -> FolderProcessed
+       (True,  False, False, False, True , False, False) -> FolderProcessed
        _ -> error $ "Wrong computation in folderClass: stats=" ++ show stats
                     ++ ", conditions=" ++ show conditions
 

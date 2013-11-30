@@ -62,7 +62,8 @@ instance FromJSON Config where
 
   parseJSON _ = mzero
 
-data ImageStatus = ImageStandalone
+data ImageStatus = ImageOrphaned
+                 | ImageStandalone
                  | ImageRaw
                  | ImageOutdated
                  | ImageProcessed

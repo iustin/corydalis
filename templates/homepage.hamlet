@@ -6,9 +6,10 @@ The repository contains #{allpics} images, out of which:
     <li>#{processed} fully processed images backed by RAW files.
     <li>#{outdated} outdated images - backed by RAW files which are newer or more recently modified
   $if unprocessed > 0
-    <li>#{unprocessed} <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>unprocessed</a> RAW files.
+    <li>#{unprocessed} <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>unprocessed</a> RAW files
   $if standalone > 0
-    <li>#{standalone} standalone JPEGs.
+    <li>#{standalone} standalone JPEGs
+    <li>#{orphaned} orphaned sidecar files
 
 The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
 <ul>

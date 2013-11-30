@@ -46,4 +46,6 @@ Picture list:
                 standalone
               $of ImageOutdated
                 outdated
+              $of ImageOrphaned
+                orphaned
     <tfoot>
