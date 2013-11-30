@@ -37,15 +37,13 @@ Picture list:
         <tr>
           <td>#{imgName img}
           <td>
-            $case (isProcessed img, isUnprocessed img, isStandalone img, isOutdated img)
-              $of (True, False, False, False)
+            $case imgStatus img
+              $of ImageProcessed
                 processed
-              $of (False, True, False, False)
+              $of ImageRaw
                 unprocessed
-              $of (False, False, True, False)
+              $of ImageStandalone
                 standalone
-              $of (False, False, False, True)
+              $of ImageOutdated
                 outdated
-              $of (_, _, _, _)
-                (internal error)
     <tfoot>

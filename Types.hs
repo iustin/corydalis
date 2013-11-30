@@ -5,6 +5,7 @@ module Types ( Config(..)
              , reRegex
              , reString
              , FolderClass(..)
+             , ImageStatus(..)
              ) where
 
 import Control.Applicative
@@ -44,7 +45,7 @@ data Config = Config
     , cfgSidecarExts     :: [FilePath]
     , cfgOtherImgExts    :: [FilePath]
     , cfgDirRegex        :: Regex
-    , cfgOudatedError    :: NominalDiffTime
+    , cfgOutdatedError   :: NominalDiffTime
     } deriving (Show)
 
 instance FromJSON Config where
@@ -60,6 +61,12 @@ instance FromJSON Config where
          v .: "outdatederror"
 
   parseJSON _ = mzero
+
+data ImageStatus = ImageStandalone
+                 | ImageRaw
+                 | ImageOutdated
+                 | ImageProcessed
+                   deriving (Show, Eq)
 
 data FolderClass = FolderEmpty
                  | FolderRaw

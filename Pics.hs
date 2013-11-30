@@ -86,7 +86,25 @@ data Image = Image
     , imgRawPath     :: !(Maybe File)
     , imgSidecarPath :: !(Maybe File)
     , imgJpegPath    :: !(Maybe File)
+    , imgStatus      :: !ImageStatus
     }
+
+mkImageStatus :: Config -> Maybe File -> Maybe File -> Maybe File -> ImageStatus
+mkImageStatus _ Nothing  Nothing  _ = error "imageStatus - neither raw nor standalone"
+mkImageStatus _ (Just _) Nothing  _ = ImageRaw
+mkImageStatus _ Nothing  (Just _) _ = ImageStandalone
+mkImageStatus c (Just (File _ raw_ts)) (Just (File _ jpeg_ts)) sidecar =
+  if raw_ts' > jpeg_ts + max_skew
+    then ImageOutdated
+    else ImageProcessed
+  where raw_ts' = max raw_ts sidecar_ts
+        sidecar_ts = maybe raw_ts fileMTime sidecar
+        max_skew = cfgOutdatedError c
+
+mkImage :: Config -> Text -> Text -> Maybe File -> Maybe File -> Maybe File -> Image
+mkImage config name parent raw sidecar jpeg =
+  Image name parent raw sidecar jpeg $
+  mkImageStatus config raw jpeg sidecar
 
 data PicDir = PicDir
   { pdName   :: !Text
@@ -116,12 +134,11 @@ sumStats (Stats r1 s1 p1 o1) (Stats r2 s2 p2 o2) =
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
-  case () of
-    _ | isUnprocessed img -> orig { sRaw = sRaw orig + 1 }
-      | isStandalone img -> orig { sStandalone = sStandalone orig + 1 }
-      | isProcessed img -> orig { sProcessed = sProcessed orig + 1 }
-      | isOutdated img -> orig { sOutdated = sOutdated orig + 1 }
-      | otherwise -> error "Picture type handling error"
+  case imgStatus img of
+    ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
+    ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
+    ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
+    ImageOutdated   -> orig { sOutdated   = sOutdated orig   + 1 }
 
 computeFolderStats :: PicDir -> Stats
 computeFolderStats =
@@ -144,17 +161,19 @@ computeRepoStats =
 repoCache :: MVar (Maybe Repository)
 repoCache = unsafePerformIO $ newMVar Nothing
 
-mergePictures :: Image -> Image -> Image
-mergePictures x y =
-  x { imgRawPath     = imgRawPath     x `mplus` imgRawPath     y
-    , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
-    , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y
-    }
+mergePictures :: Config -> Image -> Image -> Image
+mergePictures c x y =
+  let x' =
+        x { imgRawPath     = imgRawPath     x `mplus` imgRawPath     y
+          , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
+          , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y }
+      status' = mkImageStatus c (imgRawPath x') (imgJpegPath x') (imgSidecarPath x')
+  in x' { imgStatus = status' }
 
-mergeFolders :: PicDir -> PicDir -> PicDir
-mergeFolders x y =
+mergeFolders :: Config -> PicDir -> PicDir -> PicDir
+mergeFolders c x y =
   x { pdPaths = pdPaths x ++ pdPaths y
-    , pdImages = Map.unionWith mergePictures (pdImages x) (pdImages y)
+    , pdImages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     }
 
 computeRawPics :: PicDir -> [Image]
@@ -165,23 +184,13 @@ numRawPics :: PicDir -> Int
 numRawPics = numPicsOfType (isJust . imgRawPath)
 
 isUnprocessed :: Image -> Bool
-isUnprocessed (Image { imgRawPath = Just _, imgJpegPath = Nothing }) = True
-isUnprocessed _ = False
+isUnprocessed = (== ImageRaw ) . imgStatus
 
 isProcessed :: Image -> Bool
-isProcessed img@(Image { imgRawPath = Just _, imgJpegPath = Just _ }) =
-  not $ isOutdated img
-isProcessed _ = False
+isProcessed = (== ImageProcessed) . imgStatus
 
 isOutdated :: Image -> Bool
-isOutdated (Image { imgRawPath = Just (File _ mr)
-                  , imgJpegPath = Just (File _ mj)
-                  , imgSidecarPath = sd }) =
-  newest_raw > mj
-    where
-      newest_raw = max mr sd_ts
-      sd_ts = maybe mr fileMTime sd
-isOutdated _ = False
+isOutdated = (== ImageOutdated) . imgStatus
 
 numPics :: PicDir -> Int
 numPics = Map.size . pdImages
@@ -210,8 +219,7 @@ hasUnprocessedPics =
   not . null . computeUnprocessedPics
 
 isStandalone :: Image -> Bool
-isStandalone (Image { imgRawPath = Nothing, imgJpegPath = Just _ }) = True
-isStandalone _ = False
+isStandalone = (== ImageStandalone) . imgStatus
 
 numOutdatedPics :: PicDir -> Int
 numOutdatedPics = numPicsOfType isOutdated
@@ -291,7 +299,7 @@ scanSubDir config repository path = do
   let allpaths' = filter (isOKDir config) . map fst $ dirpaths
   foldM (\r s -> do
            dir <- loadDir config s (path </> s)
-           return $ Map.insertWith mergeFolders (pdName dir) dir r)
+           return $ Map.insertWith (mergeFolders config) (pdName dir) dir r)
         repository allpaths'
 
 recursiveScanDir :: Config -> FilePath -> IO [(FilePath, FileStatus)]
@@ -334,12 +342,12 @@ loadDir config name path = do
                     else Nothing
         in case (nfp, jpe) of
              (Nothing, Nothing) -> Nothing
-             _ -> Just (tbase, Image tbase tname nfp sdc jpe)
+             _ -> Just (tbase, mkImage config tbase tname nfp sdc jpe)
       images = foldl' (\acc f ->
                          case loadImage f of
                            Nothing -> acc
                            Just (k, img) ->
-                             Map.insertWith mergePictures k img acc
+                             Map.insertWith (mergePictures config) k img acc
                       ) Map.empty contents
   return $ PicDir tname [T.pack path] images
 
