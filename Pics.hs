@@ -94,7 +94,8 @@ mkImageStatus :: Config -> Maybe File -> Maybe File -> Maybe File -> ImageStatus
 mkImageStatus _ Nothing  Nothing  Nothing   =
   error "imageStatus - neither raw nor standalone nor orphaned"
 mkImageStatus _ Nothing  Nothing  (Just _)  = ImageOrphaned
-mkImageStatus _ Nothing  (Just _) (Just _)  = error "imageStatus - orphaned + jpeg?"
+mkImageStatus _ Nothing  (Just _) (Just _)  = ImageStandalone
+  --error "imageStatus - orphaned + jpeg?"
 mkImageStatus _ (Just _) Nothing  _         = ImageRaw
 mkImageStatus _ Nothing  (Just _) _         = ImageStandalone
 mkImageStatus c (Just (File _ raw_ts)) (Just (File _ jpeg_ts)) sidecar =
