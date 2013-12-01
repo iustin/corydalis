@@ -136,7 +136,7 @@ zeroStats = Stats 0 0 0 0 0
 
 sumStats :: Stats -> Stats -> Stats
 sumStats (Stats r1 s1 p1 o1 h1) (Stats r2 s2 p2 o2 h2) =
-  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h2 + h2)
+  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h1 + h2)
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
