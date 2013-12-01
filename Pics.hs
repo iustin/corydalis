@@ -1,6 +1,7 @@
 {-# LANGUAGE TupleSections, OverloadedStrings, BangPatterns #-}
 module Pics ( PicDir(..)
             , Image(..)
+            , File(..)
             , scanAll
             , forceScanAll
             , isProcessed
@@ -9,7 +10,6 @@ module Pics ( PicDir(..)
             , isStandalone
             , folderClass
             , computeFolderStats
-            , computeUnprocessedDirs
             , computeStandaloneDirs
             , numPics
             , numRawPics
@@ -27,9 +27,7 @@ import Types
 
 --import Import
 import Prelude
-import Control.Applicative ((<$>), (<*>))
 import Control.Concurrent.MVar
-import Data.Aeson
 import qualified Data.Text as T
 import Data.Text (Text)
 import System.IO.Unsafe
@@ -58,17 +56,6 @@ sidecarExtsRev = addRevDot . cfgSidecarExts
 
 hasExts:: FilePath -> [FilePath] -> Bool
 hasExts p = any (`isPrefixOf` p)
-
-fileExts :: Config -> [String]
-fileExts config =
-  concat [ cfgRawExts config
-         , cfgSidecarExts config
-         , cfgJpegExts config
-         , cfgOtherImgExts config
-         ]
-
-fileDotExts :: Config -> [String]
-fileDotExts = map ('.':) . fileExts
 
 blacklistedDirs :: Config -> [String]
 blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
@@ -183,10 +170,6 @@ mergeFolders c x y =
     , pdImages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     }
 
-computeRawPics :: PicDir -> [Image]
-computeRawPics =
-  filter (isJust . imgRawPath) . Map.elems . pdImages
-
 numRawPics :: PicDir -> Int
 numRawPics = numPicsOfType (isJust . imgRawPath)
 
@@ -205,10 +188,6 @@ isOrphaned = (== ImageOrphaned) . imgStatus
 numPics :: PicDir -> Int
 numPics = Map.size . pdImages
 
-computeUnprocessedPics :: PicDir -> [Image]
-computeUnprocessedPics =
-  filter isUnprocessed . Map.elems . pdImages
-
 numPicsOfType :: (Image -> Bool) -> PicDir -> Int
 numPicsOfType criterion =
   Map.foldl go 0 . pdImages
@@ -217,16 +196,8 @@ numPicsOfType criterion =
 numUnprocessedPics :: PicDir -> Int
 numUnprocessedPics = numPicsOfType isUnprocessed
 
-computeProcessedPics :: PicDir -> [Image]
-computeProcessedPics =
-  filter isProcessed . Map.elems . pdImages
-
 numProcessedPics :: PicDir -> Int
 numProcessedPics = numPicsOfType isProcessed
-
-hasUnprocessedPics :: PicDir -> Bool
-hasUnprocessedPics =
-  not . null . computeUnprocessedPics
 
 isStandalone :: Image -> Bool
 isStandalone = (== ImageStandalone) . imgStatus
@@ -293,9 +264,6 @@ getDirContents config base = do
            return (path, stat)
        ) allowed_names
 
-isDir :: FilePath -> IO Bool
-isDir = liftM isDirectory . getSymbolicLinkStatus
-
 scanDir :: Config
         -> Repository
         -> String
@@ -324,9 +292,6 @@ recursiveScanDir config base = do
   let dirs = filter (isDirectory . snd) contents
   subdirs <- mapM (\s -> recursiveScanDir config (base </> fst s)) dirs
   return $ contents ++ concat subdirs
-
-isInteresting :: [FilePath] -> FilePath -> Bool
-isInteresting rev_exts file = any (`isPrefixOf` file) rev_exts
 
 -- | Strict application of the 'Just' constructor. This is useful as
 -- the Maybe type is not strict in its contained value.
@@ -391,10 +356,6 @@ scanAll config =
 forceScanAll :: Config -> IO Repository
 forceScanAll config = modifyMVar repoCache (forceUpdateCache config)
 
-
-computeUnprocessedDirs :: Repository -> [PicDir]
-computeUnprocessedDirs =
-  filter hasUnprocessedPics . Map.elems
 
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =
