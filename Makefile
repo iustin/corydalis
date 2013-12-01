@@ -1,4 +1,5 @@
 # this is only used for custom development!
+# well, except for the production target
 
 EXTENSIONS = \
 	-XTemplateHaskell \
@@ -34,4 +35,8 @@ profiling:
 view: main.ps
 	gv -orientation seascape $<
 
-.PHONY: standard profiling view
+production:
+	cabal configure -fproduction
+	cabal build
+
+.PHONY: standard profiling view production
