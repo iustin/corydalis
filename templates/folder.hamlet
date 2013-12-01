@@ -30,8 +30,13 @@ Picture list:
   <table id="folder" class="tablesorter">
     <thead>
       <tr>
-        <th>Name
-        <th>Type
+        <th rowspan=2>Name
+        <th rowspan=2>Type
+        <th colspan=3 class="{sorter: false}">Timestamps
+      <tr>
+        <th class="{sorter: 'text'}">RAW
+        <th class="{sorter: 'text'}">Sidecar
+        <th class="{sorter: 'text'}">JPEG
     <tbody>
       $forall img <- pdImages dir
         <tr>
@@ -48,4 +53,7 @@ Picture list:
                 outdated
               $of ImageOrphaned
                 orphaned
+          <td>#{showTimestamp $ imgRawPath img}
+          <td>#{showTimestamp $ imgSidecarPath img}
+          <td>#{showTimestamp $ imgJpegPath img}
     <tfoot>

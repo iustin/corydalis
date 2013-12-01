@@ -9,7 +9,10 @@ import Data.List
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Text as T
+import Data.Time
+import Data.Time.Clock.POSIX
 import Text.Printf
+import System.Locale
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
@@ -37,6 +40,14 @@ fcDescription FolderMixed       = "contains both RAW files (either processed or 
 fcDescription FolderOutdated    = "contains RAW files, all processed, but some of \
                                   \the processed files are outdated (corresponding \
                                   \RAW file has been retouched more recently)"
+
+showTimestamp :: Maybe File -> Text
+showTimestamp Nothing = ""
+showTimestamp (Just (File _ ts)) =
+  T.pack $ ft ++ pico
+    where ts' = posixSecondsToUTCTime ts
+          pico = take 4 $ formatTime defaultTimeLocale "%q" ts'
+          ft = formatTime defaultTimeLocale "%F %T." ts'
 
 getHomeR :: Handler Html
 getHomeR = do
