@@ -7,6 +7,7 @@ import Types
 
 import Data.List
 import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.Text as T
 import Text.Printf
 
@@ -78,7 +79,9 @@ getBrowseFoldersR kinds = do
            (fromIntegral allunproc) * 100 / fromIntegral allpics
       npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
                               numraw = fromIntegral (numRawPics n)
-                          in (n, formatPercent $ unproc * 100 / numraw))
+                              f_class = show $ folderClass n
+                              f_class' = fromMaybe f_class $ stripPrefix "Folder" f_class
+                          in (n, formatPercent $ unproc * 100 / numraw, f_class'))
                folders
   defaultLayout $ do
     setTitle . toHtml $

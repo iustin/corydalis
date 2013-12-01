@@ -10,6 +10,7 @@ $else
     <thead>
       <tr>
         <th class="{sorter: 'text'}">Name
+        <th class="{sorter: 'text'}">Classification
         <th class="{sorter: 'text'}">Path
         <th>Images
         <th>Unprocessed
@@ -19,9 +20,10 @@ $else
         <th>Orphaned
         <th>Processed
     <tbody>
-      $forall (n, lp) <- npairs
+      $forall (n, lp, c) <- npairs
         <tr>
           <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
+          <td>#{c}
           <td>
             $case pdPaths n
               $of []
