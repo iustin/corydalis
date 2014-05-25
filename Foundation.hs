@@ -14,7 +14,7 @@ import Settings (widgetFile, Extra (..))
 import Text.Jasmine (minifym)
 import Web.ClientSession (getKey)
 import Text.Hamlet (hamletFile)
-import System.Log.FastLogger (Logger)
+import Yesod.Core.Types (Logger)
 import qualified Data.Text as T
 import Data.Text (Text)
 import Types (FolderClass(..))
