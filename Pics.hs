@@ -77,7 +77,13 @@ data Image = Image
     , imgStatus      :: !ImageStatus
     }
 
-mkImageStatus :: Config -> Maybe File -> Maybe File -> Maybe File -> ImageStatus
+-- | Computes the status of an image given the files that back it
+-- (raw, jpeg, sidecar).
+mkImageStatus :: Config
+              -> Maybe File  -- ^ Raw file
+              -> Maybe File  -- ^ Jpeg file
+              -> Maybe File  -- ^ Sidecar file
+              -> ImageStatus
 mkImageStatus _ Nothing  Nothing  Nothing   =
   error "imageStatus - neither raw nor standalone nor orphaned"
 mkImageStatus _ Nothing  Nothing  (Just _)  = ImageOrphaned
