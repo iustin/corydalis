@@ -23,7 +23,7 @@ data Regex = Regex
     }
 
 instance Show Regex where
-  show (Regex str _) = show str
+  show = show . reString
 
 instance FromJSON Regex where
   parseJSON (String txt) =
