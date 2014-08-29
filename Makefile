@@ -39,4 +39,7 @@ production:
 	cabal configure -fproduction
 	cabal build
 
-.PHONY: standard profiling view production
+doc:
+	cabal haddock --internal --haddock-options=--ignore-all-exports
+
+.PHONY: standard profiling view production doc
