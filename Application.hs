@@ -10,7 +10,8 @@ import Yesod.Default.Config
 import Yesod.Default.Main
 import Yesod.Default.Handlers
 import Network.Wai.Middleware.RequestLogger
-    ( mkRequestLogger, outputFormat, OutputFormat (..), IPAddrSource (..), destination
+    ( mkRequestLogger, outputFormat, OutputFormat (..), IPAddrSource (..)
+    , destination
     )
 import qualified Network.Wai.Middleware.RequestLogger as RequestLogger
 import Network.HTTP.Conduit (newManager, conduitManagerSettings)

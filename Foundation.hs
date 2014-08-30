@@ -97,7 +97,8 @@ instance Yesod App where
     -- This is done to provide an optimization for serving static files from
     -- a separate domain. Please see the staticRoot setting in Settings.hs
     urlRenderOverride y (StaticR s) =
-        Just $ uncurry (joinPath y (Settings.staticRoot $ settings y)) $ renderRoute s
+        Just $ uncurry (joinPath y (Settings.staticRoot $ settings y))
+               $ renderRoute s
     urlRenderOverride _ _ = Nothing
 
     -- This function creates static content files in the static folder
@@ -105,18 +106,21 @@ instance Yesod App where
     -- expiration dates to be set far in the future without worry of
     -- users receiving stale content.
     addStaticContent =
-        addStaticContentExternal minifym genFileName Settings.staticDir (StaticR . flip StaticRoute [])
+        addStaticContentExternal minifym genFileName Settings.staticDir
+                                   (StaticR . flip StaticRoute [])
       where
         -- Generate a unique filename based on the content itself
         genFileName lbs
             | development = "autogen-" ++ base64md5 lbs
             | otherwise   = base64md5 lbs
 
-    -- Place Javascript at bottom of the body tag so the rest of the page loads first
+    -- Place Javascript at bottom of the body tag so the rest of the
+    -- page loads first
     jsLoader _ = BottomOfBody
 
-    -- What messages should be logged. The following includes all messages when
-    -- in development, and warnings and errors in production.
+    -- What messages should be logged. The following includes all
+    -- messages when in development, and warnings and errors in
+    -- production.
     shouldLog _ _source level =
         development || level == LevelWarn || level == LevelError
 

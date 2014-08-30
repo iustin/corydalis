@@ -35,11 +35,12 @@ fcDescription FolderStandalone  = "contains only files without a RAW format"
 fcDescription FolderUnprocessed = "contains RAW files and some processed files"
 fcDescription FolderProcessed   = "contains RAW files, all processed"
 fcDescription FolderEmpty       = "contains no image files"
-fcDescription FolderMixed       = "contains both RAW files (either processed or \
-                                  \not) and files without RAW storage"
-fcDescription FolderOutdated    = "contains RAW files, all processed, but some of \
-                                  \the processed files are outdated (corresponding \
-                                  \RAW file has been retouched more recently)"
+fcDescription FolderMixed       = "contains both RAW files (either processed \
+                                  \or not) and files without RAW storage"
+fcDescription FolderOutdated    = "contains RAW files, all processed, but \
+                                  \some of the processed files are outdated \
+                                  \(corresponding RAW file has been retouched \
+                                  \more recently)"
 
 showTimestamp :: Maybe File -> Text
 showTimestamp Nothing = ""
@@ -91,8 +92,11 @@ getBrowseFoldersR kinds = do
       npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
                               numraw = fromIntegral (numRawPics n)
                               f_class = show $ folderClass n
-                              f_class' = fromMaybe f_class $ stripPrefix "Folder" f_class
-                          in (n, formatPercent $ unproc * 100 / numraw, f_class'))
+                              f_class' = fromMaybe f_class $
+                                         stripPrefix "Folder" f_class
+                          in ( n
+                             , formatPercent $ unproc * 100 / numraw
+                             , f_class'))
                folders
   defaultLayout $ do
     setTitle . toHtml $

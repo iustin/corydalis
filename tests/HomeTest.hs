@@ -15,7 +15,8 @@ homeSpecs =
 
       post "/" $ do
         addNonce
-        fileByLabel "Choose a file" "tests/main.hs" "text/plain" -- talk about self-reference
+        fileByLabel "Choose a file"
+                      "tests/main.hs" "text/plain" -- talk about self-reference
         byLabel "What's on the file?" "Some Content"
 
       statusIs 200

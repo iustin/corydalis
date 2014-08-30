@@ -102,7 +102,8 @@ mkImageStatus c (Just (File _ raw_ts)) (Just (File _ jpeg_ts)) sidecar =
         sidecar_ts = maybe raw_ts fileMTime sidecar
         max_skew = cfgOutdatedError c
 
-mkImage :: Config -> Text -> Text -> Maybe File -> Maybe File -> Maybe File -> Image
+mkImage :: Config -> Text -> Text -> Maybe File
+        -> Maybe File -> Maybe File -> Image
 mkImage config name parent raw sidecar jpeg =
   Image name parent raw sidecar jpeg $
   mkImageStatus config raw jpeg sidecar
@@ -173,7 +174,8 @@ mergePictures c x y =
         x { imgRawPath     = imgRawPath     x `mplus` imgRawPath     y
           , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
           , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y }
-      status' = mkImageStatus c (imgRawPath x') (imgJpegPath x') (imgSidecarPath x')
+      status' = mkImageStatus c (imgRawPath x') (imgJpegPath x')
+                  (imgSidecarPath x')
   in x' { imgStatus = status' }
 
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
@@ -235,7 +237,8 @@ folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
-folderClassFromStats stats@(Stats unproc standalone processed outdated orphaned) =
+folderClassFromStats stats@(Stats unproc standalone processed
+                                  outdated orphaned) =
   let npics = unproc + standalone + processed + outdated + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0
