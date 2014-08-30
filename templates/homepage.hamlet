@@ -19,4 +19,5 @@ The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>fo
 
 <a href=@{TimelineR}>Timeline</a>.
 
-You can also <a href=@{ReloadR}>reload</a> the cache.
+You can also <a href=@{ReloadR}>reload</a> the cache, or view the
+<a href=@{SettingsR}>settings</a>.

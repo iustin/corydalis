@@ -125,3 +125,11 @@ getTimelineR = do
   defaultLayout $ do
     setTitle "PicMan: timeline stats"
     $(widgetFile "timeline")
+
+getSettingsR :: Handler Html
+getSettingsR = do
+  config <- extraConfig `fmap` getExtra
+  let quoteString = \path -> "'" ++ path ++ "'"
+  defaultLayout $ do
+    setTitle "PicMan: Settings"
+    $(widgetFile "settings")

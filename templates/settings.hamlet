@@ -1,0 +1,36 @@
+<h1>Settings
+
+Current configuration:
+
+<ul>
+  $if null (cfgDirs config)
+    <li>no directories defined!
+  $else
+    <li>scanning directories under:
+      <ul>
+        $forall dir <- sort $ cfgDirs config
+          <li><span class=mono>#{quoteString dir}
+  <li>directory match regex:
+    <span class=mono>#{quoteString $ reString $ cfgDirRegex config}
+  $if null (cfgBlacklistedDirs config)
+    <li>not ignoring any subdirectories
+  $else
+    <li>prunning the search at any subdirectories named:
+      <ul>
+        $forall dir <- sort $ cfgBlacklistedDirs config
+          <li><span class=mono>#{quoteString dir}
+  <li>extensions considered raw files:
+    <ul>
+      $forall ext <- sort $ cfgRawExts config
+        <li><span class=mono>#{quoteString ext}
+  <li>extensions considered sidecar files:
+    <ul>
+      $forall ext <- sort $ cfgSidecarExts config
+        <li><span class=mono>#{quoteString ext}
+  <li>extensions considered jpeg files:
+    <ul>
+      $forall ext <- sort $ cfgJpegExts config
+        <li><span class=mono>#{quoteString ext}
+  <li>maximum delta between raw and jpeg files: #
+    <span class=mono>
+      #{show $ cfgOutdatedError config}

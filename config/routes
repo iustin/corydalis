@@ -8,3 +8,4 @@
 /folder/#Text FolderR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET
 /timeline TimelineR GET
+/settings SettingsR GET

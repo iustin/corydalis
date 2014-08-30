@@ -157,3 +157,4 @@ instance YesodBreadcrumbs App where
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
 
   breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)
+  breadcrumb SettingsR      = return ("Settings"     , Just HomeR)

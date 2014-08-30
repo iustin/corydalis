@@ -9,3 +9,7 @@ body {
 span.breadcrumbs {
     font-style: italic;
 }
+
+.mono {
+    font-family: monospace
+}
