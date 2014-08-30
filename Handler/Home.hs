@@ -105,3 +105,12 @@ getReloadR = do
   _ <- liftIO $ forceScanAll config
   setMessage "Cache reloaded"
   redirect HomeR
+
+getTimelineR :: Handler Html
+getTimelineR = do
+  config <- extraConfig `fmap` getExtra
+  pics <- liftIO $ scanAll config
+  let days = Map.toAscList . computeTimeLine $ pics
+  defaultLayout $ do
+    setTitle "PicMan: timeline stats"
+    $(widgetFile "timeline")

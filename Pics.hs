@@ -20,6 +20,7 @@ module Pics ( PicDir(..)
             , numProcessedPics
             , filterDirsByClass
             , computeRepoStats
+            , computeTimeLine
             , Stats(..)
             ) where
 
@@ -36,7 +37,9 @@ import Control.Monad
 import qualified Data.Map.Strict as Map
 import Data.List
 import Data.Maybe
+import Data.Time.Clock
 import Data.Time.Clock.POSIX
+import Data.Time.Calendar
 import System.Directory
 import System.FilePath
 import System.Posix.Files
@@ -126,6 +129,9 @@ data Stats = Stats
 -- | The empty (zero) stats.
 zeroStats :: Stats
 zeroStats = Stats 0 0 0 0 0
+
+-- | Data holding timeline stats.
+type Timeline = Map.Map Day (Integer, Integer)
 
 sumStats :: Stats -> Stats -> Stats
 sumStats (Stats r1 s1 p1 o1 h1) (Stats r2 s2 p2 o2 h2) =
@@ -371,3 +377,37 @@ filterDirsByClass :: [FolderClass] -> Repository -> [PicDir]
 filterDirsByClass classes =
   filter ((`elem` classes) . folderClass) .
   Map.elems
+
+dayFromTimestamp :: POSIXTime -> Day
+dayFromTimestamp = utctDay . posixSecondsToUTCTime
+
+sumPair :: (Num a) => (a, a) -> (a, a) -> (a, a)
+sumPair (a1, b1) (a2, b2) = (a1 + a2, b1 + b2)
+
+computeFolderTimeline :: Timeline -> PicDir -> Timeline
+computeFolderTimeline timeline picdir = Map.foldl' (\t' img ->
+    let jpeg_ts = fmap fileMTime $ imgJpegPath img
+        ts_taken =
+          case imgRawPath img of
+            Just file -> Just $ fileMTime file
+            Nothing -> jpeg_ts
+        ts_processed =
+          case imgRawPath img of
+            Just _ -> jpeg_ts    -- if we have a raw file, whatever is
+                                 -- the jpeg ts is our "processed" ts
+                                 -- (possibly none)
+            Nothing -> Nothing   -- if we don't have a raw file, we
+                                 -- can't have a "processing"
+                                 -- timestamp
+        t'' = case ts_taken of
+                Just ts -> Map.insertWith sumPair
+                             (dayFromTimestamp ts) (1,0) t'
+                Nothing -> t'
+        t''' = case ts_processed of
+                Just ts -> Map.insertWith sumPair
+                             (dayFromTimestamp ts) (0,1) t''
+                Nothing -> t''
+    in t''') timeline (pdImages picdir)
+
+computeTimeLine :: Repository -> Timeline
+computeTimeLine = Map.foldl' computeFolderTimeline Map.empty

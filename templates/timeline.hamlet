@@ -1,0 +1,19 @@
+<h1>Timeline stats
+
+
+Timeline:
+
+ <div style="width: 90%; margin-left: auto; margin-right: auto">
+  <table id="folder" class="tablesorter">
+    <thead>
+      <tr>
+        <th>Day
+        <th>Pictures taken
+        <th>Pictures processed
+    <tbody>
+      $forall (day, (taken, processed)) <- days
+        <tr>
+          <td>#{formatTime defaultTimeLocale "%F" day}
+          <td>#{taken}
+          <td>#{processed}
+    <tfoot>
