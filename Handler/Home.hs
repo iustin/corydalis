@@ -114,7 +114,14 @@ getTimelineR :: Handler Html
 getTimelineR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  let days = Map.toAscList . computeTimeLine $ pics
+  let timeline = computeTimeLine pics
+      days = Map.toAscList timeline
+      tstats = do -- Maybe monad in order to avoid unsafe min/max functions
+        firstday <- fmap (fst . fst) $ Map.minViewWithKey timeline
+        lastday <- fmap (fst . fst) $ Map.maxViewWithKey timeline
+        let numdays = diffDays lastday firstday
+        return (firstday, lastday, numdays)
+      formatDay = formatTime defaultTimeLocale "%F"
   defaultLayout $ do
     setTitle "PicMan: timeline stats"
     $(widgetFile "timeline")
