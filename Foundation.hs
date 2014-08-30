@@ -156,4 +156,4 @@ instance YesodBreadcrumbs App where
     return ("Browsing folders of type " `T.append`
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
 
-  breadcrumb TimelineR      = return ("Timeline"     , Nothing)
+  breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)
