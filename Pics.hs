@@ -77,7 +77,7 @@ dropNumSuffix r = reverse . go . reverse $ r
 data File = File
   { fileName  :: !Text
   , fileMTime :: !POSIXTime
-  }
+  } deriving (Show)
 
 data Image = Image
     { imgName        :: !Text
@@ -86,7 +86,7 @@ data Image = Image
     , imgSidecarPath :: !(Maybe File)
     , imgJpegPath    :: ![File]
     , imgStatus      :: !ImageStatus
-    }
+    } deriving (Show)
 
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
@@ -121,7 +121,7 @@ data PicDir = PicDir
   { pdName   :: !Text
   , pdPaths  :: !([Text])
   , pdImages :: !(Map.Map Text Image)
-  }
+  } deriving (Show)
 
 type Repository = Map.Map Text PicDir
 
