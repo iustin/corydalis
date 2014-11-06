@@ -66,6 +66,14 @@ blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
 isOKDir :: Config -> String -> Bool
 isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 
+dropNumSuffix :: String -> String
+dropNumSuffix r = reverse . go . reverse $ r
+  where go full@(d:'-':rest) =
+          if d >= '0' && d <= '9'
+             then rest
+            else full
+        go x = x
+
 data File = File
   { fileName  :: !Text
   , fileMTime :: !POSIXTime
@@ -322,7 +330,7 @@ loadDir config name path = do
       jpeg = jpegExtsRev config
       tname = T.pack name
       loadImage (f, stat) =
-        let base = dropExtensions f
+        let base = dropNumSuffix $ dropExtensions f
             tbase = T.pack base
             f' = reverse f
             tf = T.pack f
