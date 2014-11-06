@@ -55,5 +55,5 @@ Picture list:
                 orphaned
           <td>#{showTimestamp $ imgRawPath img}
           <td>#{showTimestamp $ imgSidecarPath img}
-          <td>#{showTimestamp $ imgJpegPath img}
+          <td>#{showTimestamp $ listToMaybe $ imgJpegPath img}
     <tfoot>

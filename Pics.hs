@@ -76,7 +76,7 @@ data Image = Image
     , imgParent      :: !Text
     , imgRawPath     :: !(Maybe File)
     , imgSidecarPath :: !(Maybe File)
-    , imgJpegPath    :: !(Maybe File)
+    , imgJpegPath    :: ![File]
     , imgStatus      :: !ImageStatus
     }
 
@@ -84,26 +84,27 @@ data Image = Image
 -- (raw, jpeg, sidecar).
 mkImageStatus :: Config
               -> Maybe File  -- ^ Raw file
-              -> Maybe File  -- ^ Jpeg file
+              -> [File]      -- ^ Jpeg file(s)
               -> Maybe File  -- ^ Sidecar file
               -> ImageStatus
-mkImageStatus _ Nothing  Nothing  Nothing   =
+mkImageStatus _ Nothing  []    Nothing   =
   error "imageStatus - neither raw nor standalone nor orphaned"
-mkImageStatus _ Nothing  Nothing  (Just _)  = ImageOrphaned
-mkImageStatus _ Nothing  (Just _) (Just _)  = ImageStandalone
+mkImageStatus _ Nothing  []    (Just _)  = ImageOrphaned
+mkImageStatus _ Nothing  (_:_) (Just _)  = ImageStandalone
   --error "imageStatus - orphaned + jpeg?"
-mkImageStatus _ (Just _) Nothing  _         = ImageRaw
-mkImageStatus _ Nothing  (Just _) _         = ImageStandalone
-mkImageStatus c (Just (File _ raw_ts)) (Just (File _ jpeg_ts)) sidecar =
-  if raw_ts' > jpeg_ts + max_skew
+mkImageStatus _ (Just _) []    _         = ImageRaw
+mkImageStatus _ Nothing  (_:_) _         = ImageStandalone
+mkImageStatus c (Just (File _ raw_ts)) jpegs@(_:_) sidecar =
+  if raw_ts' > jpeg_ts' + max_skew
     then ImageOutdated
     else ImageProcessed
   where raw_ts' = max raw_ts sidecar_ts
         sidecar_ts = maybe raw_ts fileMTime sidecar
+        jpeg_ts' = minimum $ map fileMTime jpegs
         max_skew = cfgOutdatedError c
 
 mkImage :: Config -> Text -> Text -> Maybe File
-        -> Maybe File -> Maybe File -> Image
+        -> Maybe File -> [File] -> Image
 mkImage config name parent raw sidecar jpeg =
   Image name parent raw sidecar jpeg $
   mkImageStatus config raw jpeg sidecar
@@ -325,7 +326,8 @@ loadDir config name path = do
             tbase = T.pack base
             f' = reverse f
             tf = T.pack f
-            jtf = strictJust $ File tf mtime
+            jf = File tf mtime
+            jtf = strictJust jf
             mtime = modificationTimeHiRes stat
             nfp = if hasExts f' rawe
                     then jtf
@@ -334,10 +336,10 @@ loadDir config name path = do
                     then jtf
                     else Nothing
             jpe = if hasExts f' jpeg
-                    then jtf
-                    else Nothing
+                    then [jf]
+                    else []
         in case (nfp, jpe, sdc) of
-             (Nothing, Nothing, Nothing) -> Nothing
+             (Nothing, [], Nothing) -> Nothing
              _ -> Just (tbase, mkImage config tbase tname nfp sdc jpe)
       images = foldl' (\acc f ->
                          case loadImage f of
@@ -389,7 +391,9 @@ sumPair (a1, b1) (a2, b2) = (a1 + a2, b1 + b2)
 
 computeFolderTimeline :: Timeline -> PicDir -> Timeline
 computeFolderTimeline timeline picdir = Map.foldl' (\t' img ->
-    let jpeg_ts = fmap fileMTime $ imgJpegPath img
+    let jpeg_ts = case imgJpegPath img of
+                    [] -> Nothing
+                    j:_ -> strictJust $ fileMTime j
         ts_taken =
           case imgRawPath img of
             Just file -> Just $ fileMTime file
