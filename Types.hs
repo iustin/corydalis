@@ -45,6 +45,7 @@ data Config = Config
     , cfgSidecarExts     :: [FilePath]
     , cfgOtherImgExts    :: [FilePath]
     , cfgDirRegex        :: Regex
+    , cfgRangeRegex      :: Regex
     , cfgOutdatedError   :: NominalDiffTime
     } deriving (Show)
 
@@ -58,6 +59,7 @@ instance FromJSON Config where
          v .: "sidecarexts" <*>
          v .: "otherexts" <*>
          v .: "dirregex" <*>
+         v .: "rangeregex" <*>
          v .: "outdatederror"
 
   parseJSON _ = mzero
