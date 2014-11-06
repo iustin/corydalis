@@ -66,13 +66,11 @@ blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
 isOKDir :: Config -> String -> Bool
 isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 
-dropNumSuffix :: String -> String
-dropNumSuffix r = reverse . go . reverse $ r
-  where go full@(d:'-':rest) =
-          if d >= '0' && d <= '9'
-             then rest
-            else full
-        go x = x
+dropCopySuffix :: Config -> String -> String
+dropCopySuffix cfg name =
+  case PCRE.match (reRegex $ cfgCopyRegex cfg) name of
+    [(_:base:_)] -> base
+    _ -> name
 
 maybeRead :: (Read a) => String -> Maybe a
 maybeRead s = case reads s of
@@ -354,7 +352,7 @@ loadDir config name path = do
       jpeg = jpegExtsRev config
       tname = T.pack name
       loadImage (f, stat) =
-        let base = dropNumSuffix $ dropExtensions f
+        let base = dropCopySuffix config $ dropExtensions f
             tbase = T.pack base
             f' = reverse f
             tf = T.pack f
