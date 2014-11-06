@@ -15,6 +15,7 @@ Default: &defaults
     otherexts: ["png"]
     dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
     rangeregex: "(.*_)([0-9]+)-([0-9]+)"
+    copyregex: "(.*)(-([0-9]|Edit))"
     outdatederror: 5
 
 Development:

@@ -46,20 +46,22 @@ data Config = Config
     , cfgOtherImgExts    :: [FilePath]
     , cfgDirRegex        :: Regex
     , cfgRangeRegex      :: Regex
+    , cfgCopyRegex       :: Regex
     , cfgOutdatedError   :: NominalDiffTime
     } deriving (Show)
 
 instance FromJSON Config where
   parseJSON (Object v) =
     Config <$>
-         v .: "dirs" <*>
+         v .: "dirs"            <*>
          v .: "blacklisteddirs" <*>
-         v .: "rawexts" <*>
-         v .: "jpegexts" <*>
-         v .: "sidecarexts" <*>
-         v .: "otherexts" <*>
-         v .: "dirregex" <*>
-         v .: "rangeregex" <*>
+         v .: "rawexts"         <*>
+         v .: "jpegexts"        <*>
+         v .: "sidecarexts"     <*>
+         v .: "otherexts"       <*>
+         v .: "dirregex"        <*>
+         v .: "rangeregex"      <*>
+         v .: "copyregex"       <*>
          v .: "outdatederror"
 
   parseJSON _ = mzero
