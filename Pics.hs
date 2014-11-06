@@ -74,6 +74,25 @@ dropNumSuffix r = reverse . go . reverse $ r
             else full
         go x = x
 
+maybeRead :: (Read a) => String -> Maybe a
+maybeRead s = case reads s of
+                [(i, [])] -> Just i
+                _   -> Nothing
+
+expandRangeFile :: Config -> String -> [String]
+expandRangeFile cfg name =
+  case PCRE.match (reRegex $ cfgRangeRegex cfg) name of
+    [[_, base, begin, end]] -> let ib = maybeRead begin::Maybe Int
+                                   ie = maybeRead end
+                                   expand s = if length s >= length begin
+                                                then s
+                                                else expand ('0':s)
+                               in case (ib, ie) of
+                                    (Just b, Just e) ->
+                                      [base ++ expand (show i) | i <- [b..e]]
+                                    _ -> []
+    _ -> []
+
 data File = File
   { fileName  :: !Text
   , fileMTime :: !POSIXTime
@@ -118,9 +137,10 @@ mkImage config name parent raw sidecar jpeg =
   mkImageStatus config raw jpeg sidecar
 
 data PicDir = PicDir
-  { pdName   :: !Text
-  , pdPaths  :: !([Text])
-  , pdImages :: !(Map.Map Text Image)
+  { pdName      :: !Text
+  , pdPaths     :: !([Text])
+  , pdImages    :: !(Map.Map Text Image)
+  , pdShadows   :: !(Map.Map Text Image)
   } deriving (Show)
 
 type Repository = Map.Map Text PicDir
@@ -322,6 +342,10 @@ recursiveScanDir config base = do
 strictJust :: a -> Maybe a
 strictJust !a = Just a
 
+addImgs :: Config -> Map.Map Text Image -> [Image] -> Map.Map Text Image
+addImgs config =
+  foldl' (\a i -> Map.insertWith (mergePictures config) (imgName i) i a)
+
 loadDir :: Config -> String -> FilePath -> IO PicDir
 loadDir config name path = do
   contents <- recursiveScanDir config path
@@ -346,20 +370,39 @@ loadDir config name path = do
             jpe = if hasExts f' jpeg
                     then [jf]
                     else []
+            img = mkImage config tbase tname nfp sdc jpe
+            snames = expandRangeFile config base
+            simgs = map (\expname ->
+                           mkImage config (T.pack expname) tname
+                                   Nothing Nothing [jf]
+                        ) snames
         in case (nfp, jpe, sdc) of
-             (Nothing, [], Nothing) -> Nothing
-             _ -> Just (tbase, mkImage config tbase tname nfp sdc jpe)
-      images = foldl' (\acc f ->
-                         case loadImage f of
-                           Nothing -> acc
-                           Just (k, img) ->
-                             Map.insertWith (mergePictures config) k img acc
-                      ) Map.empty contents
-  return $ PicDir tname [T.pack path] images
+             (Nothing, [], Nothing) -> ([], [])
+             -- no shadows for sidecar only files
+             (Nothing, [], Just _) ->  ([img], [])
+             _                      -> ([img], simgs)
+      images = foldl' (\(imgs, shadows) f ->
+                         let (newis, newss) = loadImage f
+                         in (addImgs config imgs newis,
+                             addImgs config shadows newss)
+                      ) (Map.empty, Map.empty) contents
+  return $ PicDir tname [T.pack path] (fst images) (snd images)
+
+
+mergeShadows :: Config -> PicDir -> PicDir
+mergeShadows config picd =
+  let images' =
+        Map.foldlWithKey (\imgs sname shadow ->
+                            Map.adjust (\i -> mergePictures config i shadow)
+                               sname imgs)
+             (pdImages picd) (pdShadows picd)
+  in picd { pdImages = images' }
 
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
-  foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
+  repo <- foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
+  let repo' = Map.map (mergeShadows config) repo
+  return repo'
 
 maybeUpdateCache :: Config
                  -> Maybe Repository
