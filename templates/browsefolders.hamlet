@@ -42,7 +42,7 @@ $else
           <td class="number">#{numProcessedPics n}
     <tfoot>
       <tr>
-       <td colspan=2>Total files
+       <td colspan=3>Total files
        <td class="number">#{allpics}
        <td class="number">#{allunproc}
        <td class="number">
