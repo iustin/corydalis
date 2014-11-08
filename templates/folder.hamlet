@@ -40,7 +40,7 @@ Picture list:
     <tbody>
       $forall img <- pdImages dir
         <tr>
-          <td>#{imgName img}
+          <td><a href=@{ImageR name (imgName img)}>#{imgName img}</a>
           <td>
             $case imgStatus img
               $of ImageProcessed

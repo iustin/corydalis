@@ -6,6 +6,7 @@
 / HomeR GET
 /reload ReloadR GET
 /folder/#Text FolderR GET
+/folder/#Text/#Text ImageR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET
 /timeline TimelineR GET
 /settings SettingsR GET

@@ -152,6 +152,10 @@ instance YesodBreadcrumbs App where
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
   breadcrumb (FolderR name) = return ("Folder " `T.append` name,
                                       Just HomeR)
+  breadcrumb (ImageR folder image) = return ("Image " `T.append` folder
+                                                      `T.append` "/"
+                                                      `T.append` image,
+                                            Just (FolderR folder))
   breadcrumb (BrowseFoldersR kind) =
     return ("Browsing folders of type " `T.append`
             T.intercalate ", " (map toPathPiece kind), Just HomeR)

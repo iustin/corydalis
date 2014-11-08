@@ -133,3 +133,17 @@ getSettingsR = do
   defaultLayout $ do
     setTitle "PicMan: Settings"
     $(widgetFile "settings")
+
+getImageR :: Text -> Text -> Handler Html
+getImageR folder iname = do
+  config <- extraConfig `fmap` getExtra
+  pics <- liftIO $ scanAll config
+  dir <- case Map.lookup folder pics of
+           Nothing -> notFound
+           Just dir -> return dir
+  case Map.lookup iname (pdImages dir) of
+    Nothing -> notFound
+    Just img -> defaultLayout $ do
+      setTitle . toHtml $ "PicMan: Image" `T.append` folder
+                 `T.append` "/" `T.append` (imgName img)
+      $(widgetFile "image")
