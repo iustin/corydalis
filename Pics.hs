@@ -102,6 +102,7 @@ data Image = Image
     , imgRawPath     :: !(Maybe File)
     , imgSidecarPath :: !(Maybe File)
     , imgJpegPath    :: ![File]
+    , imgRange       :: !(Maybe (Text, Text))
     , imgStatus      :: !ImageStatus
     } deriving (Show)
 
@@ -129,9 +130,9 @@ mkImageStatus c (Just (File _ raw_ts)) jpegs@(_:_) sidecar =
         max_skew = cfgOutdatedError c
 
 mkImage :: Config -> Text -> Text -> Maybe File
-        -> Maybe File -> [File] -> Image
-mkImage config name parent raw sidecar jpeg =
-  Image name parent raw sidecar jpeg $
+        -> Maybe File -> [File] -> Maybe (Text, Text) -> Image
+mkImage config name parent raw sidecar jpeg range =
+  Image name parent raw sidecar jpeg range $
   mkImageStatus config raw jpeg sidecar
 
 data PicDir = PicDir
@@ -368,11 +369,14 @@ loadDir config name path = do
             jpe = if hasExts f' jpeg
                     then [jf]
                     else []
-            img = mkImage config tbase tname nfp sdc jpe
             snames = expandRangeFile config base
+            range = case snames of
+                      [] -> Nothing
+                      _ -> Just (T.pack $ head snames, T.pack $ last snames)
+            img = mkImage config tbase tname nfp sdc jpe range
             simgs = map (\expname ->
                            mkImage config (T.pack expname) tname
-                                   Nothing Nothing [jf]
+                                   Nothing Nothing [jf] Nothing
                         ) snames
         in case (nfp, jpe, sdc) of
              (Nothing, [], Nothing) -> ([], [])
@@ -396,10 +400,34 @@ mergeShadows config picd =
              (pdImages picd) (pdShadows picd)
   in picd { pdImages = images' }
 
+maybeUpdateStandaloneRange :: Config -> PicDir -> Image -> Maybe Image
+maybeUpdateStandaloneRange config picd img = do
+  let iname = imgName img
+  (begin, _) <- imgRange img
+  _ <- if imgStatus img == ImageStandalone
+         then Just ()
+         else Nothing
+  root <- Map.lookup begin (pdImages picd)
+  _ <- imgRawPath root
+  return $ mkImage config iname (imgParent img) (imgRawPath root)
+           (imgSidecarPath img) (imgJpegPath img) (imgRange img)
+
+resolveProcessedRanges :: Config -> PicDir -> PicDir
+resolveProcessedRanges config picd =
+  let images' =
+        Map.foldl (\accimgs img ->
+                     case maybeUpdateStandaloneRange  config picd img of
+                       Nothing -> accimgs
+                       Just img' -> Map.insert (imgName img') img' accimgs)
+             (pdImages picd) (pdImages picd)
+  in picd { pdImages = images' }
+
+
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
   repo <- foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
-  let repo' = Map.map (mergeShadows config) repo
+  let repo' = Map.map (resolveProcessedRanges config .
+                       mergeShadows config) repo
   return repo'
 
 maybeUpdateCache :: Config
