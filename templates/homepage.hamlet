@@ -17,10 +17,10 @@ The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>fo
     $with fclist <- [fc]
       <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
 
-The overall size of the repository is #{show (rawsize + procsize)}:
+The overall size of the repository is #{showBinary (rawsize + procsize)}:
 <ul>
-  <li>#{show rawsize} in raw files
-  <li>#{show procsize} in processed and standalone files
+  <li>#{showBinary rawsize} in raw files
+  <li>#{showBinary procsize} in processed and standalone files
 
 <a href=@{TimelineR}>Timeline</a>.
 

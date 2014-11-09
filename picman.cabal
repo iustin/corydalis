@@ -74,6 +74,7 @@ library
                  , unix                          >= 2.6
                  , time
                  , old-locale
+                 , prefix-units                  >= 0.1        && < 0.2
 
 
 executable         picman

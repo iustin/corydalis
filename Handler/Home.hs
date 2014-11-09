@@ -13,12 +13,17 @@ import Data.Time
 import Data.Time.Clock.POSIX
 import Text.Printf
 import System.Locale
+import Data.Prefix.Units
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
 formatPercent :: Double -> Maybe String
 formatPercent v | isNaN v = Nothing
                 | otherwise = Just $ printf "%.02f" v
+
+showBinary = (++ "B") . showValue (Left FormatBinary) . convert
+  where convert :: (Integral a) => a -> Int
+        convert = fromIntegral
 
 fcName :: FolderClass -> Text
 fcName FolderRaw         = "raw"
