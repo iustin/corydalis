@@ -42,7 +42,9 @@ import Data.Time.Clock.POSIX
 import Data.Time.Calendar
 import System.Directory
 import System.FilePath
-import System.Posix.Files
+import System.Posix.Files hiding (fileSize)
+import qualified System.Posix.Files (fileSize)
+import System.Posix.Types
 import qualified Text.Regex.PCRE as PCRE
 
 addRevDot :: [FilePath] -> [FilePath]
@@ -94,6 +96,7 @@ expandRangeFile cfg name =
 data File = File
   { fileName  :: !Text
   , fileMTime :: !POSIXTime
+  , fileSize  :: !FileOffset
   } deriving (Show)
 
 data Image = Image
@@ -120,7 +123,7 @@ mkImageStatus _ Nothing  (_:_) (Just _)  = ImageStandalone
   --error "imageStatus - orphaned + jpeg?"
 mkImageStatus _ (Just _) []    _         = ImageRaw
 mkImageStatus _ Nothing  (_:_) _         = ImageStandalone
-mkImageStatus c (Just (File _ raw_ts)) jpegs@(_:_) sidecar =
+mkImageStatus c (Just (File _ raw_ts _)) jpegs@(_:_) sidecar =
   if raw_ts' > jpeg_ts' + max_skew
     then ImageOutdated
     else ImageProcessed
@@ -153,27 +156,37 @@ data Stats = Stats
   , sProcessed  :: !Int
   , sOutdated   :: !Int
   , sOrphaned   :: !Int
+  , sRawSize    :: !FileOffset
+  , sProcSize   :: !FileOffset
   } deriving Show
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0 0
+zeroStats = Stats 0 0 0 0 0 0 0
 
 -- | Data holding timeline stats.
 type Timeline = Map.Map Day (Integer, Integer)
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 o1 h1) (Stats r2 s2 p2 o2 h2) =
+sumStats (Stats r1 s1 p1 o1 h1 rs1 ps1) (Stats r2 s2 p2 o2 h2 rs2 ps2) =
   Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h1 + h2)
+        (rs1 + rs2) (ps1 + ps2)
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
-  case imgStatus img of
-    ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
-    ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
-    ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
-    ImageOutdated   -> orig { sOutdated   = sOutdated orig   + 1 }
-    ImageOrphaned   -> orig { sOrphaned   = sOrphaned orig   + 1 }
+  let stats = case imgStatus img of
+               ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
+               ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
+               ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
+               ImageOutdated   -> orig { sOutdated   = sOutdated orig   + 1 }
+               ImageOrphaned   -> orig { sOrphaned   = sOrphaned orig   + 1 }
+      rs = sRawSize stats
+      rs' = case imgRawPath img of
+              Nothing -> rs
+              Just f -> rs + fileSize f
+      ps = sProcSize stats
+      ps' = foldl' (\s f -> s + fileSize f) ps (imgJpegPath img)
+  in stats { sRawSize = rs', sProcSize = ps' }
 
 computeFolderStats :: PicDir -> Stats
 computeFolderStats =
@@ -266,7 +279,7 @@ folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@(Stats unproc standalone processed
-                                  outdated orphaned) =
+                                  outdated orphaned rawsize procsize) =
   let npics = unproc + standalone + processed + outdated + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0
@@ -357,9 +370,10 @@ loadDir config name path = do
             tbase = T.pack base
             f' = reverse f
             tf = T.pack f
-            jf = File tf mtime
+            jf = File tf mtime size
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
+            size = System.Posix.Files.fileSize stat
             nfp = if hasExts f' rawe
                     then jtf
                     else Nothing

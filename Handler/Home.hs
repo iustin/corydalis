@@ -44,7 +44,7 @@ fcDescription FolderOutdated    = "contains RAW files, all processed, but \
 
 showTimestamp :: Maybe File -> Text
 showTimestamp Nothing = ""
-showTimestamp (Just (File _ ts)) =
+showTimestamp (Just (File _ ts _)) =
   T.pack $ ft ++ pico
     where ts' = posixSecondsToUTCTime ts
           pico = take 4 $ formatTime defaultTimeLocale "%q" ts'
@@ -54,7 +54,8 @@ getHomeR :: Handler Html
 getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  let ((Stats unprocessed standalone processed outdated orphaned), fcm) =
+  let ((Stats unprocessed standalone processed outdated orphaned
+              rawsize procsize), fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
@@ -71,6 +72,7 @@ getFolderR name = do
   case Map.lookup name pics of
     Nothing -> notFound
     Just dir -> defaultLayout $ do
+      let stats = computeFolderStats dir
       setTitle . toHtml $ "PicMan: folder " `T.append` name
       $(widgetFile "folder")
 

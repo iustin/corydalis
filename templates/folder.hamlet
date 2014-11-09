@@ -24,6 +24,12 @@ Picture contents:
   $if numStandalonePics dir > 0
     <li>#{numStandalonePics dir} final files without a source raw file
 
+Folder size:
+<ul>
+  <li>#{show $ (sRawSize stats + sProcSize stats)} total size
+  <li>#{show $ sRawSize stats} raw files
+  <li>#{show $ sProcSize stats} processed and standalone files
+
 Picture list:
 
  <div style="width: 90%; margin-left: auto; margin-right: auto">
