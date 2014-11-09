@@ -22,6 +22,8 @@ module Pics ( PicDir(..)
             , computeRepoStats
             , computeTimeLine
             , Stats(..)
+            , zeroStats
+            , sumStats
             ) where
 
 import Types

@@ -87,6 +87,7 @@ getBrowseFoldersR kinds = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
   let folders = filterDirsByClass kinds pics
+      stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
       allpics = sum . map numPics $ folders
       allraws = sum . map numRawPics $ folders
       allunproc = sum . map numUnprocessedPics $ folders
