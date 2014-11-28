@@ -99,6 +99,7 @@ data File = File
   { fileName  :: !Text
   , fileMTime :: !POSIXTime
   , fileSize  :: !FileOffset
+  , filePath  :: !Text
   } deriving (Show)
 
 data Image = Image
@@ -125,11 +126,12 @@ mkImageStatus _ Nothing  (_:_) (Just _)  = ImageStandalone
   --error "imageStatus - orphaned + jpeg?"
 mkImageStatus _ (Just _) []    _         = ImageRaw
 mkImageStatus _ Nothing  (_:_) _         = ImageStandalone
-mkImageStatus c (Just (File _ raw_ts _)) jpegs@(_:_) sidecar =
+mkImageStatus c (Just raw) jpegs@(_:_) sidecar =
   if raw_ts' > jpeg_ts' + max_skew
     then ImageOutdated
     else ImageProcessed
-  where raw_ts' = max raw_ts sidecar_ts
+  where raw_ts = fileMTime raw
+        raw_ts' = max raw_ts sidecar_ts
         sidecar_ts = maybe raw_ts fileMTime sidecar
         jpeg_ts' = minimum $ map fileMTime jpegs
         max_skew = cfgOutdatedError c
@@ -372,7 +374,7 @@ loadDir config name path = do
             tbase = T.pack base
             f' = reverse f
             tf = T.pack f
-            jf = File tf mtime size
+            jf = File tf mtime size (T.pack $ path </> f)
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
             size = System.Posix.Files.fileSize stat
