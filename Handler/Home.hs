@@ -47,13 +47,15 @@ fcDescription FolderOutdated    = "contains RAW files, all processed, but \
                                   \(corresponding RAW file has been retouched \
                                   \more recently)"
 
-showTimestamp :: Maybe File -> Text
-showTimestamp Nothing = ""
-showTimestamp (Just (File _ ts _)) =
+showTimestamp :: NominalDiffTime -> Text
+showTimestamp ts =
   T.pack $ ft ++ pico
     where ts' = posixSecondsToUTCTime ts
           pico = take 4 $ formatTime defaultTimeLocale "%q" ts'
           ft = formatTime defaultTimeLocale "%F %T." ts'
+
+showFileTimestamp :: Maybe File -> Text
+showFileTimestamp = maybe "" (showTimestamp . fileMTime)
 
 getHomeR :: Handler Html
 getHomeR = do

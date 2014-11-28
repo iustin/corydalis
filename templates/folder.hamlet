@@ -59,7 +59,7 @@ Picture list:
                 outdated
               $of ImageOrphaned
                 orphaned
-          <td>#{showTimestamp $ imgRawPath img}
-          <td>#{showTimestamp $ imgSidecarPath img}
-          <td>#{showTimestamp $ listToMaybe $ imgJpegPath img}
+          <td>#{showFileTimestamp $ imgRawPath img}
+          <td>#{showFileTimestamp $ imgSidecarPath img}
+          <td>#{showFileTimestamp $ listToMaybe $ imgJpegPath img}
     <tfoot>
