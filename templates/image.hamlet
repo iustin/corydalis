@@ -1,3 +1,31 @@
 <h1>Image #{folder}/#{iname}
 
-#{show img}
+<ul>
+  <li>Image name: #{imgName img}
+  <li>Parent folder: <a href=@{FolderR (imgParent img)}>#{imgParent img}</a>
+  $maybe (begin, end) <- imgRange img
+     <li>Image is a composition based on range #{begin} to #{end}
+  <li>Status: #{show $ imgStatus img}
+  $case imgRawPath img
+   $of Just (File name mtime size)
+    <li>RAW file: #{name}, #
+        last modified: #{showTimestamp mtime}, #
+        size #{showBinary size}
+   $of Nothing
+    <li>No RAW component
+  $if (null $ imgJpegPath img)
+    <li>Has no processed files
+  $else
+    <li>Processed files:
+      <ul>
+        $forall jpeg <- imgJpegPath img
+          <li>#{Pics.fileName jpeg}, #
+              last modified: #{showTimestamp $ fileMTime jpeg}, #
+              size #{showBinary $ fileSize jpeg}
+  $case imgSidecarPath img
+   $of Just (File name mtime size)
+    <li>Sidecar file: #{name}, #
+        last modified: #{showTimestamp mtime}, #
+        size: #{showBinary size}
+   $of Nothing
+    <li>No sidecar file
