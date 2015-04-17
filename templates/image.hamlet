@@ -7,11 +7,8 @@
      <li>Image is a composition based on range #{begin} to #{end}
   <li>Status: #{show $ imgStatus img}
   $case imgRawPath img
-   $of Just (File name mtime size path)
-    <li>RAW file: #{name}, #
-        path: #{path}, #
-        last modified: #{showTimestamp mtime}, #
-        size #{showBinary size}
+   $of Just f
+    ^{showFile (Just "RAW file:") f}
    $of Nothing
     <li>No RAW component
   $if (null $ imgJpegPath img)
@@ -20,15 +17,9 @@
     <li>Processed files:
       <ul>
         $forall jpeg <- imgJpegPath img
-          <li>#{Pics.fileName jpeg}, #
-              path: #{filePath jpeg}, #
-              last modified: #{showTimestamp $ fileMTime jpeg}, #
-              size #{showBinary $ fileSize jpeg}
+          ^{showFile Nothing jpeg}
   $case imgSidecarPath img
-   $of Just (File name mtime size path)
-    <li>Sidecar file: #{name}, #
-        path: #{path}, #
-        last modified: #{showTimestamp mtime}, #
-        size: #{showBinary size}
+   $of Just f
+    ^{showFile (Just "Sidecar file:") f}
    $of Nothing
     <li>No sidecar file

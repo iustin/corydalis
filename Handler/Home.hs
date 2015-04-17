@@ -157,3 +157,15 @@ getImageR folder iname = do
       setTitle . toHtml $ "PicMan: Image" `T.append` folder
                  `T.append` "/" `T.append` (imgName img)
       $(widgetFile "image")
+
+showFile :: Maybe Text -> Pics.File -> Widget
+showFile prefix f = do
+  let expanded_prefix = maybe "" (`T.append` " ") prefix
+  toWidget
+    [hamlet|
+          <li>#{expanded_prefix}#{Pics.fileName f}
+            <ul>
+              <li>path: #{Pics.filePath f}
+              <li>last modified: #{showTimestamp $ fileMTime f}
+              <li>size: #{showBinary $ fileSize f}
+    |]
