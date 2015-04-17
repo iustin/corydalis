@@ -21,6 +21,7 @@ formatPercent :: Double -> Maybe String
 formatPercent v | isNaN v = Nothing
                 | otherwise = Just $ printf "%.02f" v
 
+showBinary :: (Integral a) => a -> String
 showBinary = (++ "B") . showValue (Left FormatBinary) . convert
   where convert :: (Integral a) => a -> Int
         convert = fromIntegral
