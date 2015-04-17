@@ -4,7 +4,10 @@
   <li>Image name: #{imgName img}
   <li>Parent folder: <a href=@{FolderR (imgParent img)}>#{imgParent img}</a>
   $maybe (begin, end) <- imgRange img
-     <li>Image is a composition based on range #{begin} to #{end}
+     <li>Image is a composition based on range #
+       <a href=@{ImageR (imgParent img) begin}>#{begin}</a>
+       to
+       <a href=@{ImageR (imgParent img) end}>#{end}</a>
   <li>Status: #{show $ imgStatus img}
   $case imgRawPath img
    $of Just f
