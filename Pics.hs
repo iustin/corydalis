@@ -375,9 +375,13 @@ loadDir config name path = do
             tbase = T.pack base
             f' = reverse f
             tf = T.pack f
-            jf = File tf mtime size (T.pack $ path </> f)
+            jf = File tf file_time size (T.pack $ path </> f)
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
+            ctime = statusChangeTimeHiRes stat
+            file_time = if is_jpeg
+                          then mtime `max` ctime
+                          else mtime
             size = System.Posix.Files.fileSize stat
             nfp = if hasExts f' rawe
                     then jtf
@@ -385,7 +389,8 @@ loadDir config name path = do
             sdc = if hasExts f' side
                     then jtf
                     else Nothing
-            jpe = if hasExts f' jpeg
+            is_jpeg = hasExts f' jpeg
+            jpe = if is_jpeg
                     then [jf]
                     else []
             snames = expandRangeFile config base
