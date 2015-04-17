@@ -295,16 +295,17 @@ folderClassFromStats stats@(Stats unproc standalone processed
       conditions = (has_pics, all_unproc, has_unproc,
                     has_standalone, has_raw, has_outdated, has_orphaned)
   in case conditions of
+       -- pics all_u  has_u  has_s  has_r  has_ou has_or
        -- folder with no pics is empty
        (False, True , False, False, False, False, False) -> FolderEmpty
        -- folder with all unprocessed is raw
        (True,  True , True , False, _    , False, False) -> FolderRaw
-       -- folder with some unprocessed is unprocessed
-       (True,  False, True , False, _    , _    , False) -> FolderUnprocessed
+       -- folder with some unprocessed (and maybe other types) is unprocessed
+       (True,  False, True , _    , _    , _    , _    ) -> FolderUnprocessed
        -- folder with no raw files is standalone
        (True,  False, False, True , False, False, False) -> FolderStandalone
        -- folder with both standalone and some raw is mixed
-       (True,  False, _    , True , True , _    , False) -> FolderMixed
+       (True,  False, False, True , True , _    , False) -> FolderMixed
        -- folder with orphaned pictures is mixed
        (True,  False, _    , _    , _    , _    , True ) -> FolderMixed
        -- folder with outdated pictures is outdated
