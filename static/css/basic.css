@@ -11,5 +11,11 @@ span.breadcrumbs {
 }
 
 .mono {
-    font-family: monospace
+    font-family: monospace;
+}
+
+.monolight {
+    font-family: monospace,monospace;
+    background-color: AliceBlue;
+
 }
