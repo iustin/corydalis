@@ -62,7 +62,7 @@ getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
   let ((Stats unprocessed standalone processed outdated orphaned
-              rawsize procsize), fcm) =
+              rawsize procsize standalonesize sidecarsize), fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm

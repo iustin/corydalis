@@ -20,7 +20,9 @@ The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>fo
 The overall size of the repository is #{showBinary (rawsize + procsize)}:
 <ul>
   <li>#{showBinary rawsize} in raw files
-  <li>#{showBinary procsize} in processed and standalone files
+  <li>#{showBinary procsize} in processed and outdated files (i.e. files that can be regenerated)
+  <li>#{showBinary standalonesize} in standalone files
+  <li>#{showBinary sidecarsize} in sidecar files
 
 <a href=@{TimelineR}>Timeline</a>.
 

@@ -155,30 +155,34 @@ type FolderClassStats = Map.Map FolderClass Int
 
 -- | Data type holding per-folder picture statistics.
 data Stats = Stats
-  { sRaw        :: !Int
-  , sStandalone :: !Int
-  , sProcessed  :: !Int
-  , sOutdated   :: !Int
-  , sOrphaned   :: !Int
-  , sRawSize    :: !FileOffset
-  , sProcSize   :: !FileOffset
+  { sRaw            :: !Int
+  , sStandalone     :: !Int
+  , sProcessed      :: !Int
+  , sOutdated       :: !Int
+  , sOrphaned       :: !Int
+  , sRawSize        :: !FileOffset
+  , sProcSize       :: !FileOffset
+  , sStandaloneSize :: !FileOffset
+  , sSidecarSize    :: !FileOffset
   } deriving Show
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0 0 0 0
+zeroStats = Stats 0 0 0 0 0 0 0 0 0
 
 -- | Data holding timeline stats.
 type Timeline = Map.Map Day (Integer, Integer)
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 o1 h1 rs1 ps1) (Stats r2 s2 p2 o2 h2 rs2 ps2) =
+sumStats (Stats r1 s1 p1 o1 h1 rs1 ps1 ss1 ms1)
+         (Stats r2 s2 p2 o2 h2 rs2 ps2 ss2 ms2) =
   Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h1 + h2)
-        (rs1 + rs2) (ps1 + ps2)
+        (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2)
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
-  let stats = case imgStatus img of
+  let status = imgStatus img
+      stats = case status of
                ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
                ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
                ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
@@ -188,9 +192,23 @@ updateStatsWithPic orig img =
       rs' = case imgRawPath img of
               Nothing -> rs
               Just f -> rs + fileSize f
+      jpeg_size = foldl' (\s f -> s + fileSize f) 0 (imgJpegPath img)
       ps = sProcSize stats
-      ps' = foldl' (\s f -> s + fileSize f) ps (imgJpegPath img)
-  in stats { sRawSize = rs', sProcSize = ps' }
+      ps' = if status == ImageProcessed ||
+               status == ImageOutdated
+              then ps + jpeg_size
+              else ps
+      ss = sStandaloneSize stats
+      ss' = case status of
+              ImageStandalone -> ss + jpeg_size
+              _ -> ss
+      ms = sSidecarSize stats
+      ms' = ms + maybe 0 fileSize (imgSidecarPath img)
+  in stats { sRawSize = rs'
+           , sProcSize = ps'
+           , sStandaloneSize = ss'
+           , sSidecarSize = ms'
+           }
 
 computeFolderStats :: PicDir -> Stats
 computeFolderStats =
@@ -283,7 +301,8 @@ folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@(Stats unproc standalone processed
-                                  outdated orphaned rawsize procsize) =
+                                  outdated orphaned rawsize procsize
+                                  _ _) =
   let npics = unproc + standalone + processed + outdated + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0
