@@ -6,12 +6,12 @@ $case pdPaths dir
   $of [single]
     This folder is backed by the single directory:
     <ul>
-      <li>#{single}
+      <li><span class="monolight">#{single}
   $of _
     This folder is backed up by the following directories:
     <ul>
       $forall path <- pdPaths dir
-        <li>#{path}
+        <li><span class="monolight">#{path}
 
 Picture contents:
 <ul>

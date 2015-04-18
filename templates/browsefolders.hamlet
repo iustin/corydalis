@@ -3,9 +3,10 @@
 $if null folders
   <p>No folders found that match the requested types.
 $else
- <p>The selected filter matches #{length folders} entries, using #
-    #{showBinary $ sRawSize stats} for raw files and #
-    #{showBinary $ sProcSize stats} for processed files.
+ <p>The selected filter matches #{length folders} folders, using #
+    #{showBinary $ sRawSize stats} for raw files, #
+    #{showBinary $ sProcSize stats} for processed files and #
+    #{showBinary $ sStandaloneSize stats} for standalone files.
 
  <div style="width: 90%; margin-left: auto; margin-right: auto">
   <table id="folderlist" class="tablesorter">
