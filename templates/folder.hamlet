@@ -26,9 +26,11 @@ Picture contents:
 
 Folder size:
 <ul>
-  <li>#{showBinary $ (sRawSize stats + sProcSize stats)} total size
+  <li>#{showBinary $ totalStatsSize stats} total size
   <li>#{showBinary $ sRawSize stats} raw files
-  <li>#{showBinary $ sProcSize stats} processed and standalone files
+  <li>#{showBinary $ sProcSize stats} processed files (can be regenerated)
+  <li>#{showBinary $ sStandaloneSize stats} standalone files
+  <li>#{showBinary $ sSidecarSize stats} sidecar files
 
 Picture list:
 

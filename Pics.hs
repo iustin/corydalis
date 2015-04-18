@@ -24,6 +24,7 @@ module Pics ( PicDir(..)
             , Stats(..)
             , zeroStats
             , sumStats
+            , totalStatsSize
             ) where
 
 import Types
@@ -169,6 +170,11 @@ data Stats = Stats
 -- | The empty (zero) stats.
 zeroStats :: Stats
 zeroStats = Stats 0 0 0 0 0 0 0 0 0
+
+-- | The total recorded size in a `Stats` structure.
+totalStatsSize :: Stats -> FileOffset
+totalStatsSize stats =
+  sRawSize stats + sProcSize stats + sStandaloneSize stats + sSidecarSize stats
 
 -- | Data holding timeline stats.
 type Timeline = Map.Map Day (Integer, Integer)
