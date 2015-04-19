@@ -10,15 +10,15 @@ $else
     #{showBinary $ sUntrackedSize stats} for untracked files.
 
  <div style="width: 90%; margin-left: auto; margin-right: auto">
-  <table id="folderlist" class="tablesorter">
+  <table #folderlist .tablesorter>
     <thead>
       <tr>
-        <th class="{sorter: 'text'}">Name
-        <th class="{sorter: 'text'}">Classification
-        <th class="{sorter: 'text'}">Path
+        <th ."{sorter: 'text'}">Name
+        <th ."{sorter: 'text'}">Classification
+        <th ."{sorter: 'text'}">Path
         <th>Images
         <th>Unprocessed
-        <th class="{sorter: 'procent'}">U. %
+        <th ."{sorter: 'procent'}">U. %
         <th>Outdated
         <th>Standalone
         <th>Orphaned
@@ -35,24 +35,24 @@ $else
                 $forall path <- init $ pdPaths n
                  #{path}<br />
                 #{last $ pdPaths n}
-          <td class="number">#{numPics n}
-          <td class="number">#{numUnprocessedPics n}
-          <td class="number">
+          <td .number>#{numPics n}
+          <td .number>#{numUnprocessedPics n}
+          <td .number>
             $maybe prc <- lp
               #{prc}
-          <td class="number">#{numOutdatedPics n}
-          <td class="number">#{numStandalonePics n}
-          <td class="number">#{numOrphanedPics n}
-          <td class="number">#{numProcessedPics n}
+          <td .number>#{numOutdatedPics n}
+          <td .number>#{numStandalonePics n}
+          <td .number>#{numOrphanedPics n}
+          <td .number>#{numProcessedPics n}
     <tfoot>
       <tr>
        <td colspan=3>Total files
-       <td class="number">#{allpics}
-       <td class="number">#{allunproc}
-       <td class="number">
+       <td .number>#{allpics}
+       <td .number>#{allunproc}
+       <td .number>
          $maybe tprc <- tp
            #{tprc}
-       <td class="number">#{alloutdated}
-       <td class="number">#{allstandalone}
-       <td class="number">#{allorphaned}
-       <td class="number">#{allprocessed}
+       <td .number>#{alloutdated}
+       <td .number>#{allstandalone}
+       <td .number>#{allorphaned}
+       <td .number>#{allprocessed}

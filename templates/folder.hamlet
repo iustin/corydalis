@@ -6,12 +6,14 @@ $case pdPaths dir
   $of [single]
     This folder is backed by the single directory:
     <ul>
-      <li><span class="monolight">#{single}
+      <li>
+        <span .monolight>#{single}
   $of _
     This folder is backed up by the following directories:
     <ul>
       $forall path <- pdPaths dir
-        <li><span class="monolight">#{path}
+        <li>
+          <span .monolight>#{path}
 
 Picture contents:
 <ul>
@@ -45,16 +47,16 @@ $else
   <p>Picture list:
 
     <div style="width: 90%; margin-left: auto; margin-right: auto">
-      <table id="folder" class="tablesorter">
+      <table #folder .tablesorter>
         <thead>
           <tr>
             <th rowspan=2>Name
             <th rowspan=2>Type
-            <th colspan=3 class="{sorter: false}">Timestamps
+            <th colspan=3 ."{sorter: false}">Timestamps
           <tr>
-            <th class="{sorter: 'text'}">RAW
-            <th class="{sorter: 'text'}">Sidecar
-            <th class="{sorter: 'text'}">JPEG
+            <th ."{sorter: 'text'}">RAW
+            <th ."{sorter: 'text'}">Sidecar
+            <th ."{sorter: 'text'}">JPEG
         <tbody>
           $forall img <- pdImages dir
             <tr>
@@ -82,11 +84,11 @@ $else
   <p>Untracked files:
 
    <div style="width: 90%; margin-left: auto; margin-right: auto">
-    <table id="folder" class="tablesorter">
+    <table #folder .tablesorter>
       <thead>
         <tr>
           <th >Name
-          <th class="{sorter: 'text'}">Timestamp
+          <th ."{sorter: 'text'}">Timestamp
       <tbody>
         $forall untrk <- pdUntracked dir
           $with uname <- untrkName untrk

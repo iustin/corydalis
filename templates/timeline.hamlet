@@ -2,12 +2,12 @@
 
 
 $maybe (firstday, lastday, numdays) <- tstats
-  The library contains media spanning #{numdays} days, 
+  The library contains media spanning #{numdays} days,
   from #{formatDay firstday}
   to #{formatDay lastday}.
 
  <div style="width: 90%; margin-left: auto; margin-right: auto">
-  <table id="folder" class="tablesorter">
+  <table #folder .tablesorter>
     <thead>
       <tr>
         <th>Day
