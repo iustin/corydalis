@@ -38,51 +38,57 @@ Folder size:
   <li>#{showBinary $ sStandaloneSize stats} standalone files
   <li>#{showBinary $ sSidecarSize stats} sidecar files
 
-Picture list:
+$if Map.null (pdImages dir)
+  <p>Folder contains no images.
+$else
+  <p>Picture list:
 
- <div style="width: 90%; margin-left: auto; margin-right: auto">
-  <table id="folder" class="tablesorter">
-    <thead>
-      <tr>
-        <th rowspan=2>Name
-        <th rowspan=2>Type
-        <th colspan=3 class="{sorter: false}">Timestamps
-      <tr>
-        <th class="{sorter: 'text'}">RAW
-        <th class="{sorter: 'text'}">Sidecar
-        <th class="{sorter: 'text'}">JPEG
-    <tbody>
-      $forall img <- pdImages dir
-        <tr>
-          <td><a href=@{ImageR name (imgName img)}>#{imgName img}</a>
-          <td>
-            $case imgStatus img
-              $of ImageProcessed
-                processed
-              $of ImageRaw
-                unprocessed
-              $of ImageStandalone
-                standalone
-              $of ImageOutdated
-                outdated
-              $of ImageOrphaned
-                orphaned
-          <td>#{showFileTimestamp $ imgRawPath img}
-          <td>#{showFileTimestamp $ imgSidecarPath img}
-          <td>#{showFileTimestamp $ listToMaybe $ imgJpegPath img}
-    <tfoot>
-
-Untracked files:
- <div style="width: 90%; margin-left: auto; margin-right: auto">
-  <table id="folder" class="tablesorter">
-    <thead>
-      <tr>
-        <th >Name
-        <th class="{sorter: 'text'}">Timestamp
-    <tbody>
-      $forall untrk <- pdUntracked dir
-        $with uname <- untrkName untrk
+    <div style="width: 90%; margin-left: auto; margin-right: auto">
+      <table id="folder" class="tablesorter">
+        <thead>
           <tr>
-            <td><a href=@{UntrackedR name uname}>#{uname}</a>
-            <td>#{showFileTimestamp $ listToMaybe $ untrkPaths untrk}
-    <tfoot>
+            <th rowspan=2>Name
+            <th rowspan=2>Type
+            <th colspan=3 class="{sorter: false}">Timestamps
+          <tr>
+            <th class="{sorter: 'text'}">RAW
+            <th class="{sorter: 'text'}">Sidecar
+            <th class="{sorter: 'text'}">JPEG
+        <tbody>
+          $forall img <- pdImages dir
+            <tr>
+              <td><a href=@{ImageR name (imgName img)}>#{imgName img}</a>
+              <td>
+                $case imgStatus img
+                  $of ImageProcessed
+                    processed
+                  $of ImageRaw
+                    unprocessed
+                  $of ImageStandalone
+                    standalone
+                  $of ImageOutdated
+                    outdated
+                  $of ImageOrphaned
+                    orphaned
+              <td>#{showFileTimestamp $ imgRawPath img}
+              <td>#{showFileTimestamp $ imgSidecarPath img}
+              <td>#{showFileTimestamp $ listToMaybe $ imgJpegPath img}
+        <tfoot>
+$if Map.null (pdUntracked dir)
+  <p>Folder contains no untracked files.
+$else
+  <p>Untracked files:
+
+   <div style="width: 90%; margin-left: auto; margin-right: auto">
+    <table id="folder" class="tablesorter">
+      <thead>
+        <tr>
+          <th >Name
+          <th class="{sorter: 'text'}">Timestamp
+      <tbody>
+        $forall untrk <- pdUntracked dir
+          $with uname <- untrkName untrk
+            <tr>
+              <td><a href=@{UntrackedR name uname}>#{uname}</a>
+              <td>#{showFileTimestamp $ listToMaybe $ untrkPaths untrk}
+      <tfoot>
