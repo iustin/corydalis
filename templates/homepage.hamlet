@@ -10,6 +10,7 @@ out of which:
     <li>#{unprocessed} <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>unprocessed</a> RAW files
   $if standalone > 0
     <li>#{standalone} standalone JPEGs
+  $if orphaned > 0
     <li>#{orphaned} orphaned sidecar files
   $if untracked > 0
     <li>#{untracked} untracked files
