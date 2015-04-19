@@ -155,7 +155,12 @@ instance YesodBreadcrumbs App where
   breadcrumb (ImageR folder image) = return ("Image " `T.append` folder
                                                       `T.append` "/"
                                                       `T.append` image,
-                                            Just (FolderR folder))
+                                             Just (FolderR folder))
+  breadcrumb (UntrackedR folder untracked) =
+    return ("Untracked " `T.append` folder
+                         `T.append` "/"
+                         `T.append` untracked,
+            Just (FolderR folder))
   breadcrumb (BrowseFoldersR kind) =
     return ("Browsing folders of type " `T.append`
             T.intercalate ", " (map toPathPiece kind), Just HomeR)

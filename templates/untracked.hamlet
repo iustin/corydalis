@@ -1,0 +1,15 @@
+<h1>Untracked file #{folder}/#{uname}
+
+<ul>
+  <li>File name: #{untrkName untrk}
+  <li>Parent folder: <a href=@{FolderR (untrkParent untrk)}>#{untrkParent untrk}</a>
+  $case untrkPaths untrk
+   $of [f]
+    ^{showFile (Just "Single file:") f}
+   $of []
+    <li>No backing files?!
+   $of paths
+    <li>Backed by multiple files:
+      <ul>
+        $forall p <- paths
+          ^{showFile Nothing p}

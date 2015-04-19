@@ -83,6 +83,6 @@ Untracked files:
       $forall untrk <- pdUntracked dir
         $with uname <- untrkName untrk
           <tr>
-            <td><a href=@{ImageR name uname}>#{uname}</a>
+            <td><a href=@{UntrackedR name uname}>#{uname}</a>
             <td>#{showFileTimestamp $ listToMaybe $ untrkPaths untrk}
     <tfoot>

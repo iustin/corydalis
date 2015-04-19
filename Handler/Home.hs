@@ -160,6 +160,20 @@ getImageR folder iname = do
                  `T.append` "/" `T.append` (imgName img)
       $(widgetFile "image")
 
+getUntrackedR :: Text -> Text -> Handler Html
+getUntrackedR folder uname = do
+  config <- extraConfig `fmap` getExtra
+  pics <- liftIO $ scanAll config
+  dir <- case Map.lookup folder pics of
+           Nothing -> notFound
+           Just dir -> return dir
+  case Map.lookup uname (pdUntracked dir) of
+    Nothing -> notFound
+    Just untrk -> defaultLayout $ do
+      setTitle . toHtml $ "PicMan: Untracked file " `T.append` folder
+                 `T.append` "/" `T.append` uname
+      $(widgetFile "untracked")
+
 showFile :: Maybe Text -> Pics.File -> Widget
 showFile prefix f = do
   let expanded_prefix = maybe "" (`T.append` " ") prefix
