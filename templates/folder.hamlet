@@ -75,6 +75,7 @@ $else
               <td>#{showFileTimestamp $ imgSidecarPath img}
               <td>#{showFileTimestamp $ listToMaybe $ imgJpegPath img}
         <tfoot>
+
 $if Map.null (pdUntracked dir)
   <p>Folder contains no untracked files.
 $else
