@@ -398,9 +398,11 @@ recursiveScanPath :: Config -> FilePath -> (FilePath -> FilePath)
                   -> IO [(FilePath, FileStatus)]
 recursiveScanPath config base prepender = do
   contents <- getDirContents config base
-  let dirs = map fst . filter (isDirectory . snd) $ contents
-      with_prefix = map (\(p, s) -> (prepender p, s)) contents
-  subdirs <- mapM (\p -> recursiveScanPath config (base </> p) (prepender . (p </>))) dirs
+  let (dirs, files) = partition (isDirectory . snd) $ contents
+      dirs' = map fst dirs
+      with_prefix = map (\(p, s) -> (prepender p, s)) files
+  subdirs <- mapM (\p -> recursiveScanPath config (base </> p)
+                           (prepender . (p </>))) dirs'
   return $ with_prefix ++ concat subdirs
 
 -- | Strict application of the 'Just' constructor. This is useful as
