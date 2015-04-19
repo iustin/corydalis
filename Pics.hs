@@ -1,6 +1,7 @@
 {-# LANGUAGE TupleSections, OverloadedStrings, BangPatterns #-}
 module Pics ( PicDir(..)
             , Image(..)
+            , Untracked(..)
             , File(..)
             , scanAll
             , forceScanAll
@@ -113,6 +114,13 @@ data Image = Image
     , imgStatus      :: !ImageStatus
     } deriving (Show)
 
+-- | A file with unknown (and untracked) type.
+data Untracked = Untracked
+  { untrkName   :: !Text
+  , untrkParent :: !Text
+  , untrkPaths  :: ![File]
+  } deriving (Show)
+
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
 mkImageStatus :: Config
@@ -148,6 +156,7 @@ data PicDir = PicDir
   , pdPaths     :: !([Text])
   , pdImages    :: !(Map.Map Text Image)
   , pdShadows   :: !(Map.Map Text Image)
+  , pdUntracked :: !(Map.Map Text Untracked)
   } deriving (Show)
 
 type Repository = Map.Map Text PicDir
@@ -247,10 +256,15 @@ mergePictures c x y =
                   (imgSidecarPath x')
   in x' { imgStatus = status' }
 
+mergeUntracked :: Untracked -> Untracked -> Untracked
+mergeUntracked x y =
+  x { untrkPaths = untrkPaths x ++ untrkPaths y }
+
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
 mergeFolders c x y =
   x { pdPaths = pdPaths x ++ pdPaths y
     , pdImages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
+    , pdUntracked = Map.unionWith mergeUntracked (pdUntracked x) (pdUntracked y)
     }
 
 numRawPics :: PicDir -> Int
@@ -396,6 +410,10 @@ addImgs :: Config -> Map.Map Text Image -> [Image] -> Map.Map Text Image
 addImgs config =
   foldl' (\a i -> Map.insertWith (mergePictures config) (imgName i) i a)
 
+-- | Inserts a new other-type files into the others map.
+addUntracked :: Map.Map Text Untracked -> [Untracked] -> Map.Map Text Untracked
+addUntracked = foldl' (\a u -> Map.insertWith mergeUntracked (untrkName u) u a)
+
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> IO PicDir
 loadFolder config name path = do
@@ -436,17 +454,20 @@ loadFolder config name path = do
                            mkImage config (T.pack expname) tname
                                    Nothing Nothing [jf] Nothing
                         ) snames
+            untrk = Untracked tbase tname [jf]
         in case (nfp, jpe, sdc) of
-             (Nothing, [], Nothing) -> ([], [])
+             (Nothing, [], Nothing) -> ([], [], [untrk])
              -- no shadows for sidecar only files
-             (Nothing, [], Just _) ->  ([img], [])
-             _                      -> ([img], simgs)
-      images = foldl' (\(imgs, shadows) f ->
-                         let (newis, newss) = loadImage f
-                         in (addImgs config imgs newis,
-                             addImgs config shadows newss)
-                      ) (Map.empty, Map.empty) contents
-  return $ PicDir tname [T.pack path] (fst images) (snd images)
+             (Nothing, [], Just _) ->  ([img], [], [])
+             _                      -> ([img], simgs, [])
+      (images, shadows, others) =
+        foldl' (\(imgs, shadows, untracked) f ->
+                  let (newis, newss, newus) = loadImage f
+                  in (addImgs config imgs newis,
+                      addImgs config shadows newss,
+                      addUntracked untracked newus)
+               ) (Map.empty, Map.empty, Map.empty) contents
+  return $ PicDir tname [T.pack path] images shadows others
 
 
 mergeShadows :: Config -> PicDir -> PicDir

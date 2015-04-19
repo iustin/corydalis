@@ -71,3 +71,18 @@ Picture list:
           <td>#{showFileTimestamp $ imgSidecarPath img}
           <td>#{showFileTimestamp $ listToMaybe $ imgJpegPath img}
     <tfoot>
+
+Untracked files:
+ <div style="width: 90%; margin-left: auto; margin-right: auto">
+  <table id="folder" class="tablesorter">
+    <thead>
+      <tr>
+        <th >Name
+        <th class="{sorter: 'text'}">Timestamp
+    <tbody>
+      $forall untrk <- pdUntracked dir
+        $with uname <- untrkName untrk
+          <tr>
+            <td><a href=@{ImageR name uname}>#{uname}</a>
+            <td>#{showFileTimestamp $ listToMaybe $ untrkPaths untrk}
+    <tfoot>
