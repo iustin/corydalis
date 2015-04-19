@@ -15,12 +15,18 @@ $case pdPaths dir
 
 Picture contents:
 <ul>
-  $if numProcessedPics dir > 0
-    <li>#{numProcessedPics dir} fully processed pics
+  $if (&&) (numProcessedPics dir > 0) (numOutdatedPics dir > 0)
+    <li>#{numProcessedPics dir + numOutdatedPics dir} total processed pictures, out of which:
+      <ul>
+        <li>#{numProcessedPics dir} fully processed pics
+        <li>#{numOutdatedPics dir} processed but outdated pictures
+  $else
+    $if numProcessedPics dir > 0
+      <li>#{numProcessedPics dir} fully processed pics
+    $if numOutdatedPics dir > 0
+      <li>#{numOutdatedPics dir} processed but outdated pictures
   $if numUnprocessedPics dir > 0
     <li>#{numUnprocessedPics dir} raw pictures still awaiting processing
-  $if numOutdatedPics dir > 0
-    <li>#{numOutdatedPics dir} processed but outdated pictures
   $if numStandalonePics dir > 0
     <li>#{numStandalonePics dir} final files without a source raw file
 
