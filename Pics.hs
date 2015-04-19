@@ -263,8 +263,10 @@ mergeUntracked x y =
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
 mergeFolders c x y =
   x { pdPaths = pdPaths x ++ pdPaths y
-    , pdImages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
-    , pdUntracked = Map.unionWith mergeUntracked (pdUntracked x) (pdUntracked y)
+    , pdImages =
+        Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
+    , pdUntracked =
+        Map.unionWith mergeUntracked (pdUntracked x) (pdUntracked y)
     }
 
 numRawPics :: PicDir -> Int
@@ -321,7 +323,7 @@ folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@(Stats unproc standalone processed
-                                  outdated orphaned rawsize procsize
+                                  outdated orphaned _ _
                                   _ _) =
   let npics = unproc + standalone + processed + outdated + orphaned
       has_pics = npics /= 0
@@ -460,14 +462,14 @@ loadFolder config name path = do
              -- no shadows for sidecar only files
              (Nothing, [], Just _) ->  ([img], [], [])
              _                      -> ([img], simgs, [])
-      (images, shadows, others) =
-        foldl' (\(imgs, shadows, untracked) f ->
+      (images, shadows, untracked) =
+        foldl' (\(images', shadows', untracked') f ->
                   let (newis, newss, newus) = loadImage f
-                  in (addImgs config imgs newis,
-                      addImgs config shadows newss,
-                      addUntracked untracked newus)
+                  in (addImgs config images' newis,
+                      addImgs config shadows' newss,
+                      addUntracked untracked' newus)
                ) (Map.empty, Map.empty, Map.empty) contents
-  return $ PicDir tname [T.pack path] images shadows others
+  return $ PicDir tname [T.pack path] images shadows untracked
 
 
 mergeShadows :: Config -> PicDir -> PicDir
