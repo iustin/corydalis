@@ -378,12 +378,14 @@ scanSubDir config repository path = do
 
 -- | Builds the filepath and filestatus pairs recursively for all
 -- entries beneats a directory.
-recursiveScanPath :: Config -> FilePath -> IO [(FilePath, FileStatus)]
-recursiveScanPath config base = do
+recursiveScanPath :: Config -> FilePath -> (FilePath -> FilePath)
+                  -> IO [(FilePath, FileStatus)]
+recursiveScanPath config base prepender = do
   contents <- getDirContents config base
-  let dirs = filter (isDirectory . snd) contents
-  subdirs <- mapM (\s -> recursiveScanPath config (base </> fst s)) dirs
-  return $ contents ++ concat subdirs
+  let dirs = map fst . filter (isDirectory . snd) $ contents
+      with_prefix = map (\(p, s) -> (prepender p, s)) contents
+  subdirs <- mapM (\p -> recursiveScanPath config (base </> p) (prepender . (p </>))) dirs
+  return $ with_prefix ++ concat subdirs
 
 -- | Strict application of the 'Just' constructor. This is useful as
 -- the Maybe type is not strict in its contained value.
@@ -397,7 +399,7 @@ addImgs config =
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> IO PicDir
 loadFolder config name path = do
-  contents <- recursiveScanPath config path
+  contents <- recursiveScanPath config path id
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
