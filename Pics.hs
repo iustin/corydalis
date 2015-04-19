@@ -429,6 +429,7 @@ loadFolder config name path = do
       loadImage (f, stat) =
         let base = dropCopySuffix config $ dropExtensions f
             tbase = T.pack base
+            torig = T.pack f
             f' = reverse f
             tf = T.pack f
             jf = File tf file_time size (T.pack $ path </> f)
@@ -458,7 +459,7 @@ loadFolder config name path = do
                            mkImage config (T.pack expname) tname
                                    Nothing Nothing [jf] Nothing
                         ) snames
-            untrk = Untracked tbase tname [jf]
+            untrk = Untracked torig tname [jf]
         in case (nfp, jpe, sdc) of
              (Nothing, [], Nothing) -> ([], [], [untrk])
              -- no shadows for sidecar only files
