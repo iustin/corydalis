@@ -1,6 +1,7 @@
 <h1>PicMan
 
-The repository contains #{allpics} images, out of which:
+The repository contains #{allpics} images and #{untracked} untracked files, #
+out of which:
 <ul>
   $if processed > 0
     <li>#{processed} fully processed images backed by RAW files.
@@ -10,6 +11,8 @@ The repository contains #{allpics} images, out of which:
   $if standalone > 0
     <li>#{standalone} standalone JPEGs
     <li>#{orphaned} orphaned sidecar files
+  $if untracked > 0
+    <li>#{untracked} untracked files
 
 The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
 <ul>

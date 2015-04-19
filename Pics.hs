@@ -170,29 +170,32 @@ data Stats = Stats
   , sProcessed      :: !Int
   , sOutdated       :: !Int
   , sOrphaned       :: !Int
+  , sUntracked      :: !Int
   , sRawSize        :: !FileOffset
   , sProcSize       :: !FileOffset
   , sStandaloneSize :: !FileOffset
   , sSidecarSize    :: !FileOffset
+  , sUntrackedSize  :: !FileOffset
   } deriving Show
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0 0 0 0 0 0
+zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0
 
 -- | The total recorded size in a `Stats` structure.
 totalStatsSize :: Stats -> FileOffset
 totalStatsSize stats =
-  sRawSize stats + sProcSize stats + sStandaloneSize stats + sSidecarSize stats
+  sRawSize stats + sProcSize stats + sStandaloneSize stats +
+           sSidecarSize stats + sUntrackedSize stats
 
 -- | Data holding timeline stats.
 type Timeline = Map.Map Day (Integer, Integer)
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 o1 h1 rs1 ps1 ss1 ms1)
-         (Stats r2 s2 p2 o2 h2 rs2 ps2 ss2 ms2) =
-  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h1 + h2)
-        (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2)
+sumStats (Stats r1 s1 p1 o1 h1 u1 rs1 ps1 ss1 ms1 us1)
+         (Stats r2 s2 p2 o2 h2 u2 rs2 ps2 ss2 ms2 us2) =
+  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h1 + h2) (u1 + u2)
+        (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2) (us1 + us2)
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
@@ -225,9 +228,17 @@ updateStatsWithPic orig img =
            , sSidecarSize = ms'
            }
 
+updateStatsWithUntracked :: Stats -> Untracked -> Stats
+updateStatsWithUntracked orig untrk =
+  orig { sUntracked = sUntracked orig + 1
+       , sUntrackedSize = sUntrackedSize orig + size}
+    where
+      size = foldl' (\s f -> s + fileSize f) 0 (untrkPaths untrk)
+
 computeFolderStats :: PicDir -> Stats
-computeFolderStats =
-  Map.foldl' updateStatsWithPic zeroStats . pdImages
+computeFolderStats p =
+  (Map.foldl' updateStatsWithUntracked `flip` pdUntracked p ) $
+  Map.foldl' updateStatsWithPic zeroStats (pdImages p)
 
 data StrictPair a b = StrictPair !a !b
 
@@ -323,8 +334,7 @@ folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@(Stats unproc standalone processed
-                                  outdated orphaned _ _
-                                  _ _) =
+                                  outdated orphaned _ _ _ _ _ _) =
   let npics = unproc + standalone + processed + outdated + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0

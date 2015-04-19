@@ -63,8 +63,8 @@ getHomeR :: Handler Html
 getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  let ((Stats unprocessed standalone processed outdated orphaned
-              rawsize procsize standalonesize sidecarsize), fcm) =
+  let ((Stats unprocessed standalone processed outdated orphaned untracked
+              rawsize procsize standalonesize sidecarsize untrackesize), fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm

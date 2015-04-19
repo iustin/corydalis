@@ -37,6 +37,7 @@ Folder size:
   <li>#{showBinary $ sProcSize stats} processed files (can be regenerated)
   <li>#{showBinary $ sStandaloneSize stats} standalone files
   <li>#{showBinary $ sSidecarSize stats} sidecar files
+  <li>#{showBinary $ sUntrackedSize stats} untracked files
 
 $if Map.null (pdImages dir)
   <p>Folder contains no images.
