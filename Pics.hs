@@ -350,15 +350,19 @@ getDirContents config base = do
            return (path, stat)
        ) allowed_names
 
-scanDir :: Config
-        -> Repository
-        -> String
-        -> IO Repository
-scanDir config repo base = do
+-- | Scans one of the directories defined in the configuration.
+scanBaseDir :: Config
+            -> Repository
+            -> String
+            -> IO Repository
+scanBaseDir config repo base = do
   paths <- getDirContents config base
   let dirs = filter (isDirectory . snd) paths
   foldM (\r p -> scanSubDir config r (base </> fst p)) repo dirs
 
+-- | Scans a directory one level below a base dir. The actual
+-- subdirectory name is currently discarded and will not appear in the
+-- final folder names.
 scanSubDir :: Config
            -> Repository
            -> String
@@ -368,15 +372,17 @@ scanSubDir config repository path = do
   let dirpaths = filter (isDirectory . snd) allpaths
   let allpaths' = filter (isOKDir config) . map fst $ dirpaths
   foldM (\r s -> do
-           dir <- loadDir config s (path </> s)
+           dir <- loadFolder config s (path </> s)
            return $ Map.insertWith (mergeFolders config) (pdName dir) dir r)
         repository allpaths'
 
-recursiveScanDir :: Config -> FilePath -> IO [(FilePath, FileStatus)]
-recursiveScanDir config base = do
+-- | Builds the filepath and filestatus pairs recursively for all
+-- entries beneats a directory.
+recursiveScanPath :: Config -> FilePath -> IO [(FilePath, FileStatus)]
+recursiveScanPath config base = do
   contents <- getDirContents config base
   let dirs = filter (isDirectory . snd) contents
-  subdirs <- mapM (\s -> recursiveScanDir config (base </> fst s)) dirs
+  subdirs <- mapM (\s -> recursiveScanPath config (base </> fst s)) dirs
   return $ contents ++ concat subdirs
 
 -- | Strict application of the 'Just' constructor. This is useful as
@@ -388,9 +394,10 @@ addImgs :: Config -> Map.Map Text Image -> [Image] -> Map.Map Text Image
 addImgs config =
   foldl' (\a i -> Map.insertWith (mergePictures config) (imgName i) i a)
 
-loadDir :: Config -> String -> FilePath -> IO PicDir
-loadDir config name path = do
-  contents <- recursiveScanDir config path
+-- | Builds a `PicDir` (folder) from an entire filesystem subtree.
+loadFolder :: Config -> String -> FilePath -> IO PicDir
+loadFolder config name path = do
+  contents <- recursiveScanPath config path
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
@@ -474,7 +481,7 @@ resolveProcessedRanges config picd =
 
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
-  repo <- foldM (\r d -> scanDir config r d) Map.empty $ cfgDirs config
+  repo <- foldM (\r d -> scanBaseDir config r d) Map.empty $ cfgDirs config
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
   return repo'
