@@ -1,5 +1,5 @@
 {-# LANGUAGE PackageImports #-}
-import "picman" Application (getApplicationDev)
+import "corydalis" Application (getApplicationDev)
 import Network.Wai.Handler.Warp
     (runSettings, defaultSettings, setPort)
 import Control.Concurrent (forkIO)
