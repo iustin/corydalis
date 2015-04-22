@@ -71,7 +71,7 @@ getHomeR = do
       numfolders = Map.size pics
       all_fc = [minBound..maxBound]
   defaultLayout $ do
-    setTitle "PicMan: home"
+    setTitle "Corydalis: home"
     $(widgetFile "homepage")
 
 getFolderR :: Text -> Handler Html
@@ -82,7 +82,7 @@ getFolderR name = do
     Nothing -> notFound
     Just dir -> defaultLayout $ do
       let stats = computeFolderStats dir
-      setTitle . toHtml $ "PicMan: folder " `T.append` name
+      setTitle . toHtml $ "Corydalis: folder " `T.append` name
       $(widgetFile "folder")
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
@@ -112,7 +112,7 @@ getBrowseFoldersR kinds = do
                folders
   defaultLayout $ do
     setTitle . toHtml $
-      "PicMan: browsing folders of type " `T.append` kinds_string
+      "Corydalis: browsing folders of type " `T.append` kinds_string
     $(widgetFile "browsefolders")
 
 getReloadR :: Handler Html
@@ -135,7 +135,7 @@ getTimelineR = do
         return (firstday, lastday, numdays)
       formatDay = formatTime defaultTimeLocale "%F"
   defaultLayout $ do
-    setTitle "PicMan: timeline stats"
+    setTitle "Corydalis: timeline stats"
     $(widgetFile "timeline")
 
 getSettingsR :: Handler Html
@@ -143,7 +143,7 @@ getSettingsR = do
   config <- extraConfig `fmap` getExtra
   let quoteString = \path -> "'" ++ path ++ "'"
   defaultLayout $ do
-    setTitle "PicMan: Settings"
+    setTitle "Corydalis: Settings"
     $(widgetFile "settings")
 
 getImageR :: Text -> Text -> Handler Html
@@ -156,7 +156,7 @@ getImageR folder iname = do
   case Map.lookup iname (pdImages dir) of
     Nothing -> notFound
     Just img -> defaultLayout $ do
-      setTitle . toHtml $ "PicMan: Image" `T.append` folder
+      setTitle . toHtml $ "Corydalis: Image" `T.append` folder
                  `T.append` "/" `T.append` (imgName img)
       $(widgetFile "image")
 
@@ -170,7 +170,7 @@ getUntrackedR folder uname = do
   case Map.lookup uname (pdUntracked dir) of
     Nothing -> notFound
     Just untrk -> defaultLayout $ do
-      setTitle . toHtml $ "PicMan: Untracked file " `T.append` folder
+      setTitle . toHtml $ "Corydalis: Untracked file " `T.append` folder
                  `T.append` "/" `T.append` uname
       $(widgetFile "untracked")
 

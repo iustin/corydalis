@@ -11,7 +11,7 @@
 #     mv deploy/Procfile ./
 #
 # * Create an empty package.json
-#     echo '{ "name": "picman", "version": "0.0.1", "dependencies": {} }' >> package.json
+#     echo '{ "name": "corydalis", "version": "0.0.1", "dependencies": {} }' >> package.json
 #
 # Postgresql Yesod setup:
 #
@@ -78,7 +78,7 @@
 # * add your web executable binary (referenced below) to the git repository
 #
 #     git checkout deploy
-#     git add ./dist/build/picman/picman
+#     git add ./dist/build/corydalis/corydalis
 #     git commit -m deploy
 #
 # * push to Heroku
@@ -87,4 +87,4 @@
 
 
 # Heroku configuration that runs your app
-web: ./dist/build/picman/picman production -p $PORT
+web: ./dist/build/corydalis/corydalis production -p $PORT

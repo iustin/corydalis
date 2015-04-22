@@ -1,4 +1,4 @@
-exec: ../dist/build/picman/picman
+exec: ../dist/build/corydalis/corydalis
 args:
     - production
 host: <<HOST-NOT-SET>>
