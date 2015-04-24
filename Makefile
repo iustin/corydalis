@@ -5,23 +5,31 @@ standard:
 	yesod devel
 
 profiling:
-	ghc $(EXTENSIONS) $(FLAGS) \
-	  -osuf prof_o -prof -auto-all \
-	  --make \
-	  $(MAIN)
+	# until https://github.com/haskell/cabal/issues/193 is fixed,
+	# we need custom ghc options
+	cabal configure \
+	  --enable-executable-profiling \
+	  --enable-library-profiling \
+	  --ghc-options=-auto-all
+	cabal build -j
 	@echo done
 
 %.ps: %.hp
 	hp2ps -c $<
 
-view: main.ps
+view: corydalis.ps
 	gv -orientation seascape $<
 
 production:
 	cabal configure -fproduction
-	cabal build
+	cabal build -j
 
 doc:
 	cabal haddock --internal --haddock-options=--ignore-all-exports
 
-.PHONY: standard profiling view production doc
+clean:
+	rm -f corydalis.aux corydalis.prof corydalis.ps \
+	  corydalis.hp corydalis.pdf
+	cabal clean
+
+.PHONY: standard profiling view production doc clean
