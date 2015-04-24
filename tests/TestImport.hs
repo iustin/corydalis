@@ -1,9 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module TestImport
     ( module Yesod.Test
-    , Specs
+    , module Foundation
+    , Spec
+    , Example
     ) where
 
 import Yesod.Test
+import Foundation
 
-type Specs = SpecsConn ()
+type Spec = YesodSpec App
+type Example = YesodExample App
