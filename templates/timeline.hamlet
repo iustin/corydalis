@@ -17,6 +17,6 @@ $maybe (firstday, lastday, numdays) <- tstats
       $forall (day, (taken, processed)) <- days
         <tr>
           <td>#{formatDay day}
-          <td>#{taken}
-          <td>#{processed}
+          <td .number>#{taken}
+          <td .number>#{processed}
     <tfoot>
