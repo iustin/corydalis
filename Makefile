@@ -32,4 +32,8 @@ clean:
 	  corydalis.hp corydalis.pdf
 	cabal clean
 
-.PHONY: standard profiling view production doc clean
+test:
+	cabal configure --enable-test --enable-library-coverage
+	cabal test
+
+.PHONY: standard profiling view production doc clean test
