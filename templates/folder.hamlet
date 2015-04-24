@@ -75,7 +75,7 @@ $else
                     orphaned
               <td>#{showFileTimestamp $ imgRawPath img}
               <td>#{showFileTimestamp $ imgSidecarPath img}
-              <td>#{showFileTimestamp $ listToMaybe $ imgJpegPath img}
+              <td>#{showFileLatestTS $ listToMaybe $ imgJpegPath img}
         <tfoot>
 
 $if Map.null (pdUntracked dir)

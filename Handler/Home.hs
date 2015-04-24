@@ -59,6 +59,9 @@ showTimestamp ts =
 showFileTimestamp :: Maybe File -> Text
 showFileTimestamp = maybe "" (showTimestamp . fileMTime)
 
+showFileLatestTS :: Maybe File -> Text
+showFileLatestTS = maybe "" (showTimestamp . fileLastTouch)
+
 getHomeR :: Handler Html
 getHomeR = do
   config <- extraConfig `fmap` getExtra

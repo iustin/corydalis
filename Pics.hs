@@ -3,6 +3,7 @@ module Pics ( PicDir(..)
             , Image(..)
             , Untracked(..)
             , File(..)
+            , fileLastTouch
             , scanAll
             , forceScanAll
             , isProcessed
@@ -99,6 +100,7 @@ expandRangeFile cfg name =
 
 data File = File
   { fileName  :: !Text
+  , fileCTime :: !POSIXTime
   , fileMTime :: !POSIXTime
   , fileSize  :: !FileOffset
   , filePath  :: !Text
@@ -121,6 +123,10 @@ data Untracked = Untracked
   , untrkPaths  :: ![File]
   } deriving (Show)
 
+-- | Return the laste time a file has been touched (latest of ctime/mtime).
+fileLastTouch :: File -> POSIXTime
+fileLastTouch f = fileMTime f `max` fileCTime f
+
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
 mkImageStatus :: Config
@@ -142,7 +148,7 @@ mkImageStatus c (Just raw) jpegs@(_:_) sidecar =
   where raw_ts = fileMTime raw
         raw_ts' = max raw_ts sidecar_ts
         sidecar_ts = maybe raw_ts fileMTime sidecar
-        jpeg_ts' = minimum $ map fileMTime jpegs
+        jpeg_ts' = minimum $ map fileLastTouch jpegs
         max_skew = cfgOutdatedError c
 
 mkImage :: Config -> Text -> Text -> Maybe File
@@ -442,13 +448,10 @@ loadFolder config name path = do
             torig = T.pack f
             f' = reverse f
             tf = T.pack f
-            jf = File tf file_time size (T.pack $ path </> f)
+            jf = File tf ctime mtime size (T.pack $ path </> f)
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
             ctime = statusChangeTimeHiRes stat
-            file_time = if is_jpeg
-                          then mtime `max` ctime
-                          else mtime
             size = System.Posix.Files.fileSize stat
             nfp = if hasExts f' rawe
                     then jtf
