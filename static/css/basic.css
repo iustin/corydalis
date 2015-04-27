@@ -6,6 +6,10 @@ body {
     padding: 5px;
 }
 
+nav#breadcrumbs {
+    background-color: #f0f0f0;
+}
+
 span.breadcrumbs {
     font-style: italic;
 }
@@ -18,6 +22,10 @@ span.breadcrumbs {
     font-family: monospace,monospace;
     background-color: AliceBlue;
 
+}
+
+div#message {
+    color: red;
 }
 
 ul ul,

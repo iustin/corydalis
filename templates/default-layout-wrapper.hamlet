@@ -26,12 +26,13 @@ $newline always
         <nav #breadcrumbs>
           <span .breadcrumbs>
             You are here: #
-          $forall bc <- parents
+            $forall bc <- parents
               <span>
                  <a href=@{fst bc}>
                     #{snd bc}
-                 \ &gt; #
-          <span>
+               \ &gt; #
+
+          <span .breadcrumbs>
             #{title}
 
         <div .container>
