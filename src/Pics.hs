@@ -149,7 +149,7 @@ mkImageStatus c (Just raw) jpegs@(_:_) sidecar =
         raw_ts' = max raw_ts sidecar_ts
         sidecar_ts = maybe raw_ts fileMTime sidecar
         jpeg_ts' = minimum $ map fileLastTouch jpegs
-        max_skew = cfgOutdatedError c
+        JSDiffTime max_skew = cfgOutdatedError c
 
 mkImage :: Config -> Text -> Text -> Maybe File
         -> Maybe File -> [File] -> Maybe (Text, Text) -> Image

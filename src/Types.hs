@@ -6,6 +6,7 @@ module Types ( Config(..)
              , reString
              , FolderClass(..)
              , ImageStatus(..)
+             , JSDiffTime(..)
              ) where
 
 import Control.Applicative
@@ -33,8 +34,14 @@ instance FromJSON Regex where
          Just r -> return $ Regex str r
   parseJSON _ = mzero
 
-instance FromJSON NominalDiffTime where
-  parseJSON (Number num) = return . fromRational . toRational $ num
+-- | Wrapper over NominalDiffTime so that we can add our FromJSON
+-- instance without orphan instances warning (sigh).
+newtype JSDiffTime = JSDiffTime NominalDiffTime
+  deriving (Show)
+
+instance FromJSON JSDiffTime where
+  parseJSON (Number num) =
+    return . JSDiffTime . fromRational . toRational $ num
   parseJSON _ = mzero
 
 data Config = Config
@@ -47,7 +54,7 @@ data Config = Config
     , cfgDirRegex        :: Regex
     , cfgRangeRegex      :: Regex
     , cfgCopyRegex       :: Regex
-    , cfgOutdatedError   :: NominalDiffTime
+    , cfgOutdatedError   :: JSDiffTime
     } deriving (Show)
 
 instance FromJSON Config where
