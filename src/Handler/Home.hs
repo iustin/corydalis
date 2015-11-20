@@ -12,7 +12,6 @@ import qualified Data.Text as T
 import Data.Time
 import Data.Time.Clock.POSIX
 import Text.Printf
-import System.Locale hiding (defaultTimeLocale)
 import Data.Prefix.Units
 
 -- | Formats a double as a percent value. NaN values are transformed

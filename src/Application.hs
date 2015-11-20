@@ -14,7 +14,7 @@ import Network.Wai.Middleware.RequestLogger
     , destination
     )
 import qualified Network.Wai.Middleware.RequestLogger as RequestLogger
-import Network.HTTP.Conduit (newManager, conduitManagerSettings)
+import Network.HTTP.Conduit (newManager, tlsManagerSettings)
 import Control.Concurrent (forkIO, threadDelay)
 import System.Log.FastLogger (newStdoutLoggerSet, defaultBufSize)
 import Network.Wai.Logger (clockDateCacher)
@@ -56,7 +56,7 @@ makeApplication conf = do
 -- performs some initialization.
 makeFoundation :: AppConfig DefaultEnv Extra -> IO App
 makeFoundation conf = do
-    manager <- newManager conduitManagerSettings
+    manager <- newManager tlsManagerSettings
     s <- staticSite
 
     loggerSet' <- newStdoutLoggerSet defaultBufSize
