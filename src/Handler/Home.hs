@@ -66,7 +66,7 @@ getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
   let ((Stats unprocessed standalone processed outdated orphaned untracked
-              rawsize procsize standalonesize sidecarsize untrackesize), fcm) =
+              rawsize procsize standalonesize sidecarsize _), fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
@@ -95,7 +95,7 @@ getBrowseFoldersR kinds = do
   let folders = filterDirsByClass kinds pics
       stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
       allpics = sum . map numPics $ folders
-      allraws = sum . map numRawPics $ folders
+      -- allraws = sum . map numRawPics $ folders
       allunproc = sum . map numUnprocessedPics $ folders
       allprocessed = sum . map numProcessedPics $ folders
       allstandalone = sum . map numStandalonePics $ folders
