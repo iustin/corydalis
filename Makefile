@@ -30,6 +30,7 @@ doc:
 clean:
 	rm -f corydalis.aux corydalis.prof corydalis.ps \
 	  corydalis.hp corydalis.pdf
+	find \( -name '*.hi' -o -name '*.o' \) -delete
 	cabal clean
 
 test:
