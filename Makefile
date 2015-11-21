@@ -37,4 +37,10 @@ test:
 	cabal configure --enable-test --enable-library-coverage
 	cabal test
 
+lint:
+	@hlint \
+	  --ignore "Use fewer imports" \
+	  --ignore "Use first" \
+	  .
+
 .PHONY: standard profiling view production doc clean test

@@ -96,7 +96,7 @@ isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
 dropCopySuffix :: Config -> String -> String
 dropCopySuffix cfg name =
   case PCRE.match (reRegex $ cfgCopyRegex cfg) name of
-    [(_:base:_)] -> base
+    [_:base:_] -> base
     _ -> name
 
 maybeRead :: (Read a) => String -> Maybe a
@@ -179,7 +179,7 @@ mkImage config name parent raw sidecar jpeg range =
 
 data PicDir = PicDir
   { pdName      :: !Text
-  , pdPaths     :: !([Text])
+  , pdPaths     :: ![Text]
   , pdImages    :: !(Map.Map Text Image)
   , pdShadows   :: !(Map.Map Text Image)
   , pdUntracked :: !(Map.Map Text Untracked)
@@ -434,7 +434,7 @@ recursiveScanPath :: Config -> FilePath -> (FilePath -> FilePath)
                   -> IO [(FilePath, FileStatus)]
 recursiveScanPath config base prepender = do
   contents <- getDirContents config base
-  let (dirs, files) = partition (isDirectory . snd) $ contents
+  let (dirs, files) = partition (isDirectory . snd) contents
       dirs' = map fst dirs
       with_prefix = map (\(p, s) -> (prepender p, s)) files
   subdirs <- mapM (\p -> recursiveScanPath config (base </> p)
@@ -480,9 +480,7 @@ loadFolder config name path = do
                     then jtf
                     else Nothing
             is_jpeg = hasExts f' jpeg
-            jpe = if is_jpeg
-                    then [jf]
-                    else []
+            jpe = [jf | is_jpeg]
             snames = expandRangeFile config base
             range = case snames of
                       [] -> Nothing
@@ -542,7 +540,7 @@ resolveProcessedRanges config picd =
 
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
-  repo <- foldM (\r d -> scanBaseDir config r d) Map.empty $ cfgDirs config
+  repo <- foldM (scanBaseDir config) Map.empty $ cfgDirs config
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
   return repo'

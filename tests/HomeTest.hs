@@ -27,8 +27,7 @@ import TestImport
 
 homeSpecs :: Spec
 homeSpecs =
-    ydescribe "These are some example tests" $ do
-
+    ydescribe "These are some example tests" $
         yit "loads the index and checks it looks right" $ do
             get HomeR
             statusIs 200
