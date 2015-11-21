@@ -1,7 +1,10 @@
 # this is only used for custom development!
 # well, except for the production target
 
-standard:
+build:
+	cabal build
+
+devel:
 	yesod devel
 
 profiling:
@@ -43,4 +46,4 @@ lint:
 	  --ignore "Use first" \
 	  .
 
-.PHONY: standard profiling view production doc clean test
+.PHONY: build devel profiling view production doc clean test
