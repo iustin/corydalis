@@ -199,11 +199,4 @@ getUntrackedR folder uname = do
 showFile :: Maybe Text -> Pics.File -> Widget
 showFile prefix f = do
   let expanded_prefix = maybe "" (`T.append` " ") prefix
-  toWidget
-    [hamlet|
-          <li>#{expanded_prefix}<span class="monolight">#{Pics.fileName f}</span>
-            <ul>
-              <li>path: <span class="monolight">#{Pics.filePath f}
-              <li>last modified: <span class="monolight">#{showTimestamp $ fileMTime f}
-              <li>size: <span class="monolight">#{showBinary $ fileSize f}
-    |]
+  $(widgetFile "showfile")
