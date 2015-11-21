@@ -25,11 +25,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Settings where
 
 import Prelude
-import Text.Shakespeare.Text (st)
 import Language.Haskell.TH.Syntax
 import Yesod.Default.Config
 import Yesod.Default.Util
-import Data.Text (Text)
+import Data.Text (Text, append)
 import Data.Yaml
 import Settings.Development
 import Data.Default (def)
@@ -57,7 +56,7 @@ staticDir = "static"
 --
 -- To see how this value is used, see urlRenderOverride in Foundation.hs
 staticRoot :: AppConfig DefaultEnv x -> Text
-staticRoot conf = [st|#{appRoot conf}/static|]
+staticRoot conf = appRoot conf `append` "/static"
 
 -- | Settings for 'widgetFile', such as which template languages to support and
 -- default Hamlet settings.
