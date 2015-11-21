@@ -85,8 +85,8 @@ getHomeR :: Handler Html
 getHomeR = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  let ((Stats unprocessed standalone processed outdated orphaned untracked
-              rawsize procsize standalonesize sidecarsize _), fcm) =
+  let (Stats unprocessed standalone processed outdated orphaned untracked
+             rawsize procsize standalonesize sidecarsize _, fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
@@ -122,7 +122,7 @@ getBrowseFoldersR kinds = do
       alloutdated = sum . map numOutdatedPics $ folders
       allorphaned = sum . map numOrphanedPics $ folders
       tp = formatPercent $
-           (fromIntegral allunproc) * 100 / fromIntegral allpics
+           fromIntegral allunproc * 100 / fromIntegral allpics
       npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
                               numraw = fromIntegral (numRawPics n)
                               f_class = show $ folderClass n
@@ -151,8 +151,8 @@ getTimelineR = do
   let timeline = computeTimeLine pics
       days = Map.toAscList timeline
       tstats = do -- Maybe monad in order to avoid unsafe min/max functions
-        firstday <- fmap (fst . fst) $ Map.minViewWithKey timeline
-        lastday <- fmap (fst . fst) $ Map.maxViewWithKey timeline
+        firstday <- (fst . fst) <$> Map.minViewWithKey timeline
+        lastday <- (fst . fst) <$> Map.maxViewWithKey timeline
         let numdays = diffDays lastday firstday
         return (firstday, lastday, numdays)
       formatDay = formatTime defaultTimeLocale "%F"
@@ -163,32 +163,32 @@ getTimelineR = do
 getSettingsR :: Handler Html
 getSettingsR = do
   config <- extraConfig `fmap` getExtra
-  let quoteString = \path -> "'" ++ path ++ "'"
+  let quoteString path = "'" ++ path ++ "'"
   defaultLayout $ do
     setTitle "Corydalis: Settings"
     $(widgetFile "settings")
 
-getImageR :: Text -> Text -> Handler Html
-getImageR folder iname = do
+dirForName :: Text -> Handler PicDir
+dirForName folder = do
   config <- extraConfig `fmap` getExtra
   pics <- liftIO $ scanAll config
-  dir <- case Map.lookup folder pics of
-           Nothing -> notFound
-           Just dir -> return dir
+  case Map.lookup folder pics of
+   Nothing -> notFound
+   Just dir -> return dir
+
+getImageR :: Text -> Text -> Handler Html
+getImageR folder iname = do
+  dir <- dirForName folder
   case Map.lookup iname (pdImages dir) of
     Nothing -> notFound
     Just img -> defaultLayout $ do
       setTitle . toHtml $ "Corydalis: Image" `T.append` folder
-                 `T.append` "/" `T.append` (imgName img)
+                 `T.append` "/" `T.append` imgName img
       $(widgetFile "image")
 
 getUntrackedR :: Text -> Text -> Handler Html
 getUntrackedR folder uname = do
-  config <- extraConfig `fmap` getExtra
-  pics <- liftIO $ scanAll config
-  dir <- case Map.lookup folder pics of
-           Nothing -> notFound
-           Just dir -> return dir
+  dir <- dirForName folder
   case Map.lookup uname (pdUntracked dir) of
     Nothing -> notFound
     Just untrk -> defaultLayout $ do
