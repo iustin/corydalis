@@ -37,7 +37,7 @@ clean:
 	cabal clean
 
 test:
-	cabal configure --enable-test --enable-library-coverage
+	cabal configure --enable-test --enable-coverage
 	cabal test
 
 lint:
