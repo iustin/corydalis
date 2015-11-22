@@ -24,6 +24,9 @@ import TestImport
 spec :: Spec
 spec = withApp $ do
     it "loads the index and checks it looks right" $ do
-        get HomeR
-        statusIs 200
-        htmlAllContain "h1" "Welcome to Yesod"
+      get HomeR
+      statusIs 200
+      htmlAllContain "h1" "Corydalis"
+      htmlAnyContain "div #main" "The repository contains"
+      htmlAnyContain "div #main" "The repository is split across"
+      htmlAnyContain "div #main" "The overall size of the repository is "
