@@ -91,7 +91,6 @@ instance Yesod App where
           add addScriptRemote "jquery-tablesorter/jquery.tablesorter.js"
           add addStylesheetRemote "jquery-tablesorter/themes/blue/style.css"
 
-          $(widgetFile "normalize")
           addStylesheet $ StaticR css_basic_css
           $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
