@@ -76,7 +76,7 @@ library
                  , unix                          >= 2.6
                  , time
                  , old-locale
-                 , prefix-units                  >= 0.1        && < 0.2
+                 , prefix-units                  >= 0.2        && < 0.3
 
 
 executable         corydalis
