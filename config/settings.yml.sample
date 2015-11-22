@@ -9,10 +9,11 @@ Default: &defaults
   approot: "http://localhost:3000"
   # Copyright statement
   copyright: Insert copyright statement here
-  # URL that will be used for externally hosted JavaScript libraries"
+  # URL that will be used for externally hosted JavaScript libraries;
+  # the web pages will reference the following URLs:
   # $javascripturl/jquery/jquery.js
-  # $javascripturl/jquery-metadata/jquery.metadata.js"
-  # $javascripturl/jquery-tablesorter/jquery.tablesorter.js"
+  # $javascripturl/jquery-metadata/jquery.metadata.js
+  # $javascripturl/jquery-tablesorter/jquery.tablesorter.js
   javascripturl: "http://localhost/javascript/"
   config:
     # List of directories holding pictures:
