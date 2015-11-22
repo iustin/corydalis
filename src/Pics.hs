@@ -23,6 +23,7 @@ module Pics ( PicDir(..)
             , Image(..)
             , Untracked(..)
             , File(..)
+            , Repository
             , fileLastTouch
             , scanAll
             , forceScanAll

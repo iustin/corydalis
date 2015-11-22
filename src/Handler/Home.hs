@@ -81,10 +81,24 @@ showFileTimestamp = maybe "" (showTimestamp . fileMTime)
 showFileLatestTS :: Maybe File -> Text
 showFileLatestTS = maybe "" (showTimestamp . fileLastTouch)
 
+getConfig :: Handler Config
+getConfig = extraConfig <$> getExtra
+
+getPics :: Handler Repository
+getPics = do
+  config <- getConfig
+  liftIO $ scanAll config
+
+getFolder :: Text -> Handler PicDir
+getFolder folder = do
+  pics <- getPics
+  case Map.lookup folder pics of
+   Nothing -> notFound
+   Just dir -> return dir
+
 getHomeR :: Handler Html
 getHomeR = do
-  config <- extraConfig `fmap` getExtra
-  pics <- liftIO $ scanAll config
+  pics <- getPics
   let (Stats unprocessed standalone processed outdated orphaned untracked
              rawsize procsize standalonesize sidecarsize _, fcm) =
           computeRepoStats pics
@@ -98,21 +112,17 @@ getHomeR = do
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do
-  config <- extraConfig `fmap` getExtra
-  pics <- liftIO $ scanAll config
-  case Map.lookup name pics of
-    Nothing -> notFound
-    Just dir -> defaultLayout $ do
-      let stats = computeFolderStats dir
-      setTitle . toHtml $ "Corydalis: folder " `T.append` name
-      $(widgetFile "folder")
+  dir <- getFolder name
+  defaultLayout $ do
+    let stats = computeFolderStats dir
+    setTitle . toHtml $ "Corydalis: folder " `T.append` name
+    $(widgetFile "folder")
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
 getBrowseFoldersR kinds = do
+  pics <- getPics
   let kinds_string = T.intercalate ", " . map fcName $ kinds
-  config <- extraConfig `fmap` getExtra
-  pics <- liftIO $ scanAll config
-  let folders = filterDirsByClass kinds pics
+      folders = filterDirsByClass kinds pics
       stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
       allpics = sum . map numPics $ folders
       -- allraws = sum . map numRawPics $ folders
@@ -139,15 +149,14 @@ getBrowseFoldersR kinds = do
 
 getReloadR :: Handler Html
 getReloadR = do
-  config <- extraConfig `fmap` getExtra
+  config <- getConfig
   _ <- liftIO $ forceScanAll config
   setMessage "Cache reloaded"
   redirect HomeR
 
 getTimelineR :: Handler Html
 getTimelineR = do
-  config <- extraConfig `fmap` getExtra
-  pics <- liftIO $ scanAll config
+  pics <- getPics
   let timeline = computeTimeLine pics
       days = Map.toAscList timeline
       tstats = do -- Maybe monad in order to avoid unsafe min/max functions
@@ -162,23 +171,15 @@ getTimelineR = do
 
 getSettingsR :: Handler Html
 getSettingsR = do
-  config <- extraConfig `fmap` getExtra
+  config <- getConfig
   let quoteString path = "'" ++ path ++ "'"
   defaultLayout $ do
     setTitle "Corydalis: Settings"
     $(widgetFile "settings")
 
-dirForName :: Text -> Handler PicDir
-dirForName folder = do
-  config <- extraConfig `fmap` getExtra
-  pics <- liftIO $ scanAll config
-  case Map.lookup folder pics of
-   Nothing -> notFound
-   Just dir -> return dir
-
 getImageR :: Text -> Text -> Handler Html
 getImageR folder iname = do
-  dir <- dirForName folder
+  dir <- getFolder folder
   case Map.lookup iname (pdImages dir) of
     Nothing -> notFound
     Just img -> defaultLayout $ do
@@ -188,7 +189,7 @@ getImageR folder iname = do
 
 getUntrackedR :: Text -> Text -> Handler Html
 getUntrackedR folder uname = do
-  dir <- dirForName folder
+  dir <- getFolder folder
   case Map.lookup uname (pdUntracked dir) of
     Nothing -> notFound
     Just untrk -> defaultLayout $ do
