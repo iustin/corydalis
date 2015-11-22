@@ -28,7 +28,7 @@ import Prelude
 import Language.Haskell.TH.Syntax
 import Yesod.Default.Config
 import Yesod.Default.Util
-import Data.Text (Text, append)
+import Data.Text (Text)
 import Data.Yaml
 import Settings.Development
 import Data.Default (def)
@@ -41,22 +41,6 @@ import Types (Config)
 -- path. The default value works properly with your scaffolded site.
 staticDir :: FilePath
 staticDir = "static"
-
--- | The base URL for your static files. As you can see by the default
--- value, this can simply be "static" appended to your application root.
--- A powerful optimization can be serving static files from a separate
--- domain name. This allows you to use a web server optimized for static
--- files, more easily set expires and cache values, and avoid possibly
--- costly transference of cookies on static files. For more information,
--- please see:
---   http://code.google.com/speed/page-speed/docs/request.html#ServeFromCookielessDomain
---
--- If you change the resource pattern for StaticR in Foundation.hs, you will
--- have to make a corresponding change here.
---
--- To see how this value is used, see urlRenderOverride in Foundation.hs
-staticRoot :: AppConfig DefaultEnv x -> Text
-staticRoot conf = appRoot conf `append` "/static"
 
 -- | Settings for 'widgetFile', such as which template languages to support and
 -- default Hamlet settings.
