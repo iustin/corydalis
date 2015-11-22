@@ -17,9 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-module Import
-    ( module Import
-    ) where
+module Handler.HomeSpec (spec) where
 
-import Foundation            as Import
-import Import.NoFoundation   as Import
+import TestImport
+
+spec :: Spec
+spec = withApp $ do
+    it "loads the index and checks it looks right" $ do
+        get HomeR
+        statusIs 200
+        htmlAllContain "h1" "Welcome to Yesod"

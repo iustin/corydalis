@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {-
 
 Copyright (C) 2013 Iustin Pop
@@ -19,15 +17,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-module TestImport
-    ( module Yesod.Test
-    , module Foundation
-    , Spec
-    , Example
-    ) where
+module Handler.CommonSpec (spec) where
 
-import Yesod.Test
-import Foundation
+import TestImport
 
-type Spec = YesodSpec App
-type Example = YesodExample App
+spec :: Spec
+spec = withApp $ do
+    describe "robots.txt" $ do
+        it "gives a 200" $ do
+            get RobotsR
+            statusIs 200
+        it "has correct User-agent" $ do
+            get RobotsR
+            bodyContains "User-agent: *"
+    describe "favicon.ico" $ do
+        it "gives a 200" $ do
+            get FaviconR
+            statusIs 200

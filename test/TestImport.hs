@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {-
 
 Copyright (C) 2013 Iustin Pop
@@ -17,9 +19,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-module Import
-    ( module Import
+module TestImport
+    ( module TestImport
+    , module X
     ) where
 
-import Foundation            as Import
-import Import.NoFoundation   as Import
+import Application           (makeFoundation)
+import ClassyPrelude         as X
+import Foundation            as X
+import Test.Hspec            as X
+import Yesod.Default.Config2 (ignoreEnv, loadAppSettings)
+import Yesod.Test            as X
+
+withApp :: SpecWith App -> Spec
+withApp = before $ do
+    settings <- loadAppSettings
+        ["config/test-settings.yml", "config/settings.yml"]
+        []
+        ignoreEnv
+    makeFoundation settings

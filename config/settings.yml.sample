@@ -1,55 +1,58 @@
 # -*- yaml -*-
+# Values formatted like "_env:ENV_VAR_NAME:default_value" can be overridden by the specified environment variable.
+# See https://github.com/yesodweb/yesod/wiki/Configuration#overriding-configuration-values-with-environment-variables
 
-Default: &defaults
-  # Listen address:
-  host: "*4" #any IPv4 host
-  # Listen port:
-  port: 3000
-  # Canonical URL:
-  approot: "http://localhost:3000"
-  # Copyright statement
-  copyright: Insert copyright statement here
-  # URL that will be used for externally hosted JavaScript libraries;
-  # the web pages will reference the following URLs:
-  # $javascripturl/jquery/jquery.js
-  # $javascripturl/jquery-metadata/jquery.metadata.js
-  # $javascripturl/jquery-tablesorter/jquery.tablesorter.js
-  javascripturl: "http://localhost/javascript/"
-  config:
-    # List of directories holding pictures:
-    dirs: ["/pics"]
-    # Don't recurse into any subdirs listed here:
-    blacklisteddirs: [".thumbnails"]
-    # List of extensions considered "RAW" files:
-    rawexts: ["nef"]
-    # List of extensions considered processed pictures:
-    jpegexts: ["jpg", "jpeg"]
-    # Lists of extensions for sidecar files:
-    sidecarexts: ["xmp"]
-    # Lists of other extensions (e.g. thumbnail files):
-    otherexts: ["png"]
-    # Valid directory pattern (groups are ignored):
-    dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
-    # Regex denoting the name of a picture composed from other
-    # pictures, e.g. panoramas; exactly three groups are expected, in
-    # order: base filename, start index, end index.
-    rangeregex: "(.*_)([0-9]+)-([0-9]+)"
-    # Copy regex: the first group is the base filename, any other
-    # groups are ignored:
-    copyregex: "(.*)(-([0-9]|Edit))"
-    # Delta (in seconds) between raw/sidecar file and processed file
-    # after which the jpeg file is considered "outdated":
-    outdatederror: 5
+# Static files are found in this directory
+static-dir:     "_env:STATIC_DIR:static"
+# Listen address:
+host:           "_env:HOST:*4" # any IPv4 host
+# Listen port:
+port:           "_env:PORT:3000"
+# Canonical URL:
+approot:        "_env:APPROOT:http://teal:3000"
+# Useful when running behind a reverse proxy:
+ip-from-header: "_env:IP_FROM_HEADER:false"
+# Copyright statement
+copyright: Insert copyright statement here
 
-Development:
-  <<: *defaults
+# Optional values with the following production defaults.
+# In development, they default to the inverse.
+#
+# development: false
+# detailed-logging: false
+# should-log-all: false
+# reload-templates: false
+# mutable-static: false
+# skip-combining: false
 
-Testing:
-  <<: *defaults
-
-Staging:
-  <<: *defaults
-
-Production:
-  #approot: "http://www.example.com"
-  <<: *defaults
+# URL that will be used for externally hosted JavaScript libraries;
+# the web pages will reference the following URLs:
+# $javascripturl/jquery/jquery.js
+# $javascripturl/jquery-metadata/jquery.metadata.js
+# $javascripturl/jquery-tablesorter/jquery.tablesorter.js
+javascripturl: "http://localhost/javascript/"
+config:
+  # List of directories holding pictures:
+  dirs: ["/pics/raw", "/pic/jpegs"]
+  # Don't recurse into any subdirs listed here:
+  blacklisteddirs: [".thumbnails"]
+  # List of extensions considered "RAW" files:
+  rawexts: ["nef", "tif", "tiff", "dng"]
+  # List of extensions considered processed pictures:
+  jpegexts: ["jpg", "jpeg"]
+  # Lists of extensions for sidecar files:
+  sidecarexts: ["xmp"]
+  # Lists of other extensions (e.g. thumbnail files):
+  otherexts: ["png"]
+  # Valid directory pattern (groups are ignored):
+  dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
+  # Regex denoting the name of a picture composed from other
+  # pictures, e.g. panoramas; exactly three groups are expected, in
+  # order: base filename, start index, end index.
+  rangeregex: "(.*_)([0-9]+)-([0-9]+)"
+  # Copy regex: the first group is the base filename, any other
+  # groups are ignored:
+  copyregex: "(.*)(-([0-9]|Edit))"
+  # Delta (in seconds) between raw/sidecar file and processed file
+  # after which the jpeg file is considered "outdated":
+  outdatederror: 5

@@ -1,7 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 {-
 
 Copyright (C) 2013 Iustin Pop
@@ -21,21 +17,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-module Main where
+-- | Common handler functions.
+module Handler.Common where
 
+import Data.FileEmbed (embedFile)
 import Import
-import Yesod.Default.Config
-import Yesod.Test
-import Test.Hspec (hspec)
-import Application (makeFoundation)
 
-import HomeTest
+-- These handlers embed files in the executable at compile time to avoid a
+-- runtime dependency, and for efficiency.
 
-main :: IO ()
-main = do
-    conf <- Yesod.Default.Config.loadConfig $ (configSettings Testing)
-                { csParseExtra = parseExtra
-                }
-    foundation <- makeFoundation conf
-    hspec $
-        yesodSpec foundation homeSpecs
+getFaviconR :: Handler TypedContent
+getFaviconR = return $ TypedContent "image/x-icon"
+                     $ toContent $(embedFile "config/favicon.ico")
+
+getRobotsR :: Handler TypedContent
+getRobotsR = return $ TypedContent typePlain
+                    $ toContent $(embedFile "config/robots.txt")

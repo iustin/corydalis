@@ -19,71 +19,57 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Foundation where
 
-import Prelude
-import Yesod
---import Yesod.Form.Jquery
-import Yesod.Static
-import Yesod.Default.Config
-import Yesod.Default.Util (addStaticContentExternal)
-import Network.HTTP.Conduit (Manager)
-import qualified Settings
-import Settings.Development (development)
-import Settings.StaticFiles
-import Settings (widgetFile, Extra (..))
-import Text.Jasmine (minifym)
-import Web.ClientSession (getKey)
-import Text.Hamlet (hamletFile)
-import Yesod.Core.Types (Logger)
-import qualified Data.Text as T
-import Data.Text (Text)
+import Import.NoFoundation
+import Text.Hamlet                 (hamletFile)
+import Text.Jasmine                (minifym)
+import Yesod.Core.Types            (Logger)
+import Yesod.Default.Util          (addStaticContentExternal)
+import qualified Yesod.Core.Unsafe as Unsafe
 import Types (FolderClass(..))
+import qualified Data.Text as T
 
--- | The site argument for your application. This can be a good place to
+-- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
 -- starts running, such as database connections. Every handler will have
 -- access to the data present here.
 data App = App
-    { settings    :: AppConfig DefaultEnv Extra
-    , getStatic   :: Static -- ^ Settings for static file serving.
-    , httpManager :: Manager
-    , appLogger   :: Logger
+    { appSettings    :: AppSettings
+    , appStatic      :: Static -- ^ Settings for static file serving.
+    , appHttpManager :: Manager
+    , appLogger      :: Logger
     }
+
+instance HasHttpManager App where
+    getHttpManager = appHttpManager
 
 -- This is where we define all of the routes in our application. For a full
 -- explanation of the syntax, please see:
--- http://www.yesodweb.com/book/handler
+-- http://www.yesodweb.com/book/routing-and-handlers
 --
--- This function does three things:
+-- Note that this is really half the story; in Application.hs, mkYesodDispatch
+-- generates the rest of the code. Please see the linked documentation for an
+-- explanation for this split.
 --
--- * Creates the route datatype AppRoute. Every valid URL in your
---   application can be represented as a value of this type.
--- * Creates the associated type:
---       type instance Route App = AppRoute
--- * Creates the value resourcesApp which contains information on the
---   resources declared below. This is used in Handler.hs by the call to
---   mkYesodDispatch
---
--- What this function does *not* do is create a YesodSite instance for
--- App. Creating that instance requires all of the handler functions
--- for our application to be in scope. However, the handler functions
--- usually require access to the AppRoute datatype. Therefore, we
--- split these actions into two functions and place them in separate files.
+-- This function also generates the following type synonyms:
+-- type Handler = HandlerT App IO
+-- type Widget = WidgetT App IO ()
 mkYesodData "App" $(parseRoutesFile "config/routes")
 
-type Form x = Html -> MForm Handler (FormResult x, Widget)
+-- | A convenient synonym for creating forms.
+type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
-    approot = ApprootMaster $ appRoot . settings
+    -- Controls the base of generated URLs. For more information on modifying,
+    -- see: https://github.com/yesodweb/yesod/wiki/Overriding-approot
+    approot = ApprootMaster $ appRoot . appSettings
 
     -- Store session data on the client in encrypted cookies,
     -- default session idle timeout is 120 minutes
-    makeSessionBackend _ = do
-        key <- getKey "config/client_session_key.aes"
-        let timeout = 120 * 60 -- 120 minutes
-        (getCachedDate, _closeDateCache) <- clientSessionDateCacher timeout
-        return . Just $ clientSessionBackend key getCachedDate
+    makeSessionBackend _ = Just <$> defaultClientSessionBackend
+        120    -- timeout in minutes
+        "config/client_session_key.aes"
 
     defaultLayout widget = do
         master <- getYesod
@@ -96,8 +82,8 @@ instance Yesod App where
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
 
-        extra <- getExtra
-        let add f path = f $ T.pack $ extraJSUrl extra ++ path
+        let settings = appSettings master
+        let add f path = f $ appJSUrl settings `T.append` path
 
         pc <- widgetToPageContent $ do
           add addScriptRemote "jquery/jquery.js"
@@ -110,48 +96,55 @@ instance Yesod App where
           $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
+    -- Routes not requiring authentication.
+    isAuthorized FaviconR _ = return Authorized
+    isAuthorized RobotsR _ = return Authorized
+    -- Default to Authorized for now.
+    isAuthorized _ _ = return Authorized
+
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
     -- expiration dates to be set far in the future without worry of
     -- users receiving stale content.
-    addStaticContent =
-        addStaticContentExternal minifym genFileName Settings.staticDir
-                                   (StaticR . flip StaticRoute [])
+    addStaticContent ext mime content = do
+        master <- getYesod
+        let staticDir = appStaticDir $ appSettings master
+        addStaticContentExternal
+            minifym
+            genFileName
+            staticDir
+            (StaticR . flip StaticRoute [])
+            ext
+            mime
+            content
       where
         -- Generate a unique filename based on the content itself
-        genFileName lbs
-            | development = "autogen-" ++ base64md5 lbs
-            | otherwise   = base64md5 lbs
+        genFileName lbs = "autogen-" ++ base64md5 lbs
 
-    -- Place Javascript at bottom of the body tag so the rest of the
-    -- page loads first
-    jsLoader _ = BottomOfBody
+    -- What messages should be logged. The following includes all messages when
+    -- in development, and warnings and errors in production.
+    shouldLog app _source level =
+        appShouldLogAll (appSettings app)
+            || level == LevelWarn
+            || level == LevelError
 
-    -- What messages should be logged. The following includes all
-    -- messages when in development, and warnings and errors in
-    -- production.
-    shouldLog _ _source level =
-        development || level == LevelWarn || level == LevelError
-
-    --getLogger = return . appLogger
+    makeLogger = return . appLogger
 
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.
 instance RenderMessage App FormMessage where
     renderMessage _ _ = defaultFormMessage
 
---instance YesodJquery App
+unsafeHandler :: App -> Handler a -> IO a
+unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
--- | Get the 'Extra' value, used to hold data from the settings.yml file.
-getExtra :: Handler Extra
-getExtra = fmap (appExtra . settings) getYesod
-
--- Note: previous versions of the scaffolding included a deliver function to
--- send emails. Unfortunately, there are too many different options for us to
--- give a reasonable default. Instead, the information is available on the
--- wiki:
+-- Note: Some functionality previously present in the scaffolding has been
+-- moved to documentation in the Wiki. Following are some hopefully helpful
+-- links:
 --
 -- https://github.com/yesodweb/yesod/wiki/Sending-email
+-- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
+-- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
 
 instance YesodBreadcrumbs App where
   breadcrumb (StaticR _)    = return ("Static route" , Nothing)

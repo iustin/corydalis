@@ -28,13 +28,7 @@ $else
         <tr>
           <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
           <td>#{c}
-          <td>
-            $case pdPaths n
-              $of []
-              $of _
-                $forall path <- init $ pdPaths n
-                 #{path}<br />
-                #{last $ pdPaths n}
+          <td>#{intercalate "<br />" $ pdPaths n}
           <td .number>#{numPics n}
           <td .number>#{numUnprocessedPics n}
           <td .number>

@@ -24,23 +24,82 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- declared in the Foundation.hs file.
 module Settings where
 
-import Prelude
-import Language.Haskell.TH.Syntax
-import Yesod.Default.Config
-import Yesod.Default.Util
-import Data.Text (Text)
-import Data.Yaml
-import Settings.Development
-import Data.Default (def)
-import Text.Hamlet
-import Types (Config)
+import ClassyPrelude.Yesod
+import Control.Exception           (throw)
+import Data.Aeson                  (Result (..), fromJSON, withObject, (.!=),
+                                    (.:?))
+import Data.FileEmbed              (embedFile)
+import Data.Yaml                   (decodeEither')
+import Language.Haskell.TH.Syntax  (Exp, Name, Q)
+import Network.Wai.Handler.Warp    (HostPreference)
+import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
+import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
+                                    widgetFileReload)
 
--- Static setting below. Changing these requires a recompile
+import Types
 
--- | The location of static files on your system. This is a file system
--- path. The default value works properly with your scaffolded site.
-staticDir :: FilePath
-staticDir = "static"
+-- | Runtime settings to configure this application. These settings can be
+-- loaded from various sources: defaults, environment variables, config files,
+-- theoretically even a database.
+data AppSettings = AppSettings
+    { appStaticDir              :: String
+    -- ^ Directory from which to serve static files.
+    , appRoot                   :: Text
+    -- ^ Base for all generated URLs.
+    , appHost                   :: HostPreference
+    -- ^ Host/interface the server should bind to.
+    , appPort                   :: Int
+    -- ^ Port to listen on
+    , appIpFromHeader           :: Bool
+    -- ^ Get the IP address from the header when logging. Useful when sitting
+    -- behind a reverse proxy.
+
+    , appDetailedRequestLogging :: Bool
+    -- ^ Use detailed request logging system
+    , appShouldLogAll           :: Bool
+    -- ^ Should all log messages be displayed?
+    , appReloadTemplates        :: Bool
+    -- ^ Use the reload version of templates
+    , appMutableStatic          :: Bool
+    -- ^ Assume that files in the static dir may change after compilation
+    , appSkipCombining          :: Bool
+    -- ^ Perform no stylesheet/script combining
+
+    -- Example app-specific configuration values.
+    , appCopyright              :: Text
+    -- ^ Copyright text to appear in the footer of the page
+    , appJSUrl                  :: Text
+    -- ^ External JavaScript base URL
+    , appConfig                 :: Config
+    -- ^ Picture-related configuration
+    }
+
+instance FromJSON AppSettings where
+    parseJSON = withObject "AppSettings" $ \o -> do
+        let defaultDev =
+#if DEVELOPMENT
+                True
+#else
+                False
+#endif
+        appStaticDir              <- o .: "static-dir"
+        appRoot                   <- o .: "approot"
+        appHost                   <- fromString <$> o .: "host"
+        appPort                   <- o .: "port"
+        appIpFromHeader           <- o .: "ip-from-header"
+
+        appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
+        appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
+        appReloadTemplates        <- o .:? "reload-templates" .!= defaultDev
+        appMutableStatic          <- o .:? "mutable-static"   .!= defaultDev
+        appSkipCombining          <- o .:? "skip-combining"   .!= defaultDev
+
+        appCopyright              <- o .: "copyright"
+
+        appJSUrl                  <- o .: "javascripturl"
+        appConfig                 <- o .: "config"
+
+        return AppSettings {..}
 
 -- | Settings for 'widgetFile', such as which template languages to support and
 -- default Hamlet settings.
@@ -50,27 +109,47 @@ staticDir = "static"
 -- https://github.com/yesodweb/yesod/wiki/Overriding-widgetFile
 widgetFileSettings :: WidgetFileSettings
 widgetFileSettings = def
-    { wfsHamletSettings = defaultHamletSettings
-        { hamletNewlines = AlwaysNewlines
-        }
-    }
+
+-- | How static files should be combined.
+combineSettings :: CombineSettings
+combineSettings = def
 
 -- The rest of this file contains settings which rarely need changing by a
 -- user.
 
 widgetFile :: String -> Q Exp
-widgetFile = (if development then widgetFileReload
-                             else widgetFileNoReload)
+widgetFile = (if appReloadTemplates compileTimeAppSettings
+                then widgetFileReload
+                else widgetFileNoReload)
               widgetFileSettings
 
-data Extra = Extra
-    { extraCopyright :: Text
-    , extraJSUrl     :: String
-    , extraConfig    :: Config
-    } deriving Show
+-- | Raw bytes at compile time of @config/settings.yml@
+configSettingsYmlBS :: ByteString
+configSettingsYmlBS = $(embedFile configSettingsYml)
 
-parseExtra :: DefaultEnv -> Object -> Parser Extra
-parseExtra _ o = Extra
-    <$> o .:  "copyright"
-    <*> o .:  "javascripturl"
-    <*> o .:  "config"
+-- | @config/settings.yml@, parsed to a @Value@.
+configSettingsYmlValue :: Value
+configSettingsYmlValue = either throw id $ decodeEither' configSettingsYmlBS
+
+-- | A version of @AppSettings@ parsed at compile time from @config/settings.yml@.
+compileTimeAppSettings :: AppSettings
+compileTimeAppSettings =
+    case fromJSON $ applyEnvValue False mempty configSettingsYmlValue of
+        Error e -> error e
+        Success settings -> settings
+
+-- The following two functions can be used to combine multiple CSS or JS files
+-- at compile time to decrease the number of http requests.
+-- Sample usage (inside a Widget):
+--
+-- > $(combineStylesheets 'StaticR [style1_css, style2_css])
+
+combineStylesheets :: Name -> [Route Static] -> Q Exp
+combineStylesheets = combineStylesheets'
+    (appSkipCombining compileTimeAppSettings)
+    combineSettings
+
+combineScripts :: Name -> [Route Static] -> Q Exp
+combineScripts = combineScripts'
+    (appSkipCombining compileTimeAppSettings)
+    combineSettings

@@ -25,9 +25,7 @@ import Import
 import Pics
 import Types
 
-import Data.List
 import qualified Data.Map as Map
-import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
 import Data.Time.Clock.POSIX
@@ -82,7 +80,7 @@ showFileLatestTS :: Maybe File -> Text
 showFileLatestTS = maybe "" (showTimestamp . fileLastTouch)
 
 getConfig :: Handler Config
-getConfig = extraConfig <$> getExtra
+getConfig = appConfig . appSettings <$> getYesod
 
 getPics :: Handler Repository
 getPics = do

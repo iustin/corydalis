@@ -17,9 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-module Import
+module Import.NoFoundation
     ( module Import
     ) where
 
-import Foundation            as Import
-import Import.NoFoundation   as Import
+import ClassyPrelude.Yesod   as Import hiding (fileSize)
+import Settings              as Import
+import Settings.StaticFiles  as Import
+import Yesod.Core.Types      as Import (loggerSet)
+import Yesod.Default.Config2 as Import

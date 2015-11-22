@@ -1,6 +1,6 @@
 $newline always
 \<!doctype html>
-<html class="no-js" lang="en"> <!--<![endif]-->
+<html class="no-js" lang="en">
     <head>
         <meta charset="UTF-8">
 
@@ -33,4 +33,4 @@ $newline always
               ^{pageBody pc}
             <br>
             <footer>
-                #{extraCopyright $ appExtra $ settings master}
+                #{appCopyright $ appSettings master}

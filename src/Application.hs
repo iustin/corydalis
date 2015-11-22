@@ -19,29 +19,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 module Application
-    ( makeApplication
-    , getApplicationDev
+    ( getApplicationDev
+    , appMain
+    , develMain
     , makeFoundation
+    -- * for DevelMain
+    , getApplicationRepl
+    , shutdownApp
+    -- * for GHCI
+    , handler
     ) where
 
+import Control.Monad.Logger                 (liftLoc)
 import Import
-import Yesod.Default.Config
-import Yesod.Default.Main
-import Yesod.Default.Handlers
-import Network.Wai.Middleware.RequestLogger
-    ( mkRequestLogger, outputFormat, OutputFormat (..), IPAddrSource (..)
-    , destination
-    )
-import qualified Network.Wai.Middleware.RequestLogger as RequestLogger
-import Network.HTTP.Conduit (newManager, tlsManagerSettings)
-import Control.Concurrent (forkIO, threadDelay)
-import System.Log.FastLogger (newStdoutLoggerSet, defaultBufSize)
-import Network.Wai.Logger (clockDateCacher)
-import Data.Default (def)
-import Yesod.Core.Types (loggerSet, Logger (Logger))
+import Language.Haskell.TH.Syntax           (qLocation)
+import Network.Wai.Handler.Warp             (Settings, defaultSettings,
+                                             defaultShouldDisplayException,
+                                             runSettings, setHost,
+                                             setOnException, setPort, getPort)
+import Network.Wai.Middleware.RequestLogger (Destination (Logger),
+                                             IPAddrSource (..),
+                                             OutputFormat (..), destination,
+                                             mkRequestLogger, outputFormat)
+import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
+                                             toLogStr)
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
+import Handler.Common
 import Handler.Home
 
 -- This line actually creates our YesodDispatch instance. It is the second half
@@ -49,58 +54,113 @@ import Handler.Home
 -- comments there for more details.
 mkYesodDispatch "App" resourcesApp
 
--- This function allocates resources (such as a database connection pool),
--- performs initialization and creates a WAI application. This is also the
--- place to put your migrate statements to have automatic database
+-- | This function allocates resources (such as a database connection pool),
+-- performs initialization and returns a foundation datatype value. This is also
+-- the place to put your migrate statements to have automatic database
 -- migrations handled by Yesod.
-makeApplication :: AppConfig DefaultEnv Extra -> IO (Application, LogFunc)
-makeApplication conf = do
-    foundation <- makeFoundation conf
+makeFoundation :: AppSettings -> IO App
+makeFoundation appSettings = do
+    -- Some basic initializations: HTTP connection manager, logger, and static
+    -- subsite.
+    appHttpManager <- newManager
+    appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
+    appStatic <-
+        (if appMutableStatic appSettings then staticDevel else static)
+        (appStaticDir appSettings)
 
-    -- Initialize the logging middleware
+    -- Return the foundation
+    return App {..}
+
+-- | Convert our foundation to a WAI Application by calling @toWaiAppPlain@ and
+-- applying some additional middlewares.
+makeApplication :: App -> IO Application
+makeApplication foundation = do
     logWare <- mkRequestLogger def
         { outputFormat =
-            if development
+            if appDetailedRequestLogging $ appSettings foundation
                 then Detailed True
-                else Apache FromSocket
-        , destination = RequestLogger.Logger $ loggerSet $ appLogger foundation
+                else Apache
+                        (if appIpFromHeader $ appSettings foundation
+                            then FromFallback
+                            else FromSocket)
+        , destination = Logger $ loggerSet $ appLogger foundation
         }
 
     -- Create the WAI application and apply middlewares
-    app <- toWaiApp foundation
-    let logFunc = messageLoggerSource foundation (appLogger foundation)
-    return (logWare app, logFunc)
+    appPlain <- toWaiAppPlain foundation
+    return $ logWare $ defaultMiddlewaresNoLogging appPlain
 
--- | Loads up any necessary settings, creates your foundation datatype, and
--- performs some initialization.
-makeFoundation :: AppConfig DefaultEnv Extra -> IO App
-makeFoundation conf = do
-    manager <- newManager tlsManagerSettings
-    s <- staticSite
+-- | Warp settings for the given foundation value.
+warpSettings :: App -> Settings
+warpSettings foundation =
+      setPort (appPort $ appSettings foundation)
+    $ setHost (appHost $ appSettings foundation)
+    $ setOnException (\_req e ->
+        when (defaultShouldDisplayException e) $ messageLoggerSource
+            foundation
+            (appLogger foundation)
+            $(qLocation >>= liftLoc)
+            "yesod"
+            LevelError
+            (toLogStr $ "Exception from Warp: " ++ show e))
+      defaultSettings
 
-    loggerSet' <- newStdoutLoggerSet defaultBufSize
-    (getter, updater) <- clockDateCacher
+-- | For yesod devel, return the Warp settings and WAI Application.
+getApplicationDev :: IO (Settings, Application)
+getApplicationDev = do
+    settings <- getAppSettings
+    foundation <- makeFoundation settings
+    wsettings <- getDevSettings $ warpSettings foundation
+    app <- makeApplication foundation
+    return (wsettings, app)
 
-    -- If the Yesod logger (as opposed to the request logger middleware) is
-    -- used less than once a second on average, you may prefer to omit this
-    -- thread and use "(updater >> getter)" in place of "getter" below.  That
-    -- would update the cache every time it is used, instead of every second.
-    let updateLoop = do
-            threadDelay 1000000
-            updater
-            updateLoop
-    _ <- forkIO updateLoop
+getAppSettings :: IO AppSettings
+getAppSettings = loadAppSettings [configSettingsYml] [] useEnv
 
-    let logger = Yesod.Core.Types.Logger loggerSet' getter
-        foundation = App conf s manager logger
+-- | main function for use by yesod devel
+develMain :: IO ()
+develMain = develMainHelper getApplicationDev
 
-    return foundation
+-- | The @main@ function for an executable running this site.
+appMain :: IO ()
+appMain = do
+    -- Get the settings from all relevant sources
+    settings <- loadAppSettingsArgs
+        -- fall back to compile-time values, set to [] to require values at runtime
+        [configSettingsYmlValue]
 
--- for yesod devel
-getApplicationDev :: IO (Int, Application)
-getApplicationDev =
-    defaultDevelApp loader (fmap fst . makeApplication)
-  where
-    loader = Yesod.Default.Config.loadConfig (configSettings Development)
-        { csParseExtra = parseExtra
-        }
+        -- allow environment variables to override
+        useEnv
+
+    -- Generate the foundation from the settings
+    foundation <- makeFoundation settings
+
+    -- Generate a WAI Application from the foundation
+    app <- makeApplication foundation
+
+    -- Run the application with Warp
+    runSettings (warpSettings foundation) app
+
+
+--------------------------------------------------------------
+-- Functions for DevelMain.hs (a way to run the app from GHCi)
+--------------------------------------------------------------
+getApplicationRepl :: IO (Int, App, Application)
+getApplicationRepl = do
+    settings <- getAppSettings
+    foundation <- makeFoundation settings
+    wsettings <- getDevSettings $ warpSettings foundation
+    app1 <- makeApplication foundation
+    return (getPort wsettings, foundation, app1)
+
+shutdownApp :: App -> IO ()
+shutdownApp _ = return ()
+
+
+---------------------------------------------
+-- Functions for use in development with GHCi
+---------------------------------------------
+
+-- | Run a handler
+handler :: Handler a -> IO a
+handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
