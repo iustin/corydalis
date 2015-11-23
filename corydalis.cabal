@@ -57,8 +57,6 @@ library
                  , yesod-static                  >= 1.4.0.3    && < 1.6
                  , yesod-form                    >= 1.4.0      && < 1.5
                  , classy-prelude                >= 0.10.2
-                 , classy-prelude-conduit        >= 0.10.2
-                 , classy-prelude-yesod          >= 0.10.2
                  , bytestring                    >= 0.9        && < 0.11
                  , text                          >= 0.11       && < 2.0
                  , template-haskell
@@ -131,4 +129,3 @@ test-suite test
                  , yesod
                  , hspec >= 2.0.0
                  , classy-prelude
-                 , classy-prelude-yesod

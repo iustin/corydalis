@@ -24,10 +24,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- declared in the Foundation.hs file.
 module Settings where
 
-import ClassyPrelude.Yesod
+import ClassyPrelude
+import Data.Default
 import Control.Exception           (throw)
-import Data.Aeson                  (Result (..), fromJSON, withObject, (.!=),
-                                    (.:?))
+import Data.Aeson                  (Result (..), fromJSON, parseJSON,
+                                    withObject, (.!=),
+                                    (.:?), (.:), FromJSON, Value)
 import Data.FileEmbed              (embedFile)
 import Data.Yaml                   (decodeEither')
 import Language.Haskell.TH.Syntax  (Exp, Name, Q)
@@ -35,6 +37,7 @@ import Network.Wai.Handler.Warp    (HostPreference)
 import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
 import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
                                     widgetFileReload)
+import Yesod.Static
 
 import Types
 

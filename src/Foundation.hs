@@ -35,12 +35,8 @@ import qualified Data.Text as T
 data App = App
     { appSettings    :: AppSettings
     , appStatic      :: Static -- ^ Settings for static file serving.
-    , appHttpManager :: Manager
     , appLogger      :: Logger
     }
-
-instance HasHttpManager App where
-    getHttpManager = appHttpManager
 
 -- This is where we define all of the routes in our application. For a full
 -- explanation of the syntax, please see:
