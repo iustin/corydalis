@@ -45,7 +45,7 @@ $else
   <p>Picture list:
 
     <div style="width: 90%; margin-left: auto; margin-right: auto">
-      <table #folder .tablesorter .table>
+      <table #folder .tablesorter .table .table-condensed>
         <thead>
           <tr>
             <th rowspan=2>Name
@@ -82,7 +82,7 @@ $else
   <p>Untracked files:
 
    <div style="width: 90%; margin-left: auto; margin-right: auto">
-    <table #folder .tablesorter .table>
+    <table #folder .tablesorter .table .table-condensed>
       <thead>
         <tr>
           <th >Name
