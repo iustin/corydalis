@@ -1,17 +1,15 @@
 <h1>Folder #{name}
 
-$case pdPaths dir
+$case pdSecPaths dir
   $of []
-    This folder has no backing folder (this is an error!)
-  $of [single]
     This folder is backed by the single directory:
     <ul>
       <li>
-        <span .monolight>#{single}
+        <span .monolight>#{pdMainPath dir}
   $of _
     This folder is backed up by the following directories:
     <ul>
-      $forall path <- pdPaths dir
+      $forall path <- allpaths
         <li>
           <span .monolight>#{path}
 

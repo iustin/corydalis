@@ -180,7 +180,8 @@ mkImage config name parent raw sidecar jpeg range =
 
 data PicDir = PicDir
   { pdName      :: !Text
-  , pdPaths     :: ![Text]
+  , pdMainPath  :: !Text
+  , pdSecPaths  :: ![Text]
   , pdImages    :: !(Map.Map Text Image)
   , pdShadows   :: !(Map.Map Text Image)
   , pdUntracked :: !(Map.Map Text Untracked)
@@ -300,7 +301,7 @@ mergeUntracked x y =
 
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
 mergeFolders c x y =
-  x { pdPaths = pdPaths x ++ pdPaths y
+  x { pdSecPaths = pdSecPaths x ++ pdMainPath y:pdSecPaths y
     , pdImages =
         Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     , pdUntracked =
@@ -504,7 +505,7 @@ loadFolder config name path = do
                       addImgs config shadows' newss,
                       addUntracked untracked' newus)
                ) (Map.empty, Map.empty, Map.empty) contents
-  return $ PicDir tname [T.pack path] images shadows untracked
+  return $ PicDir tname (T.pack path) [] images shadows untracked
 
 
 mergeShadows :: Config -> PicDir -> PicDir

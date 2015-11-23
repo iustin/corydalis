@@ -118,6 +118,7 @@ getHomeR = do
 getFolderR :: Text -> Handler Html
 getFolderR name = do
   dir <- getFolder name
+  let allpaths = pdMainPath dir:pdSecPaths dir
   defaultLayout $ do
     let stats = computeFolderStats dir
     setTitle . toHtml $ "Corydalis: folder " `T.append` name

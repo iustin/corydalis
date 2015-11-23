@@ -28,7 +28,9 @@ $else
         <tr>
           <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
           <td>#{c}
-          <td>#{intercalate "<br />" $ pdPaths n}
+          <td>#{pdMainPath n}
+            $forall sp <- pdSecPaths n
+              <br />#{sp}
           <td .number>#{numPics n}
           <td .number>#{numUnprocessedPics n}
           <td .number>
