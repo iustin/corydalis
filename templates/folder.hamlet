@@ -59,7 +59,7 @@ $else
             <th ."{sorter: 'text'}">JPEG
         <tbody>
           $forall img <- pdImages dir
-            <tr>
+            <tr .#{imgRowClass img}>
               <td><a href=@{ImageR name (imgName img)}>#{imgName img}</a>
               <td>
                 $case imgStatus img

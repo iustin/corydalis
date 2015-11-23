@@ -79,6 +79,13 @@ showFileTimestamp = maybe "" (showTimestamp . fileMTime)
 showFileLatestTS :: Maybe File -> Text
 showFileLatestTS = maybe "" (showTimestamp . fileLastTouch)
 
+imgRowClass :: Image -> Text
+imgRowClass img =
+  case imgStatus img of
+   ImageOutdated -> "warning"
+   ImageOrphaned -> "danger"
+   _ -> ""
+
 getConfig :: Handler Config
 getConfig = appConfig . appSettings <$> getYesod
 
