@@ -9,8 +9,8 @@ it has a lot of dependencies; therefore, the simplest way is to use
 
 Next, copy the resulting binary (`dist/build/corydalis/corydalis`)
 somewhere, along with the `static` and `config` subdirectories. In the
-`config` directory, make a copy of the `settings.yml.sample` file, and
-update the configuration as needed.
+`config` directory, make a copy of the `settings.yml.sample` file as
+`settings.yml`, and update the configuration as needed.
 
 Being a web application, it also has a few JavaScript dependencies:
 
@@ -18,26 +18,27 @@ Being a web application, it also has a few JavaScript dependencies:
 * jquery-metadata
 * jquery-tablesorter
 
-These are not distributed with the application, instead they're
-expected to be served from an external server under the
-'javascripturl` configuration key; more precisely, the URLs that will
-be referenced will be:
+These are distributed with the application, so there's no need to do
+anything, unless you want to use newer version of them; just update
+the files in the `static/` subdirectory.
 
-* `$javascripturl/jquery/jquery.js`
-* `$javascripturl/jquery-metadata/jquery.metadata.js`
-* `$javascripturl/jquery-tablesorter/jquery.tablesorter.js`
+Once all these are in place, just run the binary, which will load the
+settings from the environment (if the environment variables are
+defined) or otherwise from config file or finally it will use
+compiled-in defaults:
 
-Without these, file table sorting will not work.
-
-Once all these are in place, just run the binary with the `Production`
-argument, which will load the `Production` settings from the config
-file:
-
-        $ ./corydalis Production
+        $ ./corydalis
 
 I've also seen that due to the nontrivial amount of memory used by all
 the filename tracking, the periodic idle GCs use non-trivial amount of
 CPU time; increasing the idle GC timeout helps - I use slightly more
 than one minute:
 
-        $ ./corydalis Production +RTS -I63
+        $ ./corydalis +RTS -I63
+
+## Note about the session key
+
+The application needs a session key for the client session cookies. If
+the file `config/client_session_key.aes` does not exist, it will be
+automatically created; however, deleting it and restarting the binary
+will invalidate any existing sessions.

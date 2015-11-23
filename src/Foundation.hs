@@ -78,9 +78,6 @@ instance Yesod App where
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
 
-        let settings = appSettings master
-        let add f path = f $ appJSUrl settings `T.append` path
-
         pc <- widgetToPageContent $ do
           addStylesheet $ StaticR css_bootstrap_css
           addStylesheet $ StaticR css_theme_blue_css

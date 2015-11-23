@@ -71,8 +71,6 @@ data AppSettings = AppSettings
     -- Example app-specific configuration values.
     , appCopyright              :: Text
     -- ^ Copyright text to appear in the footer of the page
-    , appJSUrl                  :: Text
-    -- ^ External JavaScript base URL
     , appConfig                 :: Config
     -- ^ Picture-related configuration
     }
@@ -99,7 +97,6 @@ instance FromJSON AppSettings where
 
         appCopyright              <- o .: "copyright"
 
-        appJSUrl                  <- o .: "javascripturl"
         appConfig                 <- o .: "config"
 
         return AppSettings {..}
