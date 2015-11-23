@@ -60,6 +60,7 @@ import Data.Text (Text)
 import System.IO.Unsafe
 
 import Control.Monad
+import Data.Function (on)
 import qualified Data.Map.Strict as Map
 import Data.List
 import Data.Maybe
@@ -301,12 +302,19 @@ mergeUntracked x y =
 
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
 mergeFolders c x y =
-  x { pdSecPaths = pdSecPaths x ++ pdMainPath y:pdSecPaths y
+  x { pdMainPath = pdMainPath bestMainPath
+    , pdSecPaths = pdSecPaths x ++ pdMainPath otherMainPath:pdSecPaths y
     , pdImages =
         Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     , pdUntracked =
         Map.unionWith mergeUntracked (pdUntracked x) (pdUntracked y)
     }
+  where
+    (bestMainPath, otherMainPath) =
+      case (compare `on` (\z -> (numRawPics z, numPics z))) x y of
+                                     GT -> (x, y)
+                                     _ -> (y, x)
+
 
 numRawPics :: PicDir -> Int
 numRawPics = numPicsOfType (isJust . imgRawPath)
