@@ -2,12 +2,10 @@ td.number {
     text-align: right
 }
 
-body {
-    padding: 5px;
-}
-
 nav#breadcrumbs {
     background-color: #f0f0f0;
+    margin: 0px;
+    padding: 2px 5px 2px 5px;
 }
 
 span.breadcrumbs {

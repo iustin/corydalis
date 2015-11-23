@@ -86,12 +86,14 @@ instance Yesod App where
         let add f path = f $ appJSUrl settings `T.append` path
 
         pc <- widgetToPageContent $ do
-          add addScriptRemote "jquery/jquery.js"
-          add addScriptRemote "jquery-metadata/jquery.metadata.js"
-          add addScriptRemote "jquery-tablesorter/jquery.tablesorter.js"
-          add addStylesheetRemote "jquery-tablesorter/themes/blue/style.css"
-
+          addStylesheet $ StaticR css_bootstrap_css
+          addStylesheet $ StaticR css_theme_blue_css
           addStylesheet $ StaticR css_basic_css
+
+          addScript $ StaticR js_jquery_js
+          addScript $ StaticR js_jquery_metadata_js
+          addScript $ StaticR js_jquery_tablesorter_js
+
           $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 

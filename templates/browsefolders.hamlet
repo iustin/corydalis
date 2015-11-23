@@ -10,7 +10,7 @@ $else
     #{showBinary $ sUntrackedSize stats} for untracked files.
 
  <div style="width: 90%; margin-left: auto; margin-right: auto">
-  <table #folderlist .tablesorter>
+  <table #folderlist .tablesorter .table>
     <thead>
       <tr>
         <th ."{sorter: 'text'}">Name
