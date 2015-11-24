@@ -1,55 +1,60 @@
 <h1>Browsing folders #
   <small>of type #{kinds_string}
 
-$if null folders
-  <p>No folders found that match the requested types.
-$else
- <p>The selected filter matches #{length folders} folders, using #
-    #{showBinary $ sRawSize stats} for raw files, #
-    #{showBinary $ sProcSize stats} for processed files, #
-    #{showBinary $ sStandaloneSize stats} for standalone files and #
-    #{showBinary $ sUntrackedSize stats} for untracked files.
+<div .row>
+ <div .col-xs-12>
+   $if null folders
+     <p .bg-warning>No folders found that match the requested types.
+   $else
+     <div .panel .panel-default>
+       <div .panel-body>
+         The selected filter matches #{length folders} folders, using #
+            #{showBinary $ sRawSize stats} for raw files, #
+            #{showBinary $ sProcSize stats} for processed files, #
+            #{showBinary $ sStandaloneSize stats} for standalone files and #
+            #{showBinary $ sUntrackedSize stats} for untracked files.
 
- <div style="width: 90%; margin-left: auto; margin-right: auto">
-  <table #folderlist .tablesorter .table .table-condensed>
-    <thead>
-      <tr>
-        <th ."{sorter: 'text'}">Name
-        <th ."{sorter: 'text'}">Classification
-        <th ."{sorter: 'text'}">Path
-        <th>Images
-        <th>Unprocessed
-        <th ."{sorter: 'procent'}">U. %
-        <th>Outdated
-        <th>Standalone
-        <th>Orphaned
-        <th>Processed
-    <tbody>
-      $forall (n, lp, c) <- npairs
-        <tr>
-          <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
-          <td>#{c}
-          <td>#{pdMainPath n}
-            $forall sp <- pdSecPaths n
-              <br />#{sp}
-          <td .number>#{numPics n}
-          <td .number>#{numUnprocessedPics n}
-          <td .number>
-            $maybe prc <- lp
-              #{prc}
-          <td .number>#{numOutdatedPics n}
-          <td .number>#{numStandalonePics n}
-          <td .number>#{numOrphanedPics n}
-          <td .number>#{numProcessedPics n}
-    <tfoot>
-      <tr>
-       <td colspan=3>Total files
-       <td .number>#{allpics}
-       <td .number>#{allunproc}
-       <td .number>
-         $maybe tprc <- tp
-           #{tprc}
-       <td .number>#{alloutdated}
-       <td .number>#{allstandalone}
-       <td .number>#{allorphaned}
-       <td .number>#{allprocessed}
+     <div .panel .panel-default>
+       <div .panel-heading>Results
+       <table #folderlist .tablesorter .table .table-condensed>
+         <thead>
+           <tr>
+             <th ."{sorter: 'text'}">Name
+             <th ."{sorter: 'text'}">Classification
+             <th ."{sorter: 'text'}">Path
+             <th>Images
+             <th>Unprocessed
+             <th ."{sorter: 'procent'}">U. %
+             <th>Outdated
+             <th>Standalone
+             <th>Orphaned
+             <th>Processed
+         <tbody>
+           $forall (n, lp, c) <- npairs
+             <tr>
+               <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
+               <td>#{c}
+               <td>#{pdMainPath n}
+                 $forall sp <- pdSecPaths n
+                   <br />#{sp}
+               <td .number>#{numPics n}
+               <td .number>#{numUnprocessedPics n}
+               <td .number>
+                 $maybe prc <- lp
+                   #{prc}
+               <td .number>#{numOutdatedPics n}
+               <td .number>#{numStandalonePics n}
+               <td .number>#{numOrphanedPics n}
+               <td .number>#{numProcessedPics n}
+         <tfoot>
+           <tr>
+            <td colspan=3>Total files
+            <td .number>#{allpics}
+            <td .number>#{allunproc}
+            <td .number>
+              $maybe tprc <- tp
+                #{tprc}
+            <td .number>#{alloutdated}
+            <td .number>#{allstandalone}
+            <td .number>#{allorphaned}
+            <td .number>#{allprocessed}
