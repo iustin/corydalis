@@ -1,4 +1,5 @@
-<h1>Browsing folders of type #{kinds_string}
+<h1>Browsing folders #
+  <small>of type #{kinds_string}
 
 $if null folders
   <p>No folders found that match the requested types.
