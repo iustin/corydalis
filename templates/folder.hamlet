@@ -1,96 +1,105 @@
-<h1>Folder #{name}
+<h1>Folder #
+  <small>#{name}
 
-$case pdSecPaths dir
-  $of []
-    This folder is backed by the single directory:
+<div .row>
+  <div .col-xs-12 .col-md-5>
+    $case pdSecPaths dir
+      $of []
+        This folder is backed by the single directory:
+        <ul>
+          <li>
+            <span .monolight>#{pdMainPath dir}
+      $of _
+        This folder is backed up by the following directories:
+        <ul>
+          $forall path <- allpaths
+            <li>
+              <span .monolight>#{path}
+
+  <div .col-xs-12 .col-md-4>
+    Picture contents:
     <ul>
-      <li>
-        <span .monolight>#{pdMainPath dir}
-  $of _
-    This folder is backed up by the following directories:
+      $if (&&) (numProcessedPics dir > 0) (numOutdatedPics dir > 0)
+        <li>#{numProcessedPics dir + numOutdatedPics dir} total processed pictures, out of which:
+          <ul>
+            <li>#{numProcessedPics dir} fully processed pics
+            <li>#{numOutdatedPics dir} processed but outdated pictures
+      $else
+        $if numProcessedPics dir > 0
+          <li>#{numProcessedPics dir} fully processed pics
+        $if numOutdatedPics dir > 0
+          <li>#{numOutdatedPics dir} processed but outdated pictures
+      $if numUnprocessedPics dir > 0
+        <li>#{numUnprocessedPics dir} raw pictures still awaiting processing
+      $if numStandalonePics dir > 0
+        <li>#{numStandalonePics dir} final files without a source raw file
+
+  <div .col-xs-12 .col-md-3>
+    Folder size:
     <ul>
-      $forall path <- allpaths
-        <li>
-          <span .monolight>#{path}
+      <li>#{showBinary $ totalStatsSize stats} total size
+      <li>#{showBinary $ sRawSize stats} raw files
+      <li>#{showBinary $ sProcSize stats} processed files (can be regenerated)
+      <li>#{showBinary $ sStandaloneSize stats} standalone files
+      <li>#{showBinary $ sSidecarSize stats} sidecar files
+      <li>#{showBinary $ sUntrackedSize stats} untracked files
 
-Picture contents:
-<ul>
-  $if (&&) (numProcessedPics dir > 0) (numOutdatedPics dir > 0)
-    <li>#{numProcessedPics dir + numOutdatedPics dir} total processed pictures, out of which:
-      <ul>
-        <li>#{numProcessedPics dir} fully processed pics
-        <li>#{numOutdatedPics dir} processed but outdated pictures
-  $else
-    $if numProcessedPics dir > 0
-      <li>#{numProcessedPics dir} fully processed pics
-    $if numOutdatedPics dir > 0
-      <li>#{numOutdatedPics dir} processed but outdated pictures
-  $if numUnprocessedPics dir > 0
-    <li>#{numUnprocessedPics dir} raw pictures still awaiting processing
-  $if numStandalonePics dir > 0
-    <li>#{numStandalonePics dir} final files without a source raw file
+<div .row>
+  <div .col-xs-12>
+    $if Map.null (pdImages dir)
+      <p>Folder contains no images.
+    $else
+      <p>Picture list:
 
-Folder size:
-<ul>
-  <li>#{showBinary $ totalStatsSize stats} total size
-  <li>#{showBinary $ sRawSize stats} raw files
-  <li>#{showBinary $ sProcSize stats} processed files (can be regenerated)
-  <li>#{showBinary $ sStandaloneSize stats} standalone files
-  <li>#{showBinary $ sSidecarSize stats} sidecar files
-  <li>#{showBinary $ sUntrackedSize stats} untracked files
+        <div style="width: 90%; margin-left: auto; margin-right: auto">
+          <table #folder .tablesorter .table .table-condensed>
+            <thead>
+              <tr>
+                <th rowspan=2>Name
+                <th rowspan=2>Type
+                <th colspan=3 ."{sorter: false}">Timestamps
+              <tr>
+                <th ."{sorter: 'text'}">RAW
+                <th ."{sorter: 'text'}">Sidecar
+                <th ."{sorter: 'text'}">JPEG
+            <tbody>
+              $forall img <- pdImages dir
+                <tr .#{imgRowClass img}>
+                  <td><a href=@{ImageR name (imgName img)}>#{imgName img}</a>
+                  <td>
+                    $case imgStatus img
+                      $of ImageProcessed
+                        processed
+                      $of ImageRaw
+                        unprocessed
+                      $of ImageStandalone
+                        standalone
+                      $of ImageOutdated
+                        outdated
+                      $of ImageOrphaned
+                        orphaned
+                  <td>#{showFileTimestamp $ imgRawPath img}
+                  <td>#{showFileTimestamp $ imgSidecarPath img}
+                  <td>#{showFileLatestTS $ listToMaybe $ imgJpegPath img}
+            <tfoot>
 
-$if Map.null (pdImages dir)
-  <p>Folder contains no images.
-$else
-  <p>Picture list:
+<div .row>
+  <div .col-xs-12>
+    $if Map.null (pdUntracked dir)
+      <p>Folder contains no untracked files.
+    $else
+      <p>Untracked files:
 
-    <div style="width: 90%; margin-left: auto; margin-right: auto">
-      <table #folder .tablesorter .table .table-condensed>
-        <thead>
-          <tr>
-            <th rowspan=2>Name
-            <th rowspan=2>Type
-            <th colspan=3 ."{sorter: false}">Timestamps
-          <tr>
-            <th ."{sorter: 'text'}">RAW
-            <th ."{sorter: 'text'}">Sidecar
-            <th ."{sorter: 'text'}">JPEG
-        <tbody>
-          $forall img <- pdImages dir
-            <tr .#{imgRowClass img}>
-              <td><a href=@{ImageR name (imgName img)}>#{imgName img}</a>
-              <td>
-                $case imgStatus img
-                  $of ImageProcessed
-                    processed
-                  $of ImageRaw
-                    unprocessed
-                  $of ImageStandalone
-                    standalone
-                  $of ImageOutdated
-                    outdated
-                  $of ImageOrphaned
-                    orphaned
-              <td>#{showFileTimestamp $ imgRawPath img}
-              <td>#{showFileTimestamp $ imgSidecarPath img}
-              <td>#{showFileLatestTS $ listToMaybe $ imgJpegPath img}
-        <tfoot>
-
-$if Map.null (pdUntracked dir)
-  <p>Folder contains no untracked files.
-$else
-  <p>Untracked files:
-
-   <div style="width: 90%; margin-left: auto; margin-right: auto">
-    <table #folder .tablesorter .table .table-condensed>
-      <thead>
-        <tr>
-          <th >Name
-          <th ."{sorter: 'text'}">Timestamp
-      <tbody>
-        $forall untrk <- pdUntracked dir
-          $with uname <- untrkName untrk
+       <div style="width: 90%; margin-left: auto; margin-right: auto">
+        <table #folder .tablesorter .table .table-condensed>
+          <thead>
             <tr>
-              <td><a href=@{UntrackedR name uname}>#{uname}</a>
-              <td>#{showFileTimestamp $ listToMaybe $ untrkPaths untrk}
-      <tfoot>
+              <th >Name
+              <th ."{sorter: 'text'}">Timestamp
+          <tbody>
+            $forall untrk <- pdUntracked dir
+              $with uname <- untrkName untrk
+                <tr>
+                  <td><a href=@{UntrackedR name uname}>#{uname}</a>
+                  <td>#{showFileTimestamp $ listToMaybe $ untrkPaths untrk}
+          <tfoot>
