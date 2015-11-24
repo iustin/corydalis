@@ -45,11 +45,16 @@
     <div .panel-body>
       <ul>
         <li>#{showBinary $ totalStatsSize stats} total size
-        <li>#{showBinary $ sRawSize stats} raw files
-        <li>#{showBinary $ sProcSize stats} processed files (can be regenerated)
-        <li>#{showBinary $ sStandaloneSize stats} standalone files
-        <li>#{showBinary $ sSidecarSize stats} sidecar files
-        <li>#{showBinary $ sUntrackedSize stats} untracked files
+        $if sRawSize stats > 0
+          <li>#{showBinary $ sRawSize stats} raw files
+        $if sProcSize stats > 0
+          <li>#{showBinary $ sProcSize stats} processed files (can be regenerated)
+        $if sStandaloneSize stats > 0
+          <li>#{showBinary $ sStandaloneSize stats} standalone files
+        $if sSidecarSize stats > 0
+          <li>#{showBinary $ sSidecarSize stats} sidecar files
+        $if sUntrackedSize stats > 0
+          <li>#{showBinary $ sUntrackedSize stats} untracked files
 
 <div .row>
   <div .col-xs-12>
