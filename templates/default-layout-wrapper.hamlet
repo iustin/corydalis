@@ -14,16 +14,13 @@ $doctype 5
 
     <body>
         <nav #breadcrumbs>
-          <span .breadcrumbs>
-            You are here: #
+          <ol .breadcrumb>
             $forall bc <- parents
-              <span>
+              <li>
                  <a href=@{fst bc}>
                     #{snd bc}
-               \ &gt; #
-
-          <span .breadcrumbs>
-            #{title}
+            <li .active>
+              #{title}
 
         <div .container-fluid #main role="main">
             ^{pageBody pc}
