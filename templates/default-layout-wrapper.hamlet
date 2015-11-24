@@ -1,6 +1,6 @@
 $newline always
-\<!doctype html>
-<html class="no-js" lang="en">
+$doctype 5
+<html lang="en">
     <head>
         <meta charset="UTF-8">
 
@@ -12,8 +12,6 @@ $newline always
 
         ^{pageHead pc}
 
-        <script>
-          document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/,'js');
     <body>
         <nav #breadcrumbs>
           <span .breadcrumbs>
@@ -27,10 +25,8 @@ $newline always
           <span .breadcrumbs>
             #{title}
 
-        <div .container-fluid>
-            <header>
-            <div id="main" role="main">
-              ^{pageBody pc}
+        <div .container-fluid #main role="main">
+            ^{pageBody pc}
             <br>
             <footer>
                 #{appCopyright $ appSettings master}
