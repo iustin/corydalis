@@ -28,9 +28,11 @@ $doctype 5
                   <li>
                     <form action=@{ReloadR} method=post .navbar-form>
                       <button .btn .btn-default type="submit" title="Reload directory information">
+                        <span .fa .fa-refresh>
                         Reload
                   <li>
                       <a role="button" href=@{SettingsR} .navbar-link .nav-link-fixup>
+                        <span .fa .fa-cog>
                         Settings
 
         <div .container-fluid #main role="main">
