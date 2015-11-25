@@ -6,8 +6,7 @@ $maybe (firstday, lastday, numdays) <- tstats
   from #{formatDay firstday}
   to #{formatDay lastday}.
 
- <div style="width: 90%; margin-left: auto; margin-right: auto">
-  <table #folder .tablesorter>
+  <table .table .table-condensed style="width: auto">
     <thead>
       <tr>
         <th>Day
