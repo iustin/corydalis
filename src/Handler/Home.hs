@@ -153,8 +153,8 @@ getBrowseFoldersR kinds = do
       "Corydalis: browsing folders of type " `T.append` kinds_string
     $(widgetFile "browsefolders")
 
-getReloadR :: Handler Html
-getReloadR = do
+postReloadR :: Handler Html
+postReloadR = do
   config <- getConfig
   _ <- liftIO $ forceScanAll config
   setMessage "Cache reloaded"

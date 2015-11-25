@@ -30,5 +30,7 @@ The overall size of the repository is #{showBinary (rawsize + procsize)}:
 
 <a href=@{TimelineR}>Timeline</a>.
 
-You can also <a href=@{ReloadR}>reload</a> the cache, or view the
-<a href=@{SettingsR}>settings</a>.
+You can also
+<form action=@{ReloadR} method=post style="display: inline-block">
+  <button .btn .btn-default .no-padding type="submit">reload
+the cache, or view the <a href=@{SettingsR}>settings</a>.

@@ -4,7 +4,7 @@
 /robots.txt RobotsR GET
 
 / HomeR GET
-/reload ReloadR GET
+/reload ReloadR POST
 /folder/#Text FolderR GET
 /folder/#Text/images/#Text ImageR GET
 /folder/#Text/untracked/#Text UntrackedR GET

@@ -12,6 +12,14 @@ td.number {
 
 }
 
+.no-padding {
+    padding: 0px;
+}
+
+button.no-padding {
+    padding: 0px 3px 0px 3px;
+}
+
 div#message {
     color: red;
 }
