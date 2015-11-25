@@ -44,3 +44,9 @@ breadcrumb case. */
 .navbar {
     margin-bottom: 0px;
 }
+
+/* Can't make nav > li > a behave properly, so let's add a fixup. This
+fixes both whitespace and alignment in collapsed mode. */
+.nav > li > a.nav-link-fixup {
+    padding-left: 5px;
+}

@@ -16,22 +16,22 @@ $doctype 5
         <nav .navbar .navbar-default .navbar-static-top>
           <div .container-fluid>
             <div .navbar-header>
-              <a href=@{HomeR} .navbar-brand>Corydalis
-            <ul .nav .navbar-nav>
-              <li>
-                <form action=@{ReloadR} method=post .navbar-form .navbar-left>
-                  <button .btn .btn-default type="submit" title="Reload directory information">
-                    Reload
-              <li>
-                  <a role="button" href=@{SettingsR}>
-                    Settings
-              <ol .breadcrumb .navbar-right .navbar-btn>
+              <ol .breadcrumb .navbar-btn>
                 $forall bc <- parents
                   <li>
                      <a href=@{fst bc}>
                         #{snd bc}
                 <li .active>
                   #{title}
+            <div .navbar-right>
+                <ul .nav .navbar-nav>
+                  <li>
+                    <form action=@{ReloadR} method=post .navbar-form>
+                      <button .btn .btn-default type="submit" title="Reload directory information">
+                        Reload
+                  <li>
+                      <a role="button" href=@{SettingsR} .navbar-link .nav-link-fixup>
+                        Settings
 
         <div .container-fluid #main role="main">
             ^{pageBody pc}
