@@ -1,32 +1,45 @@
 <h1>Corydalis
 
-The repository contains #{allpics} images and #{untracked} untracked files, #
-out of which:
-<ul>
-  $if processed > 0
-    <li>#{processed} fully processed images backed by RAW files.
-    <li>#{outdated} outdated images - backed by RAW files which are newer or more recently modified
-  $if unprocessed > 0
-    <li>#{unprocessed} <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>unprocessed</a> RAW files
-  $if standalone > 0
-    <li>#{standalone} standalone JPEGs
-  $if orphaned > 0
-    <li>#{orphaned} orphaned sidecar files
-  $if untracked > 0
-    <li>#{untracked} untracked files
+<div .row>
+  <div .col-xs-12 .col-md-3>
+    <div .panel .panel-default>
+      <div .panel-heading>Images
+      <div .panel-body>
+        The repository contains #{allpics} images and #{untracked} #
+        untracked files, out of which:
+        <ul>
+          $if processed > 0
+            <li>#{processed} fully processed images backed by RAW files.
+            <li>#{outdated} outdated images - backed by RAW files which are newer or more recently modified
+          $if unprocessed > 0
+            <li>#{unprocessed} <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>unprocessed</a> RAW files
+          $if standalone > 0
+            <li>#{standalone} standalone JPEGs
+          $if orphaned > 0
+            <li>#{orphaned} orphaned sidecar files
+          $if untracked > 0
+            <li>#{untracked} untracked files
 
-The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
-<ul>
-  $forall (fc, count) <- fstats
-    $with fclist <- [fc]
-      <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
+  <div .col-xs-12 .col-md-4>
+    <div .panel .panel-default>
+      <div .panel-heading>Folders
+      <div .panel-body>
+        The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
+        <ul>
+          $forall (fc, count) <- fstats
+            $with fclist <- [fc]
+              <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
 
-The overall size of the repository is #{showBinary (rawsize + procsize)}:
-<ul>
-  <li>#{showBinary rawsize} in raw files
-  <li>#{showBinary procsize} in processed and outdated files (i.e. files that can be regenerated)
-  <li>#{showBinary standalonesize} in standalone files
-  <li>#{showBinary sidecarsize} in sidecar files
+  <div .col-xs-12 .col-md-4>
+    <div .panel .panel-default>
+      <div .panel-heading>Bytes
+      <div .panel-body>
+        The overall size of the repository is #{showBinary (rawsize + procsize)}:
+        <ul>
+          <li>#{showBinary rawsize} in raw files
+          <li>#{showBinary procsize} in processed and outdated files (i.e. files that can be regenerated)
+          <li>#{showBinary standalonesize} in standalone files
+          <li>#{showBinary sidecarsize} in sidecar files
 
 <a href=@{TimelineR}>Timeline</a>.
 
