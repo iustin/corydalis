@@ -1,7 +1,8 @@
 # Licences for Corydalis
 
 Since this is a web application, it contains both code written by me
-and code reused from web framework/technologies. The following licence
+(licensed under AGPL-3+) and code reused from web
+framework/technologies, under various licences. The following licence
 information is in the format of
 <http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/>.
 
@@ -18,7 +19,8 @@ License: AGPL-3+
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU Affero General Public License for more details.
 
-  A copy of the GNU Affero General Public License is in the file COPYING.
+  A copy of the GNU Affero General Public License is in the file
+  LICENCE-AGPL.
 
 Files:
   static/css/bootstrap.css
