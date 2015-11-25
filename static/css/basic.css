@@ -26,5 +26,11 @@ ol ul {
 /* Improve upon bootstrap's breadcrumb by not using a slash as
 separator, since that can appear in image names as well */
 .breadcrumb > li + li:before {
-  content: "\23f5\00a0";
+    content: "\23f5\00a0";
+}
+
+/* Improve upon bootstrap's breadcrumb by removing the margin-bottom,
+since a following H1 adds its own maring-top. */
+.breadcrumb {
+    margin-bottom: 0px;
 }
