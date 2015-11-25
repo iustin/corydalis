@@ -148,9 +148,7 @@ instance YesodBreadcrumbs App where
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
   breadcrumb (FolderR name) = return ("Folder " `T.append` name,
                                       Just HomeR)
-  breadcrumb (ImageR folder image) = return ("Image " `T.append` folder
-                                                      `T.append` "/"
-                                                      `T.append` image,
+  breadcrumb (ImageR folder image) = return ("Image " `T.append` image,
                                              Just (FolderR folder))
   breadcrumb (UntrackedR folder untracked) =
     return ("Untracked " `T.append` folder
