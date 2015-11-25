@@ -13,14 +13,23 @@ $doctype 5
         ^{pageHead pc}
 
     <body>
-        <nav #breadcrumbs>
-          <ol .breadcrumb>
-            $forall bc <- parents
+        <nav .navbar .navbar-default .navbar-static-top>
+          <div .container-fluid>
+            <ul .nav .navbar-nav>
               <li>
-                 <a href=@{fst bc}>
-                    #{snd bc}
-            <li .active>
-              #{title}
+                <form action=@{ReloadR} method=post .navbar-form .navbar-left>
+                  <button .btn .btn-default type="submit">
+                    Reload
+              <li>
+                  <a role="button" href=@{SettingsR}>
+                    Settings
+              <ol .breadcrumb .navbar-right .navbar-btn>
+                $forall bc <- parents
+                  <li>
+                     <a href=@{fst bc}>
+                        #{snd bc}
+                <li .active>
+                  #{title}
 
         <div .container-fluid #main role="main">
             ^{pageBody pc}

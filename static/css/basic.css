@@ -24,13 +24,6 @@ div#message {
     color: red;
 }
 
-ul ul,
-ul ol,
-ol ol,
-ol ul {
-    margin: 0 0;
-}
-
 /* Improve upon bootstrap's breadcrumb by not using a slash as
 separator, since that can appear in image names as well */
 .breadcrumb > li + li:before {
@@ -38,7 +31,9 @@ separator, since that can appear in image names as well */
 }
 
 /* Improve upon bootstrap's breadcrumb by removing the margin-bottom,
-since a following H1 adds its own maring-top. */
+since a following H1 adds its own margin-too, and shrinking
+padding-top by 1px so that it looks weel in a navbar. */
 .breadcrumb {
     margin-bottom: 0px;
+    padding-top: 7px;
 }
