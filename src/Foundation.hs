@@ -81,6 +81,7 @@ instance Yesod App where
         pc <- widgetToPageContent $ do
           addStylesheet $ StaticR css_bootstrap_css
           addStylesheet $ StaticR css_theme_blue_css
+          addStylesheet $ StaticR css_font_awesome_css
           addStylesheet $ StaticR css_basic_css
 
           addScript $ StaticR js_jquery_js
