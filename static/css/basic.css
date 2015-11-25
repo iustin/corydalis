@@ -37,3 +37,10 @@ padding-top by 1px so that it looks weel in a navbar. */
     margin-bottom: 0px;
     padding-top: 7px;
 }
+
+/* Improve upon bootstrap's navbar by removing the margin-bottom,
+since a following H1 adds its own margin-too; similar to the
+breadcrumb case. */
+.navbar {
+    margin-bottom: 0px;
+}
