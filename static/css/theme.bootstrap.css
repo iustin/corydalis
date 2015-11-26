@@ -1,0 +1,52 @@
+/*************
+  Bootstrap theme
+ *************/
+/* jQuery Bootstrap Theme */
+.tablesorter-bootstrap {
+	width: 100%;
+}
+.tablesorter-bootstrap thead th,
+.tablesorter-bootstrap thead td,
+.tablesorter-bootstrap tfoot th,
+.tablesorter-bootstrap tfoot td {
+	font: 14px/20px Arial, Sans-serif;
+	font-weight: bold;
+	padding: 4px;
+	margin: 0 0 18px;
+	background-color: #eee;
+}
+
+.tablesorter-bootstrap .tablesorter-header {
+	cursor: pointer;
+}
+
+.tablesorter-bootstrap .tablesorter-header-inner {
+	position: relative;
+	padding: 4px 18px 4px 4px;
+}
+
+/* bootstrap uses <i> for icons */
+.tablesorter-bootstrap .tablesorter-header i.tablesorter-icon {
+	font-size: 10px;
+	position: absolute;
+	right: 2px;
+	top: 50%;
+	margin-top: -7px; /* half the icon height; older IE doesn't like this */
+	width: 14px;
+	height: 14px;
+	background-repeat: no-repeat;
+	line-height: 14px;
+	display: inline-block;
+}
+
+/* caption */
+.caption {
+	background-color: #fff;
+}
+
+/* ajax error row */
+.tablesorter .tablesorter-errorRow td {
+	text-align: center;
+	cursor: pointer;
+	background-color: #e6bf99;
+}
