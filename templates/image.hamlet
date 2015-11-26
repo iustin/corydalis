@@ -1,28 +1,49 @@
 <h1>Image #{folder}/#{iname}
 
-<ul>
-  <li>Image name: #{imgName img}
-  <li>Parent folder: <a href=@{FolderR (imgParent img)}>#{imgParent img}</a>
-  $maybe (begin, end) <- imgRange img
-     <li>Image is a composition based on range #
-       <a href=@{ImageR (imgParent img) begin}>#{begin}</a>
-       to
-       <a href=@{ImageR (imgParent img) end}>#{end}</a>
-  <li>Status: #{show $ imgStatus img}
-  $case imgRawPath img
-   $of Just f
-    ^{showFile (Just "RAW file:") f}
-   $of Nothing
-    <li>No RAW component
-  $if (null $ imgJpegPath img)
-    <li>Has no processed files
-  $else
-    <li>Processed files:
-      <ul>
-        $forall jpeg <- imgJpegPath img
-          ^{showFile Nothing jpeg}
-  $case imgSidecarPath img
-   $of Just f
-    ^{showFile (Just "Sidecar file:") f}
-   $of Nothing
-    <li>No sidecar file
+<div .row>
+
+  <div .col-xs-12 .col-md-6 .col-lg-3>
+    <div .panel .panel-default>
+      <div .panel-heading>Basic information
+      <div .panel-body>
+        <ul>
+          <li>Image name: #{imgName img}
+          <li>Parent folder: <a href=@{FolderR (imgParent img)}>#{imgParent img}</a>
+          $maybe (begin, end) <- imgRange img
+             <li>Image is a composition based on range #
+               <a href=@{ImageR (imgParent img) begin}>#{begin}</a>
+               to
+               <a href=@{ImageR (imgParent img) end}>#{end}</a>
+          <li>Status: #{show $ imgStatus img}
+
+  <div .col-xs-12 .col-md-6 .col-lg-3>
+    <div .panel .panel-default>
+      <div .panel-heading>RAW file
+      <div .panel-body>
+        $case imgRawPath img
+         $of Just f
+          <ul>
+            ^{showFile (Just "RAW file:") f}
+         $of Nothing
+          No RAW component
+  <div .col-xs-12 .col-md-6 .col-lg-3>
+    <div .panel .panel-default>
+      <div .panel-heading>Processed outputs
+      <div .panel-body>
+        $if (null $ imgJpegPath img)
+          Has no processed files
+        $else
+          <ul>
+            $forall jpeg <- imgJpegPath img
+              ^{showFile Nothing jpeg}
+
+  <div .col-xs-12 .col-md-6 .col-lg-3>
+    <div .panel .panel-default>
+      <div .panel-heading>Sidecar file
+      <div .panel-body>
+        $case imgSidecarPath img
+         $of Just f
+           <ul>
+             ^{showFile (Just "Sidecar file:") f}
+         $of Nothing
+          No sidecar file
