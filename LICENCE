@@ -37,8 +37,8 @@ License: MIT or GPL
 
 Files:
   static/js/jquery.tablesorter.js
-  static/js/widget-uitheme.js
-  static/css/theme.bootstrap.css
+  static/js/tablesorter-widget-uitheme.js
+  static/css/tablesorter.theme.bootstrap.css
 Copyright: 2007, Christian Bach <christian.bach@polyester.se>
 Comment: this is a fork from https://github.com/Mottie/tablesorter
 Comment: slight changes to the theme were done (removal of unneeded

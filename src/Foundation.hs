@@ -80,15 +80,15 @@ instance Yesod App where
 
         pc <- widgetToPageContent $ do
           addStylesheet $ StaticR css_bootstrap_css
-          addStylesheet $ StaticR css_theme_bootstrap_css
+          addStylesheet $ StaticR css_tablesorter_theme_bootstrap_css
           addStylesheet $ StaticR css_font_awesome_css
           addStylesheet $ StaticR css_basic_css
 
           addScript $ StaticR js_jquery_js
           addScript $ StaticR js_jquery_metadata_js
           addScript $ StaticR js_jquery_tablesorter_js
-          addScript $ StaticR js_widget_uitheme_js
-          addScript $ StaticR js_uitheme_bootstrap_simple_js
+          addScript $ StaticR js_tablesorter_widget_uitheme_js
+          addScript $ StaticR js_tablesorter_uitheme_simple_js
 
           $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
