@@ -1,15 +1,27 @@
 <h1>Untracked file #{folder}/#{uname}
 
-<ul>
-  <li>File name: #{untrkName untrk}
-  <li>Parent folder: <a href=@{FolderR (untrkParent untrk)}>#{untrkParent untrk}</a>
-  $case untrkPaths untrk
-   $of [f]
-    ^{showFile (Just "Single file:") f}
-   $of []
-    <li>No backing files?!
-   $of paths
-    <li>Backed by multiple files:
-      <ul>
-        $forall p <- paths
-          ^{showFile Nothing p}
+<div .row>
+
+  <div .col-xs-12 .col-md-6>
+    <div .panel .panel-default>
+      <div .panel-heading>Basic information
+      <div .panel-body>
+       <ul>
+         <li>File name: #{untrkName untrk}
+         <li>Parent folder: <a href=@{FolderR (untrkParent untrk)}>#{untrkParent untrk}</a>
+
+  <div .col-xs-12 .col-md-6>
+    <div .panel .panel-default>
+      <div .panel-heading>Backing files
+      <div .panel-body>
+        $case untrkPaths untrk
+         $of [f]
+          <ul>
+            ^{showFile (Just "Single file:") f}
+         $of []
+          No backing files?!
+         $of paths
+          Backed by multiple files:
+            <ul>
+              $forall p <- paths
+                ^{showFile Nothing p}
