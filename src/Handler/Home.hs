@@ -203,7 +203,6 @@ getUntrackedR folder uname = do
                  `T.append` "/" `T.append` uname
       $(widgetFile "untracked")
 
-showFile :: Maybe Text -> Pics.File -> Widget
-showFile prefix f = do
-  let expanded_prefix = maybe "" (`T.append` " ") prefix
+showFile :: Pics.File -> Widget
+showFile f = do
   $(widgetFile "showfile")

@@ -2,7 +2,7 @@
 
 <div .row>
 
-  <div .col-xs-12 .col-md-6>
+  <div .col-xs-12 .col-md-6 .col-lg-4>
     <div .panel .panel-default>
       <div .panel-heading>Basic information
       <div .panel-body>
@@ -10,18 +10,15 @@
          <li>File name: #{untrkName untrk}
          <li>Parent folder: <a href=@{FolderR (untrkParent untrk)}>#{untrkParent untrk}</a>
 
-  <div .col-xs-12 .col-md-6>
-    <div .panel .panel-default>
-      <div .panel-heading>Backing files
+
+  $case untrkPaths untrk
+    $of []
+      <div .panel .panel-danger>
       <div .panel-body>
-        $case untrkPaths untrk
-         $of [f]
-          <ul>
-            ^{showFile (Just "Single file:") f}
-         $of []
-          No backing files?!
-         $of paths
-          Backed by multiple files:
-            <ul>
-              $forall p <- paths
-                ^{showFile Nothing p}
+        No backing files?!
+   $of paths
+     $forall p <- paths
+       <div .col-xs-12 .col-md-6 .col-lg-4>
+         <div .panel .panel-default>
+           <div .panel-heading>Backing file
+           ^{showFile p}

@@ -1,5 +1,13 @@
- <li>#{expanded_prefix}<span class="monolight">#{Pics.fileName f}</span>
-    <ul>
-     <li>path: <span class="monolight">#{Pics.filePath f}
-     <li>last modified: <span class="monolight">#{showTimestamp $ fileMTime f}
-     <li>size: <span class="monolight">#{showBinary $ fileSize f}
+<table .table>
+  <tr>
+    <td>Name
+    <td><span class="monolight">#{Pics.fileName f}</span>
+  <tr>
+    <td>Path
+    <td><span class="monolight">#{Pics.filePath f}
+  <tr>
+    <td>Last modified
+    <td><span class="monolight">#{showTimestamp $ fileMTime f}
+  <tr>
+    <td>Size
+    <td .numeric><span class="monolight">#{showBinary $ fileSize f}
