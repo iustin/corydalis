@@ -119,7 +119,7 @@ getImageR folder iname = do
            Nothing -> notFound
            Just img' -> return img'
   defaultLayout $ do
-    setTitle . toHtml $ "Corydalis: Image" `T.append` folder
+    setTitle . toHtml $ "Corydalis: Image " `T.append` folder
                `T.append` "/" `T.append` imgName img
     $(widgetFile "image")
 
