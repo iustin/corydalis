@@ -1,7 +1,7 @@
 name:              corydalis
 version:           0.0.1
 license:           AGPL-3
-license-file:      COPYING
+license-file:      LICENCE
 cabal-version:     >= 1.8
 build-type:        Simple
 
