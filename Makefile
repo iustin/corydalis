@@ -41,9 +41,12 @@ test:
 	cabal test
 
 lint:
+	@rm -f lint-report.html
 	@hlint \
 	  --ignore "Use fewer imports" \
 	  --ignore "Use first" \
+	  --ignore "Use &&&" \
+	  --report=lint-report.html -c \
 	  .
 
 .PHONY: build devel profiling view production doc clean test
