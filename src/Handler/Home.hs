@@ -24,82 +24,11 @@ module Handler.Home where
 import Import
 import Pics
 import Types
+import Handler.Utils
 
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import Data.Time
-import Data.Time.Clock.POSIX
-import Text.Printf
-import Data.Prefix.Units
-
--- | Formats a double as a percent value. NaN values are transformed
--- into a Nothing.
-formatPercent :: Double -> Maybe String
-formatPercent v | isNaN v = Nothing
-                | otherwise = Just $ printf "%.02f" v
-
-showBinary :: (Integral a) => a -> String
-showBinary = (++ "B") . showValue FormatBinary . convert
-  where convert :: (Integral a) => a -> Int
-        convert = fromIntegral
-
-fcName :: FolderClass -> Text
-fcName FolderRaw         = "raw"
-fcName FolderStandalone  = "standalone"
-fcName FolderUnprocessed = "not fully processed"
-fcName FolderProcessed   = "fully processed"
-fcName FolderEmpty       = "empty"
-fcName FolderMixed       = "mixed"
-fcName FolderOutdated    = "outdated"
-
-fcDescription :: FolderClass -> Text
-fcDescription FolderRaw         = "contains only unprocessed RAW files"
-fcDescription FolderStandalone  = "contains only files without a RAW format"
-fcDescription FolderUnprocessed = "contains unprocessed RAW files (and possibly \
-                                   \standalone files)"
-fcDescription FolderProcessed   = "contains RAW files, all processed"
-fcDescription FolderEmpty       = "contains no image files"
-fcDescription FolderMixed       = "contains both RAW files (processed) \
-                                  \and files without RAW storage"
-fcDescription FolderOutdated    = "contains RAW files, all processed, but \
-                                  \some of the processed files are outdated \
-                                  \(corresponding RAW file has been retouched \
-                                  \more recently)"
-
-showTimestamp :: NominalDiffTime -> Text
-showTimestamp ts =
-  T.pack $ ft ++ pico
-    where ts' = posixSecondsToUTCTime ts
-          pico = take 4 $ formatTime defaultTimeLocale "%q" ts'
-          ft = formatTime defaultTimeLocale "%F %T." ts'
-
-showFileTimestamp :: Maybe File -> Text
-showFileTimestamp = maybe "" (showTimestamp . fileMTime)
-
-showFileLatestTS :: Maybe File -> Text
-showFileLatestTS = maybe "" (showTimestamp . fileLastTouch)
-
-imgRowClass :: Image -> Text
-imgRowClass img =
-  case imgStatus img of
-   ImageOutdated -> "warning"
-   ImageOrphaned -> "danger"
-   _ -> ""
-
-getConfig :: Handler Config
-getConfig = appConfig . appSettings <$> getYesod
-
-getPics :: Handler Repository
-getPics = do
-  config <- getConfig
-  liftIO $ scanAll config
-
-getFolder :: Text -> Handler PicDir
-getFolder folder = do
-  pics <- getPics
-  case Map.lookup folder pics of
-   Nothing -> notFound
-   Just dir -> return dir
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -202,7 +131,3 @@ getUntrackedR folder uname = do
       setTitle . toHtml $ "Corydalis: Untracked file " `T.append` folder
                  `T.append` "/" `T.append` uname
       $(widgetFile "untracked")
-
-showFile :: Pics.File -> Widget
-showFile f = do
-  $(widgetFile "showfile")

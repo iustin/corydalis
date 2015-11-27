@@ -24,6 +24,7 @@ library
                      Settings.Development
                      Handler.Common
                      Handler.Home
+                     Handler.Utils
                      Pics
                      Types
 
