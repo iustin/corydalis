@@ -84,10 +84,11 @@ getBrowseFoldersR kinds = do
 
 postReloadR :: Handler Html
 postReloadR = do
+  setUltDestReferer
   config <- getConfig
   _ <- liftIO $ forceScanAll config
   setMessage "Cache reloaded"
-  redirect HomeR
+  redirectUltDest HomeR
 
 getTimelineR :: Handler Html
 getTimelineR = do
