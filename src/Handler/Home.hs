@@ -115,9 +115,12 @@ getSettingsR = do
 getImageR :: Text -> Text -> Handler Html
 getImageR folder iname = do
   dir <- getFolder folder
-  img <- case Map.lookup iname (pdImages dir) of
+  let images = pdImages dir
+  img <- case Map.lookup iname images of
            Nothing -> notFound
            Just img' -> return img'
+  let imgPrev = Map.lookupLT iname images
+      imgNext = Map.lookupGT iname images
   defaultLayout $ do
     setTitle . toHtml $ "Corydalis: Image " `T.append` folder
                `T.append` "/" `T.append` imgName img
