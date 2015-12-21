@@ -53,6 +53,11 @@ Files: static/css/font-awesome.css
 Comment: file slightly tweaked to only refer to woff/woff2 fonts
 License: MIT
 
+Files:
+  static/js/plotly.js
+Copyright: 2015 Plotly, Inc
+License: MIT
+
 License: MIT
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation files
