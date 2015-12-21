@@ -3,7 +3,6 @@ $(document).ready(function() {
     function onDataReceived(series) {
 
         var bytesLayout = {
-            barmode: 'group',
             xaxis: {
                 exponentformat: 'SI',
                 rangemode: 'nonnegative',
@@ -15,7 +14,6 @@ $(document).ready(function() {
             }
         }
         var folderLayout = {
-            barmode: 'group',
             xaxis: {
                 type: 'log',
                 exponentformat: 'SI',
