@@ -2,7 +2,7 @@ $(document).ready(function() {
 
     function onDataReceived(series) {
 
-        var layout = {
+        var bytesLayout = {
             barmode: 'group',
             xaxis: {
                 exponentformat: 'SI',
@@ -14,8 +14,22 @@ $(document).ready(function() {
                 title: 'File count'
             }
         }
-        Plotly.newPlot('bytesChart', series.global, layout);
-        Plotly.newPlot('folderChart', series.folders, layout);
+        var folderLayout = {
+            barmode: 'group',
+            xaxis: {
+                type: 'log',
+                exponentformat: 'SI',
+                rangemode: 'nonnegative',
+                title: 'Size'
+            },
+            yaxis: {
+                type: 'log',
+                rangemode: 'nonnegative',
+                title: 'File count'
+            }
+        }
+        Plotly.newPlot('bytesChart', series.global, bytesLayout);
+        Plotly.newPlot('folderChart', series.folders, folderLayout);
     }
 
     $.ajax({
