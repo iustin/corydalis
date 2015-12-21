@@ -28,8 +28,14 @@ $(document).ready(function() {
                 title: 'File count'
             }
         }
-        Plotly.newPlot('bytesChart', series.global, bytesLayout);
-        Plotly.newPlot('folderChart', series.folders, folderLayout);
+        var config = {
+            showLink: false,
+            sendData: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+        }
+        Plotly.newPlot('bytesChart', series.global, bytesLayout, config);
+        Plotly.newPlot('folderChart', series.folders, folderLayout, config);
     }
 
     $.ajax({
