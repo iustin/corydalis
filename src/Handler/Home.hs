@@ -153,7 +153,7 @@ postReloadR = do
   setMessage "Cache reloaded"
   redirectUltDest HomeR
 
-getTimelineR :: Handler Html
+getTimelineR :: Handler TypedContent
 getTimelineR = do
   pics <- getPics
   let timeline = computeTimeLine pics
@@ -164,9 +164,11 @@ getTimelineR = do
         let numdays = diffDays lastday firstday
         return (firstday, lastday, numdays)
       formatDay = formatTime defaultTimeLocale "%F"
-  defaultLayout $ do
-    setTitle "Corydalis: timeline stats"
-    $(widgetFile "timeline")
+      html = do
+        setTitle "Corydalis: timeline stats"
+        $(widgetFile "timeline")
+      json = return ([]::[Value])
+  defaultLayoutJson html json
 
 getSettingsR :: Handler Html
 getSettingsR = do
