@@ -42,6 +42,12 @@
           <li>#{showBinary standalonesize} in standalone files
           <li>#{showBinary sidecarsize} in sidecar files
 
+<div .row>
+  <div .col-xs-12 .col-md-6 .col-lg-4>
+    <div #bytesChart .graph>
+  <div .col-xs-12 .col-md-6 .col-lg-4>
+    <div #folderChart .graph>
+
 <a href=@{TimelineR}>Timeline</a>.
 
 You can also

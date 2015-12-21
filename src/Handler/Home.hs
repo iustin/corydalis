@@ -30,19 +30,82 @@ import qualified Data.Map as Map
 import qualified Data.Text as T
 import Data.Time
 
-getHomeR :: Handler Html
+data GraphData a b = GraphData
+  { gdName  :: Text
+--  , gdType  :: Text
+  , gdX     :: [a]
+  , gdY     :: [b]
+  , gdText  :: Maybe [Text]
+--  , gdYAxis :: Maybe Text
+  , gdMode  :: Maybe Text
+  }
+
+instance Default (GraphData a b) where
+  def = GraphData { gdName = ""
+                  , gdX = []
+                  , gdY = []
+                  , gdText = Nothing
+                  , gdMode = Nothing
+                  }
+
+instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
+  toJSON GraphData {..} =
+    object [ "name"  .= gdName
+           --, "type"  .= gdType
+           , "x"     .= gdX
+           , "y"     .= gdY
+           , "text"  .= gdText
+           --, "yaxis" .= gdYAxis
+           , "mode"  .= gdMode
+           , "marker" .= object [ "size" .= map (const (15::Int)) gdX]
+           ]
+
+getHomeR :: Handler TypedContent
 getHomeR = do
   pics <- getPics
   let (Stats unprocessed standalone processed outdated orphaned untracked
-             rawsize procsize standalonesize sidecarsize _, fcm) =
+             rawsize procsize standalonesize sidecarsize untrksize, fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
       numfolders = Map.size pics
       all_fc = [minBound..maxBound]
-  defaultLayout $ do
-    setTitle "Corydalis: home"
-    $(widgetFile "homepage")
+      json = [ def { gdName = "Raw files"
+                   , gdMode = Just "markers"
+                   , gdX = [fromIntegral rawsize]
+                   , gdY = [fromIntegral unprocessed]
+                   }::GraphData Int64 Int64
+             , def { gdName = "Processed files"
+                   , gdMode = Just "markers",
+                     gdX = [fromIntegral procsize]
+                   , gdY = [fromIntegral processed]
+                   }
+             , def { gdName = "Standalone files"
+                   , gdMode = Just "markers"
+                   , gdX = [fromIntegral standalonesize]
+                   , gdY = [fromIntegral standalone]
+                   }
+             , def { gdName = "Other files"
+                   , gdMode = Just "markers"
+                   , gdX = [fromIntegral untrksize]
+                   , gdY = [fromIntegral untracked]
+                   }
+             ]
+      perFolderStats = Map.foldl'
+                       (\l f -> let stats = computeFolderStats f
+                                in (fromIntegral $ totalStatsSize stats,
+                                    fromIntegral $ totalStatsCount stats,
+                                    pdName f):l) [] pics
+      (xdata, ydata, textdata) = unzip3 perFolderStats
+      j2 = [ def { gdName = "Folders"
+                 , gdMode = Just "markers"
+                 , gdX = xdata
+                 , gdY = ydata
+                 , gdText = Just textdata
+                 }::GraphData Int64 Int64
+           ]
+  let html = setTitle "Corydalis: home" >> $(widgetFile "homepage")
+  defaultLayoutJson html (return $ object [ "global" .= json, "folders" .= j2 ])
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do

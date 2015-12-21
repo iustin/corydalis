@@ -1,0 +1,27 @@
+$(document).ready(function() {
+
+    function onDataReceived(series) {
+
+        var layout = {
+            barmode: 'group',
+            xaxis: {
+                exponentformat: 'SI',
+                rangemode: 'nonnegative',
+                title: 'Size'
+            },
+            yaxis: {
+                rangemode: 'nonnegative',
+                title: 'File count'
+            }
+        }
+        Plotly.newPlot('bytesChart', series.global, layout);
+        Plotly.newPlot('folderChart', series.folders, layout);
+    }
+
+    $.ajax({
+        url: "@{HomeR}",
+        type: "GET",
+        dataType: "json",
+        success: onDataReceived
+    });
+});

@@ -48,6 +48,7 @@ module Pics ( PicDir(..)
             , zeroStats
             , sumStats
             , totalStatsSize
+            , totalStatsCount
             ) where
 
 import Types
@@ -216,6 +217,12 @@ totalStatsSize :: Stats -> FileOffset
 totalStatsSize stats =
   sRawSize stats + sProcSize stats + sStandaloneSize stats +
            sSidecarSize stats + sUntrackedSize stats
+
+-- | The total file count in a a `Stats` structure.
+totalStatsCount :: Stats -> Int
+totalStatsCount stats =
+  sRaw stats + sStandalone stats + sProcessed stats + sOutdated stats
+         + sOrphaned stats + sUntracked stats
 
 -- | Data holding timeline stats.
 type Timeline = Map.Map Day (Integer, Integer)
