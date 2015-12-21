@@ -151,6 +151,7 @@ postReloadR = do
   config <- getConfig
   _ <- liftIO $ forceScanAll config
   setMessage "Cache reloaded"
+  setSession msgTypeKey msgSuccess
   redirectUltDest HomeR
 
 getTimelineR :: Handler TypedContent

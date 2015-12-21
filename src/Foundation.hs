@@ -27,6 +27,7 @@ import Yesod.Default.Util          (addStaticContentExternal)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Types (FolderClass(..))
 import qualified Data.Text as T
+import qualified Data.Set as S
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -54,6 +55,32 @@ mkYesodData "App" $(parseRoutesFile "config/routes")
 -- | A convenient synonym for creating forms.
 type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
 
+
+-- | Message type key
+msgTypeKey :: Text
+msgTypeKey = "_MSG_TYPE"
+
+-- | Success message.
+msgSuccess :: Text
+msgSuccess = "success"
+
+-- | Info message.
+msgInfo :: Text
+msgInfo = "info"
+
+-- | Warning message.
+msgWarning :: Text
+msgWarning = "warning"
+
+-- | Danger message.
+msgDanger :: Text
+msgDanger = "danger"
+
+-- | The list of valid message types (identical to Bootstrap alert
+-- classes).
+msgValidTypes :: Set Text
+msgValidTypes = S.fromList [msgSuccess, msgInfo, msgWarning, msgDanger]
+
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
@@ -70,6 +97,13 @@ instance Yesod App where
     defaultLayout widget = do
         master <- getYesod
         mmsg <- getMessage
+        mmsgKind <- lookupSession msgTypeKey
+        let mmsgClass = case mmsgKind of
+                          Nothing -> msgInfo
+                          Just mmsgKind' -> if mmsgKind' `elem` msgValidTypes
+                                              then mmsgKind'
+                                              else msgInfo
+
         (title, parents) <- breadcrumbs
 
         -- We break up the default layout into two components:
