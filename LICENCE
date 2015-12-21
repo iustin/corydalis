@@ -24,6 +24,7 @@ License: AGPL-3+
 
 Files:
   static/css/bootstrap.css
+  static/js/bootstrap.js
 Copyright: 2011-2015, Twitter, Inc
 License: MIT
 
