@@ -129,7 +129,7 @@ configSettingsYmlBS = $(embedFile configSettingsYml)
 
 -- | @config/settings.yml@, parsed to a @Value@.
 configSettingsYmlValue :: Value
-configSettingsYmlValue = either throw id $ decodeEither' configSettingsYmlBS
+configSettingsYmlValue = either Control.Exception.throw id $ decodeEither' configSettingsYmlBS
 
 -- | A version of @AppSettings@ parsed at compile time from @config/settings.yml@.
 compileTimeAppSettings :: AppSettings
