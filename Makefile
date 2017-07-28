@@ -49,4 +49,9 @@ lint:
 	  --report=lint-report.html -c \
 	  .
 
+run:
+	@cabal build
+	@echo Running...
+	@./dist/build/corydalis/corydalis
+
 .PHONY: build devel profiling view production doc clean test
