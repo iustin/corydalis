@@ -9,5 +9,6 @@
 /folder/#Text/images/#Text ImageR GET
 /folder/#Text/untracked/#Text UntrackedR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET
+/browse/images/#[ImageStatus] BrowseImagesR GET
 /timeline TimelineR GET
 /settings SettingsR GET

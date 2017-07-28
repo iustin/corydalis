@@ -25,7 +25,7 @@ import Text.Jasmine                (minifym)
 import Yesod.Core.Types            (Logger)
 import Yesod.Default.Util          (addStaticContentExternal)
 import qualified Yesod.Core.Unsafe as Unsafe
-import Types (FolderClass(..))
+import Types (FolderClass(..), ImageStatus(..))
 import qualified Data.Text as T
 import qualified Data.Set as S
 
@@ -193,6 +193,9 @@ instance YesodBreadcrumbs App where
     return ("Untracked " `T.append` untracked, Just (FolderR folder))
   breadcrumb (BrowseFoldersR kind) =
     return ("Browsing folders of type " `T.append`
+            T.intercalate ", " (map toPathPiece kind), Just HomeR)
+  breadcrumb (BrowseImagesR kind) =
+    return ("Showing images of type " `T.append`
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
 
   breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)

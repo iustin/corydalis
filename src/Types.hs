@@ -97,7 +97,27 @@ data ImageStatus = ImageOrphaned
                  | ImageRaw
                  | ImageOutdated
                  | ImageProcessed
-                   deriving (Show, Eq)
+                   deriving (Show, Read, Eq, Ord, Enum, Bounded)
+
+-- | Custom yesod instance for ImageStatus.
+instance PathPiece ImageStatus where
+  toPathPiece ImageOrphaned   = "orphaned"
+  toPathPiece ImageStandalone = "standalone"
+  toPathPiece ImageRaw        = "raw"
+  toPathPiece ImageOutdated   = "outdated"
+  toPathPiece ImageProcessed  = "processed"
+  fromPathPiece "orphaned"    = Just ImageOrphaned
+  fromPathPiece "raw"         = Just ImageRaw
+  fromPathPiece "standalone"  = Just ImageStandalone
+  fromPathPiece "processed"   = Just ImageProcessed
+  fromPathPiece "outdated"    = Just ImageOutdated
+  fromPathPiece _             = Nothing
+
+-- | Custom Path piece instance for [ImageStatus].
+instance PathPiece [ImageStatus] where
+  toPathPiece = T.intercalate "," . map toPathPiece
+  fromPathPiece "all" = Just [minBound..maxBound]
+  fromPathPiece v     = mapM fromPathPiece $ T.split (==',') v
 
 data FolderClass = FolderEmpty
                  | FolderRaw

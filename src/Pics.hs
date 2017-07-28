@@ -42,6 +42,7 @@ module Pics ( PicDir(..)
             , numOrphanedPics
             , numProcessedPics
             , filterDirsByClass
+            , filterImagesByClass
             , computeRepoStats
             , computeTimeLine
             , Stats(..)
@@ -591,6 +592,13 @@ filterDirsByClass :: [FolderClass] -> Repository -> [PicDir]
 filterDirsByClass classes =
   filter ((`elem` classes) . folderClass) .
   Map.elems
+
+filterImagesByClass :: [ImageStatus] -> Repository -> [Image]
+filterImagesByClass classes =
+  foldl' (\pics folder ->
+           let folderPics = filter (\p -> imgStatus p `elem` classes) .
+                            Map.elems . pdImages $ folder
+           in pics ++ folderPics) [] . Map.elems
 
 dayFromTimestamp :: POSIXTime -> Day
 dayFromTimestamp = utctDay . posixSecondsToUTCTime

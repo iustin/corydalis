@@ -145,6 +145,25 @@ getBrowseFoldersR kinds = do
       "Corydalis: browsing folders of type " `T.append` kinds_string
     $(widgetFile "browsefolders")
 
+getBrowseImagesR :: [ImageStatus] -> Handler TypedContent
+getBrowseImagesR kinds = do
+  pics <- getPics
+  let kinds_string = T.intercalate ", " . map (T.pack . show) $ kinds
+      images = filterImagesByClass kinds pics
+      allpaths = foldl' (\paths img ->
+                           let jpaths = map filePath . imgJpegPath $ img
+                               withJpegs = jpaths  ++ paths
+                           in case imgRawPath img of
+                             Nothing -> withJpegs
+                             Just r -> filePath r:withJpegs) [] images
+  selectRep $ do
+    provideRep $ defaultLayout $ do
+      setTitle . toHtml $
+        "Corydalis: showing images of type " `T.append` kinds_string
+      $(widgetFile "browseimages")
+    provideRep $ return $ "\n" `T.intercalate` allpaths
+
+
 postReloadR :: Handler Html
 postReloadR = do
   setUltDestReferer
