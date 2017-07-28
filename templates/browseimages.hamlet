@@ -16,6 +16,7 @@
          <thead>
            <tr>
              <th ."{sorter: 'text'}">Name
+             <th ."{sorter: 'text'}">Folder
              <th ."{sorter: 'text'}">Status
              <th ."{sorter: 'text'}">Raw path
              <th ."{sorter: 'text'}">Jpeg path
@@ -23,6 +24,7 @@
          <tbody>
            $forall img <- images
              <tr>
+               <td>#{imgName img}
                <td><a href=@{FolderR (imgParent img)}>#{imgParent img}</a>
                <td>#{show $ imgStatus img}
                $maybe rpath <- imgRawPath img
