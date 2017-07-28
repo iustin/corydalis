@@ -424,11 +424,12 @@ getDirContents config base = do
 scanBaseDir :: Config
             -> Repository
             -> String
+            -> Bool
             -> IO Repository
-scanBaseDir config repo base = do
+scanBaseDir config repo base isSource = do
   paths <- getDirContents config base
   let dirs = filter (isDirectory . snd) paths
-  foldM (\r p -> scanSubDir config r (base </> fst p)) repo dirs
+  foldM (\r p -> scanSubDir config r (base </> fst p) isSource) repo dirs
 
 -- | Scans a directory one level below a base dir. The actual
 -- subdirectory name is currently discarded and will not appear in the
@@ -436,13 +437,14 @@ scanBaseDir config repo base = do
 scanSubDir :: Config
            -> Repository
            -> String
+           -> Bool
            -> IO Repository
-scanSubDir config repository path = do
+scanSubDir config repository path isSource = do
   allpaths <- getDirContents config path
   let dirpaths = filter (isDirectory . snd) allpaths
   let allpaths' = filter (isOKDir config) . map fst $ dirpaths
   foldM (\r s -> do
-           dir <- loadFolder config s (path </> s)
+           dir <- loadFolder config s (path </> s) isSource
            return $ Map.insertWith (mergeFolders config) (pdName dir) dir r)
         repository allpaths'
 
@@ -473,8 +475,8 @@ addUntracked :: Map.Map Text Untracked -> [Untracked] -> Map.Map Text Untracked
 addUntracked = foldl' (\a u -> Map.insertWith mergeUntracked (untrkName u) u a)
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
-loadFolder :: Config -> String -> FilePath -> IO PicDir
-loadFolder config name path = do
+loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
+loadFolder config name path isSource = do
   contents <- recursiveScanPath config path id
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
@@ -491,7 +493,8 @@ loadFolder config name path = do
             mtime = modificationTimeHiRes stat
             ctime = statusChangeTimeHiRes stat
             size = System.Posix.Files.fileSize stat
-            nfp = if hasExts f' rawe
+            substituteMaster = is_jpeg && isSource
+            nfp = if hasExts f' rawe || substituteMaster
                     then jtf
                     else Nothing
             sdc = if hasExts f' side
@@ -558,8 +561,10 @@ resolveProcessedRanges config picd =
 
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
-  repo <- foldM (scanBaseDir config) Map.empty $
-            cfgSourceDirs config ++ cfgOutputDirs config
+  let srcdirs = zip (cfgSourceDirs config) (repeat True)
+      outdirs = zip (cfgOutputDirs config) (repeat False)
+  repo <- foldM (\repo (dir,issrc) -> scanBaseDir config repo dir issrc)
+            Map.empty $ srcdirs ++ outdirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
   return repo'
