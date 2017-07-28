@@ -558,7 +558,8 @@ resolveProcessedRanges config picd =
 
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
-  repo <- foldM (scanBaseDir config) Map.empty $ cfgDirs config
+  repo <- foldM (scanBaseDir config) Map.empty $
+            cfgSourceDirs config ++ cfgOutputDirs config
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
   return repo'

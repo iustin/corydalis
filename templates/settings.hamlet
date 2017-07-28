@@ -3,12 +3,20 @@
 Current configuration:
 
 <ul>
-  $if null (cfgDirs config)
-    <li>no directories defined!
+  $if null (cfgSourceDirs config)
+    <li>no source directories defined!
   $else
-    <li>scanning directories under:
+    <li>scanning source directories under:
       <ul>
-        $forall dir <- sort $ cfgDirs config
+        $forall dir <- sort $ cfgSourceDirs config
+          <li>
+            <span .monolight>#{quoteString dir}
+  $if null (cfgOutputDirs config)
+    <li>no output directories defined!
+  $else
+    <li>scanning output directories under:
+      <ul>
+        $forall dir <- sort $ cfgOutputDirs config
           <li>
             <span .monolight>#{quoteString dir}
   <li>directory match regex:

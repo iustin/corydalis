@@ -64,7 +64,8 @@ instance FromJSON JSDiffTime where
   parseJSON _ = mzero
 
 data Config = Config
-    { cfgDirs            :: [FilePath]
+    { cfgSourceDirs      :: [FilePath]
+    , cfgOutputDirs      :: [FilePath]
     , cfgBlacklistedDirs :: [FilePath]
     , cfgRawExts         :: [FilePath]
     , cfgJpegExts        :: [FilePath]
@@ -79,7 +80,8 @@ data Config = Config
 instance FromJSON Config where
   parseJSON (Object v) =
     Config <$>
-         v .: "dirs"            <*>
+         v .: "sourcedirs"      <*>
+         v .: "outputdirs"      <*>
          v .: "blacklisteddirs" <*>
          v .: "rawexts"         <*>
          v .: "jpegexts"        <*>

@@ -26,12 +26,14 @@ copyright: Insert copyright statement here
 # skip-combining: false
 
 config:
-  # List of directories holding pictures:
-  dirs: ["/pics/raw", "/pic/jpegs"]
+  # List of directories holding source pictures:
+  sourcedirs: ["/pics/raw"]
+  # List of directories containing output pictures:
+  outputdirs: ["/pic/jpegs"]
   # Don't recurse into any subdirs listed here:
   blacklisteddirs: [".thumbnails"]
   # List of extensions considered "RAW" files:
-  rawexts: ["nef", "tif", "tiff", "dng"]
+  rawexts: ["nef", "tif", "tiff", "dng", "raf", "orf", "crw"]
   # List of extensions considered processed pictures:
   jpegexts: ["jpg", "jpeg"]
   # Lists of extensions for sidecar files:
