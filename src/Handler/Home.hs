@@ -207,6 +207,9 @@ getImageR folder iname = do
            Just img' -> return img'
   let imgPrev = Map.lookupLT iname images
       imgNext = Map.lookupGT iname images
+      flags = if flagsSoftMaster (imgFlags img)
+                 then "soft master"::Text
+                 else "(none)"
   defaultLayout $ do
     setTitle . toHtml $ "Corydalis: Image " `T.append` folder
                `T.append` "/" `T.append` imgName img
