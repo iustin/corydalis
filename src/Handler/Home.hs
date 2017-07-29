@@ -70,12 +70,12 @@ getHomeR = do
       fstats = Map.toAscList fcm
       numfolders = Map.size pics
       all_fc = [minBound..maxBound]
-      json = [ def { gdName = "Raw files"
+      json = [ def { gdName = "Raw/source files"
                    , gdMode = Just "markers"
                    , gdX = [fromIntegral rawsize]
                    , gdY = [fromIntegral unprocessed]
                    }::GraphData Int64 Int64
-             , def { gdName = "Processed files"
+             , def { gdName = "Output files"
                    , gdMode = Just "markers",
                      gdX = [fromIntegral procsize]
                    , gdY = [fromIntegral processed]
