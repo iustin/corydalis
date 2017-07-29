@@ -64,6 +64,8 @@
          <div .panel-body>
            No sidecar file
 
+<div .row>
+
   $if (null $ imgJpegPath img)
     <div .col-xs-12 .col-md-6 .col-lg-3>
       <div .panel .panel-warning>
