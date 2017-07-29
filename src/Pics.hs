@@ -130,6 +130,17 @@ data File = File
   , filePath  :: !Text
   } deriving (Show)
 
+-- | Flags (on an image or a directory) showing exceptional
+-- statuses.
+data Flags = Flags
+  { flagsSoftMaster :: !Bool
+  } deriving (Show)
+
+emptyFlags :: Flags
+emptyFlags = Flags {
+  flagsSoftMaster = False
+  }
+
 data Image = Image
     { imgName        :: !Text
     , imgParent      :: !Text
@@ -138,6 +149,7 @@ data Image = Image
     , imgJpegPath    :: ![File]
     , imgRange       :: !(Maybe (Text, Text))
     , imgStatus      :: !ImageStatus
+    , imgFlags       :: !Flags
     } deriving (Show)
 
 -- | A file with unknown (and untracked) type.
@@ -176,7 +188,7 @@ mkImageStatus c (Just raw) jpegs@(_:_) sidecar =
         JSDiffTime max_skew = cfgOutdatedError c
 
 mkImage :: Config -> Text -> Text -> Maybe File
-        -> Maybe File -> [File] -> Maybe (Text, Text) -> Image
+        -> Maybe File -> [File] -> Maybe (Text, Text) -> Flags -> Image
 mkImage config name parent raw sidecar jpeg range =
   Image name parent raw sidecar jpeg range $
   mkImageStatus config raw jpeg sidecar
@@ -294,12 +306,37 @@ computeRepoStats =
 repoCache :: MVar (Maybe Repository)
 repoCache = unsafePerformIO $ newMVar Nothing
 
+-- | Selects the best master file when merging images.
+--
+-- This simply chooses the first hard master file, and returns update
+-- soft master flag and potentially a demoted soft master to jpeg.
+selectMasterFile :: Image -> Image -> (Maybe File, Bool, [File])
+selectMasterFile x y =
+  let xsoft = flagsSoftMaster $ imgFlags x
+      ysoft = flagsSoftMaster $ imgFlags y
+      xraw = imgRawPath x
+      yraw = imgRawPath y
+  in case (xraw, yraw) of
+       (Just xf, Just yf)  -> case (xsoft, ysoft) of
+                              (False, True)  -> (xraw, xsoft, [yf])
+                              -- merging two raw files?!
+                              (False, False) -> (xraw, xsoft, [yf])
+                              (True, True)   -> (xraw, xsoft, [yf])
+                              (True, False)  -> (yraw, ysoft, [xf])
+       (Just _, Nothing)   -> (xraw, xsoft, [])
+       (Nothing, Just _)   -> (yraw, ysoft, [])
+       _                   -> (Nothing, False, [])
+
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
-  let x' =
-        x { imgRawPath     = imgRawPath     x `mplus` imgRawPath     y
+  let (newraw, softmaster, extrajpeg) = selectMasterFile x y
+      x' =
+        x { imgRawPath     = newraw
           , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
-          , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y }
+          , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y
+                             `mplus` extrajpeg
+          , imgFlags = (imgFlags x) { flagsSoftMaster = softmaster }
+          }
       status' = mkImageStatus c (imgRawPath x') (imgJpegPath x')
                   (imgSidecarPath x')
   in x' { imgStatus = status' }
@@ -493,23 +530,26 @@ loadFolder config name path isSource = do
             mtime = modificationTimeHiRes stat
             ctime = statusChangeTimeHiRes stat
             size = System.Posix.Files.fileSize stat
-            substituteMaster = is_jpeg && isSource
-            nfp = if hasExts f' rawe || substituteMaster
+            isSoftMaster = is_jpeg && isSource
+            nfp = if hasExts f' rawe || isSoftMaster
                     then jtf
                     else Nothing
             sdc = if hasExts f' side
                     then jtf
                     else Nothing
             is_jpeg = hasExts f' jpeg
-            jpe = [jf | is_jpeg]
+            jpe = [jf | is_jpeg && not isSource]
             snames = expandRangeFile config base
             range = case snames of
                       [] -> Nothing
                       _ -> Just (T.pack $ head snames, T.pack $ last snames)
-            img = mkImage config tbase tname nfp sdc jpe range
+            flags = Flags {
+              flagsSoftMaster = isSoftMaster
+              }
+            img = mkImage config tbase tname nfp sdc jpe range flags
             simgs = map (\expname ->
                            mkImage config (T.pack expname) tname
-                                   Nothing Nothing [jf] Nothing
+                                   Nothing Nothing [jf] Nothing emptyFlags
                         ) snames
             untrk = Untracked torig tname [jf]
         in case (nfp, jpe, sdc) of
@@ -547,6 +587,7 @@ maybeUpdateStandaloneRange config picd img = do
   _ <- imgRawPath root
   return $ mkImage config iname (imgParent img) (imgRawPath root)
            (imgSidecarPath img) (imgJpegPath img) (imgRange img)
+           (imgFlags img)
 
 resolveProcessedRanges :: Config -> PicDir -> PicDir
 resolveProcessedRanges config picd =
