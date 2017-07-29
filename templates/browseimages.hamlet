@@ -24,7 +24,7 @@
          <tbody>
            $forall img <- images
              <tr>
-               <td>#{imgName img}
+               <td><a href=@{ImageR (imgParent img) (imgName img)}>#{imgName img}</a>
                <td><a href=@{FolderR (imgParent img)}>#{imgParent img}</a>
                <td>#{show $ imgStatus img}
                $maybe rpath <- imgRawPath img
