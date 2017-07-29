@@ -2,15 +2,16 @@
 
 Corydalis is built using Haskell and the Yesod framework, which means
 it has a lot of dependencies; therefore, the simplest way is to use
-`cabal`:
+`stack`:
 
-        $ cabal configure -f production
-        $ cabal build
+        $ stack build
+        $ stack install
 
-Next, copy the resulting binary (`dist/build/corydalis/corydalis`)
-somewhere, along with the `static` and `config` subdirectories. In the
-`config` directory, make a copy of the `settings.yml.sample` file as
-`settings.yml`, and update the configuration as needed.
+The resulting binary (`corydalis`) was installed in the
+`local-bin-path` as shown by `stack paths`; copy it somewhere, along
+with the `static` and `config` subdirectories from the source tree. In
+the `config` directory, make a copy of the `settings.yml.sample` file
+as `settings.yml`, and update the configuration as needed.
 
 Being a web application, it also has a few JavaScript dependencies:
 

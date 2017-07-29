@@ -20,3 +20,6 @@ cabal.sandbox.config
 /_run/
 /config/settings.yml
 /lint-report.html
+*~
+\#*
+corydalis.cabal
