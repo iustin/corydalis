@@ -32,8 +32,6 @@ import Text.Jasmine                (minifym)
 import Yesod.Core.Types            (Logger)
 import Yesod.Default.Util          (addStaticContentExternal)
 import qualified Yesod.Core.Unsafe as Unsafe
-import qualified Data.CaseInsensitive as CI
-import qualified Data.Text.Encoding as TE
 import Types (FolderClass(..), ImageStatus(..))
 import qualified Data.Text as T
 import qualified Data.Set as S
