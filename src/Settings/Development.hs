@@ -17,6 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE CPP #-}
+
 module Settings.Development where
 
 import Prelude

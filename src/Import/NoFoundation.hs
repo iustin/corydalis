@@ -17,11 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE CPP #-}
+
 module Import.NoFoundation
     ( module Import
     ) where
 
-import ClassyPrelude         as Import hiding (delete, deleteBy, Handler)
+import ClassyPrelude.Yesod   as Import
 import Settings              as Import
 import Settings.StaticFiles  as Import
 import Yesod.Core.Types      as Import (loggerSet)

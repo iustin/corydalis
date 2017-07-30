@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 {-
 
 Copyright (C) 2013 Iustin Pop
@@ -18,23 +16,35 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module TestImport
     ( module TestImport
     , module X
     ) where
 
-import Application           (makeFoundation)
-import ClassyPrelude         as X
+import Application           (makeFoundation, makeLogWare)
+import ClassyPrelude         as X hiding (Handler)
 import Foundation            as X
 import Test.Hspec            as X
-import Yesod.Default.Config2 (ignoreEnv, loadAppSettings)
+import Yesod.Default.Config2 (useEnv, loadYamlSettings)
 import Yesod.Test            as X
+import Yesod.Core.Unsafe     (fakeHandlerGetLogger)
 
-withApp :: SpecWith App -> Spec
+runHandler :: Handler a -> YesodExample App a
+runHandler handler = do
+    app <- getTestYesod
+    fakeHandlerGetLogger appLogger app handler
+
+
+withApp :: SpecWith (TestApp App) -> Spec
 withApp = before $ do
-    settings <- loadAppSettings
+    settings <- loadYamlSettings
         ["config/test-settings.yml", "config/settings.yml"]
         []
-        ignoreEnv
-    makeFoundation settings
+        useEnv
+    foundation <- makeFoundation settings
+    logWare <- liftIO $ makeLogWare foundation
+    return (foundation, logWare)

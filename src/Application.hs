@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-
 
 Copyright (C) 2013 Iustin Pop
@@ -18,11 +17,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Application
     ( getApplicationDev
     , appMain
     , develMain
     , makeFoundation
+    , makeLogWare
     -- * for DevelMain
     , getApplicationRepl
     , shutdownApp
@@ -33,6 +42,7 @@ module Application
 import Control.Monad.Logger                 (liftLoc)
 import Import
 import Language.Haskell.TH.Syntax           (qLocation)
+import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp             (Settings, defaultSettings,
                                              defaultShouldDisplayException,
                                              runSettings, setHost,
@@ -62,6 +72,7 @@ makeFoundation :: AppSettings -> IO App
 makeFoundation appSettings = do
     -- Some basic initializations: HTTP connection manager, logger, and static
     -- subsite.
+    appHttpManager <- newManager
     appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
     appStatic <-
         (if appMutableStatic appSettings then staticDevel else static)
@@ -74,7 +85,14 @@ makeFoundation appSettings = do
 -- applying some additional middlewares.
 makeApplication :: App -> IO Application
 makeApplication foundation = do
-    logWare <- mkRequestLogger def
+    logWare <- makeLogWare foundation
+    -- Create the WAI application and apply middlewares
+    appPlain <- toWaiAppPlain foundation
+    return $ logWare $ defaultMiddlewaresNoLogging appPlain
+
+makeLogWare :: App -> IO Middleware
+makeLogWare foundation =
+    mkRequestLogger def
         { outputFormat =
             if appDetailedRequestLogging $ appSettings foundation
                 then Detailed True
@@ -85,9 +103,6 @@ makeApplication foundation = do
         , destination = Logger $ loggerSet $ appLogger foundation
         }
 
-    -- Create the WAI application and apply middlewares
-    appPlain <- toWaiAppPlain foundation
-    return $ logWare $ defaultMiddlewaresNoLogging appPlain
 
 -- | Warp settings for the given foundation value.
 warpSettings :: App -> Settings

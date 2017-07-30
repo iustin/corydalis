@@ -17,6 +17,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Handler.HomeSpec (spec) where
 
 import TestImport
@@ -27,6 +30,6 @@ spec = withApp $ do
       get HomeR
       statusIs 200
       htmlAllContain "h1" "Corydalis"
-      htmlAnyContain "div #main" "The repository contains"
-      htmlAnyContain "div #main" "The repository is split across"
-      htmlAnyContain "div #main" "The overall size of the repository is "
+      htmlAnyContain "div#main" "The repository contains"
+      htmlAnyContain "div#main" "The repository is split across"
+      htmlAnyContain "div#main" "The overall size of the repository is "

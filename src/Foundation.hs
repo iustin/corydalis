@@ -17,6 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Foundation where
 
 import Import.NoFoundation
@@ -25,6 +32,8 @@ import Text.Jasmine                (minifym)
 import Yesod.Core.Types            (Logger)
 import Yesod.Default.Util          (addStaticContentExternal)
 import qualified Yesod.Core.Unsafe as Unsafe
+import qualified Data.CaseInsensitive as CI
+import qualified Data.Text.Encoding as TE
 import Types (FolderClass(..), ImageStatus(..))
 import qualified Data.Text as T
 import qualified Data.Set as S
@@ -36,6 +45,7 @@ import qualified Data.Set as S
 data App = App
     { appSettings    :: AppSettings
     , appStatic      :: Static -- ^ Settings for static file serving.
+    , appHttpManager :: Manager
     , appLogger      :: Logger
     }
 
@@ -44,8 +54,9 @@ data App = App
 -- http://www.yesodweb.com/book/routing-and-handlers
 --
 -- Note that this is really half the story; in Application.hs, mkYesodDispatch
--- generates the rest of the code. Please see the linked documentation for an
--- explanation for this split.
+-- generates the rest of the code. Please see the following documentation
+-- for an explanation for this split:
+-- http://www.yesodweb.com/book/scaffolding-and-the-site-template#scaffolding-and-the-site-template_foundation_and_application_modules
 --
 -- This function also generates the following type synonyms:
 -- type Handler = HandlerT App IO
@@ -54,7 +65,6 @@ mkYesodData "App" $(parseRoutesFile "config/routes")
 
 -- | A convenient synonym for creating forms.
 type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
-
 
 -- | Message type key
 msgTypeKey :: Text
@@ -86,13 +96,25 @@ msgValidTypes = S.fromList [msgSuccess, msgInfo, msgWarning, msgDanger]
 instance Yesod App where
     -- Controls the base of generated URLs. For more information on modifying,
     -- see: https://github.com/yesodweb/yesod/wiki/Overriding-approot
-    approot = ApprootMaster $ appRoot . appSettings
+    approot = ApprootRequest $ \app req ->
+        case appRoot $ appSettings app of
+            Nothing -> getApprootText guessApproot app req
+            Just root -> root
 
     -- Store session data on the client in encrypted cookies,
     -- default session idle timeout is 120 minutes
     makeSessionBackend _ = Just <$> defaultClientSessionBackend
         120    -- timeout in minutes
         "config/client_session_key.aes"
+
+    -- Yesod Middleware allows you to run code before and after each handler function.
+    -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
+    -- Some users may also want to add the defaultCsrfMiddleware, which:
+    --   a) Sets a cookie with a CSRF token in it.
+    --   b) Validates that incoming write requests include that token in either a header or POST parameter.
+    -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
+    -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
+    yesodMiddleware = defaultYesodMiddleware
 
     defaultLayout widget = do
         master <- getYesod
@@ -104,6 +126,7 @@ instance Yesod App where
                                               then mmsgKind'
                                               else msgInfo
 
+        -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
         (title, parents) <- breadcrumbs
 
         -- We break up the default layout into two components:
@@ -114,6 +137,7 @@ instance Yesod App where
 
         pc <- widgetToPageContent $ do
           addStylesheet $ StaticR css_bootstrap_css
+
           addStylesheet $ StaticR css_tablesorter_theme_bootstrap_css
           addStylesheet $ StaticR css_font_awesome_css
           addStylesheet $ StaticR css_basic_css
@@ -163,22 +187,11 @@ instance Yesod App where
 
     makeLogger = return . appLogger
 
--- This instance is required to use forms. You can modify renderMessage to
--- achieve customized and internationalized form validation messages.
-instance RenderMessage App FormMessage where
-    renderMessage _ _ = defaultFormMessage
+    -- Provide proper Bootstrap styling for default displays, like
+    -- error pages
+    defaultMessageWidget title body = $(widgetFile "default-message-widget")
 
-unsafeHandler :: App -> Handler a -> IO a
-unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
-
--- Note: Some functionality previously present in the scaffolding has been
--- moved to documentation in the Wiki. Following are some hopefully helpful
--- links:
---
--- https://github.com/yesodweb/yesod/wiki/Sending-email
--- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
--- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
-
+-- Define breadcrumbs.
 instance YesodBreadcrumbs App where
   breadcrumb (StaticR _)    = return ("Static route" , Nothing)
   breadcrumb FaviconR       = return ("Favicon"      , Nothing)
@@ -197,6 +210,26 @@ instance YesodBreadcrumbs App where
   breadcrumb (BrowseImagesR kind) =
     return ("Showing images of type " `T.append`
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
-
   breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
+-- This instance is required to use forms. You can modify renderMessage to
+-- achieve customized and internationalized form validation messages.
+instance RenderMessage App FormMessage where
+    renderMessage _ _ = defaultFormMessage
+
+-- Useful when writing code that is re-usable outside of the Handler context.
+-- An example is background jobs that send email.
+-- This can also be useful for writing code that works across multiple Yesod applications.
+instance HasHttpManager App where
+    getHttpManager = appHttpManager
+
+unsafeHandler :: App -> Handler a -> IO a
+unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
+
+-- Note: Some functionality previously present in the scaffolding has been
+-- moved to documentation in the Wiki. Following are some hopefully helpful
+-- links:
+--
+-- https://github.com/yesodweb/yesod/wiki/Sending-email
+-- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
+-- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding

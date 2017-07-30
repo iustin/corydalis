@@ -69,24 +69,7 @@ library:
   - Handler.Utils
   - Pics
   - Types
-  default-extensions:
-  - TemplateHaskell
-  - QuasiQuotes
-  - OverloadedStrings
-  - NoImplicitPrelude
-  - CPP
-  - MultiParamTypeClasses
-  - TypeFamilies
-  - GADTs
-  - GeneralizedNewtypeDeriving
-  - FlexibleContexts
-  - FlexibleInstances
-  - EmptyDataDecls
-  - NoMonomorphismRestriction
-  - DeriveDataTypeable
-  - ViewPatterns
-  - TupleSections
-  - RecordWildCards
+
 
   when:
   - condition: (flag(dev)) || (flag(library-only))
@@ -116,11 +99,6 @@ executables:
     when:
     - condition: flag(library-only)
       buildable: false
-    - condition: flag(dev)
-      then:
-        ghc-options: -O0
-      else:
-        ghc-options: -O2
 
 # Test suite
 tests:

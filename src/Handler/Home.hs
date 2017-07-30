@@ -1,5 +1,3 @@
-{-# LANGUAGE TupleSections, OverloadedStrings, NoCPP #-}
-
 {-
 
 Copyright (C) 2013 Iustin Pop
@@ -18,6 +16,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
+
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoCPP #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Handler.Home where
 

@@ -7,7 +7,7 @@
     <td><span class="monolight">#{Pics.filePath f}
   <tr>
     <td>Last modified
-    <td><span class="monolight">#{showTimestamp $ fileMTime f}
+    <td><span class="monolight">#{showTimestamp $ Pics.fileMTime f}
   <tr>
     <td>Size
-    <td .numeric><span class="monolight">#{showBinary $ fileSize f}
+    <td .numeric><span class="monolight">#{showBinary $ Pics.fileSize f}

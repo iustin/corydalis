@@ -1,42 +1,60 @@
 $newline always
 $doctype 5
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8">
 
-        <title>#{pageTitle pc}
-        <meta name="description" content="">
-        <meta name="author" content="">
+    <title>#{pageTitle pc}
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-        <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
 
-        ^{pageHead pc}
+    ^{pageHead pc}
 
-    <body>
-        <nav .navbar .navbar-default .navbar-static-top>
-          <div .container-fluid>
-            <div .navbar-header>
-              <ol .breadcrumb .navbar-btn>
-                $forall bc <- parents
-                  <li>
-                     <a href=@{fst bc}>
-                        #{snd bc}
-                <li .active>
-                  #{title}
-            <div .navbar-right>
-                <ul .nav .navbar-nav>
-                  <li>
-                    <form action=@{ReloadR} method=post .navbar-form>
-                      <button .btn .btn-default type="submit" title="Reload directory information">
-                        <span .fa .fa-refresh>
-                        Reload
-                  <li>
-                      <a role="button" href=@{SettingsR} .navbar-link .nav-link-fixup>
-                        <span .fa .fa-cog>
-                        Settings
+    <script>
+      /* The `defaultCsrfMiddleware` Middleware added in Foundation.hs adds a CSRF token the request cookies. */
+      /* AJAX requests should add that token to a header to be validated by the server. */
+      /* See the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package for details. */
+      var csrfHeaderName = "#{TE.decodeUtf8 $ CI.foldedCase defaultCsrfHeaderName}";
 
-        <div .container-fluid #main role="main">
-            ^{pageBody pc}
-            <br>
-            <footer>
-                #{appCopyright $ appSettings master}
+      var csrfCookieName = "#{TE.decodeUtf8 defaultCsrfCookieName}";
+      var csrfToken = Cookies.get(csrfCookieName);
+
+
+      if (csrfToken) {
+      \  $.ajaxPrefilter(function( options, originalOptions, jqXHR ) {
+      \      if (!options.crossDomain) {
+      \          jqXHR.setRequestHeader(csrfHeaderName, csrfToken);
+      \      }
+      \  });
+      }
+
+  <body>
+    <nav .navbar .navbar-default .navbar-static-top>
+      <div .container-fluid>
+        <div .navbar-header>
+          <ol .breadcrumb .navbar-btn>
+            $forall bc <- parents
+              <li>
+                 <a href=@{fst bc}>
+                   #{snd bc}
+            <li .active>
+              #{title}
+        <div .navbar-right>
+          <ul .nav .navbar-nav>
+            <li>
+              <form action=@{ReloadR} method=post .navbar-form>
+                <button .btn .btn-default type="submit" title="Reload directory information">
+                  <span .fa .fa-refresh>
+                  Reload
+            <li>
+              <a role="button" href=@{SettingsR} .navbar-link .nav-link-fixup>
+                <span .fa .fa-cog>
+                Settings
+
+    <div .container-fluid #main role="main">
+        ^{pageBody pc}
+        <br>
+        <footer>
+          #{appCopyright $ appSettings master}

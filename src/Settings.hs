@@ -17,6 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TemplateHaskell   #-}
 -- | Settings are centralized, as much as possible, into this file. This
 -- includes database connection settings, static file locations, etc.
 -- In addition, you can configure a number of different aspects of Yesod
@@ -24,9 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- declared in the Foundation.hs file.
 module Settings where
 
-import ClassyPrelude
-import Data.Default
-import Control.Exception           (throw)
+import ClassyPrelude.Yesod
+import qualified Control.Exception as Exception
 import Data.Aeson                  (Result (..), fromJSON, parseJSON,
                                     withObject, (.!=),
                                     (.:?), (.:), FromJSON, Value)
@@ -37,7 +41,6 @@ import Network.Wai.Handler.Warp    (HostPreference)
 import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
 import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
                                     widgetFileReload)
-import Yesod.Static
 
 import Types
 
@@ -47,8 +50,9 @@ import Types
 data AppSettings = AppSettings
     { appStaticDir              :: String
     -- ^ Directory from which to serve static files.
-    , appRoot                   :: Text
-    -- ^ Base for all generated URLs.
+    , appRoot                   :: Maybe Text
+    -- ^ Base for all generated URLs. If @Nothing@, determined
+    -- from the request headers.
     , appHost                   :: HostPreference
     -- ^ Host/interface the server should bind to.
     , appPort                   :: Int
@@ -78,13 +82,13 @@ data AppSettings = AppSettings
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
         let defaultDev =
-#if DEVELOPMENT
+#ifdef DEVELOPMENT
                 True
 #else
                 False
 #endif
         appStaticDir              <- o .: "static-dir"
-        appRoot                   <- o .: "approot"
+        appRoot                   <- o .:? "approot"
         appHost                   <- fromString <$> o .: "host"
         appPort                   <- o .: "port"
         appIpFromHeader           <- o .: "ip-from-header"
@@ -129,7 +133,8 @@ configSettingsYmlBS = $(embedFile configSettingsYml)
 
 -- | @config/settings.yml@, parsed to a @Value@.
 configSettingsYmlValue :: Value
-configSettingsYmlValue = either Control.Exception.throw id $ decodeEither' configSettingsYmlBS
+configSettingsYmlValue = either Exception.throw id
+                       $ decodeEither' configSettingsYmlBS
 
 -- | A version of @AppSettings@ parsed at compile time from @config/settings.yml@.
 compileTimeAppSettings :: AppSettings
