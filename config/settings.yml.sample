@@ -15,6 +15,14 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # Copyright statement
 copyright: Insert copyright statement here
 
+# NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:PGPASS:'123'")
+# See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
+
+database:
+  # See config/test-settings.yml for an override during tests
+  database: "_env:SQLITE_DATABASE:db/corydalis.sqlite3"
+  poolsize: "_env:SQLITE_POOLSIZE:10"
+
 # Optional values with the following production defaults.
 # In development, they default to the inverse.
 #

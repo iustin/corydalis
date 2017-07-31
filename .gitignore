@@ -12,6 +12,7 @@ config/client_session_key.aes
 cabal-dev/
 .stack-work/
 yesod-devel/
+/db/
 .cabal-sandbox
 cabal.sandbox.config
 .DS_Store

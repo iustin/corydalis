@@ -14,12 +14,17 @@ dependencies:
 
 - yesod >=1.4.3 && <1.5
 - yesod-core >=1.4.30 && <1.5
+- yesod-auth >=1.4.0 && <1.5
+- yesod-auth-hashdb >=1.6.0 && <1.7
 - yesod-static >=1.4.0.3 && <1.6
 - yesod-form >=1.4.0 && <1.5
 - classy-prelude >=0.10.2
 - classy-prelude-conduit >=0.10.2
 - bytestring >=0.9 && <0.11
 - text >=0.11 && <2.0
+- persistent >=2.0 && <2.8
+- persistent-sqlite >=2.1.1 && <2.8
+- persistent-template >=2.0 && <2.8
 - template-haskell
 - shakespeare >=2.0 && <2.1
 - hjsmin >=0.1 && <0.3
@@ -59,15 +64,16 @@ library:
   exposed-modules:
   - Application
   - Foundation
-  - Import
-  - Import.NoFoundation
-  - Settings
-  - Settings.StaticFiles
-  - Settings.Development
   - Handler.Common
   - Handler.Home
   - Handler.Utils
+  - Import
+  - Import.NoFoundation
+  - Model
   - Pics
+  - Settings
+  - Settings.Development
+  - Settings.StaticFiles
   - Types
 
 

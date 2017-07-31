@@ -26,7 +26,20 @@ import TestImport
 
 spec :: Spec
 spec = withApp $ do
+    it "asserts redirect on access to home for anonymous users" $ do
+        get HomeR
+        statusIs 303
+
+    it "asserts access to home for authenticated users" $ do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+
+      get HomeR
+      statusIs 200
     it "loads the index and checks it looks right" $ do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+
       get HomeR
       statusIs 200
       htmlAllContain "h1" "Corydalis"

@@ -23,15 +23,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP #-}
 
 module Foundation where
 
 import Import.NoFoundation
-import Text.Hamlet                 (hamletFile)
-import Text.Jasmine                (minifym)
-import Yesod.Core.Types            (Logger)
-import Yesod.Default.Util          (addStaticContentExternal)
+import Database.Persist.Sql (ConnectionPool, runSqlPool)
+import Text.Hamlet          (hamletFile)
+import Text.Jasmine         (minifym)
+
+-- Used only when in "auth-dummy-login" setting is enabled.
+import Yesod.Auth.Dummy
+
+import Yesod.Auth.HashDB (authHashDB)
+
+import Yesod.Default.Util   (addStaticContentExternal)
+import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
+import Yesod.Auth.Message
 import Types (FolderClass(..), ImageStatus(..))
 import qualified Data.Text as T
 import qualified Data.Set as S
@@ -43,6 +52,7 @@ import qualified Data.Set as S
 data App = App
     { appSettings    :: AppSettings
     , appStatic      :: Static -- ^ Settings for static file serving.
+    , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
     }
@@ -151,11 +161,18 @@ instance Yesod App where
           $(widgetFile "default-layout")
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
+    -- The page to be redirected to when authentication is required.
+    authRoute _ = Just $ AuthR LoginR
+
     -- Routes not requiring authentication.
+    isAuthorized (AuthR _) _ = return Authorized
     isAuthorized FaviconR _ = return Authorized
     isAuthorized RobotsR _ = return Authorized
-    -- Default to Authorized for now.
-    isAuthorized _ _ = return Authorized
+    isAuthorized (StaticR _) _ = return Authorized
+
+    -- All other routes require authentication, with all authenticated
+    -- users authorized.
+    isAuthorized _ _ = isAuthenticated
 
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
@@ -194,6 +211,7 @@ instance YesodBreadcrumbs App where
   breadcrumb (StaticR _)    = return ("Static route" , Nothing)
   breadcrumb FaviconR       = return ("Favicon"      , Nothing)
   breadcrumb RobotsR        = return ("Robots"       , Nothing)
+  breadcrumb (AuthR _)      = return ("Auth"         , Just HomeR)
   breadcrumb HomeR          = return ("Home"         , Nothing)
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
   breadcrumb (FolderR name) = return ("Folder " `T.append` name,
@@ -210,6 +228,59 @@ instance YesodBreadcrumbs App where
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
   breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
+
+-- How to run database actions.
+instance YesodPersist App where
+    type YesodPersistBackend App = SqlBackend
+    runDB action = do
+        master <- getYesod
+        runSqlPool action $ appConnPool master
+
+instance YesodPersistRunner App where
+    getDBRunner = defaultGetDBRunner appConnPool
+
+instance YesodAuth App where
+    type AuthId App = UserId
+
+    -- Where to send a user after successful login
+    loginDest _ = HomeR
+    -- Where to send a user after logout
+    logoutDest _ = AuthR LoginR
+    -- Override the above two destinations when a Referer: header is present
+    redirectToReferer _ = True
+
+    authenticate creds = runDB $ do
+      x <- getBy $ UniqueUser ident
+      case x of
+        Just (Entity uid _) -> return $ Authenticated uid
+        Nothing ->
+          case credsPlugin creds of
+#if DEVELOPMENT
+            "dummy"  -> Authenticated <$> insert User
+                        { userName = ident
+                        , userPassword = Nothing
+                        }
+#endif
+            _ -> return $ UserError InvalidUsernamePass
+      where ident = credsIdent creds
+
+    -- Simple HashDB auth and in test/dev dummy auth.
+    authPlugins app = [ authHashDB (Just . UniqueUser) ] ++ extraAuthPlugins
+        -- Enable authDummy login if enabled.
+        where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+
+    authHttpManager = getHttpManager
+
+-- | Access function to determine if a user is logged in.
+isAuthenticated :: Handler AuthResult
+isAuthenticated = do
+    muid <- maybeAuthId
+    return $ case muid of
+        Nothing -> AuthenticationRequired
+        Just _ -> Authorized
+
+instance YesodAuthPersist App
+
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.
 instance RenderMessage App FormMessage where

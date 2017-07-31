@@ -36,6 +36,7 @@ import Data.Aeson                  (Result (..), fromJSON, parseJSON,
                                     (.:?), (.:), FromJSON, Value)
 import Data.FileEmbed              (embedFile)
 import Data.Yaml                   (decodeEither')
+import Database.Persist.Sqlite     (SqliteConf)
 import Language.Haskell.TH.Syntax  (Exp, Name, Q)
 import Network.Wai.Handler.Warp    (HostPreference)
 import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
@@ -50,6 +51,8 @@ import Types
 data AppSettings = AppSettings
     { appStaticDir              :: String
     -- ^ Directory from which to serve static files.
+    , appDatabaseConf           :: SqliteConf
+    -- ^ Configuration settings for accessing the database.
     , appRoot                   :: Maybe Text
     -- ^ Base for all generated URLs. If @Nothing@, determined
     -- from the request headers.
@@ -75,6 +78,10 @@ data AppSettings = AppSettings
     -- Example app-specific configuration values.
     , appCopyright              :: Text
     -- ^ Copyright text to appear in the footer of the page
+
+    , appAuthDummyLogin         :: Bool
+    -- ^ Indicate if auth dummy login should be enabled.
+
     , appConfig                 :: Config
     -- ^ Picture-related configuration
     }
@@ -87,11 +94,12 @@ instance FromJSON AppSettings where
 #else
                 False
 #endif
-        appStaticDir              <- o .: "static-dir"
+        appStaticDir              <- o .:  "static-dir"
+        appDatabaseConf           <- o .:  "database"
         appRoot                   <- o .:? "approot"
         appHost                   <- fromString <$> o .: "host"
-        appPort                   <- o .: "port"
-        appIpFromHeader           <- o .: "ip-from-header"
+        appPort                   <- o .:  "port"
+        appIpFromHeader           <- o .:  "ip-from-header"
 
         appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
         appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
@@ -99,9 +107,11 @@ instance FromJSON AppSettings where
         appMutableStatic          <- o .:? "mutable-static"   .!= defaultDev
         appSkipCombining          <- o .:? "skip-combining"   .!= defaultDev
 
-        appCopyright              <- o .: "copyright"
+        appCopyright              <- o .:  "copyright"
 
-        appConfig                 <- o .: "config"
+        appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= defaultDev
+
+        appConfig                 <- o .:  "config"
 
         return AppSettings {..}
 

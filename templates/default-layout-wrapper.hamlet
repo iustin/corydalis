@@ -34,6 +34,10 @@ $doctype 5
               <a role="button" href=@{SettingsR} .navbar-link .nav-link-fixup>
                 <span .fa .fa-cog>
                 Settings
+            <li>
+              <a role="button" href=@{AuthR LogoutR} .navbar-link .nav-link-fixup>
+                <span .fa .fa-sign-out>
+                Logout
 
     <div .container-fluid #main role="main">
         ^{pageBody pc}

@@ -13,6 +13,12 @@ with the `static` and `config` subdirectories from the source tree. In
 the `config` directory, make a copy of the `settings.yml.sample` file
 as `settings.yml`, and update the configuration as needed.
 
+The application uses a database to store users for authentication;
+normally I expect only one or at most a few users - family - to be
+defined, but it was easier to use a database than (e.g.) something
+like htpasswd. There's currently no way to define users in
+non-development mode :(
+
 Being a web application, it also has a few JavaScript dependencies:
 
 * jquery
