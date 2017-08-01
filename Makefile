@@ -2,10 +2,10 @@
 # well, except for the production target
 
 build:
-	cabal build
+	stack build
 
 devel:
-	yesod devel
+	yesod devel --host 127.0.0.1
 
 profiling:
 	# until https://github.com/haskell/cabal/issues/193 is fixed,
@@ -48,10 +48,5 @@ lint:
 	  --ignore "Use &&&" \
 	  --report=lint-report.html -c \
 	  .
-
-run:
-	@cabal build
-	@echo Running...
-	@./dist/build/corydalis/corydalis
 
 .PHONY: build devel profiling view production doc clean test
