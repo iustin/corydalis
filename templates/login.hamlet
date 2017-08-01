@@ -1,0 +1,8 @@
+<div .row>
+ <div .col-xs-12 .col-md-4>
+   <form method=post action=@{loginRoute} enctype=#{formEnctype}>
+     ^{formWidget}
+     $maybe tok <- mtok
+       <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
+     <button .btn .btn-primary type="submit">
+       Login <span class="fa fa-sign-in"></span>

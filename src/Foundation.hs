@@ -35,12 +35,15 @@ import Text.Jasmine         (minifym)
 -- Used only when in "auth-dummy-login" setting is enabled.
 import Yesod.Auth.Dummy
 
-import Yesod.Auth.HashDB (authHashDB)
+import Yesod.Auth.HashDB (authHashDBWithForm)
 
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Yesod.Auth.Message
+import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3,
+                              withAutofocus, bfs)
+
 import Types (FolderClass(..), ImageStatus(..))
 import qualified Data.Text as T
 import qualified Data.Set as S
@@ -265,13 +268,28 @@ instance YesodAuth App where
       where ident = credsIdent creds
 
     -- Simple HashDB auth and in test/dev dummy auth.
-    authPlugins app = [ authHashDB (Just . UniqueUser) ] ++ extraAuthPlugins
+    authPlugins app = [ authHashDBWithForm loginWidget (Just . UniqueUser) ] ++ extraAuthPlugins
         -- Enable authDummy login if enabled.
         where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
 
     authHttpManager = getHttpManager
 
--- | Access function to determine if a user is logged in.
+loginForm :: Form (Text, Text)
+loginForm = renderBootstrap3 BootstrapBasicForm $ (,)
+    <$> areq textField (withAutofocus $ mkField "username" "Username") Nothing
+    <*> areq passwordField (mkField "password" "Password") Nothing
+  where mkField :: Text -> Text -> FieldSettings a
+        mkField name descr =
+          let fs = bfs descr in fs { fsName = Just name }
+
+loginWidget :: Route App -> Widget
+loginWidget loginRoute = do
+  request <- getRequest
+  let mtok = reqToken request
+  (formWidget, formEnctype) <- handlerToWidget $ generateFormPost loginForm
+  $(whamletFile "templates/login.hamlet")
+
+-- | access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult
 isAuthenticated = do
     muid <- maybeAuthId
