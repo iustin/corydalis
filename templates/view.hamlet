@@ -1,0 +1,3 @@
+<div #boot data-folder="#{imgParent img}" data-image="#{imgName img}" data-bytes-url="@{ImageBytesR (imgParent img) (imgName img)}" data-info-url="@{ImageInfoR (imgParent img) (imgName img)}" data-debug=#{debug}/>
+
+<canvas id="imageCanvas" width="100" height="100" style="height: 100%; width: 100%"/>

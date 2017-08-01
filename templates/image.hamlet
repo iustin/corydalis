@@ -25,7 +25,10 @@
       <table .table>
         <tr>
           <td>Image name
-          <td>#{imgName img}
+          <td>
+            <a href=@{ViewR (imgParent img) (imgName img)}>
+             <span .fa .fa-picture-o>
+             #{imgName img}
         <tr>
           <td>Parent folder
           <td>

@@ -66,6 +66,7 @@ library:
   - Foundation
   - Handler.Common
   - Handler.Home
+  - Handler.View
   - Handler.Utils
   - Import
   - Import.NoFoundation

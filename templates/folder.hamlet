@@ -77,7 +77,11 @@
               <tbody>
                 $forall img <- pdImages dir
                   <tr .#{imgRowClass img}>
-                    <td><a href=@{ImageR name (imgName img)}>#{imgName img}</a>
+                    <td>
+                        <a href=@{ImageR name (imgName img)}>#{imgName img}
+                        <a href=@{ViewR name (imgName img)}>
+                          <span .fa .fa-picture-o>
+                          View
                     <td>
                       $case imgStatus img
                         $of ImageProcessed

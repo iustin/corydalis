@@ -11,5 +11,8 @@
 /folder/#Text/untracked/#Text UntrackedR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET
 /browse/images/#[ImageStatus] BrowseImagesR GET
+/view/#Text/#Text ViewR GET
+/image/bytes/#Text/#Text ImageBytesR GET
+/image/info/#Text/#Text ImageInfoR GET
 /timeline TimelineR GET
 /settings SettingsR GET
