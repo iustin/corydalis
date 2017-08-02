@@ -50,6 +50,8 @@ import Network.Wai.Handler.Warp             (Settings, defaultSettings,
                                              defaultShouldDisplayException,
                                              runSettings, setHost,
                                              setOnException, setPort, getPort)
+import Network.Wai.Handler.WarpTLS          (TLSSettings, tlsSettings,
+                                             onInsecure, OnInsecure(..), runTLS)
 import Network.Wai.Middleware.RequestLogger (Destination (Logger),
                                              IPAddrSource (..),
                                              OutputFormat (..), destination,
@@ -143,6 +145,14 @@ warpSettings foundation =
             (toLogStr $ "Exception from Warp: " ++ show e))
       defaultSettings
 
+
+-- | TLS settings for the given foundation value.
+appTlsSettings :: App -> TLSSettings
+appTlsSettings foundation =
+  let s = tlsSettings "config/cert.pem" "config/cert.key"
+  in s { onInsecure = DenyInsecure "This server only accepts secure HTTPS connections."
+       }
+
 -- | For yesod devel, return the Warp settings and WAI Application.
 getApplicationDev :: IO (Settings, Application)
 getApplicationDev = do
@@ -177,7 +187,7 @@ appMain = do
     app <- makeApplication foundation
 
     -- Run the application with Warp
-    runSettings (warpSettings foundation) app
+    runTLS (appTlsSettings foundation) (warpSettings foundation) app
 
 
 --------------------------------------------------------------

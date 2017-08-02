@@ -13,6 +13,10 @@ with the `static` and `config` subdirectories from the source tree. In
 the `config` directory, make a copy of the `settings.yml.sample` file
 as `settings.yml`, and update the configuration as needed.
 
+The application is configured to work only over https; as such, you
+must install the certificate in `config/cert.pem` and the key in
+`config/cert.key`.
+
 The application uses a database to store users for authentication;
 normally I expect only one or at most a few users - family - to be
 defined, but it was easier to use a database than (e.g.) something

@@ -102,6 +102,9 @@ msgDanger = "danger"
 msgValidTypes :: Set Text
 msgValidTypes = S.fromList [msgSuccess, msgInfo, msgWarning, msgDanger]
 
+sessionTimeout :: Int
+sessionTimeout = 120
+
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
@@ -114,9 +117,9 @@ instance Yesod App where
 
     -- Store session data on the client in encrypted cookies,
     -- default session idle timeout is 120 minutes
-    makeSessionBackend _ = Just <$> defaultClientSessionBackend
-        120    -- timeout in minutes
-        "config/client_session_key.aes"
+    makeSessionBackend _ = sslOnlySessions $
+      fmap Just $ defaultClientSessionBackend sessionTimeout
+                    "config/client_session_key.aes"
 
     -- Yesod Middleware allows you to run code before and after each handler function.
     -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
@@ -125,7 +128,7 @@ instance Yesod App where
     --   b) Validates that incoming write requests include that token in either a header or POST parameter.
     -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
     -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
-    yesodMiddleware = defaultYesodMiddleware
+    yesodMiddleware = (sslOnlyMiddleware sessionTimeout) . defaultYesodMiddleware
 
     defaultLayout widget = do
         master <- getYesod
