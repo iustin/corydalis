@@ -111,7 +111,10 @@ getHomeR = do
                  , gdText = Just textdata
                  }::GraphData Int64 Int64
            ]
-  let html = setTitle "Corydalis: home" >> $(widgetFile "homepage")
+  let html = do
+        setTitle "Corydalis: home"
+        addScript $ StaticR js_plotly_js
+        $(widgetFile "homepage")
   defaultLayoutJson html (return $ object [ "global" .= json, "folders" .= j2 ])
 
 getFolderR :: Text -> Handler Html
