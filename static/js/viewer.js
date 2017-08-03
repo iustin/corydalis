@@ -160,19 +160,27 @@ $(document).ready(function() {
         window.setTimeout(redrawImage, 3000);
     }
 
+    function prevImage() {
+        drawImage(cory.prev, cory.info.prev.view);
+        writeMessage(cory.info.prev.view);
+        updateInfo(cory.info.prev.info);
+    }
+
+    function nextImage() {
+        drawImage(cory.next, cory.info.next.view);
+        updateInfo(cory.info.next.info);
+    }
+
     $(document).keydown(function(e){
         switch (e.keyCode) {
         case 70: // 'f'
             toggleFullScreen();
             break;
         case 37: // left arrow
-            drawImage(cory.prev, cory.info.prev.view);
-            writeMessage(cory.info.prev.view);
-            updateInfo(cory.info.prev.info);
+            prevImage();
             break;
         case 39: // right arrow
-            drawImage(cory.next, cory.info.next.view);
-            updateInfo(cory.info.next.info);
+            nextImage();
             break;
         }
     });
