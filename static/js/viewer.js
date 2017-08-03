@@ -196,7 +196,31 @@ $(document).ready(function() {
         }
     });
 
-    resizeCanvas();
+    // Based on current layout, convert the div#main to fixed
+    // position, keeping - hopefully - same absolute location inside
+    // the window.
+    function mainToFixed() {
+        // Hide footer.
+        $("footer").css("display", "none");
+        // Remove container-fluid, as here we want as much display
+        // space as possible.
+        var divMain = $("#main");
+        divMain.removeClass("container-fluid");
+        // Compute current location (on screen).
+        var divMainTop = divMain.offset().top;
+        LOG("context is currently at ", divMainTop);
+        // And convert to absolute at same location.
+        divMain.css({
+            "top": divMainTop,
+            "position": "fixed",
+            "bottom": 0,
+            "left": 0,
+            "right": 0
+        });
+        resizeCanvas();
+    }
+
+    mainToFixed();
 
     updateInfo(infourl);
 
