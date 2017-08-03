@@ -103,21 +103,24 @@ $(document).ready(function() {
         return $(img).data("done");
     }
 
+    function handleImageLoad(img, kind) {
+        setImageState(img, true);
+        LOG("Loaded", kind, " image");
+    }
+
     function onInfoReceived(json) {
         LOG("got cory");
         cory.info = json;
         cory.prev = new Image();
         $(cory.prev).data("done", false);
         cory.prev.onload = function() {
-            setImageState(cory.prev, true)
-            LOG("Loaded prev image");
+            handleImageLoad(cory.prev, "prev");
         };
         cory.prev.src = cory.info.prev.bytes;
         cory.next = new Image();
         $(cory.next).data("done", false);
         cory.next.onload = function() {
-            setImageState(cory.next, true)
-            LOG("Loaded next image");
+            handleImageLoad(cory.next, "next");
         };
         cory.next.src = cory.info.next.bytes;
     };
