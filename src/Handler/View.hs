@@ -83,6 +83,7 @@ getViewR folder iname = do
   debug <- appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addScript $ StaticR js_viewer_js
+    addScript $ StaticR js_hammer_js
     setTitle . toHtml $ "Corydalis: Image " `T.append` folder
                `T.append` "/" `T.append` imgName img
     $(widgetFile "view")

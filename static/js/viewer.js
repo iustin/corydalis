@@ -171,6 +171,17 @@ $(document).ready(function() {
         updateInfo(cory.info.next.info);
     }
 
+    function setupHammer() {
+        var mc = new Hammer.Manager(canvas, {});
+        mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
+        mc.add( new Hammer.Tap({pointers: 2}));
+        mc.on("swiperight", function(ev) {prevImage();});
+        mc.on("swipeleft", function(ev) {nextImage();});
+        mc.on("tap", function(ev) {toogleFullScreen();});
+    }
+
+    setupHammer();
+
     $(document).keydown(function(e){
         switch (e.keyCode) {
         case 70: // 'f'
