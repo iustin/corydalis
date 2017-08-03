@@ -225,9 +225,9 @@ instance YesodBreadcrumbs App where
                                              Just (FolderR folder))
   breadcrumb (ViewR folder image) = return ("Viewing " `T.append` image,
                                              Just (ImageR folder image))
-  breadcrumb (ImageBytesR folder image) = return ("Bytes of " `T.append` image,
+  breadcrumb (ImageBytesR _ image) = return ("Bytes of " `T.append` image,
                                                    Nothing)
-  breadcrumb (ImageInfoR folder image) = return ("Information for " `T.append` image,
+  breadcrumb (ImageInfoR _ image) = return ("Information for " `T.append` image,
                                                   Nothing)
   breadcrumb (UntrackedR folder untracked) =
     return ("Untracked " `T.append` untracked, Just (FolderR folder))

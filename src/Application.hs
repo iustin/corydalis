@@ -48,8 +48,8 @@ import Language.Haskell.TH.Syntax           (qLocation)
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp             (Settings, defaultSettings,
                                              defaultShouldDisplayException,
-                                             runSettings, setHost,
-                                             setOnException, setPort, getPort)
+                                             setHost, setOnException,
+                                             setPort, getPort)
 import Network.Wai.Handler.WarpTLS          (TLSSettings, tlsSettings,
                                              onInsecure, OnInsecure(..), runTLS)
 import Network.Wai.Middleware.RequestLogger (Destination (Logger),
@@ -148,7 +148,7 @@ warpSettings foundation =
 
 -- | TLS settings for the given foundation value.
 appTlsSettings :: App -> TLSSettings
-appTlsSettings foundation =
+appTlsSettings _ =
   let s = tlsSettings "config/cert.pem" "config/cert.key"
   in s { onInsecure = DenyInsecure "This server only accepts secure HTTPS connections."
        }
