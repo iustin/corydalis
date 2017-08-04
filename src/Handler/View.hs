@@ -62,18 +62,22 @@ mkImage folder iname render =
 data ViewInfo = ViewInfo
   { viFolder  :: Text
   , viImage   :: Text
-  , viCurrent :: ImageInfo
+  , viFirst   :: ImageInfo
   , viPrev    :: ImageInfo
+  , viCurrent :: ImageInfo
   , viNext    :: ImageInfo
+  , viLast    :: ImageInfo
   }
 
 instance ToJSON ViewInfo where
   toJSON ViewInfo {..} =
     object [ "folder"      .= viFolder
            , "image"       .= viImage
-           , "current"     .= viCurrent
+           , "first"       .= viFirst
            , "prev"        .= viPrev
+           , "current"     .= viCurrent
            , "next"        .= viNext
+           , "last"        .= viLast
            ]
 
 getViewR :: Text -> Text -> Handler Html
@@ -113,8 +117,15 @@ getImageInfoR folder iname = do
            Nothing -> notFound
            Just img' -> return img'
   render <- getUrlRender
-  let imgPrev = maybe "" (\(k, _) -> k) $ Map.lookupLT iname images
-      imgNext = maybe "" (\(k, _) -> k) $ Map.lookupGT iname images
+  let conv = maybe "" (\(k, _) -> k)
+      -- since we have an image, it follows that min/max must exist
+      -- (they might be the same), hence we can use the non-total
+      -- functions findMin/findMax until newer containers package
+      -- reaches LTS
+      imgFirst = fst  $ Map.findMin images
+      imgPrev  = conv $ Map.lookupLT iname images
+      imgNext  = conv $ Map.lookupGT iname images
+      imgLast  = fst  $ Map.findMax images
       mk = \i -> mkImage folder i render
   return . toJSON $
-    ViewInfo folder (imgName img) (mk iname) (mk imgPrev) (mk imgNext)
+    ViewInfo folder (imgName img) (mk imgFirst) (mk imgPrev) (mk iname) (mk imgNext) (mk imgLast)
