@@ -5,7 +5,7 @@ build:
 	stack build
 
 devel:
-	yesod devel --host 127.0.0.1
+	HOST=127.0.0.1 yesod devel --host 127.0.0.1
 
 profiling:
 	# until https://github.com/haskell/cabal/issues/193 is fixed,
