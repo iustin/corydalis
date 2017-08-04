@@ -196,7 +196,7 @@ $(document).ready(function() {
         mc.add( new Hammer.Tap({pointers: 2}));
         mc.on("swiperight", function(ev) {prevImage();});
         mc.on("swipeleft", function(ev) {nextImage();});
-        mc.on("tap", function(ev) {toogleFullScreen();});
+        mc.on("tap", function(ev) {toggleFullScreen();});
     }
 
     setupHammer();
