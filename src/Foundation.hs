@@ -177,6 +177,7 @@ instance Yesod App where
           addScript $ StaticR js_bootstrap_js
 
           $(widgetFile "default-layout")
+        let inflist = [1..]::[Int]
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
     -- The page to be redirected to when authentication is required.

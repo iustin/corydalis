@@ -17,10 +17,10 @@ $doctype 5
       <div .container-fluid>
         <div .navbar-header>
           <ol .breadcrumb .navbar-btn>
-            $forall bc <- parents
+            $forall (idx, bc) <- zip inflist parents
               <li>
-                 <a href=@{fst bc}>
-                   #{snd bc}
+                 <a href=@{fst bc} id="navlink#{idx}">
+                   <span id="navtext#{idx}">#{snd bc}
             <li .active>
               #{title}
         <div .navbar-right>
