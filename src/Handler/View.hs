@@ -61,7 +61,9 @@ mkImage folder iname render =
 
 data ViewInfo = ViewInfo
   { viFolder  :: Text
+  , viFldUrl  :: Text
   , viImage   :: Text
+  , viImgUrl  :: Text
   , viFirst   :: ImageInfo
   , viPrev    :: Maybe ImageInfo
   , viCurrent :: ImageInfo
@@ -72,7 +74,9 @@ data ViewInfo = ViewInfo
 instance ToJSON ViewInfo where
   toJSON ViewInfo {..} =
     object [ "folder"      .= viFolder
+           , "folderurl"   .= viFldUrl
            , "image"       .= viImage
+           , "imageurl"    .= viImgUrl
            , "first"       .= viFirst
            , "prev"        .= viPrev
            , "current"     .= viCurrent
@@ -152,4 +156,7 @@ getImageInfoR folder iname = do
       imgLast  = snd  $ Map.findMax images
       mk = \i -> mkImage (imgParent i) (imgName i) render
   return . toJSON $
-    ViewInfo folder (imgName img) (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)
+    ViewInfo
+      folder (render $ FolderR folder)
+      (imgName img) (render $ ImageR folder iname)
+      (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)

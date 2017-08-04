@@ -233,11 +233,10 @@ instance YesodBreadcrumbs App where
   breadcrumb (AuthR _)      = return ("Auth"         , Just HomeR)
   breadcrumb HomeR          = return ("Home"         , Nothing)
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
-  breadcrumb (FolderR name) = return ("Folder " `T.append` name,
-                                      Just HomeR)
-  breadcrumb (ImageR folder image) = return ("Image " `T.append` image,
+  breadcrumb (FolderR name) = return (name, Just HomeR)
+  breadcrumb (ImageR folder image) = return (image,
                                              Just (FolderR folder))
-  breadcrumb (ViewR folder image) = return ("Viewing " `T.append` image,
+  breadcrumb (ViewR folder image) = return ("Viewer",
                                              Just (ImageR folder image))
   breadcrumb (ImageBytesR _ image) = return ("Bytes of " `T.append` image,
                                                    Nothing)
