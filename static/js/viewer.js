@@ -145,10 +145,11 @@ $(document).ready(function() {
     };
 
     function enterFullScreen() {
-        if (canvas.mozRequestFullScreen)
-            canvas.mozRequestFullScreen();
-        if(canvas.webkitRequestFullScreen)
-            canvas.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+        var div = divMain[0];
+        if (div.mozRequestFullScreen)
+            div.mozRequestFullScreen();
+        if(div.webkitRequestFullScreen)
+            div.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
         cory.state.fullscreen = true;
     };
 

@@ -55,3 +55,26 @@ fixes both whitespace and alignment in collapsed mode. */
 .nav > li > a.nav-link-fixup {
     padding-left: 5px;
 }
+
+/* Ensure that full-screen is full-screen. Works well by default on
+Gecko, but Webkit behaves differently. */
+div:-webkit-full-screen {
+    width: 100% !important;
+    top: 0px !important;
+    background-color: black;
+}
+div:-moz-full-screen {
+    width: 100% !important;
+    top: 0px !important;
+    background-color: black;
+}
+div:-ms-fullscreen {
+    width: 100% !important;
+    top: 0px !important;
+    background-color: black;
+}
+div:fullscreen {
+    width: 100% !important;
+    top: 0px !important;
+    background-color: black;
+}
