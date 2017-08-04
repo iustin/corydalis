@@ -127,21 +127,25 @@ $(document).ready(function() {
         T_STOP("post-load");
     }
 
+    function requestImage(img, info, text) {
+        if (info.name != "") {
+            img.onload = function() {
+                handleImageLoad(img, text);
+            };
+            $(img).data("done", false);
+            img.src = info.bytes;
+        } else {
+            LOG("skipping", text, "image as unavailable");
+        }
+    }
+
     function onInfoReceived(json) {
         LOG("got cory");
         cory.info = json;
         cory.prev = new Image();
-        $(cory.prev).data("done", false);
-        cory.prev.onload = function() {
-            handleImageLoad(cory.prev, "prev");
-        };
-        cory.prev.src = cory.info.prev.bytes;
+        requestImage(cory.prev, cory.info.prev, "prev");
         cory.next = new Image();
-        $(cory.next).data("done", false);
-        cory.next.onload = function() {
-            handleImageLoad(cory.next, "next");
-        };
-        cory.next.src = cory.info.next.bytes;
+        requestImage(cory.next, cory.info.next, "next");
     };
 
     function enterFullScreen() {
@@ -187,8 +191,12 @@ $(document).ready(function() {
         var img = forward ? cory.next : cory.prev;
         var info = forward ? cory.info.next : cory.info.prev;
         var viewurl = info.view;
+        if (info.name == "") {
+            writeMessage("No " + (forward ? "next" : "previous") + " image");
+            return;
+        }
         drawImage(img, viewurl);
-        writeMessage(viewurl);
+        writeMessage(info.name);
         updateInfo(info.info);
     }
 

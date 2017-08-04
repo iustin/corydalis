@@ -41,13 +41,15 @@ data ImageInfo = ImageInfo
   { iiInfoUrl  :: Text
   , iiBytesUrl :: Text
   , iiViewUrl  :: Text
+  , iiName     :: Text
   }
 
 instance ToJSON ImageInfo where
   toJSON ImageInfo {..} =
-    object [ "info" .= iiInfoUrl
+    object [ "info"  .= iiInfoUrl
            , "bytes" .= iiBytesUrl
-           , "view" .= iiViewUrl
+           , "view"  .= iiViewUrl
+           , "name"  .= iiName
            ]
 
 mkImage :: Text -> Text -> (Route App -> Text) -> ImageInfo
@@ -55,6 +57,7 @@ mkImage folder iname render =
   ImageInfo (render $ ImageInfoR folder iname)
             (render $ ImageBytesR folder iname)
             (render $ ViewR folder iname)
+            iname
 
 data ViewInfo = ViewInfo
   { viFolder  :: Text
