@@ -24,8 +24,8 @@ view: corydalis.ps
 	gv -orientation seascape $<
 
 production:
-	cabal configure -fproduction
-	cabal build -j
+	stack clean
+	stack build
 
 doc:
 	cabal haddock --internal --haddock-options=--ignore-all-exports
