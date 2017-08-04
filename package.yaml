@@ -55,6 +55,7 @@ dependencies:
 - old-locale
 - prefix-units >=0.2 && <0.3
 - foreign-store
+- random
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.

@@ -14,5 +14,6 @@
 /view/#Text/#Text ViewR GET
 /image/bytes/#Text/#Text ImageBytesR GET
 /image/info/#Text/#Text ImageInfoR GET
+/image/random RandomImageInfoR GET
 /timeline TimelineR GET
 /settings SettingsR GET

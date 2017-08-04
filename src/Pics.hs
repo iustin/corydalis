@@ -43,6 +43,7 @@ module Pics ( PicDir(..)
             , numOutdatedPics
             , numStandalonePics
             , numOrphanedPics
+            , hasViewablePics
             , numProcessedPics
             , filterDirsByClass
             , filterImagesByClass
@@ -412,6 +413,12 @@ hasStandalonePics =
 
 numOrphanedPics :: PicDir -> Int
 numOrphanedPics = numPicsOfType isOrphaned
+
+hasViewablePics :: PicDir -> Bool
+hasViewablePics folder =
+  numProcessedPics folder > 0 ||
+  numStandalonePics folder > 0 ||
+  numOutdatedPics folder > 0
 
 folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats

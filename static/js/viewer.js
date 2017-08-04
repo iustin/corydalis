@@ -238,12 +238,23 @@ $(document).ready(function() {
         updateInfo(info.info);
     }
 
+    function gotoRandomImage() {
+        $.ajax({url: bootdiv.data("random-url"),
+                type: "GET",
+                dataType: "json",
+               }).done(function(json) {
+                   switchToImage(json.current);
+               });
+    }
+
     function setupHammer() {
         var mc = new Hammer.Manager(canvas, {});
-        mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
+        mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_ALL}));
         mc.add( new Hammer.Tap({pointers: 2}));
         mc.on("swiperight", function(ev) {advanceImage(false);});
         mc.on("swipeleft", function(ev) {advanceImage(false);});
+        mc.on("swipeup", function(ev) {toggleFullScreen();});
+        mc.on("swipedown", function(ev) {gotoRandomImage();});
         mc.on("tap", function(ev) {toggleFullScreen();});
     }
 
@@ -253,6 +264,9 @@ $(document).ready(function() {
         switch (e.keyCode) {
         case 70: // 'f'
             toggleFullScreen();
+            break;
+        case 82: // 'r'
+            gotoRandomImage();
             break;
         case 37: // left arrow
             advanceImage(false);

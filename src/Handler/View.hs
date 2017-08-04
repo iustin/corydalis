@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.View ( getViewR
                     , getImageBytesR
                     , getImageInfoR
+                    , getRandomImageInfoR
                     ) where
 
 import Import
@@ -36,6 +37,7 @@ import Handler.Utils
 
 import qualified Data.Map as Map
 import qualified Data.Text as T
+import System.Random (getStdRandom, randomR)
 
 data ImageInfo = ImageInfo
   { iiInfoUrl  :: Text
@@ -160,3 +162,15 @@ getImageInfoR folder iname = do
       folder (render $ FolderR folder)
       (imgName img) (render $ ImageR folder iname)
       (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)
+
+getRandomImageInfoR :: Handler Value
+getRandomImageInfoR = do
+  pics <- getPics
+  let nonEmptyFolders = Map.filter hasViewablePics pics
+  when (Map.null nonEmptyFolders) notFound
+  fidx <- liftIO $ getStdRandom $ randomR (0, Map.size nonEmptyFolders - 1)
+  let (fname, folder) = Map.elemAt fidx nonEmptyFolders
+  let images = Map.filter (not . null . imgJpegPath) $ pdImages folder
+  iidx <- liftIO $ getStdRandom $ randomR (0, Map.size images - 1)
+  let (iname, _) = Map.elemAt iidx images
+  getImageInfoR fname iname
