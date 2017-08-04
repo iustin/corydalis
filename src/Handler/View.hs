@@ -63,9 +63,9 @@ data ViewInfo = ViewInfo
   { viFolder  :: Text
   , viImage   :: Text
   , viFirst   :: ImageInfo
-  , viPrev    :: ImageInfo
+  , viPrev    :: Maybe ImageInfo
   , viCurrent :: ImageInfo
-  , viNext    :: ImageInfo
+  , viNext    :: Maybe ImageInfo
   , viLast    :: ImageInfo
   }
 
@@ -79,6 +79,28 @@ instance ToJSON ViewInfo where
            , "next"        .= viNext
            , "last"        .= viLast
            ]
+
+-- | Helper until newer containers reach LTS.
+lookupMin :: Map a b -> Maybe (a, b)
+lookupMin m = if Map.null m then Nothing else Just $ Map.findMin m
+
+-- | Helper until newer containers reach LTS.
+lookupMax :: Map a b -> Maybe (a, b)
+lookupMax m = if Map.null m then Nothing else Just $ Map.findMax m
+
+getNextImageAnyFolder :: Repository -> Text -> Text -> Bool -> Maybe Image
+getNextImageAnyFolder pics folder iname forward= do
+  let gtfn :: (Ord a) => a -> Map a b -> Maybe (a, b)
+      gtfn  = if forward then Map.lookupGT else Map.lookupLT
+      fstfn = if forward then lookupMin else lookupMax
+  curFolder <- pdImages <$> folder `Map.lookup` pics
+  let nextFolder = snd <$> folder `gtfn` pics
+  (_, next) <- case gtfn iname curFolder of
+                 Nothing -> do
+                      nf <- nextFolder
+                      fstfn $ pdImages nf
+                 x -> x
+  return next
 
 getViewR :: Text -> Text -> Handler Html
 getViewR folder iname = do
@@ -111,21 +133,23 @@ getImageBytesR folder iname = do
 
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
-  dir <- getFolder folder
+  pics <- getPics
+  dir <- case Map.lookup folder pics of
+   Nothing -> notFound
+   Just dir -> return dir
   let images = pdImages dir
   img <- case Map.lookup iname images of
            Nothing -> notFound
            Just img' -> return img'
   render <- getUrlRender
-  let conv = maybe "" (\(k, _) -> k)
-      -- since we have an image, it follows that min/max must exist
+  let -- since we have an image, it follows that min/max must exist
       -- (they might be the same), hence we can use the non-total
       -- functions findMin/findMax until newer containers package
       -- reaches LTS
-      imgFirst = fst  $ Map.findMin images
-      imgPrev  = conv $ Map.lookupLT iname images
-      imgNext  = conv $ Map.lookupGT iname images
-      imgLast  = fst  $ Map.findMax images
-      mk = \i -> mkImage folder i render
+      imgFirst = snd  $ Map.findMin images
+      imgPrev  = getNextImageAnyFolder pics folder iname False
+      imgNext  = getNextImageAnyFolder pics folder iname True
+      imgLast  = snd  $ Map.findMax images
+      mk = \i -> mkImage (imgParent i) (imgName i) render
   return . toJSON $
-    ViewInfo folder (imgName img) (mk imgFirst) (mk imgPrev) (mk iname) (mk imgNext) (mk imgLast)
+    ViewInfo folder (imgName img) (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)

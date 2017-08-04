@@ -134,7 +134,7 @@ $(document).ready(function() {
     }
 
     function requestImage(img, info, text) {
-        if (info.name != "") {
+        if (info) {
             img.onload = function() {
                 handleImageLoad(img, text);
             };
@@ -220,11 +220,11 @@ $(document).ready(function() {
     function advanceImage(forward) {
         var img = forward ? cory.next : cory.prev;
         var info = forward ? cory.info.next : cory.info.prev;
-        var viewurl = info.view;
-        if (info.name == "") {
+        if (!info) {
             writeMessage("No " + (forward ? "next" : "previous") + " image");
             return;
         }
+        var viewurl = info.view;
         drawImage(img, viewurl);
         writeMessage(info.name);
         updateInfo(info.info);
