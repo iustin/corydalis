@@ -30,13 +30,17 @@ $(document).ready(function() {
         state: {
             fullscreen: false,
             img: null,
-            lastX: 0
+            lastX: 0,
+            msgTimeId: null
         }
     };
 
     var divMain = $('#main');
     var canvas = $('#imageCanvas')[0];
     var context = canvas.getContext('2d');
+    var msgCanvas = $('#messageCanvas')[0];
+    var msgCtx = msgCanvas.getContext('2d');
+
     // Virtual (not-in-DOM) canvas that is used to for pre-rendering
     // images. The alternative would be to use putImageData() instead,
     // and pre-render explicitly the images, tracking said rendering,
@@ -101,6 +105,8 @@ $(document).ready(function() {
         // to set the model (coordinate) dimension.
         context.canvas.width = width;
         context.canvas.height = height;
+        msgCtx.canvas.width = $(msgCtx.canvas).width();
+        msgCtx.canvas.height = $(msgCtx.canvas).height();
     };
 
     function resizeCanvasAndRedraw() {
@@ -173,18 +179,26 @@ $(document).ready(function() {
     }
 
     function writeMessage(text) {
-        context.save();
-        context.shadowOffsetX = 4;
-        context.shadowOffsetY = 4;
-        context.shadowBlur = 2;
-        context.shadowColor = 'rgba(255, 255, 255, 0.7)';
+        if (cory.state.msgTimeId) {
+            window.clearTimeout(cory.state.msgTimeId);
+        }
+        msgCtx.clearRect(0, 0, msgCanvas.width, msgCanvas.height);
+        msgCtx.shadowOffsetX = 2;
+        msgCtx.shadowOffsetY = 2;
+        msgCtx.shadowBlur = 2;
+        msgCtx.shadowColor = 'rgba(255, 255, 255, 1)';
 
-        context.font = '20px Sans';
-        context.fillStyle = 'Black';
-        context.fillText(text, cory.state.lastX + 10, 30);
-        context.restore();
+        msgCtx.fillStyle = 'Black';
+        msgCtx.textBaseline = 'top';
+        msgCtx.font = 'x-large Sans';
 
-        window.setTimeout(redrawImage, 3000);
+        textWidth = Math.ceil(msgCtx.measureText(text).width);
+        LOG("text would be:", textWidth);
+        msgCtx.fillText(text, 0, 0);
+        cory.state.msgTimeId = window.setTimeout(function() {
+            LOG("cleared");
+            msgCtx.clearRect(0, 0, msgCanvas.width, msgCanvas.height);
+        }, 2000);
     }
 
     function advanceImage(forward) {
