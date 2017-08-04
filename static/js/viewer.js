@@ -178,11 +178,27 @@ $(document).ready(function() {
             enterFullScreen();
     }
 
-    function writeMessage(text) {
+    // Switches to a non-preloaded image.
+    function switchToImage(info) {
+        var image = new Image();
+        image.onload = function() {
+            setImageState(image, true);
+            writeMessage(info.name);
+            drawImage(image, info.view);
+        };
+        writeMessage("Loading " + info.name + "...");
+        image.src = info.bytes;
+    }
+
+    function clearMessage() {
         if (cory.state.msgTimeId) {
             window.clearTimeout(cory.state.msgTimeId);
         }
         msgCtx.clearRect(0, 0, msgCanvas.width, msgCanvas.height);
+    }
+
+    function writeMessage(text) {
+        clearMessage();
         msgCtx.shadowOffsetX = 2;
         msgCtx.shadowOffsetY = 2;
         msgCtx.shadowBlur = 2;
@@ -193,11 +209,10 @@ $(document).ready(function() {
         msgCtx.font = 'x-large Sans';
 
         textWidth = Math.ceil(msgCtx.measureText(text).width);
-        LOG("text would be:", textWidth);
         msgCtx.fillText(text, 0, 0);
         cory.state.msgTimeId = window.setTimeout(function() {
-            LOG("cleared");
-            msgCtx.clearRect(0, 0, msgCanvas.width, msgCanvas.height);
+            cory.state.msgTimeId = null;
+            clearMessage();
         }, 2000);
     }
 
@@ -235,6 +250,12 @@ $(document).ready(function() {
             break;
         case 39: // right arrow
             advanceImage(true);
+            break;
+        case 36: // home key
+            switchToImage(cory.info.first);
+            break;
+        case 35: // end key
+            switchToImage(cory.info.last);
             break;
         }
     });
