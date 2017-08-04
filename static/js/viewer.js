@@ -188,6 +188,7 @@ $(document).ready(function() {
         };
         writeMessage("Loading " + info.name + "...");
         image.src = info.bytes;
+        updateInfo(info.info);
     }
 
     function clearMessage() {
