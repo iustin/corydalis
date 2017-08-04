@@ -34,6 +34,7 @@ $(document).ready(function() {
         }
     };
 
+    var divMain = $('#main');
     var canvas = $('#imageCanvas')[0];
     var context = canvas.getContext('2d');
     // Virtual (not-in-DOM) canvas that is used to for pre-rendering
@@ -91,6 +92,8 @@ $(document).ready(function() {
     };
 
     function resizeCanvas() {
+        // Reset main div top position, in case navbar changed size.
+        divMain.css({"top": computeNavBarHeight()});
         // Read the computed (display) dimensions...
         var width = $(context.canvas).width();
         var height = $(context.canvas).height();
@@ -215,6 +218,11 @@ $(document).ready(function() {
         }
     });
 
+    function computeNavBarHeight() {
+        var navbar = $("nav.navbar");
+        return navbar.outerHeight();
+    }
+
     // Based on current layout, convert the div#main to fixed
     // position, keeping - hopefully - same absolute location inside
     // the window.
@@ -223,23 +231,23 @@ $(document).ready(function() {
         $("footer").css("display", "none");
         // Remove container-fluid, as here we want as much display
         // space as possible.
-        var divMain = $("#main");
         divMain.removeClass("container-fluid");
-        // Compute current location (on screen).
-        var divMainTop = divMain.offset().top;
-        LOG("context is currently at ", divMainTop);
+        // Compute current location (on screen), based on navbar
+        // height.
+        var navBarH = computeNavBarHeight();
+        LOG("navbar at ", navBarH);
         // And convert to absolute at same location.
         divMain.css({
-            "top": divMainTop,
+            "top": navBarH,
             "position": "fixed",
             "bottom": 0,
             "left": 0,
             "right": 0
         });
-        resizeCanvas();
     }
 
     mainToFixed();
+    resizeCanvas();
 
     updateInfo(infourl);
 
