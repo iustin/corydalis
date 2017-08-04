@@ -183,23 +183,21 @@ $(document).ready(function() {
         window.setTimeout(redrawImage, 3000);
     }
 
-    function prevImage() {
-        drawImage(cory.prev, cory.info.prev.view);
-        writeMessage(cory.info.prev.view);
-        updateInfo(cory.info.prev.info);
-    }
-
-    function nextImage() {
-        drawImage(cory.next, cory.info.next.view);
-        updateInfo(cory.info.next.info);
+    function advanceImage(forward) {
+        var img = forward ? cory.next : cory.prev;
+        var info = forward ? cory.info.next : cory.info.prev;
+        var viewurl = info.view;
+        drawImage(img, viewurl);
+        writeMessage(viewurl);
+        updateInfo(info.info);
     }
 
     function setupHammer() {
         var mc = new Hammer.Manager(canvas, {});
         mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
         mc.add( new Hammer.Tap({pointers: 2}));
-        mc.on("swiperight", function(ev) {prevImage();});
-        mc.on("swipeleft", function(ev) {nextImage();});
+        mc.on("swiperight", function(ev) {advanceImage(false);});
+        mc.on("swipeleft", function(ev) {advanceImage(false);});
         mc.on("tap", function(ev) {toggleFullScreen();});
     }
 
@@ -211,10 +209,10 @@ $(document).ready(function() {
             toggleFullScreen();
             break;
         case 37: // left arrow
-            prevImage();
+            advanceImage(false);
             break;
         case 39: // right arrow
-            nextImage();
+            advanceImage(true);
             break;
         }
     });
