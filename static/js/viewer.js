@@ -21,6 +21,8 @@ $(document).ready(function() {
     var infourl = bootdiv.data("info-url");
     var debug = bootdiv.data("debug");
     var LOG = debug ? console.log.bind(console) : function () {};
+    var T_START = debug ? console.time.bind(console) : function () {};
+    var T_STOP =  debug ? console.timeEnd.bind(console) : function () {};
 
 
     var cory = {
@@ -34,6 +36,12 @@ $(document).ready(function() {
 
     var canvas = $('#imageCanvas')[0];
     var context = canvas.getContext('2d');
+    // Virtual (not-in-DOM) canvas that is used to for pre-rendering
+    // images. The alternative would be to use putImageData() instead,
+    // and pre-render explicitly the images, tracking said rendering,
+    // etc., but this seems much easier.
+    var offCanvas = document.createElement('canvas');
+    var offContext = offCanvas.getContext('2d');
 
     function drawImage(img, url) {
         if (!isImageReady(img)) {
@@ -59,7 +67,9 @@ $(document).ready(function() {
             ", cW: ", cW, ", cH: ", cH,
             ", scaleX: ", scaleX, ", scaleY: ", scaleY);
         cory.state.lastX = offX;
+        T_START("drawImage");
         context.drawImage(img, offX, offY, img.width / scale, img.height / scale);
+        T_STOP("drawImage");
         LOG("post-draw ", url);
         LOG("url: ", url, "location: ", location.href);
         if (url != location.href && url != undefined) // Prevent double entries.
@@ -106,6 +116,12 @@ $(document).ready(function() {
     function handleImageLoad(img, kind) {
         setImageState(img, true);
         LOG("Loaded", kind, " image");
+        T_START("post-load");
+        // Hack to force pre-rendering. Seems to work, at least in FF
+        // and Chrome. For large images on a certain machine, goes
+        // from 600ms to ~15 ms (FF), ~0.1ms (Chrome).
+        offContext.drawImage(img, 0, 0);
+        T_STOP("post-load");
     }
 
     function onInfoReceived(json) {
