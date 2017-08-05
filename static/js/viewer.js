@@ -252,7 +252,7 @@ $(document).ready(function() {
         mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_ALL}));
         mc.add( new Hammer.Tap({pointers: 2}));
         mc.on("swiperight", function(ev) {advanceImage(false);});
-        mc.on("swipeleft", function(ev) {advanceImage(false);});
+        mc.on("swipeleft", function(ev) {advanceImage(true);});
         mc.on("swipeup", function(ev) {toggleFullScreen();});
         mc.on("swipedown", function(ev) {gotoRandomImage();});
         mc.on("tap", function(ev) {toggleFullScreen();});
