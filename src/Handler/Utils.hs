@@ -97,12 +97,15 @@ getPics = do
   config <- getConfig
   liftIO $ scanAll config
 
-getFolder :: Text -> Handler PicDir
-getFolder folder = do
+getPicsAndFolder :: Text -> Handler (Repository, PicDir)
+getPicsAndFolder folder = do
   pics <- getPics
   case Map.lookup folder pics of
    Nothing -> notFound
-   Just dir -> return dir
+   Just dir -> return (pics, dir)
+
+getFolder :: Text -> Handler PicDir
+getFolder = fmap snd . getPicsAndFolder
 
 showFile :: Pics.File -> Widget
 showFile f = do

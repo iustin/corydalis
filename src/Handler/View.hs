@@ -139,10 +139,7 @@ getImageBytesR folder iname = do
 
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
-  pics <- getPics
-  dir <- case Map.lookup folder pics of
-   Nothing -> notFound
-   Just dir -> return dir
+  (pics, dir) <- getPicsAndFolder folder
   let images = pdImages dir
   img <- case Map.lookup iname images of
            Nothing -> notFound
