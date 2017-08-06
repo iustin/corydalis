@@ -48,12 +48,12 @@ $(document).ready(function() {
     var offCanvas = document.createElement('canvas');
     var offContext = offCanvas.getContext('2d');
 
-    function drawImage(img, url) {
+    function drawImage(img, url, textmsg) {
         if (!isImageReady(img)) {
             img.onload = function() {
                 LOG("Late load of ", url);
                 setImageState(img, true);
-                drawImage(img, url);
+                drawImage(img, url, textmsg);
             };
             return;
         }
@@ -81,6 +81,8 @@ $(document).ready(function() {
             history.pushState(null, null, url);
         cory.state.img = img;
         cory.state.url = url;
+        if (typeof textmsg !== 'undefined')
+            writeMessage(textmsg);
     };
 
     function updateInfo(url) {
@@ -184,8 +186,7 @@ $(document).ready(function() {
         var image = new Image();
         image.onload = function() {
             setImageState(image, true);
-            writeMessage(info.name);
-            drawImage(image, info.view);
+            drawImage(image, info.view, info.name);
         };
         writeMessage("Loading " + info.name + "...");
         image.src = info.bytes;
@@ -199,7 +200,7 @@ $(document).ready(function() {
         msgCtx.clearRect(0, 0, msgCanvas.width, msgCanvas.height);
     }
 
-    function writeMessage(text) {
+    function writeMessage(text, timeout) {
         clearMessage();
         msgCtx.shadowOffsetX = 2;
         msgCtx.shadowOffsetY = 2;
@@ -212,10 +213,15 @@ $(document).ready(function() {
 
         textWidth = Math.ceil(msgCtx.measureText(text).width);
         msgCtx.fillText(text, 0, 0);
-        cory.state.msgTimeId = window.setTimeout(function() {
-            cory.state.msgTimeId = null;
-            clearMessage();
-        }, 2000);
+        if (typeof timeout === 'undefined') {
+            timeout = 2000
+        }
+        if (timeout != 0) {
+            cory.state.msgTimeId = window.setTimeout(function() {
+                cory.state.msgTimeId = null;
+                clearMessage();
+            }, timeout);
+        }
     }
 
     function updateNavbar(topinfo) {
@@ -233,8 +239,8 @@ $(document).ready(function() {
             return;
         }
         var viewurl = info.view;
-        drawImage(img, viewurl);
-        writeMessage(info.name);
+        writeMessage("Loading " + info.name, 6000);
+        drawImage(img, viewurl, info.name);
         updateInfo(info.info);
     }
 
@@ -319,7 +325,7 @@ $(document).ready(function() {
     var image = new Image();
     image.onload = function() {
         setImageState(image, true);
-        drawImage(image);
+        drawImage(image, location.href);
     };
     image.src = booturl;
 
