@@ -1,19 +1,5 @@
 <h1>
-  <div .btn-group role="group">
-    $case imgPrev
-      $of Just (pk, _)
-        <a href=@{ImageR (imgParent img) pk} .btn .btn-default .btn-sm>
-          <span .fa .fa-caret-left .fa-lg>
-      $of Nothing
-        <button .btn .btn-default .btn-sm disabled=disabled >
-          <span .fa .fa-caret-left .fa-lg>
-    $case imgNext
-      $of Just (nk, _)
-        <a href=@{ImageR (imgParent img) nk} .btn .btn-default .btn-sm>
-          <span .fa .fa-caret-right .fa-lg>
-      $of Nothing
-        <button .btn .btn-default .btn-sm disabled=disabled>
-          <span .fa .fa-caret-right .fa-lg>
+  ^{generatePrevNext iname images rbuilder}
   Image #
     <small>#{folder}/#{iname}
 

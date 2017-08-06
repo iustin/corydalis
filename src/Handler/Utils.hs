@@ -110,3 +110,9 @@ getFolder = fmap snd . getPicsAndFolder
 showFile :: Pics.File -> Widget
 showFile f = do
   $(widgetFile "showfile")
+
+generatePrevNext :: (Ord k) => k -> Map k v -> (k -> v -> Route App) -> Widget
+generatePrevNext k m r = do
+  let prevRoute = uncurry r <$> Map.lookupLT k m
+      nextRoute = uncurry r <$> Map.lookupGT k m
+  $(widgetFile "prevnext")

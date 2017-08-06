@@ -1,5 +1,7 @@
-<h1>Folder #
-  <small>#{name}
+<h1>
+  ^{generatePrevNext name pics rbuilder}
+  Folder #
+    <small>#{name}
 
 <div .row>
   <div .col-xs-12 .col-md-5>

@@ -119,10 +119,11 @@ getHomeR = do
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do
-  dir <- getFolder name
+  (pics, dir) <- getPicsAndFolder name
   let allpaths = pdMainPath dir:pdSecPaths dir
   defaultLayout $ do
     let stats = computeFolderStats dir
+        rbuilder = ((const .) FolderR)
     setTitle . toHtml $ "Corydalis: folder " `T.append` name
     $(widgetFile "folder")
 
@@ -215,8 +216,7 @@ getImageR folder iname = do
   img <- case Map.lookup iname images of
            Nothing -> notFound
            Just img' -> return img'
-  let imgPrev = Map.lookupLT iname images
-      imgNext = Map.lookupGT iname images
+  let rbuilder = \ik io -> ImageR (imgParent io) ik
       flags = if flagsSoftMaster (imgFlags img)
                  then "soft master"::Text
                  else "(none)"
