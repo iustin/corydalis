@@ -1,5 +1,5 @@
 # this is only used for custom development!
-# well, except for the production target
+# well, except for the release target
 
 build:
 	stack build
@@ -23,9 +23,12 @@ profiling:
 view: corydalis.ps
 	gv -orientation seascape $<
 
-production:
+release:
 	stack clean
 	stack build
+	stack install --local-bin-path dist/
+	mkdir -p dist/static/
+	rsync -a static/css static/fonts static/js dist/static/
 
 doc:
 	cabal haddock --internal --haddock-options=--ignore-all-exports
@@ -49,4 +52,4 @@ lint:
 	  --report=lint-report.html -c \
 	  .
 
-.PHONY: build devel profiling view production doc clean test
+.PHONY: build devel profiling view release doc clean test
