@@ -1,21 +1,28 @@
 # Installation
 
 Corydalis is built using Haskell and the Yesod framework, which means
-it has a lot of dependencies; therefore, the simplest way is to use
-`stack`:
+it has a lot of build dependencies; therefore, the simplest way is to
+use the `stack` tool:
 
         $ stack build
-        $ stack install
-
-The resulting binary (`corydalis`) was installed in the
-`local-bin-path` as shown by `stack paths`; copy it somewhere, along
-with the `static` and `config` subdirectories from the source tree. In
-the `config` directory, make a copy of the `settings.yml.sample` file
-as `settings.yml`, and update the configuration as needed.
+        $ stack install --local-bin-path /path/to/target
+        $ cp -a static /path/to/target/
 
 The application is configured to work only over https; as such, you
 must install the certificate in `config/cert.pem` and the key in
-`config/cert.key`.
+`config/cert.key` in the target directory:
+
+        $ mkdir /path/to/target/config
+        $ cp cert.pem cert.key /path/to/target/config
+
+Install the sample configuration file:
+
+        $ cp config/settings.yml.sample /path/to/target/settings.yml
+
+Update the `settings.yml` file as needed, and run the application:
+
+        $ cd /path/to/target
+        $ ./corydalis settings.yml
 
 The application uses a database to store users for authentication;
 normally I expect only one or at most a few users - family - to be
@@ -32,13 +39,6 @@ Being a web application, it also has a few JavaScript dependencies:
 These are distributed with the application, so there's no need to do
 anything, unless you want to use newer version of them; just update
 the files in the `static/` subdirectory.
-
-Once all these are in place, just run the binary, which will load the
-settings from the environment (if the environment variables are
-defined) or otherwise from config file or finally it will use
-compiled-in defaults:
-
-        $ ./corydalis
 
 I've also seen that due to the nontrivial amount of memory used by all
 the filename tracking, the periodic idle GCs use non-trivial amount of
