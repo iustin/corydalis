@@ -135,13 +135,22 @@ $(document).ready(function() {
         T_STOP("post-load");
     }
 
+    function imageUrlScaled(baseUrl) {
+        var w = $(canvas).width();
+        var h = $(canvas).height();
+        var r = w > h ? w : h;
+        return baseUrl + "?res=" + r;
+    }
+
     function requestImage(img, info, text) {
         if (info) {
             img.onload = function() {
                 handleImageLoad(img, text);
             };
             $(img).data("done", false);
-            img.src = info.bytes;
+            var w = $(canvas).width();
+            var h = $(canvas).height();
+            img.src = imageUrlScaled(info.bytes);
         } else {
             LOG("skipping", text, "image as unavailable");
         }
@@ -327,7 +336,7 @@ $(document).ready(function() {
         setImageState(image, true);
         drawImage(image, location.href);
     };
-    image.src = booturl;
+    image.src = imageUrlScaled(booturl);
 
     window.addEventListener('resize', resizeCanvasAndRedraw, false);
     window.addEventListener('orientationchange', resizeCanvasAndRedraw, false);

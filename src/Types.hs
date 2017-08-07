@@ -32,6 +32,7 @@ module Types ( Config(..)
 import Control.Applicative
 import Control.Monad
 import Data.Aeson
+import Data.List (sort)
 import Data.Time.Clock
 import qualified Data.Text as T
 import qualified Text.Regex.PCRE as PCRE
@@ -68,6 +69,9 @@ data Config = Config
     { cfgSourceDirs      :: [FilePath]
     , cfgOutputDirs      :: [FilePath]
     , cfgBlacklistedDirs :: [FilePath]
+    , cfgCacheDir        :: FilePath
+    , cfgAutoImageSizes  :: [Int]
+    , cfgAllImageSizes   :: [Int]
     , cfgRawExts         :: [FilePath]
     , cfgJpegExts        :: [FilePath]
     , cfgSidecarExts     :: [FilePath]
@@ -84,6 +88,9 @@ instance FromJSON Config where
          v .: "sourcedirs"      <*>
          v .: "outputdirs"      <*>
          v .: "blacklisteddirs" <*>
+         v .: "cachedir"        <*>
+         autosizes              <*>
+         allsizes'              <*>
          v .: "rawexts"         <*>
          v .: "jpegexts"        <*>
          v .: "sidecarexts"     <*>
@@ -92,6 +99,10 @@ instance FromJSON Config where
          v .: "rangeregex"      <*>
          v .: "copyregex"       <*>
          v .: "outdatederror"
+    where autosizes = sort <$> v .: "autoimgsizes"
+          demandsizes = v .: "demandimgsizes"
+          allsizes = (++) <$> autosizes <*> demandsizes
+          allsizes' = sort <$> allsizes
 
   parseJSON _ = mzero
 

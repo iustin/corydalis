@@ -1,6 +1,6 @@
 $(document).ready(function() {
   $("#folder").tablesorter({
-        sortList: [[0,0]],
+        sortList: [[1,0]],
         theme: "bootstrap-simple",
         headerTemplate: "{content} {icon}",
         widgets : [ "uitheme" ],

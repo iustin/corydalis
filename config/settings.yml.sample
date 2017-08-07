@@ -40,6 +40,18 @@ config:
   outputdirs: ["/pic/jpegs"]
   # Don't recurse into any subdirs listed here:
   blacklisteddirs: [".thumbnails"]
+  # Where to store the generated thumbnails and small size previews
+  cachedir: "/pics/cache"
+  # Automatically-generated image sizes; recommended to include common
+  # resolutions the pictures will be viewed at and thumbnail sizes
+  # (64×64, 128×128). You can list the entries in any order (they will
+  # be used in sorted order), but it's more readable to list them
+  # sorted as well.
+  autoimgsizes: [64, 1920, 2560, 128]
+  # Other image sizes that will be generated and saved to cachedir,
+  # but only on demand. If a value appears both here and in
+  # autoimgsizes, the entry here will have no effect.
+  demandimgsizes: [3840, 7680]
   # List of extensions considered "RAW" files:
   rawexts: ["nef", "tif", "tiff", "dng", "raf", "orf", "crw"]
   # List of extensions considered processed pictures:

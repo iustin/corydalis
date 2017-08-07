@@ -27,6 +27,7 @@ module Pics ( PicDir(..)
             , File(..)
             , Flags(..)
             , Repository
+            , ImageSize(..)
             , fileLastTouch
             , scanAll
             , forceScanAll
@@ -54,6 +55,7 @@ module Pics ( PicDir(..)
             , sumStats
             , totalStatsSize
             , totalStatsCount
+            , loadCachedOrBuild
             ) where
 
 import Types
@@ -66,6 +68,7 @@ import Data.Text (Text)
 import System.IO.Unsafe
 
 import Control.Monad
+import Control.Concurrent (forkIO)
 import Data.Function (on)
 import qualified Data.Map.Strict as Map
 import Data.List
@@ -79,6 +82,7 @@ import System.Posix.Files hiding (fileSize)
 import qualified System.Posix.Files (fileSize)
 import System.Posix.Types
 import qualified Text.Regex.PCRE as PCRE
+import System.Process.Typed
 
 addRevDot :: [FilePath] -> [FilePath]
 addRevDot = map (reverse . ('.':))
@@ -162,6 +166,9 @@ data Untracked = Untracked
   , untrkParent :: !Text
   , untrkPaths  :: ![File]
   } deriving (Show)
+
+-- | Represents a scaled down image size.
+newtype ImageSize = ImageSize Int
 
 -- | Return the laste time a file has been touched (latest of ctime/mtime).
 fileLastTouch :: File -> POSIXTime
@@ -618,7 +625,18 @@ scanFilesystem config = do
             Map.empty $ srcdirs ++ outdirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
+  forkIO $ forceBuildThumbCaches config repo'
   return repo'
+
+forceBuildThumbCaches :: Config -> Repository -> IO ()
+forceBuildThumbCaches config repo = do
+  let images = filterImagesByClass [ImageProcessed, ImageOutdated, ImageStandalone] repo
+  mapM_ (\i ->
+           case imgJpegPath i of
+             x:_ -> mapM_ (loadCachedOrBuild config (filePath x))
+                     (map ImageSize (cfgAutoImageSizes config))
+             _ -> return ()
+        ) images
 
 maybeUpdateCache :: Config
                  -> Maybe Repository
@@ -692,3 +710,50 @@ computeFolderTimeline timeline picdir = Map.foldl' (\t' img ->
 
 computeTimeLine :: Repository -> Timeline
 computeTimeLine = Map.foldl' computeFolderTimeline Map.empty
+
+-- | Computes optimal image preview size.
+--
+-- Assuming the passed list is sorted, the function computes the
+-- smallest size that is larger or equal than the required image
+-- size. If none is found, it means we're requesting a size larger
+-- than any of our allowed-to-be-cached sizes, so return Nothing.
+findBestSize :: ImageSize -> [Int] -> Maybe Int
+findBestSize _ [] = Nothing
+findBestSize r@(ImageSize s) (x:xs) =
+  if s <= x
+    then Just x
+    else findBestSize r xs
+
+-- | Generate a preview for an image.
+--
+-- In this context, a preview is a smaller version of an image, for
+-- faster/optimised use on a lower-powered device (mobile, etc.). It
+-- is done using imagemagick's convert tool.
+--
+-- TODO: add loging of failures.
+-- TODO: add handling of raw files.
+-- TODO: fix the issue that range files and their components have identical output.
+-- TODO: improve path manipulation \/ concatenation.
+-- TODO: add re-generation if preview is outdated.
+-- TODO: make thumbnail size configurable.
+-- TODO: make thumbnails PNG.
+-- TODO: make thumbnails square and transparent.
+-- TODO: for images smaller than given source, we generate redundant previews.
+loadCachedOrBuild :: Config -> Text -> ImageSize -> IO Text
+loadCachedOrBuild config path size = do
+  let res = findBestSize size (cfgAllImageSizes config)
+  case res of
+    Nothing -> return path
+    Just res' -> do
+      let geom = show res' ++ "x" ++ show res'
+          fpath = (cfgCacheDir config) ++ T.unpack path ++ "-" ++ show res'
+      exists <- fileExist fpath
+      when (not exists) $ do
+        let operator = if res' <= 128
+                       then "-thumbnail"
+                       else "-resize"
+        let (parent, _) = splitFileName fpath
+        createDirectoryIfMissing True parent
+        (exitCode, out, err) <- readProcess $ proc "convert" [T.unpack path, operator, geom, fpath]
+        return ()
+      return $ T.pack fpath

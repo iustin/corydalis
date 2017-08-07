@@ -8,6 +8,16 @@ use the `stack` tool:
         $ stack install --local-bin-path /path/to/target
         $ cp -a static /path/to/target/
 
+Create a few needed directories:
+
+        $ cd /path/to/target
+        $ mkdir config db
+
+At runtime, the application depends on ImageMagick, so make sure to
+install it before you run the application, e.g.:
+
+        $ sudo apt-get install imagemagick
+
 The application is configured to work only over https; as such, you
 must install the certificate in `config/cert.pem` and the key in
 `config/cert.key` in the target directory:

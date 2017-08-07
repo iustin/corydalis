@@ -69,6 +69,7 @@
         <table #folder .tablesorter .table .table-condensed>
               <thead>
                 <tr>
+                  <th rowspan=2 ."{sorter: false}">Icon
                   <th rowspan=2>Name
                   <th rowspan=2>Type
                   <th colspan=3 ."{sorter: false}">Timestamps
@@ -80,10 +81,10 @@
                 $forall img <- pdImages dir
                   <tr .#{imgRowClass img}>
                     <td>
-                        <a href=@{ImageR name (imgName img)}>#{imgName img}
                         <a href=@{ViewR name (imgName img)}>
-                          <span .fa .fa-picture-o>
-                          View
+                          <img src="@{ImageBytesR name (imgName img)}?xres=64&yres=64">
+                    <td>
+                        <a href=@{ImageR name (imgName img)}>#{imgName img}
                     <td>
                       $case imgStatus img
                         $of ImageProcessed

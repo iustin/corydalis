@@ -47,3 +47,13 @@ Current configuration:
   <li>maximum delta between raw and jpeg files: #
     <span .monolight>
       #{show $ cfgOutdatedError config}
+  <li>Pre/auto-generated image sizes:
+    <ul>
+      $forall sz <- cfgAutoImageSizes config
+        <li>
+          <span .monolight>#{sz}
+  <li>All generated/saves image sizes:
+    <ul>
+      $forall sz <- cfgAllImageSizes config
+        <li>
+          <span .monolight>#{sz}

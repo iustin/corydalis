@@ -38,6 +38,7 @@ import Handler.Utils
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import System.Random (getStdRandom, randomR)
+import Text.Read (readMaybe)
 
 data ImageInfo = ImageInfo
   { iiInfoUrl  :: Text
@@ -125,6 +126,7 @@ getViewR folder iname = do
 
 getImageBytesR :: Text -> Text -> Handler ()
 getImageBytesR folder iname = do
+  config <- getConfig
   dir <- getFolder folder
   let images = pdImages dir
   img <- case Map.lookup iname images of
@@ -135,7 +137,13 @@ getImageBytesR folder iname = do
              _   -> case (imgRawPath img, flagsSoftMaster (imgFlags img)) of
                       (Just r, True) -> return $ filePath r
                       _ -> notFound
-  sendFile "image/jpeg" (T.unpack jpath)
+  -- TODO: make this 'res' string and the javascript string derive from the same constant
+  res <- lookupGetParam "res"
+  rpath <- case (fmap T.unpack res >>= readMaybe) of
+    Just r -> liftIO $ loadCachedOrBuild config jpath (ImageSize r)
+    _      -> return jpath
+  -- TODO: don't use hardcoded jpeg type!
+  sendFile "image/jpeg" (T.unpack rpath)
 
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
