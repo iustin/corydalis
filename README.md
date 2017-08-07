@@ -13,11 +13,11 @@ output; it doesn't change anything on the filesystem, it simply
 reports state, so there's no damage to be done even if run with a
 wrong configuration.
 
-The application itself is a web server - no authentication, no
-users/passwords - and is designed to be run close or on the machine
-that hosts the files (walking the file system over NFS or Samba will a
-long time); it can be run directly on the NAS if it's a Linux
-machine.
+The application itself is a web server - the allowed users are stored
+in an sqlite database in the `db/` directory - and is designed to be
+run close or on the machine that hosts the files (walking the file
+system over NFS or Samba will a long time); it can be run directly on
+the NAS if it's a Linux machine.
 
 Once started, navigate to the host/port setup in the configuration
 file, and explore the classification of folders. Note that not all
@@ -32,3 +32,6 @@ organisation of files/folders is supported, see the `MANUAL.md` file.
 * tracks files also for panorama/HDR outputs (multiple raw files
   combined into a single output file)
 * computes list of unprocessed files, orphan sidecar files, etc.
+* view the output/processed files, with navigation facilities allowing
+  the browsing of the entire collection (requires a recent browser
+  with HTML5 support; tested on Firefox, Chrome and partially Safari)
