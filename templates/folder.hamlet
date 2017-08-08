@@ -66,7 +66,7 @@
         <div .panel-body>
           Folder contains no images.
       $else
-        <table #folder .tablesorter .table .table-condensed>
+        <table #folder .tablesorter .table .table-condensed .vmiddle>
               <col style="width: #{thumbsize}px;">
               <thead>
                 <tr>

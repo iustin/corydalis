@@ -78,3 +78,11 @@ div:fullscreen {
     top: 0px !important;
     background-color: black;
 }
+
+table.vmiddle tr th {
+  vertical-align: middle;
+}
+
+table.vmiddle tr td {
+  vertical-align: middle;
+}
