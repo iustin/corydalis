@@ -262,6 +262,10 @@ $(document).ready(function() {
                });
     }
 
+    function gotoFolder() {
+        location.href = cory.info.folderurl;
+    }
+
     function setupHammer() {
         var mc = new Hammer.Manager(canvas, {});
         mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
@@ -282,6 +286,9 @@ $(document).ready(function() {
             break;
         case 82: // 'r'
             gotoRandomImage();
+            break;
+        case 85: // 'u'
+            gotoFolder();
             break;
         case 37: // left arrow
             advanceImage(false);
