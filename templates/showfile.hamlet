@@ -4,7 +4,7 @@
     <td><span class="monolight">#{Pics.fileName f}</span>
   <tr>
     <td>Path
-    <td><span class="monolight">#{Pics.filePath f}
+    <td><span class="monolight">#{quoteMarkup $ Pics.filePath f}
   <tr>
     <td>Last modified
     <td><span class="monolight">#{showTimestamp $ Pics.fileMTime f}

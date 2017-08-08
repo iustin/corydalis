@@ -57,6 +57,7 @@ dependencies:
 - foreign-store
 - random
 - typed-process
+- blaze-markup
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.

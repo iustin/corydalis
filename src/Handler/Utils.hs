@@ -34,6 +34,7 @@ import Data.Time
 import Data.Time.Clock.POSIX
 import Text.Printf
 import Data.Prefix.Units
+import Text.Blaze (ToMarkup, Markup, toMarkup, string)
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
@@ -116,3 +117,8 @@ generatePrevNext k m r = do
   let prevRoute = uncurry r <$> Map.lookupLT k m
       nextRoute = uncurry r <$> Map.lookupGT k m
   $(widgetFile "prevnext")
+
+-- | Quotes content such that copy-paste is easier if within a span.
+quoteMarkup :: (ToMarkup a) => a -> Markup
+quoteMarkup element = toMarkup [quote, toMarkup element, quote]
+  where quote = string "'"

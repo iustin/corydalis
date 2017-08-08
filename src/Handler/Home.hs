@@ -206,7 +206,6 @@ getTimelineR = do
 getSettingsR :: Handler Html
 getSettingsR = do
   config <- getConfig
-  let quoteString path = "'" ++ path ++ "'"
   defaultLayout $ do
     setTitle "Corydalis: Settings"
     $(widgetFile "settings")

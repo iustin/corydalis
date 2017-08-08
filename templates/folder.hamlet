@@ -13,13 +13,13 @@
             This folder is backed by the single directory:
             <ul>
               <li>
-                <span .monolight>#{pdMainPath dir}
+                <span .monolight>#{quoteMarkup $ pdMainPath dir}
           $of _
             This folder is backed up by the following directories:
             <ul>
               $forall path <- allpaths
                 <li>
-                  <span .monolight>#{path}
+                  <span .monolight>#{quoteMarkup $ path}
 
   <div .col-xs-12 .col-md-4>
     <div .panel .panel-default>
