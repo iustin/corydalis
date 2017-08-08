@@ -735,7 +735,6 @@ findBestSize r@(ImageSize s) (x:xs) =
 -- TODO: fix the issue that range files and their components have identical output.
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: add re-generation if preview is outdated.
--- TODO: make thumbnail size configurable.
 -- TODO: make thumbnails PNG.
 -- TODO: make thumbnails square and transparent.
 -- TODO: for images smaller than given source, we generate redundant previews.
@@ -749,7 +748,7 @@ loadCachedOrBuild config path size = do
           fpath = (cfgCacheDir config) ++ T.unpack path ++ "-" ++ show res'
       exists <- fileExist fpath
       when (not exists) $ do
-        let operator = if res' <= 128
+        let operator = if res' <= cfgThumbnailSize config
                        then "-thumbnail"
                        else "-resize"
         let (parent, _) = splitFileName fpath

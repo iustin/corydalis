@@ -42,12 +42,18 @@ config:
   blacklisteddirs: [".thumbnails"]
   # Where to store the generated thumbnails and small size previews
   cachedir: "/pics/cache"
+  # Thumbnail size. Previews at this size or lower will be generated
+  # in an optimised way (see ImageMagick convert's "-thumbnail"
+  # option), stripping unneeded information, and saved as PNGs; images
+  # above will be saved as JPEGs.
+  thumbnailsize: 64
   # Automatically-generated image sizes; recommended to include common
   # resolutions the pictures will be viewed at and thumbnail sizes
   # (64×64, 128×128). You can list the entries in any order (they will
   # be used in sorted order), but it's more readable to list them
-  # sorted as well.
-  autoimgsizes: [64, 1920, 2560, 128]
+  # sorted as well. Note that the value "thumbnailsize" above is
+  # automatically added to this list.
+  autoimgsizes: [1920, 2560]
   # Other image sizes that will be generated and saved to cachedir,
   # but only on demand. If a value appears both here and in
   # autoimgsizes, the entry here will have no effect.
