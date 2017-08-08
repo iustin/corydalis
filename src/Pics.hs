@@ -69,6 +69,7 @@ import System.IO.Unsafe
 
 import Control.Monad
 import Control.Concurrent (forkIO)
+import Control.Exception
 import Data.Function (on)
 import qualified Data.Map.Strict as Map
 import Data.List
@@ -83,6 +84,7 @@ import qualified System.Posix.Files (fileSize)
 import System.Posix.Types
 import qualified Text.Regex.PCRE as PCRE
 import System.Process.Typed
+import System.IO.Error
 
 addRevDot :: [FilePath] -> [FilePath]
 addRevDot = map (reverse . ('.':))
@@ -633,7 +635,7 @@ forceBuildThumbCaches config repo = do
   let images = filterImagesByClass [ImageProcessed, ImageOutdated, ImageStandalone] repo
   mapM_ (\i ->
            case imgJpegPath i of
-             x:_ -> mapM_ (loadCachedOrBuild config (filePath x))
+             f:_ -> mapM_ (loadCachedOrBuild config (filePath f) (fileMTime f))
                      (map ImageSize (cfgAutoImageSizes config))
              _ -> return ()
         ) images
@@ -734,11 +736,10 @@ findBestSize r@(ImageSize s) (x:xs) =
 -- TODO: add handling of raw files.
 -- TODO: fix the issue that range files and their components have identical output.
 -- TODO: improve path manipulation \/ concatenation.
--- TODO: add re-generation if preview is outdated.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> Text -> ImageSize -> IO (Text, Text)
-loadCachedOrBuild config path size = do
+loadCachedOrBuild :: Config -> Text -> POSIXTime -> ImageSize -> IO (Text, Text)
+loadCachedOrBuild config path mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
     Nothing -> return ("image/jpeg", path)
@@ -747,8 +748,11 @@ loadCachedOrBuild config path size = do
           fpath = (cfgCacheDir config) ++ T.unpack path ++ "-" ++ show res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
-      exists <- fileExist fpath
-      when (not exists) $ do
+      stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
+      let needsGen = case stat of
+                       Left _ -> True
+                       Right st -> modificationTimeHiRes st < mtime
+      when needsGen $ do
         let operators = if isThumb
                           then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
                           else ["-resize", geom]

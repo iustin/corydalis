@@ -133,15 +133,16 @@ getImageBytesR folder iname = do
   img <- case Map.lookup iname images of
            Nothing -> notFound
            Just img' -> return img'
-  jpath <- case imgJpegPath img of
-             j:_ -> return $ filePath j
+  jfile <- case imgJpegPath img of
+             j:_ -> return j
              _   -> case (imgRawPath img, flagsSoftMaster (imgFlags img)) of
-                      (Just r, True) -> return $ filePath r
+                      (Just r, True) -> return r
                       _ -> notFound
+  let jpath = filePath jfile
   -- TODO: make this 'res' string and the javascript string derive from the same constant
   res <- lookupGetParam "res"
   (ctype, rpath) <- case (fmap T.unpack res >>= readMaybe) of
-    Just r -> liftIO $ loadCachedOrBuild config jpath (ImageSize r)
+    Just r -> liftIO $ loadCachedOrBuild config jpath (fileMTime jfile) (ImageSize r)
     _      -> return ("image/jpeg", jpath)
   -- TODO: don't use hardcoded jpeg type!
   sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
