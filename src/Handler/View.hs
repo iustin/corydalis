@@ -37,6 +37,7 @@ import Handler.Utils
 
 import qualified Data.Map as Map
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T (encodeUtf8)
 import System.Random (getStdRandom, randomR)
 import Text.Read (readMaybe)
 
@@ -139,11 +140,11 @@ getImageBytesR folder iname = do
                       _ -> notFound
   -- TODO: make this 'res' string and the javascript string derive from the same constant
   res <- lookupGetParam "res"
-  rpath <- case (fmap T.unpack res >>= readMaybe) of
+  (ctype, rpath) <- case (fmap T.unpack res >>= readMaybe) of
     Just r -> liftIO $ loadCachedOrBuild config jpath (ImageSize r)
-    _      -> return jpath
+    _      -> return ("image/jpeg", jpath)
   -- TODO: don't use hardcoded jpeg type!
-  sendFile "image/jpeg" (T.unpack rpath)
+  sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
 
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do

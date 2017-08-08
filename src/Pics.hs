@@ -735,24 +735,26 @@ findBestSize r@(ImageSize s) (x:xs) =
 -- TODO: fix the issue that range files and their components have identical output.
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: add re-generation if preview is outdated.
--- TODO: make thumbnails PNG.
--- TODO: make thumbnails square and transparent.
 -- TODO: for images smaller than given source, we generate redundant previews.
-loadCachedOrBuild :: Config -> Text -> ImageSize -> IO Text
+-- TODO: stop presuming all images are jpeg.
+loadCachedOrBuild :: Config -> Text -> ImageSize -> IO (Text, Text)
 loadCachedOrBuild config path size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
-    Nothing -> return path
+    Nothing -> return ("image/jpeg", path)
     Just res' -> do
       let geom = show res' ++ "x" ++ show res'
           fpath = (cfgCacheDir config) ++ T.unpack path ++ "-" ++ show res'
+          isThumb = res' <= cfgThumbnailSize config
+          format = if isThumb then "png" else "jpg"
       exists <- fileExist fpath
       when (not exists) $ do
-        let operator = if res' <= cfgThumbnailSize config
-                       then "-thumbnail"
-                       else "-resize"
-        let (parent, _) = splitFileName fpath
+        let operators = if isThumb
+                          then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
+                          else ["-resize", geom]
+            (parent, _) = splitFileName fpath
+            outFile = format ++ ":" ++ fpath
         createDirectoryIfMissing True parent
-        (exitCode, out, err) <- readProcess $ proc "convert" [T.unpack path, operator, geom, fpath]
+        (exitCode, out, err) <- readProcess $ proc "convert" (concat [[T.unpack path], operators, [outFile]])
         return ()
-      return $ T.pack fpath
+      return $ (T.pack $ "image/" ++ format, T.pack fpath)

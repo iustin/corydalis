@@ -67,6 +67,7 @@
           Folder contains no images.
       $else
         <table #folder .tablesorter .table .table-condensed>
+              <col style="width: #{thumbsize}px;">
               <thead>
                 <tr>
                   <th rowspan=2 ."{sorter: false}">Icon
@@ -82,7 +83,10 @@
                   <tr .#{imgRowClass img}>
                     <td>
                         <a href=@{ViewR name (imgName img)}>
-                          <img src="@{ImageBytesR name (imgName img)}?xres=64&yres=64">
+                          <img
+                            src="@{ImageBytesR name (imgName img)}?res=#{thumbsize}"
+                            style="width: #{thumbsize}px; height: #{thumbsize}px"
+                            >
                     <td>
                         <a href=@{ImageR name (imgName img)}>#{imgName img}
                     <td>

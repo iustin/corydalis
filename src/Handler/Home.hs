@@ -119,8 +119,10 @@ getHomeR = do
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do
+  config <- getConfig
   (pics, dir) <- getPicsAndFolder name
   let allpaths = pdMainPath dir:pdSecPaths dir
+      thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     let stats = computeFolderStats dir
         rbuilder = ((const .) FolderR)
