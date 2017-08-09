@@ -84,7 +84,7 @@
                     <td>
                         <a href=@{ViewR name (imgName img)}>
                           <img
-                            src="@{ImageBytesR name (imgName img)}?res=#{thumbsize}"
+                            src="@?{(ImageBytesR name (imgName img), [("res", T.pack $ show thumbsize)])}"
                             style="width: #{thumbsize}px; height: #{thumbsize}px"
                             >
                     <td>
