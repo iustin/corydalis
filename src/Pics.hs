@@ -56,6 +56,7 @@ module Pics ( PicDir(..)
             , totalStatsSize
             , totalStatsCount
             , loadCachedOrBuild
+            , imageAtRes
             ) where
 
 import Types
@@ -65,7 +66,11 @@ import Prelude
 import Control.Concurrent.MVar
 import qualified Data.Text as T
 import Data.Text (Text)
+import qualified Data.Text.Lazy.Encoding as T (decodeUtf8)
+import qualified Data.Text.Lazy as T (toStrict)
+import qualified Data.ByteString.Lazy as BSL (writeFile, length)
 import System.IO.Unsafe
+import Data.Int (Int64)
 
 import Control.Monad
 import Control.Concurrent (forkIO)
@@ -85,6 +90,7 @@ import System.Posix.Types
 import qualified Text.Regex.PCRE as PCRE
 import System.Process.Typed
 import System.IO.Error
+import System.Exit
 
 addRevDot :: [FilePath] -> [FilePath]
 addRevDot = map (reverse . ('.':))
@@ -635,7 +641,7 @@ forceBuildThumbCaches config repo = do
   let images = filterImagesByClass [ImageProcessed, ImageOutdated, ImageStandalone] repo
   mapM_ (\i ->
            case imgJpegPath i of
-             f:_ -> mapM_ (loadCachedOrBuild config (filePath f) (fileMTime f))
+             f:_ -> mapM_ (loadCachedOrBuild config (filePath f) Nothing (fileMTime f))
                      (map ImageSize (cfgAutoImageSizes config))
              _ -> return ()
         ) images
@@ -726,6 +732,18 @@ findBestSize r@(ImageSize s) (x:xs) =
     then Just x
     else findBestSize r xs
 
+cachedBasename :: Config -> FilePath -> String
+cachedBasename config path =
+  cfgCacheDir config ++ "/" ++ path
+
+embeddedImagePath :: Config -> FilePath -> String
+embeddedImagePath config path =
+  cachedBasename config path ++ "-embedded"
+
+scaledImagePath :: Config -> FilePath -> Int -> String
+scaledImagePath config path res =
+  cachedBasename config path ++ "-" ++ show res
+
 -- | Generate a preview for an image.
 --
 -- In this context, a preview is a smaller version of an image, for
@@ -733,19 +751,19 @@ findBestSize r@(ImageSize s) (x:xs) =
 -- is done using imagemagick's convert tool.
 --
 -- TODO: add loging of failures.
--- TODO: add handling of raw files.
 -- TODO: fix the issue that range files and their components have identical output.
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> Text -> POSIXTime -> ImageSize -> IO (Text, Text)
-loadCachedOrBuild config path mtime size = do
-  let res = findBestSize size (cfgAllImageSizes config)
+loadCachedOrBuild :: Config -> Text -> Maybe Text -> POSIXTime -> ImageSize -> IO (Text, Text)
+loadCachedOrBuild config origPath srcPath mtime size = do
+  let bytesPath = fromMaybe origPath srcPath
+      res = findBestSize size (cfgAllImageSizes config)
   case res of
-    Nothing -> return ("image/jpeg", path)
+    Nothing -> return ("image/jpeg", bytesPath)
     Just res' -> do
       let geom = show res' ++ "x" ++ show res'
-          fpath = (cfgCacheDir config) ++ T.unpack path ++ "-" ++ show res'
+          fpath = scaledImagePath config (T.unpack origPath) res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
       stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
@@ -759,6 +777,91 @@ loadCachedOrBuild config path mtime size = do
             (parent, _) = splitFileName fpath
             outFile = format ++ ":" ++ fpath
         createDirectoryIfMissing True parent
-        (exitCode, out, err) <- readProcess $ proc "convert" (concat [[T.unpack path], operators, [outFile]])
+        (exitCode, out, err) <- readProcess $ proc "convert" (concat [[T.unpack bytesPath], operators, [outFile]])
         return ()
       return $ (T.pack $ "image/" ++ format, T.pack fpath)
+
+-- | Ordered list of tags that represent embedded images.
+previewTags :: [String]
+previewTags = ["JpgFromRaw", "PreviewImage"]
+
+-- | Minimum thumbnail size to consider it a valid image.
+minImageSize :: Int64
+minImageSize = 512
+
+-- | Extracts and saves an embedded thumbnail from an image.
+--
+-- The extract image type is presumed (and required) to be jpeg.
+extractEmbedded :: Config -> Text -> String -> IO (Either Text Text)
+extractEmbedded config path tag = do
+  let outputPath = embeddedImagePath config (T.unpack path)
+      (outputDir, _) = splitFileName outputPath
+      args = [
+        "-b",
+        "-" ++ tag,
+        T.unpack path
+        ]
+  exists <- fileExist outputPath
+  if not exists
+    then do
+      -- TODO: write directly to temp file via setStdOut +
+      -- useHandleOpen + ..., then rename atomically if successful.
+      let pconfig =
+            setStdin closed
+            . setCloseFds True
+            $ proc "exiftool" args
+      (exitCode, out, err) <- readProcess pconfig
+      if exitCode == ExitSuccess && BSL.length out >= minImageSize
+        then do
+          createDirectoryIfMissing True outputDir
+          BSL.writeFile outputPath out
+          return $ Right $ T.pack outputPath
+        else
+          return $ Left $ T.toStrict $ T.decodeUtf8 err -- partial function!
+    else
+      return $ Right $ T.pack outputPath
+
+-- | Extract the first valid thumbnail from an image.
+bestEmbedded :: Config -> Text -> IO (Either Text Text)
+bestEmbedded config path =
+  go config path previewTags
+  where go _ _ [] = return $ Left "No tags available"
+        go c p (x:xs) = do
+          r <- extractEmbedded c p x
+          case r of
+            Left _ -> case xs of
+              [] -> return r
+              _ -> go c p xs
+            Right _ -> return r
+
+-- | Return the path (on the filesystem) to a specific size rendering of an image.
+--
+-- If there was no specific size requested, return the path to an
+-- unscaled variant. If a size was requested, return the smallest
+-- rendering at a size larger-or-equal than the requested one.
+--
+-- In case the image requested doesn't already have a valid jpeg
+-- variant, try to extract an embedded preview from one of the raw
+-- files, and use that as substitute full-size version, before scaling
+-- down (as needed).
+--
+-- TODO: handle and meaningfully return errors.
+imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Text, Text)
+imageAtRes config img size = do
+  (raw, origFile) <- case imgJpegPath img of
+                       j:_ -> return (False, j)
+                       _   -> case (imgRawPath img, flagsSoftMaster (imgFlags img)) of
+                         (Just r, True) -> return (False, r)
+                         (Just r, False) -> return (True, r)
+                         _ -> error "Neither raw nor jpeg image available"
+  srcPath <- if raw
+               then do
+                 thumb <- bestEmbedded config (filePath origFile)
+                 case thumb of
+                   Left err -> error $ "Error while extracting embedded image: " ++ T.unpack err
+                   Right path -> return $ Just path
+               else return Nothing
+  case size of
+    -- TODO: don't use hardcoded jpeg type!
+    Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
+    Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileMTime origFile) s
