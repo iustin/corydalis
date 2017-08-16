@@ -36,6 +36,7 @@ import Text.Printf
 import Data.Prefix.Units
 import Text.Blaze (ToMarkup, Markup, toMarkup, string)
 import Data.Aeson
+import qualified Data.ByteString.Lazy as BSL (toStrict)
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
@@ -115,14 +116,37 @@ getPics = do
     Nothing -> do
       config <- getConfig
       cache <- getExifCache
-      liftIO $ scanAll config cache
+      repo <- liftIO $ scanAll config cache
+      updateExifs repo
+      return repo
 
 reloadPics :: Handler ()
 reloadPics = do
   config <- getConfig
   cache <- getExifCache
-  _ <- liftIO $ forceScanAll config cache
+  repo <- liftIO $ forceScanAll config cache
+  updateExifs repo
   return ()
+
+dbExifFromExif :: File -> Maybe Import.Exif
+dbExifFromExif f = do
+  e <- fileExif f
+  return $ Import.Exif { exifPath = filePath f
+                       , exifMtime = 0
+                       , exifJson = BSL.toStrict . encode $ exifRaw e
+                       }
+
+updateExifs :: Repository -> Handler ()
+updateExifs repo = do
+  let allFiles = allRepoFiles repo
+      allExifs = foldl' (\acc f ->
+                           case dbExifFromExif f of
+                              Nothing -> acc
+                              Just e -> e:acc
+                        ) [] allFiles
+  runDB $ do
+    deleteWhere ([] :: [Filter Import.Exif])
+    insertMany_ allExifs
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do

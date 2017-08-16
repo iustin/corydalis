@@ -62,6 +62,8 @@ module Pics ( PicDir(..)
             , totalStatsCount
             , loadCachedOrBuild
             , imageAtRes
+            , allImageFiles
+            , allRepoFiles
             ) where
 
 import Types
@@ -763,6 +765,22 @@ filterImagesByClass classes =
            let folderPics = filter (\p -> imgStatus p `elem` classes) .
                             Map.elems . pdImages $ folder
            in pics ++ folderPics) [] . Map.elems . repoDirs
+
+allImageFiles :: Image -> [File]
+allImageFiles img =
+  concat [ maybeToList $ imgRawPath img
+         , maybeToList $ imgSidecarPath img
+         , imgJpegPath img
+         ]
+
+addDirFiles :: PicDir -> [File] -> [File]
+addDirFiles dir =
+  flip (Map.foldl' (\fs untrk -> untrkPaths untrk ++ fs)) (pdUntracked dir) .
+  flip (Map.foldl' (\fs img -> allImageFiles img ++ fs)) (pdImages dir)
+
+allRepoFiles :: Repository -> [File]
+allRepoFiles =
+  Map.foldl' (flip addDirFiles) [] . repoDirs
 
 dayFromTimestamp :: POSIXTime -> Day
 dayFromTimestamp = utctDay . posixSecondsToUTCTime
