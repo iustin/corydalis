@@ -590,7 +590,9 @@ getExif cache dir paths = do
   let requested = Set.fromList $ map (T.pack . buildPath dir) paths
       existing = Map.keysSet cache
       missing = requested `Set.difference` existing
-  jsons <- extractExifs dir $ Set.toList missing
+  jsons <- if Set.null missing
+             then return $ Right []
+             else extractExifs dir $ Set.toList missing
   let localRawCache = foldl' (\m obj ->
                                 case parseMaybe (\o -> o .: "SourceFile") obj of
                                   Nothing -> m
