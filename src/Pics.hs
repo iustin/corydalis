@@ -580,10 +580,14 @@ parseExif obj =
 restrictKeys :: (Ord k) => Map.Map k v -> Set.Set k -> Map.Map k v
 restrictKeys m s = Map.filterWithKey (\k _ -> k `Set.member` s) m
 
+-- TODO: make this saner/ensure it's canonical path.
+buildPath :: FilePath -> FilePath -> FilePath
+buildPath dir name = dir ++ "/" ++ name
+
 -- | Try to get an exif value for a path, either from cache or from filesystem.
 getExif :: RawExifCache -> FilePath -> [FilePath] -> IO (Map.Map Text Exif)
 getExif cache dir paths = do
-  let requested = Set.fromList $ map T.pack paths
+  let requested = Set.fromList $ map (T.pack . buildPath dir) paths
       existing = Map.keysSet cache
       missing = requested `Set.difference` existing
   jsons <- extractExifs dir $ Set.toList missing
@@ -612,7 +616,8 @@ loadFolder config cache name path isSource = do
             torig = T.pack f
             f' = reverse f
             tf = T.pack f
-            jf = File tf ctime mtime size (T.pack $ path </> f) (tf `Map.lookup` lcache)
+            fullPath = T.pack $ path </> f
+            jf = File tf ctime mtime size fullPath (fullPath `Map.lookup` lcache)
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
             ctime = statusChangeTimeHiRes stat
