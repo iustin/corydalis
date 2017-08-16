@@ -578,10 +578,6 @@ parseExif obj =
        , exifLens   = ""
        }
 
--- TODO: remove once containers 0.5.8 is used
-restrictKeys :: (Ord k) => Map.Map k v -> Set.Set k -> Map.Map k v
-restrictKeys m s = Map.filterWithKey (\k _ -> k `Set.member` s) m
-
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath
 buildPath dir name = dir ++ "/" ++ name
@@ -589,9 +585,12 @@ buildPath dir name = dir ++ "/" ++ name
 -- | Try to get an exif value for a path, either from cache or from filesystem.
 getExif :: RawExifCache -> FilePath -> [FilePath] -> IO (Map.Map Text Exif)
 getExif cache dir paths = do
-  let requested = Set.fromList $ map (T.pack . buildPath dir) paths
-      existing = Map.keysSet cache
-      missing = requested `Set.difference` existing
+  let (lcache, missing) =
+        foldl' (\(l, m) path ->
+                  case T.pack (buildPath dir path) `Map.lookup` cache of
+                    Nothing -> (l, T.pack path `Set.insert` m)
+                    Just v -> (Map.insert (T.pack path) v l, m))
+                  (Map.empty, Set.empty) paths
   jsons <- if Set.null missing
              then return $ Right []
              else extractExifs dir $ Set.toList missing
@@ -600,7 +599,7 @@ getExif cache dir paths = do
                                   Nothing -> m
                                   Just p -> Map.insert p obj m
                              )
-                      (restrictKeys cache requested)
+                      lcache
                       (either (const []) id jsons)
       localCache = Map.map parseExif localRawCache
   return localCache
@@ -621,7 +620,7 @@ loadFolder config cache name path isSource = do
             f' = reverse f
             tf = T.pack f
             fullPath = T.pack $ path </> f
-            jf = File tf ctime mtime size fullPath (fullPath `Map.lookup` lcache)
+            jf = File tf ctime mtime size fullPath (tf `Map.lookup` lcache)
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
             ctime = statusChangeTimeHiRes stat
