@@ -75,7 +75,7 @@ getHomeR = do
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
-      numfolders = Map.size pics
+      numfolders = Map.size $ repoDirs pics
       all_fc = [minBound..maxBound]
       json = [ def { gdName = "Raw/source files"
                    , gdMode = Just "markers"
@@ -102,7 +102,7 @@ getHomeR = do
                        (\l f -> let stats = computeFolderStats f
                                 in (fromIntegral $ totalStatsSize stats,
                                     fromIntegral $ totalStatsCount stats,
-                                    pdName f):l) [] pics
+                                    pdName f):l) [] (repoDirs pics)
       (xdata, ydata, textdata) = unzip3 perFolderStats
       j2 = [ def { gdName = "Folders"
                  , gdMode = Just "markers"
@@ -181,7 +181,8 @@ postReloadR :: Handler Html
 postReloadR = do
   setUltDestReferer
   config <- getConfig
-  _ <- liftIO $ forceScanAll config
+  cache <- getExifCache
+  _ <- liftIO $ forceScanAll config cache
   setMessage "Cache reloaded"
   setSession msgTypeKey msgSuccess
   redirectUltDest HomeR

@@ -11,3 +11,6 @@
   <tr>
     <td>Size
     <td .numeric><span class="monolight">#{showBinary $ Pics.fileSize f}
+  <tr>
+    <td>Exif
+    <td>#{show $ fileExif f}

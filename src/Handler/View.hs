@@ -101,8 +101,8 @@ getNextImageAnyFolder pics folder iname forward= do
   let gtfn :: (Ord a) => a -> Map a b -> Maybe (a, b)
       gtfn  = if forward then Map.lookupGT else Map.lookupLT
       fstfn = if forward then lookupMin else lookupMax
-  curFolder <- pdImages <$> folder `Map.lookup` pics
-  let nextFolder = snd <$> folder `gtfn` pics
+  curFolder <- pdImages <$> folder `Map.lookup` (repoDirs pics)
+  let nextFolder = snd <$> folder `gtfn` (repoDirs pics)
   (_, next) <- case gtfn iname curFolder of
                  Nothing -> do
                       nf <- nextFolder
@@ -166,7 +166,7 @@ getImageInfoR folder iname = do
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
   pics <- getPics
-  let nonEmptyFolders = Map.filter hasViewablePics pics
+  let nonEmptyFolders = Map.filter hasViewablePics (repoDirs pics)
   when (Map.null nonEmptyFolders) notFound
   fidx <- liftIO $ getStdRandom $ randomR (0, Map.size nonEmptyFolders - 1)
   let (fname, folder) = Map.elemAt fidx nonEmptyFolders

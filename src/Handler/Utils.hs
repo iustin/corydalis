@@ -35,6 +35,7 @@ import Data.Time.Clock.POSIX
 import Text.Printf
 import Data.Prefix.Units
 import Text.Blaze (ToMarkup, Markup, toMarkup, string)
+import Data.Aeson
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
@@ -93,15 +94,29 @@ imgRowClass img =
 getConfig :: Handler Config
 getConfig = appConfig . appSettings <$> getYesod
 
+getExifCache :: Handler RawExifCache
+getExifCache = do
+  exifs <- runDB $
+    selectList [] []
+  return $
+    foldl' (\rc e ->
+               let v = entityVal e
+                   k = exifPath v
+                   o = (decodeStrict $ exifJson v)::Maybe Object
+               in case o of
+                    Just obj -> Map.insert k obj rc
+                    _ -> rc) Map.empty exifs
+
 getPics :: Handler Repository
 getPics = do
   config <- getConfig
-  liftIO $ scanAll config
+  cache <- getExifCache
+  liftIO $ scanAll config cache
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
   pics <- getPics
-  case Map.lookup folder pics of
+  case Map.lookup folder (repoDirs pics) of
    Nothing -> notFound
    Just dir -> return (pics, dir)
 
