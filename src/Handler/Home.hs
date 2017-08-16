@@ -180,9 +180,7 @@ getBrowseImagesR kinds = do
 postReloadR :: Handler Html
 postReloadR = do
   setUltDestReferer
-  config <- getConfig
-  cache <- getExifCache
-  _ <- liftIO $ forceScanAll config cache
+  reloadPics
   setMessage "Cache reloaded"
   setSession msgTypeKey msgSuccess
   redirectUltDest HomeR

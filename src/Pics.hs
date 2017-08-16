@@ -33,6 +33,7 @@ module Pics ( PicDir(..)
             , repoDirs
             , ImageSize(..)
             , fileLastTouch
+            , getRepo
             , scanAll
             , forceScanAll
             , isProcessed
@@ -722,6 +723,15 @@ forceUpdateCache :: Config
                  -> Maybe Repository
                  -> IO (Maybe Repository, Repository)
 forceUpdateCache config cache _ = maybeUpdateCache config cache Nothing
+
+-- | Tries to cheaply return the repository.
+--
+-- If we already have a repository, return it. Otherwise, signal no
+-- repository, so that `scanAll` can be called for the expensive
+-- scan. This function thus allows a cheap retrieve without having to
+-- scan the database for exif information pre-caching, etc.
+getRepo :: IO (Maybe Repository)
+getRepo = readMVar repoCache
 
 scanAll :: Config -> RawExifCache -> IO Repository
 scanAll config cache =

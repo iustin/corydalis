@@ -109,9 +109,20 @@ getExifCache = do
 
 getPics :: Handler Repository
 getPics = do
+  cheapRepo <- liftIO $ getRepo
+  case cheapRepo of
+    Just repo -> return repo
+    Nothing -> do
+      config <- getConfig
+      cache <- getExifCache
+      liftIO $ scanAll config cache
+
+reloadPics :: Handler ()
+reloadPics = do
   config <- getConfig
   cache <- getExifCache
-  liftIO $ scanAll config cache
+  _ <- liftIO $ forceScanAll config cache
+  return ()
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
