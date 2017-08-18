@@ -75,7 +75,8 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Lazy.Encoding as T (decodeUtf8)
 import qualified Data.Text.Lazy as T (toStrict)
-import qualified Data.ByteString.Lazy as BSL (writeFile, length)
+import qualified Data.ByteString as BS (ByteString)
+import qualified Data.ByteString.Lazy as BSL (writeFile, length, toStrict)
 import System.IO.Unsafe
 import Data.Int (Int64)
 import Data.Aeson
@@ -149,7 +150,7 @@ expandRangeFile cfg name =
     _ -> []
 
 
-type RawExif = Object
+type RawExif = BS.ByteString
 
 type RawExifCache = Map.Map Text RawExif
 
@@ -569,9 +570,9 @@ addUntracked :: Map.Map Text Untracked -> [Untracked] -> Map.Map Text Untracked
 addUntracked = foldl' (\a u -> Map.insertWith mergeUntracked (untrkName u) u a)
 
 -- | Parse raw exif object into exif type.
-parseExif :: RawExif -> Exif
+parseExif :: Object -> Exif
 parseExif obj =
-  Exif { exifRaw    = obj
+  Exif { exifRaw    = BSL.toStrict . encode $ obj
        , exifPeople = []
        , exifCamera = "unknown"
        , exifSerial = ""
@@ -589,7 +590,11 @@ getExif cache dir paths = do
         foldl' (\(l, m) path ->
                   case T.pack (buildPath dir path) `Map.lookup` cache of
                     Nothing -> (l, T.pack path `Set.insert` m)
-                    Just v -> (Map.insert (T.pack path) v l, m))
+                    Just v ->
+                      let l' = case decodeStrict' v of
+                            Nothing -> l
+                            Just o -> Map.insert (T.pack path) o l
+                      in (l', m))
                   (Map.empty, Set.empty) paths
   jsons <- if Set.null missing
              then return $ Right []

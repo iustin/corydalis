@@ -103,10 +103,8 @@ getExifCache = do
     foldl' (\rc e ->
                let v = entityVal e
                    k = exifPath v
-                   o = (decodeStrict $ exifJson v)::Maybe Object
-               in case o of
-                    Just obj -> Map.insert k obj rc
-                    _ -> rc) Map.empty exifs
+                   o = exifJson v
+               in Map.insert k o rc) Map.empty exifs
 
 getPics :: Handler Repository
 getPics = do
@@ -133,7 +131,7 @@ dbExifFromExif f = do
   e <- fileExif f
   return $ Import.Exif { exifPath = filePath f
                        , exifMtime = 0
-                       , exifJson = BSL.toStrict . encode $ exifRaw e
+                       , exifJson = exifRaw e
                        }
 
 updateExifs :: Repository -> Handler ()
