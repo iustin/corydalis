@@ -249,7 +249,7 @@ data PicDir = PicDir
 type RepoDirs = Map.Map Text PicDir
 
 data Repository = Repository
-  { repoDirs  :: RepoDirs
+  { repoDirs  :: !RepoDirs
   }
 
 type FolderClassStats = Map.Map FolderClass Int
