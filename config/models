@@ -3,9 +3,3 @@ User
     password Text Maybe
     UniqueUser name
     deriving Typeable
-
-Exif
-  path  Text
-  mtime Int64
-  json  ByteString
-  UniqueExif path

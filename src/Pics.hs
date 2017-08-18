@@ -75,7 +75,7 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Lazy.Encoding as T (decodeUtf8)
 import qualified Data.Text.Lazy as T (toStrict)
-import qualified Data.ByteString as BS (ByteString)
+import qualified Data.ByteString as BS (ByteString, readFile)
 import qualified Data.ByteString.Lazy as BSL (writeFile, length, toStrict)
 import System.IO.Unsafe
 import Data.Int (Int64)
@@ -155,8 +155,7 @@ type RawExif = BS.ByteString
 type RawExifCache = Map.Map Text RawExif
 
 data Exif = Exif
-  { exifRaw    :: !RawExif
-  , exifPeople :: ![Text]
+  { exifPeople :: ![Text]
   , exifCamera :: !Text
   , exifSerial :: !Text
   , exifLens   :: !Text
@@ -513,31 +512,29 @@ getDirContents config base = do
 
 -- | Scans one of the directories defined in the configuration.
 scanBaseDir :: Config
-            -> RawExifCache
             -> RepoDirs
             -> String
             -> Bool
             -> IO RepoDirs
-scanBaseDir config cache repo base isSource = do
+scanBaseDir config repo base isSource = do
   paths <- getDirContents config base
   let dirs = filter (isDirectory . snd) paths
-  foldM (\r p -> scanSubDir config cache r (base </> fst p) isSource) repo dirs
+  foldM (\r p -> scanSubDir config r (base </> fst p) isSource) repo dirs
 
 -- | Scans a directory one level below a base dir. The actual
 -- subdirectory name is currently discarded and will not appear in the
 -- final folder names.
 scanSubDir :: Config
-           -> RawExifCache
            -> RepoDirs
            -> String
            -> Bool
            -> IO RepoDirs
-scanSubDir config cache repository path isSource = do
+scanSubDir config repository path isSource = do
   allpaths <- getDirContents config path
   let dirpaths = filter (isDirectory . snd) allpaths
   let allpaths' = filter (isOKDir config) . map fst $ dirpaths
   foldM (\r s -> do
-            dir <- loadFolder config cache s (path </> s) isSource
+            dir <- loadFolder config s (path </> s) isSource
             return $ Map.insertWith (mergeFolders config) (pdName dir) dir r)
     repository allpaths'
 
@@ -569,14 +566,16 @@ addImgs config =
 addUntracked :: Map.Map Text Untracked -> [Untracked] -> Map.Map Text Untracked
 addUntracked = foldl' (\a u -> Map.insertWith mergeUntracked (untrkName u) u a)
 
+unknown :: Text
+unknown = "unknown"
+
 -- | Parse raw exif object into exif type.
 parseExif :: Object -> Exif
 parseExif obj =
-  Exif { exifRaw    = BSL.toStrict . encode $ obj
-       , exifPeople = []
-       , exifCamera = "unknown"
+  Exif { exifPeople = []
+       , exifCamera = fromMaybe unknown (parseMaybe (.: "Model") obj)
        , exifSerial = ""
-       , exifLens   = ""
+       , exifLens   = fromMaybe unknown (parseMaybe (.: "LensModel") obj)
        }
 
 -- TODO: make this saner/ensure it's canonical path.
@@ -584,8 +583,17 @@ buildPath :: FilePath -> FilePath -> FilePath
 buildPath dir name = dir ++ "/" ++ name
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: RawExifCache -> FilePath -> [FilePath] -> IO (Map.Map Text Exif)
-getExif cache dir paths = do
+getExif :: Config -> FilePath -> [FilePath] -> IO (Map.Map Text Exif)
+getExif config dir paths = do
+  cache <- foldM (\acc p -> do
+                     let fpath = buildPath dir p
+                     let ec = exifPath config fpath
+                     exists <- fileExist ec
+                     if exists
+                       then do
+                         contents <- BS.readFile ec
+                         return $ Map.insert (T.pack fpath) contents acc
+                       else return acc) Map.empty paths
   let (lcache, missing) =
         foldl' (\(l, m) path ->
                   case T.pack (buildPath dir path) `Map.lookup` cache of
@@ -610,10 +618,10 @@ getExif cache dir paths = do
   return localCache
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
-loadFolder :: Config -> RawExifCache -> String -> FilePath -> Bool -> IO PicDir
-loadFolder config cache name path isSource = do
+loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
+loadFolder config name path isSource = do
   contents <- recursiveScanPath config path id
-  lcache <- getExif cache path $ map fst contents
+  lcache <- getExif config path $ map fst contents
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
@@ -625,7 +633,8 @@ loadFolder config cache name path isSource = do
             f' = reverse f
             tf = T.pack f
             fullPath = T.pack $ path </> f
-            jf = File tf ctime mtime size fullPath (tf `Map.lookup` lcache)
+            exif = tf `Map.lookup` lcache
+            jf = File tf ctime mtime size fullPath exif
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
             ctime = statusChangeTimeHiRes stat
@@ -700,11 +709,11 @@ resolveProcessedRanges config picd =
   in picd { pdImages = images' }
 
 
-scanFilesystem :: Config -> RawExifCache -> IO Repository
-scanFilesystem config cache = do
+scanFilesystem :: Config -> IO Repository
+scanFilesystem config = do
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
-  repo <- foldM (\repo (dir,issrc) -> scanBaseDir config cache repo dir issrc)
+  repo <- foldM (\repo (dir,issrc) -> scanBaseDir config repo dir issrc)
             Map.empty $ srcdirs ++ outdirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
@@ -723,19 +732,17 @@ forceBuildThumbCaches config repo = do
         ) images
 
 maybeUpdateCache :: Config
-                 -> RawExifCache
                  -> Maybe Repository
                  -> IO (Maybe Repository, Repository)
-maybeUpdateCache config cache Nothing = do
-  r <- scanFilesystem config cache
+maybeUpdateCache config Nothing = do
+  r <- scanFilesystem config
   return (Just r, r)
-maybeUpdateCache _ _ orig@(Just r) = return (orig, r)
+maybeUpdateCache _ orig@(Just r) = return (orig, r)
 
 forceUpdateCache :: Config
-                 -> RawExifCache
                  -> Maybe Repository
                  -> IO (Maybe Repository, Repository)
-forceUpdateCache config cache _ = maybeUpdateCache config cache Nothing
+forceUpdateCache config _ = maybeUpdateCache config Nothing
 
 -- | Tries to cheaply return the repository.
 --
@@ -746,13 +753,12 @@ forceUpdateCache config cache _ = maybeUpdateCache config cache Nothing
 getRepo :: IO (Maybe Repository)
 getRepo = readMVar repoCache
 
-scanAll :: Config -> RawExifCache -> IO Repository
-scanAll config cache =
-  modifyMVar repoCache (maybeUpdateCache config cache)
+scanAll :: Config -> IO Repository
+scanAll config =
+  modifyMVar repoCache (maybeUpdateCache config)
 
-forceScanAll :: Config -> RawExifCache -> IO Repository
-forceScanAll config cache = modifyMVar repoCache (forceUpdateCache config cache)
-
+forceScanAll :: Config -> IO Repository
+forceScanAll config = modifyMVar repoCache (forceUpdateCache config)
 
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =
@@ -838,6 +844,10 @@ findBestSize r@(ImageSize s) (x:xs) =
 cachedBasename :: Config -> FilePath -> String
 cachedBasename config path =
   cfgCacheDir config ++ "/" ++ path
+
+exifPath :: Config -> FilePath -> FilePath
+exifPath config path =
+  cachedBasename config path ++ "-exif"
 
 embeddedImagePath :: Config -> FilePath -> String
 embeddedImagePath config path =

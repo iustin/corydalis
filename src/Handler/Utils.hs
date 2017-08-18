@@ -35,8 +35,6 @@ import Data.Time.Clock.POSIX
 import Text.Printf
 import Data.Prefix.Units
 import Text.Blaze (ToMarkup, Markup, toMarkup, string)
-import Data.Aeson
-import qualified Data.ByteString.Lazy as BSL (toStrict)
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
@@ -95,17 +93,6 @@ imgRowClass img =
 getConfig :: Handler Config
 getConfig = appConfig . appSettings <$> getYesod
 
-getExifCache :: Handler RawExifCache
-getExifCache = do
-  exifs <- runDB $
-    selectList [] []
-  return $
-    foldl' (\rc e ->
-               let v = entityVal e
-                   k = exifPath v
-                   o = exifJson v
-               in Map.insert k o rc) Map.empty exifs
-
 getPics :: Handler Repository
 getPics = do
   cheapRepo <- liftIO $ getRepo
@@ -113,38 +100,13 @@ getPics = do
     Just repo -> return repo
     Nothing -> do
       config <- getConfig
-      cache <- getExifCache
-      repo <- liftIO $ scanAll config cache
-      updateExifs repo
-      return repo
+      liftIO $ scanAll config
 
 reloadPics :: Handler ()
 reloadPics = do
   config <- getConfig
-  cache <- getExifCache
-  repo <- liftIO $ forceScanAll config cache
-  updateExifs repo
+  _ <- liftIO $ forceScanAll config
   return ()
-
-dbExifFromExif :: File -> Maybe Import.Exif
-dbExifFromExif f = do
-  e <- fileExif f
-  return $ Import.Exif { exifPath = filePath f
-                       , exifMtime = 0
-                       , exifJson = exifRaw e
-                       }
-
-updateExifs :: Repository -> Handler ()
-updateExifs repo = do
-  let allFiles = allRepoFiles repo
-      allExifs = foldl' (\acc f ->
-                           case dbExifFromExif f of
-                              Nothing -> acc
-                              Just e -> Map.insert (exifPath e) e acc
-                        ) Map.empty allFiles
-  runDB $ do
-    deleteWhere ([] :: [Filter Import.Exif])
-    insertMany_ $ Map.elems allExifs
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
