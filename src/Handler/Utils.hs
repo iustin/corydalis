@@ -142,11 +142,11 @@ updateExifs repo = do
       allExifs = foldl' (\acc f ->
                            case dbExifFromExif f of
                               Nothing -> acc
-                              Just e -> e:acc
-                        ) [] allFiles
+                              Just e -> Map.insert (exifPath e) e acc
+                        ) Map.empty allFiles
   runDB $ do
     deleteWhere ([] :: [Filter Import.Exif])
-    insertMany_ allExifs
+    insertMany_ $ Map.elems allExifs
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
