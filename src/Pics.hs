@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Pics ( PicDir(..)
             , Image(..)
@@ -155,11 +156,21 @@ type RawExif = BS.ByteString
 type RawExifCache = Map.Map Text RawExif
 
 data Exif = Exif
-  { exifPeople :: ![Text]
-  , exifCamera :: !Text
-  , exifSerial :: !Text
-  , exifLens   :: !Text
+  { exifSrcFile    :: Text
+  , exifPeople     :: ![Text]
+  , exifCamera     :: !Text
+  , exifSerial     :: !Text
+  , exifLens       :: !Text
   } deriving (Show)
+
+instance FromJSON Exif where
+  parseJSON = withObject "Exif" $ \o -> do
+    exifSrcFile <- o .: "SourceFile"
+    let exifPeople = []
+    exifCamera <- o .:? "Model" .!= unknown
+    exifLens <- o .:? "LensModel" .!= unknown
+    exifSerial <- o .:? "Serial" .!= unknown
+    return Exif{..}
 
 data File = File
   { fileName  :: !Text
@@ -569,21 +580,12 @@ addUntracked = foldl' (\a u -> Map.insertWith mergeUntracked (untrkName u) u a)
 unknown :: Text
 unknown = "unknown"
 
--- | Parse raw exif object into exif type.
-parseExif :: Object -> Exif
-parseExif obj =
-  Exif { exifPeople = []
-       , exifCamera = fromMaybe unknown (parseMaybe (.: "Model") obj)
-       , exifSerial = ""
-       , exifLens   = fromMaybe unknown (parseMaybe (.: "LensModel") obj)
-       }
-
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath
 buildPath dir name = dir ++ "/" ++ name
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: Config -> FilePath -> [FilePath] -> IO (Map.Map Text Exif)
+getExif :: Config -> FilePath -> [FilePath] -> IO (Map.Map FilePath Exif)
 getExif config dir paths = do
   cache <- foldM (\acc p -> do
                      let fpath = buildPath dir p
@@ -592,30 +594,24 @@ getExif config dir paths = do
                      if exists
                        then do
                          contents <- BS.readFile ec
-                         return $ Map.insert (T.pack fpath) contents acc
+                         let e = decodeStrict' contents
+                         return $ case e of
+                           Nothing -> acc
+                           Just v -> Map.insert p v acc
                        else return acc) Map.empty paths
-  let (lcache, missing) =
-        foldl' (\(l, m) path ->
-                  case T.pack (buildPath dir path) `Map.lookup` cache of
-                    Nothing -> (l, T.pack path `Set.insert` m)
-                    Just v ->
-                      let l' = case decodeStrict' v of
-                            Nothing -> l
-                            Just o -> Map.insert (T.pack path) o l
-                      in (l', m))
-                  (Map.empty, Set.empty) paths
-  jsons <- if Set.null missing
-             then return $ Right []
-             else extractExifs dir $ Set.toList missing
-  let localRawCache = foldl' (\m obj ->
-                                case parseMaybe (\o -> o .: "SourceFile") obj of
-                                  Nothing -> m
-                                  Just p -> Map.insert p obj m
-                             )
-                      lcache
-                      (either (const []) id jsons)
-      localCache = Map.map parseExif localRawCache
-  return localCache
+  let missing =
+        foldl' (\m path ->
+                  if path `Map.member` cache
+                     then m
+                     else path:m) [] paths
+  jsons <- if null missing
+             then return []
+             else do
+               exifs <- extractExifs dir missing
+               return $ fromMaybe [] (parseExifs exifs)
+  let localRawCache = foldl' (\m e -> Map.insert (T.unpack $ exifSrcFile e) e m)
+                        cache jsons
+  return localRawCache
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
@@ -633,7 +629,7 @@ loadFolder config name path isSource = do
             f' = reverse f
             tf = T.pack f
             fullPath = T.pack $ path </> f
-            exif = tf `Map.lookup` lcache
+            exif = f `Map.lookup` lcache
             jf = File tf ctime mtime size fullPath exif
             jtf = strictJust jf
             mtime = modificationTimeHiRes stat
@@ -979,13 +975,13 @@ imageAtRes config img size = do
     Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
     Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileMTime origFile) s
 
-extractExifs :: FilePath -> [Text] -> IO (Either String [Object])
+extractExifs :: FilePath -> [FilePath] -> IO BS.ByteString
 extractExifs dir paths = do
   let args = [
         "-struct",
         "-json",
         "-d", "%s"
-        ] ++ map T.unpack paths
+        ] ++ paths
       pconfig =
         setStdin closed
         . setCloseFds True
@@ -996,4 +992,7 @@ extractExifs dir paths = do
   -- but still generates valid JSON output. So we ignore the exit code
   -- completely, as we can't attribute the error to a specific
   -- file. That should be rather done via 'Error' entry in the object.
-  return $ eitherDecode out
+  return $ BSL.toStrict out
+
+parseExifs :: BS.ByteString -> Maybe [Exif]
+parseExifs = decodeStrict'
