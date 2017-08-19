@@ -8,14 +8,7 @@ devel:
 	HOST=127.0.0.1 yesod devel --host 127.0.0.1
 
 profiling:
-	# until https://github.com/haskell/cabal/issues/193 is fixed,
-	# we need custom ghc options
-	cabal configure \
-	  --enable-executable-profiling \
-	  --enable-library-profiling \
-	  --ghc-options=-auto-all
-	cabal build -j
-	@echo done
+	stack build --profile --flag corydalis:dev
 
 %.ps: %.hp
 	hp2ps -c $<
