@@ -245,6 +245,22 @@ instance NFData Untracked where
                       rnf untrkParent `seq`
                       rnf untrkPaths
 
+data InodeInfo = InodeInfo
+  { inodeName  :: !FilePath
+  , inodeDir   :: !Bool
+  , inodeMTime :: !POSIXTime
+  , inodeCTime :: !POSIXTime
+  , inodeSize  :: !FileOffset
+  }
+
+instance NFData InodeInfo where
+  rnf InodeInfo{..} = rnf inodeName `seq`
+                      rnf inodeDir  `seq`
+                      inodeMTime    `seq`
+                      inodeCTime    `seq`
+                      inodeSize     `seq`
+                      ()
+
 -- | Represents a scaled down image size.
 newtype ImageSize = ImageSize Int
 
@@ -557,15 +573,25 @@ folderClassFromStats stats@(Stats unproc standalone processed
        _ -> error $ "Wrong computation in folderClass: stats=" ++ show stats
                     ++ ", conditions=" ++ show conditions
 
-getDirContents :: Config -> FilePath -> IO [(FilePath, FileStatus)]
+getDirContents :: Config -> FilePath -> IO ([FilePath], [InodeInfo])
 getDirContents config base = do
   contents <- getDirectoryContents base
   let blkdirs = blacklistedDirs config
       allowed_names = filter (`notElem` blkdirs) contents
-  mapM (\path -> do
-           stat <- getSymbolicLinkStatus $ base </> path
-           return (path, stat)
-       ) allowed_names
+  paths <-
+    foldM (\acc path -> do
+             stat <- getSymbolicLinkStatus $ base </> path
+             let !ii = InodeInfo { inodeName  = path
+                                 , inodeDir   = isDirectory stat
+                                 , inodeMTime = modificationTimeHiRes stat
+                                 , inodeCTime = statusChangeTimeHiRes stat
+                                 , inodeSize  = System.Posix.Files.fileSize stat
+                                 }
+             ii' <- evaluate $!! ii
+             return $! ii':acc
+       ) [] allowed_names
+  let (dirs, files) = partition inodeDir paths
+  return $!! (map inodeName dirs, files)
 
 -- | Scans one of the directories defined in the configuration.
 scanBaseDir :: Config
@@ -574,9 +600,8 @@ scanBaseDir :: Config
             -> Bool
             -> IO RepoDirs
 scanBaseDir config repo base isSource = do
-  paths <- getDirContents config base
-  let dirs = filter (isDirectory . snd) paths
-  foldM (\r p -> scanSubDir config r (base </> fst p) isSource) repo dirs
+  (dirs, _) <- getDirContents config base
+  foldM (\r p -> scanSubDir config r (base </> p) isSource) repo dirs
 
 -- | Scans a directory one level below a base dir. The actual
 -- subdirectory name is currently discarded and will not appear in the
@@ -587,9 +612,8 @@ scanSubDir :: Config
            -> Bool
            -> IO RepoDirs
 scanSubDir config repository path isSource = do
-  allpaths <- getDirContents config path
-  let dirpaths = filter (isDirectory . snd) allpaths
-  let allpaths' = filter (isOKDir config) . map fst $ dirpaths
+  (dirpaths, _) <- getDirContents config path
+  let allpaths' = filter (isOKDir config) dirpaths
   foldM (\r s -> do
             dir <- loadFolder config s (path </> s) isSource
             return $ Map.insertWith (mergeFolders config) (pdName dir) dir r)
@@ -600,14 +624,12 @@ scanSubDir config repository path isSource = do
 recursiveScanPath :: Config
                   -> FilePath
                   -> (FilePath -> FilePath)
-                  -> IO [(FilePath, FileStatus)]
+                  -> IO [InodeInfo]
 recursiveScanPath config base prepender = do
-  contents <- getDirContents config base
-  let (dirs, files) = partition (isDirectory . snd) contents
-      dirs' = map fst dirs
-      with_prefix = map (\(p, s) -> (prepender p, s)) files
+  (!dirs, !files) <- getDirContents config base
+  let with_prefix = map (\ii -> ii { inodeName = prepender (inodeName ii) }) files
   subdirs <- mapM (\p -> recursiveScanPath config (base </> p)
-                           (prepender . (p </>))) dirs'
+                           (prepender . (p </>))) dirs
   return $ with_prefix ++ concat subdirs
 
 -- | Strict application of the 'Just' constructor. This is useful as
@@ -663,13 +685,14 @@ getExif config dir paths = do
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
 loadFolder config name path isSource = do
   contents <- recursiveScanPath config path id
-  lcache <- getExif config path $ map fst contents
+  lcache <- getExif config path $ map inodeName contents
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
       tname = T.pack name
-      loadImage (f, stat)  =
-        let base = dropCopySuffix config $ dropExtensions f
+      loadImage ii  =
+        let f = inodeName ii
+            base = dropCopySuffix config $ dropExtensions f
             tbase = T.pack base
             torig = T.pack f
             f' = reverse f
@@ -678,9 +701,9 @@ loadFolder config name path isSource = do
             exif = f `Map.lookup` lcache
             jf = File tf ctime mtime size fullPath exif
             jtf = strictJust jf
-            mtime = modificationTimeHiRes stat
-            ctime = statusChangeTimeHiRes stat
-            size = System.Posix.Files.fileSize stat
+            mtime = inodeMTime ii
+            ctime = inodeCTime ii
+            size = inodeSize ii
             isSoftMaster = is_jpeg && isSource
             nfp = if hasExts f' rawe || isSoftMaster
                     then jtf
