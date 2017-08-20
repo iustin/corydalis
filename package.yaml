@@ -111,6 +111,18 @@ executables:
     when:
     - condition: flag(library-only)
       buildable: false
+  scanner:
+    main: scanner.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - corydalis
+    when:
+    - condition: flag(library-only)
+      buildable: false
 
 # Test suite
 tests:
