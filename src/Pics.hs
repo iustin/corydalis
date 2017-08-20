@@ -305,6 +305,9 @@ data Repository = Repository
   { repoDirs  :: !RepoDirs
   }
 
+instance NFData Repository where
+  rnf Repository{..} = rnf repoDirs
+
 type FolderClassStats = Map.Map FolderClass Int
 
 -- | Data type holding per-folder picture statistics.
@@ -758,7 +761,7 @@ scanFilesystem config = do
                        mergeShadows config) repo
       repo'' = Repository { repoDirs = repo' }
   forkIO $ forceBuildThumbCaches config repo''
-  return repo''
+  return $!! repo''
 
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
