@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 
 import Import
+import System.Mem
 import Pics
 
 main :: IO ()
@@ -38,7 +39,9 @@ main = do
     -- Scan repository
     repo <- scanAll config
     let stats = computeRepoStats repo
+    performGC
     threadDelay 5000000
     putStrLn $ "Repository stats:"
     print stats
     threadDelay 5000000
+    performGC
