@@ -13,6 +13,9 @@ profiling:
 %.ps: %.hp
 	hp2ps -c $<
 
+%.pdf: %.ps
+	ps2pdf $<
+
 view: corydalis.ps
 	gv -orientation seascape $<
 
