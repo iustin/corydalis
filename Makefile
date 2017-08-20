@@ -49,3 +49,4 @@ lint:
 	  .
 
 .PHONY: build devel profiling view release doc clean test
+.INTERMEDIATE: %.ps
