@@ -638,12 +638,14 @@ strictJust :: a -> Maybe a
 strictJust !a = Just a
 
 addImgs :: Config -> Map.Map Text Image -> [Image] -> Map.Map Text Image
-addImgs config =
-  foldl' (\a i -> Map.insertWith (mergePictures config) (imgName i) i a)
+addImgs config = foldl' (addImg config)
+
+addImg :: Config -> Map.Map Text Image -> Image -> Map.Map Text Image
+addImg config m i = Map.insertWith (mergePictures config) (imgName i) i m
 
 -- | Inserts a new other-type files into the others map.
-addUntracked :: Map.Map Text Untracked -> [Untracked] -> Map.Map Text Untracked
-addUntracked = foldl' (\a u -> Map.insertWith mergeUntracked (untrkName u) u a)
+addUntracked :: Untracked -> Map.Map Text Untracked -> Map.Map Text Untracked
+addUntracked u = Map.insertWith mergeUntracked (untrkName u) u
 
 unknown :: Text
 unknown = "unknown"
@@ -680,6 +682,10 @@ getExif config dir paths = do
   let localRawCache = foldl' (\m e -> Map.insert (T.unpack $ exifSrcFile e) e m)
                         cache jsons
   return localRawCache
+
+-- | Result of loadImage.
+data LoadImageRes = LIRImage !Image ![Image]  -- ^ A single image with potential shadows.
+                  | LIRUntracked !Untracked   -- ^ An untracked file.
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
@@ -720,23 +726,26 @@ loadFolder config name path isSource = do
             flags = Flags {
               flagsSoftMaster = isSoftMaster
               }
-            img = mkImage config tbase tname nfp sdc jpe range flags
             simgs = map (\expname ->
                            mkImage config (T.pack expname) tname
                                    Nothing Nothing [jf] Nothing emptyFlags
                         ) snames
             untrk = Untracked torig tname [jf]
+            onlySidecar = isNothing nfp && null jpe && isJust sdc
         in case (nfp, jpe, sdc) of
-             (Nothing, [], Nothing) -> ([], [], [untrk])
+             (Nothing, [], Nothing)
+               -> LIRUntracked untrk
              -- no shadows for sidecar only files
-             (Nothing, [], Just _) ->  ([img], [], [])
-             _                      -> ([img], simgs, [])
+             _ -> LIRImage img (if onlySidecar then [] else simgs)
+                    where img = mkImage config tbase tname nfp sdc jpe range flags
       (images, shadows, untracked) =
         foldl' (\(images', shadows', untracked') f ->
-                  let (newis, newss, newus) = loadImage f
-                  in (addImgs config images' newis,
-                      addImgs config shadows' newss,
-                      addUntracked untracked' newus)
+                  case loadImage f of
+                    LIRImage img newss -> (addImg config images' img,
+                                           addImgs config shadows' newss,
+                                           untracked')
+                    LIRUntracked untrk -> (images', shadows',
+                                           addUntracked untrk untracked')
                ) (Map.empty, Map.empty, Map.empty) contents
   return $!! PicDir tname (T.pack path) [] images shadows untracked
 
