@@ -83,6 +83,7 @@ import Data.Int (Int64)
 import Data.Aeson
 import Data.Aeson.Types (parseMaybe)
 
+import Control.DeepSeq
 import Control.Monad
 import Control.Concurrent (forkIO)
 import Control.Exception
@@ -163,6 +164,13 @@ data Exif = Exif
   , exifLens       :: !Text
   } deriving (Show)
 
+instance NFData Exif where
+  rnf Exif{..} = rnf exifSrcFile `seq`
+                 rnf exifPeople  `seq`
+                 rnf exifCamera  `seq`
+                 rnf exifSerial  `seq`
+                 rnf exifLens
+
 instance FromJSON Exif where
   parseJSON = withObject "Exif" $ \o -> do
     exifSrcFile <- o .: "SourceFile"
@@ -181,11 +189,23 @@ data File = File
   , fileExif  :: !(Maybe Exif)
   } deriving (Show)
 
+instance NFData File where
+  rnf File{..} = rnf fileName   `seq`
+                 rnf fileCTime  `seq`
+                 rnf fileMTime  `seq`
+                 fileSize       `seq` -- plain type, weak form is enough
+                 rnf filePath   `seq`
+                 rnf fileExif
+
+
 -- | Flags (on an image or a directory) showing exceptional
 -- statuses.
 data Flags = Flags
   { flagsSoftMaster :: !Bool
   } deriving (Show)
+
+instance NFData Flags where
+  rnf Flags{..} = rnf flagsSoftMaster
 
 emptyFlags :: Flags
 emptyFlags = Flags {
@@ -203,12 +223,27 @@ data Image = Image
     , imgFlags       :: !Flags
     } deriving (Show)
 
+instance NFData Image where
+  rnf Image{..} = rnf imgName        `seq`
+                  rnf imgParent      `seq`
+                  rnf imgRawPath     `seq`
+                  rnf imgSidecarPath `seq`
+                  rnf imgJpegPath    `seq`
+                  rnf imgRange       `seq`
+                  imgStatus          `seq` -- simple type
+                  rnf imgFlags
+
 -- | A file with unknown (and untracked) type.
 data Untracked = Untracked
   { untrkName   :: !Text
   , untrkParent :: !Text
   , untrkPaths  :: ![File]
   } deriving (Show)
+
+instance NFData Untracked where
+  rnf Untracked{..} = rnf untrkName   `seq`
+                      rnf untrkParent `seq`
+                      rnf untrkPaths
 
 -- | Represents a scaled down image size.
 newtype ImageSize = ImageSize Int
@@ -255,6 +290,14 @@ data PicDir = PicDir
   , pdShadows   :: !(Map.Map Text Image)
   , pdUntracked :: !(Map.Map Text Untracked)
   } deriving (Show)
+
+instance NFData PicDir where
+  rnf PicDir{..} = rnf pdName     `seq`
+                   rnf pdMainPath `seq`
+                   rnf pdSecPaths `seq`
+                   rnf pdImages   `seq`
+                   rnf pdShadows  `seq`
+                   rnf pdUntracked
 
 type RepoDirs = Map.Map Text PicDir
 
@@ -669,7 +712,7 @@ loadFolder config name path isSource = do
                       addImgs config shadows' newss,
                       addUntracked untracked' newus)
                ) (Map.empty, Map.empty, Map.empty) contents
-  return $ PicDir tname (T.pack path) [] images shadows untracked
+  return $!! PicDir tname (T.pack path) [] images shadows untracked
 
 
 mergeShadows :: Config -> PicDir -> PicDir
