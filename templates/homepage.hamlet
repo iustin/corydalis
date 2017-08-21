@@ -47,6 +47,8 @@
   <div .col-xs-12 .col-md-6 .col-lg-4>
     <div #cameraChart .graph>
   <div .col-xs-12 .col-md-6 .col-lg-4>
+    <div #lensChart .graph>
+  <div .col-xs-12 .col-md-6 .col-lg-4>
     <div #folderChart .graph>
 
 <a href=@{TimelineR}>Timeline</a>.

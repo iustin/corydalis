@@ -39,7 +39,7 @@ import Data.Time
 
 data GraphData a b = GraphData
   { gdName  :: Text
---  , gdType  :: Text
+  , gdType  :: Text
   , gdX     :: [a]
   , gdY     :: [b]
   , gdText  :: Maybe [Text]
@@ -49,6 +49,7 @@ data GraphData a b = GraphData
 
 instance Default (GraphData a b) where
   def = GraphData { gdName = ""
+                  , gdType = "scatter"
                   , gdX = []
                   , gdY = []
                   , gdText = Nothing
@@ -58,7 +59,7 @@ instance Default (GraphData a b) where
 instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
   toJSON GraphData {..} =
     object [ "name"  .= gdName
-           --, "type"  .= gdType
+           , "type"  .= gdType
            , "x"     .= gdX
            , "y"     .= gdY
            , "text"  .= gdText
@@ -71,29 +72,42 @@ getHomeR :: Handler TypedContent
 getHomeR = do
   pics <- getPics
   let (Stats unprocessed standalone processed outdated orphaned untracked
-             rawsize procsize standalonesize sidecarsize untrksize bycamera, fcm) =
+             rawsize procsize standalonesize sidecarsize untrksize
+             bycamera bylens, fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
       numfolders = Map.size $ repoDirs pics
       all_fc = [minBound..maxBound]
-      cameras = reverse . sort $
-                Map.foldlWithKey' (\a k (cnt, sz) ->
-                                     (cnt, sz, k):a) [] bycamera
-      top10c = if length cameras > 10
-                 then let t10 = reverse $ take 9 cameras
-                          r  = drop 9 cameras
-                          (rc, rs) = foldl' (\(c, s) (cnt, sz, _) ->
-                                         (c+cnt, s+sz)) (0, 0) r
-                      in (rc, rs, "Others"): t10
-                 else cameras
+      buildTop10 m n = let allItems = reverse . sort $
+                             Map.foldlWithKey' (\a k (cnt, sz) ->
+                                                  (cnt, sz, k):a) [] m
+                           top10 = if length allItems > n
+                                     then let t10 = reverse $ take (n-1) allItems
+                                              r  = drop (n-1) allItems
+                                              (rc, rs) = foldl' (\(c, s) (cnt, sz, _) ->
+                                                                   (c+cnt, s+sz)) (0, 0) r
+                                          in (rc, rs, "Others"): t10
+                                     else allItems
+                       in top10
+      top10c = buildTop10 bycamera 10
       json = foldl' (\a (cnt, sz, k) ->
                        def { gdName = k
+                           , gdType = "scatter"
                            , gdMode = Just "markers"
                            , gdX = [fromIntegral cnt]
                            , gdY = [fromIntegral sz]
                            }:a)
                ([]::[GraphData Int64 Int64]) top10c
+      top10l = buildTop10 bylens 12
+      jsonl = foldl' (\a (cnt, _, k) ->
+                        def { gdName = k
+                            , gdType = "bar"
+                            , gdMode = Just "markers"
+                            , gdX = [k]
+                            , gdY = [fromIntegral cnt]
+                            }:a)
+              ([]::[GraphData Text Int64]) top10l
       perFolderStats = Map.foldl'
                        (\l f -> let stats = computeFolderStats f
                                 in (fromIntegral $ totalStatsSize stats,
@@ -101,6 +115,7 @@ getHomeR = do
                                     pdName f):l) [] (repoDirs pics)
       (xdata, ydata, textdata) = unzip3 perFolderStats
       j2 = [ def { gdName = "Folders"
+                 , gdType = "scatter"
                  , gdMode = Just "markers"
                  , gdX = xdata
                  , gdY = ydata
@@ -111,7 +126,10 @@ getHomeR = do
         setTitle "Corydalis: home"
         addScript $ StaticR js_plotly_js
         $(widgetFile "homepage")
-  defaultLayoutJson html (return $ object [ "global" .= json, "folders" .= j2 ])
+  defaultLayoutJson html (return $ object [ "global" .= json
+                                          , "folders" .= j2
+                                          , "lenses"  .= jsonl
+                                          ])
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do

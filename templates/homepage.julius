@@ -14,6 +14,14 @@ $(document).ready(function() {
                 title: 'Size'
             }
         }
+        var lensLayout = {
+            yaxis: {
+                type: 'log',
+                exponentformat: 'SI',
+                rangemode: 'nonnegative',
+                title: 'File count'
+            },
+        }
         var folderLayout = {
             xaxis: {
                 type: 'log',
@@ -34,6 +42,7 @@ $(document).ready(function() {
             modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
         }
         Plotly.newPlot('cameraChart', series.global, cameraLayout, config);
+        Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
         Plotly.newPlot('folderChart', series.folders, folderLayout, config);
     }
 
