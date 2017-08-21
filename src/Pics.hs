@@ -81,6 +81,7 @@ import Data.Int (Int64)
 import Data.Aeson
 import Data.Aeson.Types (parseMaybe)
 
+import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
 import Control.Concurrent (forkIO)
@@ -165,7 +166,10 @@ instance FromJSON RawExif where
     rExifSrcFile   <- o .: "SourceFile"
     let rExifPeople = []
     rExifCamera    <- o .:? "Model"
-    rExifLens      <- o .:? "LensModel"
+    rExifLens      <- o .: "LensModel" <|>
+                      o .: "LensID"    <|>
+                      o .: "Lens"      <|>
+                      pure Nothing
     rExifSerial    <- o .:? "Serial"
     let rExifRaw    = o
     return RawExif{..}
