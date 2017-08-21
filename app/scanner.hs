@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import Import
 import System.Mem
+import System.Clock
 import Pics
 
 main :: IO ()
@@ -37,11 +38,30 @@ main = do
     let config = appConfig settings
 
     -- Scan repository
+    t1m <- getTime Monotonic
+    t1p <- getTime ProcessCPUTime
     repo <- scanAll config
-    let stats = computeRepoStats repo
     performGC
-    threadDelay 5000000
-    putStrLn $ "Repository stats:"
-    print stats
-    threadDelay 5000000
+    t2m <- getTime Monotonic
+    t2p <- getTime ProcessCPUTime
+    let s1 = computeRepoStats repo
+    putStrLn $ "Repository stats #1:"
+    print s1
+    t3m <- getTime Monotonic
+    t3p <- getTime ProcessCPUTime
+    let s2 = computeRepoStats repo
+    putStrLn $ "Repository stats #1:"
+    print s2
+    t4m <- getTime Monotonic
+    t4p <- getTime ProcessCPUTime
+    putStrLn $ "Repo scan time (m/c):"
+    print $ diffTimeSpec t2m t1m
+    print $ diffTimeSpec t2p t1p
+    putStrLn $ "Stats time #1 (m/c):"
+    print $ diffTimeSpec t3m t2m
+    print $ diffTimeSpec t3p t2p
+    putStrLn $ "Stats time #2 (m/c):"
+    print $ diffTimeSpec t4m t3m
+    print $ diffTimeSpec t4p t3p
+    -- threadDelay 5000000
     performGC
