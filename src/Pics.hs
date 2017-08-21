@@ -195,7 +195,6 @@ instance NFData File where
                  rnf filePath   `seq`
                  rnf fileExif
 
-
 -- | Flags (on an image or a directory) showing exceptional
 -- statuses.
 data Flags = Flags
@@ -457,7 +456,7 @@ mergePictures c x y =
           }
       status' = mkImageStatus c (imgRawPath x') (imgJpegPath x')
                   (imgSidecarPath x')
-  in x' { imgStatus = status' }
+  in force $ x' { imgStatus = status' }
 
 mergeUntracked :: Untracked -> Untracked -> Untracked
 mergeUntracked x y =
@@ -465,6 +464,7 @@ mergeUntracked x y =
 
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
 mergeFolders c x y =
+  force $
   x { pdMainPath = pdMainPath bestMainPath
     , pdSecPaths = pdSecPaths x ++ pdMainPath otherMainPath:pdSecPaths y
     , pdImages =
@@ -614,7 +614,7 @@ scanSubDir config repository path isSource = do
   let allpaths' = filter (isOKDir config) dirpaths
   foldM (\r s -> do
             dir <- loadFolder config s (path </> s) isSource
-            return $ Map.insertWith (mergeFolders config) (pdName dir) dir r)
+            return $! Map.insertWith (mergeFolders config) (pdName dir) dir r)
     repository allpaths'
 
 -- | Builds the filepath and filestatus pairs recursively for all
@@ -778,7 +778,7 @@ loadFolder config name path isSource = do
                -> LIRUntracked untrk
              -- no shadows for sidecar only files
              _ -> LIRImage img (if onlySidecar then [] else simgs)
-                    where img = mkImage config tbase tname nfp sdc jpe range flags
+                    where img = force $ mkImage config tbase tname nfp sdc jpe range flags
       (images, shadows, untracked) =
         foldl' (\(images', shadows', untracked') f ->
                   case loadImage f of
