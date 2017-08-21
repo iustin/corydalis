@@ -2,15 +2,16 @@ $(document).ready(function() {
 
     function onDataReceived(series) {
 
-        var bytesLayout = {
+        var cameraLayout = {
             xaxis: {
+                rangemode: 'nonnegative',
+                title: 'File count'
+            },
+            yaxis: {
+                type: 'log',
                 exponentformat: 'SI',
                 rangemode: 'nonnegative',
                 title: 'Size'
-            },
-            yaxis: {
-                rangemode: 'nonnegative',
-                title: 'File count'
             }
         }
         var folderLayout = {
@@ -32,7 +33,7 @@ $(document).ready(function() {
             displaylogo: false,
             modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
         }
-        Plotly.newPlot('bytesChart', series.global, bytesLayout, config);
+        Plotly.newPlot('cameraChart', series.global, cameraLayout, config);
         Plotly.newPlot('folderChart', series.folders, folderLayout, config);
     }
 

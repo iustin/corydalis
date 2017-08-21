@@ -41,10 +41,11 @@
           <li>#{showBinary procsize} in output files (i.e. files that can be regenerated)
           <li>#{showBinary standalonesize} in standalone files
           <li>#{showBinary sidecarsize} in sidecar files
+          <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
 <div .row>
   <div .col-xs-12 .col-md-6 .col-lg-4>
-    <div #bytesChart .graph>
+    <div #cameraChart .graph>
   <div .col-xs-12 .col-md-6 .col-lg-4>
     <div #folderChart .graph>
 

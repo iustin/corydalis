@@ -71,33 +71,29 @@ getHomeR :: Handler TypedContent
 getHomeR = do
   pics <- getPics
   let (Stats unprocessed standalone processed outdated orphaned untracked
-             rawsize procsize standalonesize sidecarsize untrksize, fcm) =
+             rawsize procsize standalonesize sidecarsize untrksize bycamera, fcm) =
           computeRepoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
       numfolders = Map.size $ repoDirs pics
       all_fc = [minBound..maxBound]
-      json = [ def { gdName = "Raw/source files"
-                   , gdMode = Just "markers"
-                   , gdX = [fromIntegral rawsize]
-                   , gdY = [fromIntegral unprocessed]
-                   }::GraphData Int64 Int64
-             , def { gdName = "Output files"
-                   , gdMode = Just "markers",
-                     gdX = [fromIntegral procsize]
-                   , gdY = [fromIntegral processed]
-                   }
-             , def { gdName = "Standalone files"
-                   , gdMode = Just "markers"
-                   , gdX = [fromIntegral standalonesize]
-                   , gdY = [fromIntegral standalone]
-                   }
-             , def { gdName = "Other files"
-                   , gdMode = Just "markers"
-                   , gdX = [fromIntegral untrksize]
-                   , gdY = [fromIntegral untracked]
-                   }
-             ]
+      cameras = reverse . sort $
+                Map.foldlWithKey' (\a k (cnt, sz) ->
+                                     (cnt, sz, k):a) [] bycamera
+      top10c = if length cameras > 10
+                 then let t10 = reverse $ take 9 cameras
+                          r  = drop 9 cameras
+                          (rc, rs) = foldl' (\(c, s) (cnt, sz, _) ->
+                                         (c+cnt, s+sz)) (0, 0) r
+                      in (rc, rs, "Others"): t10
+                 else cameras
+      json = foldl' (\a (cnt, sz, k) ->
+                       def { gdName = k
+                           , gdMode = Just "markers"
+                           , gdX = [fromIntegral cnt]
+                           , gdY = [fromIntegral sz]
+                           }:a)
+               ([]::[GraphData Int64 Int64]) top10c
       perFolderStats = Map.foldl'
                        (\l f -> let stats = computeFolderStats f
                                 in (fromIntegral $ totalStatsSize stats,

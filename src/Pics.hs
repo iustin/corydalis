@@ -336,11 +336,12 @@ data Stats = Stats
   , sStandaloneSize :: !FileOffset
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
+  , sByCamera       :: !(Map.Map Text (Int, FileOffset))
   } deriving Show
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0
+zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 Map.empty
 
 -- | The total recorded size in a `Stats` structure.
 totalStatsSize :: Stats -> FileOffset
@@ -357,11 +358,16 @@ totalStatsCount stats =
 -- | Data holding timeline stats.
 type Timeline = Map.Map Day (Integer, Integer)
 
+sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
+sumTuple (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 o1 h1 u1 rs1 ps1 ss1 ms1 us1)
-         (Stats r2 s2 p2 o2 h2 u2 rs2 ps2 ss2 ms2 us2) =
+sumStats (Stats r1 s1 p1 o1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1)
+         (Stats r2 s2 p2 o2 h2 u2 rs2 ps2 ss2 ms2 us2 sc2) =
   Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h1 + h2) (u1 + u2)
         (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2) (us1 + us2)
+        nm
+  where nm = Map.unionWith sumTuple sc1 sc2
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
@@ -388,10 +394,19 @@ updateStatsWithPic orig img =
               _ -> ss
       ms = sSidecarSize stats
       ms' = ms + maybe 0 fileSize (imgSidecarPath img)
+      camera = case imgRawPath img of
+                 Nothing -> unknown
+                 Just f -> fromMaybe unknown (exifCamera <$> fileExif f)
+      xsize = case imgRawPath img of
+               Just f -> fileSize f
+               Nothing -> case imgJpegPath img of
+                            x:_ -> fileSize x
+                            _ -> 0
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
            , sSidecarSize = ms'
+           , sByCamera = Map.insertWith sumTuple camera (1, xsize) (sByCamera orig)
            }
 
 updateStatsWithUntracked :: Stats -> Untracked -> Stats
@@ -539,7 +554,7 @@ folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@(Stats unproc standalone processed
-                                  outdated orphaned _ _ _ _ _ _) =
+                                  outdated orphaned _ _ _ _ _ _ _) =
   let npics = unproc + standalone + processed + outdated + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0
