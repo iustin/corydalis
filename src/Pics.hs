@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE TupleSections #-}
+
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -66,9 +67,9 @@ module Pics ( PicDir(..)
             ) where
 
 import Types
-import Settings.Development
+import Cache
+import Exif
 
---import Import
 import Prelude
 import Control.Concurrent.MVar
 import qualified Data.Text as T
@@ -76,20 +77,16 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy.Encoding as T (decodeUtf8)
 import qualified Data.Text.Lazy as T (toStrict)
 import qualified Data.ByteString as BS (ByteString, readFile, writeFile)
-import qualified Data.ByteString.Lazy as BSL (writeFile, length, toStrict)
+import qualified Data.ByteString.Lazy as BSL (writeFile, length)
 import System.IO.Unsafe
 import Data.Int (Int64)
-import Data.Aeson
-import Data.Aeson.Types (parseMaybe)
 
-import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
 import Control.Concurrent (forkIO)
 import Control.Exception
 import Data.Function (on)
 import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
 import Data.List
 import Data.Maybe
 import Data.Time.Clock
@@ -104,7 +101,6 @@ import qualified Text.Regex.PCRE as PCRE
 import System.Process.Typed
 import System.IO.Error
 import System.Exit
-import Data.Store
 
 addRevDot :: [FilePath] -> [FilePath]
 addRevDot = map (reverse . ('.':))
@@ -152,36 +148,6 @@ expandRangeFile cfg name =
                                     _ -> []
     _ -> []
 
-
-data RawExif = RawExif
-  { rExifSrcFile    :: Text
-  , rExifPeople     :: [Text]
-  , rExifCamera     :: Maybe Text
-  , rExifSerial     :: Maybe Text
-  , rExifLens       :: Maybe Text
-  , rExifRaw        :: Object
-  } deriving (Show)
-
-instance FromJSON RawExif where
-  parseJSON = withObject "RawExif" $ \o -> do
-    rExifSrcFile   <- o .: "SourceFile"
-    let rExifPeople = []
-    rExifCamera    <- o .:? "Model"
-    rExifLens      <- o .: "LensModel" <|>
-                      o .: "LensID"    <|>
-                      o .: "Lens"      <|>
-                      pure Nothing
-    rExifSerial    <- o .:? "Serial"
-    let rExifRaw    = o
-    return RawExif{..}
-
-exifFromRaw :: RawExif -> Exif
-exifFromRaw RawExif{..} =
-  let exifPeople = rExifPeople
-      exifCamera = fromMaybe unknown rExifCamera
-      exifLens   = fromMaybe unknown rExifLens
-      exifSerial = fromMaybe unknown rExifSerial
-  in Exif{..}
 
 data File = File
   { fileName  :: !Text
@@ -674,85 +640,6 @@ addImg config m i = Map.insertWith (mergePictures config) (imgName i) i m
 addUntracked :: Untracked -> Map.Map Text Untracked -> Map.Map Text Untracked
 addUntracked u = Map.insertWith mergeUntracked (untrkName u) u
 
-unknown :: Text
-unknown = "unknown"
-
--- TODO: make this saner/ensure it's canonical path.
-buildPath :: FilePath -> FilePath -> FilePath
-buildPath dir name = dir ++ "/" ++ name
-
--- | Writes the (binary) exif cache for a given file.
-writeBExif :: Config -> FilePath -> Exif -> IO ()
-writeBExif config path exif = do
-  let ePath = bExifPath config path
-  BS.writeFile ePath (Data.Store.encode exif)
-
--- | Tries to read the (binary) exif cache for a given file.
-readBExif :: Config -> FilePath -> IO (Maybe Exif)
-readBExif config path = do
-  let epath = bExifPath config path
-  exists <- fileExist epath
-  if exists
-    then do
-      contents <- BS.readFile epath
-      return $ case Data.Store.decode contents of
-        Left _ -> Nothing
-        Right v -> Just v
-    else return Nothing
-
--- | Writes the exif caches (raw and binary) for a given file.
-writeExifs :: Config -> FilePath -> RawExif -> IO (FilePath, Exif)
-writeExifs config dir r = do
-  let rpath = T.unpack $ rExifSrcFile r
-      fpath = buildPath dir rpath
-      epath = exifPath config fpath
-  BSL.writeFile epath (Data.Aeson.encode (rExifRaw r))
-  let e = exifFromRaw r
-  writeBExif config fpath e
-  return (rpath, e)
-
--- | Tries to read the (raw) exif cache for a given file.
-readExif :: Config -> FilePath -> IO (Maybe RawExif)
-readExif config path = do
-  let epath = exifPath config path
-  exists <- fileExist epath
-  if exists
-    then do
-      contents <- BS.readFile epath
-      return $ decodeStrict' contents
-    else return Nothing
-
--- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: Config -> FilePath -> [FilePath] -> IO (Map.Map FilePath Exif)
-getExif config dir paths = do
-  (cache1, m1) <- foldM (\(c, m) p -> do
-                            let fpath = buildPath dir p
-                            exif <- readBExif config fpath
-                            case exif of
-                              Nothing -> return (c, p:m)
-                              Just e  -> return (Map.insert p e c, m)
-                        ) (Map.empty, []) paths
-  (cache2, m2) <- foldM (\(c, m) p -> do
-                            let fpath = buildPath dir p
-                            exif <- readExif config fpath
-                            case exif of
-                              Nothing -> return (c, p:m)
-                              Just v -> do
-                                let e = exifFromRaw v
-                                writeBExif config fpath e
-                                return $ (Map.insert p e c, m)
-                 ) (cache1, []) m1
-  jsons <- if null m2
-             then return []
-             else do
-               exifs <- extractExifs dir m2
-               return $ fromMaybe [] (parseExifs exifs)
-  localCache <- foldM (\m r -> do
-                          (path, e) <- writeExifs config dir r
-                          return $ Map.insert path e m
-                      ) cache2 jsons
-  return localCache
-
 -- | Result of loadImage.
 data LoadImageRes = LIRImage !Image ![Image]  -- ^ A single image with potential shadows.
                   | LIRUntracked !Untracked   -- ^ An untracked file.
@@ -985,18 +872,6 @@ findBestSize r@(ImageSize s) (x:xs) =
     then Just x
     else findBestSize r xs
 
-cachedBasename :: Config -> FilePath -> String
-cachedBasename config path =
-  cfgCacheDir config ++ "/" ++ path
-
-exifPath :: Config -> FilePath -> FilePath
-exifPath config path =
-  cachedBasename config path ++ "-exif"
-
-bExifPath :: Config -> FilePath -> FilePath
-bExifPath config path =
-  cachedBasename config path ++ "-bexif" ++ devSuffix
-
 embeddedImagePath :: Config -> FilePath -> String
 embeddedImagePath config path =
   cachedBasename config path ++ "-embedded"
@@ -1126,25 +1001,3 @@ imageAtRes config img size = do
     -- TODO: don't use hardcoded jpeg type!
     Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
     Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileMTime origFile) s
-
-extractExifs :: FilePath -> [FilePath] -> IO BS.ByteString
-extractExifs dir paths = do
-  let args = [
-        "-struct",
-        "-json",
-        "-d", "%s"
-        ] ++ paths
-      pconfig =
-        setStdin closed
-        . setCloseFds True
-        . setWorkingDir dir
-        $ proc "exiftool" args
-  (_, out, _) <- readProcess pconfig
-  -- Note: exiftool exits with non-zero exit code if errors happened,
-  -- but still generates valid JSON output. So we ignore the exit code
-  -- completely, as we can't attribute the error to a specific
-  -- file. That should be rather done via 'Error' entry in the object.
-  return $ BSL.toStrict out
-
-parseExifs :: BS.ByteString -> Maybe [RawExif]
-parseExifs = decodeStrict'
