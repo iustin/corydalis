@@ -37,6 +37,7 @@ import Pics
 import Exif
 import Handler.Utils
 
+import Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T (encodeUtf8)
@@ -131,6 +132,8 @@ getViewR folder iname = do
   img <- case Map.lookup iname images of
            Nothing -> notFound
            Just img' -> return img'
+  let Transform r fx fy = transformForImage img
+      initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
   debug <- appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addScript $ StaticR js_viewer_js

@@ -19,11 +19,13 @@ $(document).ready(function() {
     var bootdiv = $("#boot");
     var booturl = bootdiv.data("bytes-url");
     var infourl = bootdiv.data("info-url");
+    var boottrans = bootdiv.data("initial-transform");
     var debug = bootdiv.data("debug");
     var LOG = debug ? console.log.bind(console) : function () {};
     var T_START = debug ? console.time.bind(console) : function () {};
     var T_STOP =  debug ? console.timeEnd.bind(console) : function () {};
 
+    LOG("booturl", booturl, "infourl", infourl, "boottrans", boottrans);
 
     var cory = {
         info: null,
@@ -49,12 +51,12 @@ $(document).ready(function() {
     var offCanvas = document.createElement('canvas');
     var offContext = offCanvas.getContext('2d');
 
-    function drawImage(img, url, info) {
+    function drawImage(img, url, transform, msg) {
         if (!isImageReady(img)) {
             img.onload = function() {
                 LOG("Late load of ", url);
                 setImageState(img, true);
-                drawImage(img, url, info);
+                drawImage(img, url, transform, msg);
             };
             return;
         }
@@ -63,7 +65,6 @@ $(document).ready(function() {
         context.clearRect(0, 0, canvas.width, canvas.height);
         var cW = $(context.canvas).width();
         var cH = $(context.canvas).height();
-        var transform = info == null ? [0, false, false] : info.transform;
         LOG("transform information:", transform);
         var rotation = transform[0];
         var imgW = rotation == 0 ? img.width : img.height;
@@ -113,9 +114,9 @@ $(document).ready(function() {
             history.pushState(null, null, url);
         cory.state.img = img;
         cory.state.url = url;
-        cory.state.info = info;
-        if (info != null) {
-            writeMessage(info.name);
+        cory.state.transform = transform;
+        if (msg != null) {
+            writeMessage(msg);
         }
     };
 
@@ -128,7 +129,7 @@ $(document).ready(function() {
     };
 
     function redrawImage() {
-        drawImage(cory.state.img, cory.state.url, cory.state.info);
+        drawImage(cory.state.img, cory.state.url, cory.state.transform);
     };
 
     function resizeCanvas() {
@@ -229,7 +230,7 @@ $(document).ready(function() {
         var image = new Image();
         image.onload = function() {
             setImageState(image, true);
-            drawImage(image, info.view, info);
+            drawImage(image, info.view, info.transform, info.name);
         };
         writeMessage("Loading " + info.name + "...");
         image.src = info.bytes;
@@ -283,7 +284,7 @@ $(document).ready(function() {
         }
         var viewurl = info.view;
         writeMessage("Loading " + info.name, 6000);
-        drawImage(img, viewurl, info);
+        drawImage(img, viewurl, info.transform, info.name);
         updateInfo(info.info);
     }
 
@@ -375,7 +376,7 @@ $(document).ready(function() {
     var image = new Image();
     image.onload = function() {
         setImageState(image, true);
-        drawImage(image, location.href);
+        drawImage(image, location.href, boottrans);
     };
     image.src = imageUrlScaled(booturl);
 
