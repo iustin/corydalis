@@ -76,7 +76,6 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Lazy.Encoding as T (decodeUtf8)
 import qualified Data.Text.Lazy as T (toStrict)
-import qualified Data.ByteString as BS (ByteString, readFile, writeFile)
 import qualified Data.ByteString.Lazy as BSL (writeFile, length)
 import System.IO.Unsafe
 import Data.Int (Int64)

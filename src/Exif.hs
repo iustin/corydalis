@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Exif ( Exif(..)
             , getExif
@@ -31,13 +32,15 @@ import Types
 import Cache
 import Settings.Development
 
---import Import
 import Prelude
+import Control.DeepSeq
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.ByteString as BS (ByteString, readFile, writeFile)
 import qualified Data.ByteString.Lazy as BSL (writeFile, toStrict)
 import Data.Aeson
+import Data.Store ()
+import Data.Store.TH (makeStore)
 
 import Control.Applicative
 import Control.Monad
@@ -68,6 +71,21 @@ instance FromJSON RawExif where
     rExifSerial    <- o .:? "Serial"
     let rExifRaw    = o
     return RawExif{..}
+
+data Exif = Exif
+  { exifPeople     :: ![Text]
+  , exifCamera     :: !Text
+  , exifSerial     :: !Text
+  , exifLens       :: !Text
+  } deriving (Show)
+
+instance NFData Exif where
+  rnf Exif{..} = rnf exifPeople  `seq`
+                 rnf exifCamera  `seq`
+                 rnf exifSerial  `seq`
+                 rnf exifLens
+
+$(makeStore ''Exif)
 
 unknown :: Text
 unknown = "unknown"

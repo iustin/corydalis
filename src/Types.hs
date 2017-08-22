@@ -29,19 +29,14 @@ module Types ( Config(..)
              , FolderClass(..)
              , ImageStatus(..)
              , JSDiffTime(..)
-             , Exif(..)
              ) where
 
 import Control.Applicative
-import Control.DeepSeq
 import Control.Monad
 import Data.Aeson
 import Data.List (sort, nub)
-import Data.Store ()
-import Data.Store.TH (makeStore)
 import Data.Time.Clock
 import qualified Data.Text as T
-import Data.Text (Text)
 import qualified Text.Regex.PCRE as PCRE
 import Yesod
 import Prelude
@@ -175,18 +170,3 @@ instance PathPiece [FolderClass] where
   toPathPiece = T.intercalate "," . map toPathPiece
   fromPathPiece "all" = Just [minBound..maxBound]
   fromPathPiece v     = mapM fromPathPiece $ T.split (==',') v
-
-data Exif = Exif
-  { exifPeople     :: ![Text]
-  , exifCamera     :: !Text
-  , exifSerial     :: !Text
-  , exifLens       :: !Text
-  } deriving (Show)
-
-instance NFData Exif where
-  rnf Exif{..} = rnf exifPeople  `seq`
-                 rnf exifCamera  `seq`
-                 rnf exifSerial  `seq`
-                 rnf exifLens
-
-$(makeStore ''Exif)
