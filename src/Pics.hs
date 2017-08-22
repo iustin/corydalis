@@ -66,6 +66,7 @@ module Pics ( PicDir(..)
             ) where
 
 import Types
+import Settings.Development
 
 --import Import
 import Prelude
@@ -994,7 +995,7 @@ exifPath config path =
 
 bExifPath :: Config -> FilePath -> FilePath
 bExifPath config path =
-  cachedBasename config path ++ "-bexif"
+  cachedBasename config path ++ "-bexif" ++ devSuffix
 
 embeddedImagePath :: Config -> FilePath -> String
 embeddedImagePath config path =

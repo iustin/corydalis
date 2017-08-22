@@ -33,3 +33,17 @@ development =
 
 production :: Bool
 production = not development
+
+-- | Suffix to use for file names which depend on version.
+--
+-- The idea is to be able to share a cache between production and
+-- development, and have both versions running, without conflicts for
+-- files whose format changes over time (like the binary exif cache
+-- files).
+devSuffix :: String
+devSuffix =
+#if DEVELOPMENT
+  "-dev"
+#else
+  ""
+#endif
