@@ -41,6 +41,7 @@ import qualified Data.ByteString.Lazy as BSL (writeFile, toStrict)
 import Data.Aeson
 import Data.Store ()
 import Data.Store.TH (makeStore)
+import Data.Scientific (toBoundedInteger)
 
 import Control.Applicative
 import Control.Monad
@@ -50,33 +51,63 @@ import System.Posix.Files hiding (fileSize)
 import System.Process.Typed
 import Data.Store
 
+data Orientation
+  = OrientationTopLeft
+  | OrientationTopRight
+  | OrientationBotRight
+  | OrientationBotLeft
+  | OrientationLeftTop
+  | OrientationRightTop
+  | OrientationRightBot
+  | OrientationLeftBot
+  deriving (Show)
+
+instance FromJSON Orientation where
+  parseJSON = withScientific "ExifOrientation" $ \n ->
+    case toBoundedInteger n::Maybe Int of
+      Just 1  -> return OrientationTopLeft
+      Just 2  -> return OrientationTopRight
+      Just 3  -> return OrientationBotRight
+      Just 4  -> return OrientationBotLeft
+      Just 5  -> return OrientationLeftTop
+      Just 6  -> return OrientationRightTop
+      Just 7  -> return OrientationRightBot
+      Just 8  -> return OrientationLeftBot
+      Just v  -> fail $ "Invalid orientation value '" ++ show v ++ "'"
+      Nothing -> fail $ "Non-integer orientation value '" ++ show n ++ "'"
+
+$(makeStore ''Orientation)
+
 data RawExif = RawExif
-  { rExifSrcFile    :: Text
-  , rExifPeople     :: [Text]
-  , rExifCamera     :: Maybe Text
-  , rExifSerial     :: Maybe Text
-  , rExifLens       :: Maybe Text
-  , rExifRaw        :: Object
+  { rExifSrcFile     :: Text
+  , rExifPeople      :: [Text]
+  , rExifCamera      :: Maybe Text
+  , rExifSerial      :: Maybe Text
+  , rExifLens        :: Maybe Text
+  , rExifOrientation :: Maybe Orientation
+  , rExifRaw         :: Object
   } deriving (Show)
 
 instance FromJSON RawExif where
   parseJSON = withObject "RawExif" $ \o -> do
-    rExifSrcFile   <- o .: "SourceFile"
-    let rExifPeople = []
-    rExifCamera    <- o .:? "Model"
-    rExifLens      <- o .: "LensModel" <|>
+    rExifSrcFile     <- o .: "SourceFile"
+    let rExifPeople   = []
+    rExifCamera      <- o .:? "Model"
+    rExifLens        <- o .: "LensModel" <|>
                       o .: "LensID"    <|>
                       o .: "Lens"      <|>
                       pure Nothing
-    rExifSerial    <- o .:? "Serial"
-    let rExifRaw    = o
+    rExifSerial      <- o .:? "Serial"
+    rExifOrientation <- o .:? "Orientation"
+    let rExifRaw      = o
     return RawExif{..}
 
 data Exif = Exif
-  { exifPeople     :: ![Text]
-  , exifCamera     :: !Text
-  , exifSerial     :: !Text
-  , exifLens       :: !Text
+  { exifPeople      :: ![Text]
+  , exifCamera      :: !Text
+  , exifSerial      :: !Text
+  , exifLens        :: !Text
+  , exifOrientation :: !Orientation
   } deriving (Show)
 
 instance NFData Exif where
@@ -92,10 +123,11 @@ unknown = "unknown"
 
 exifFromRaw :: RawExif -> Exif
 exifFromRaw RawExif{..} =
-  let exifPeople = rExifPeople
-      exifCamera = fromMaybe unknown rExifCamera
-      exifLens   = fromMaybe unknown rExifLens
-      exifSerial = fromMaybe unknown rExifSerial
+  let exifPeople      = rExifPeople
+      exifCamera      = fromMaybe unknown rExifCamera
+      exifLens        = fromMaybe unknown rExifLens
+      exifSerial      = fromMaybe unknown rExifSerial
+      exifOrientation = fromMaybe OrientationTopLeft rExifOrientation
   in Exif{..}
 
 -- TODO: make this saner/ensure it's canonical path.
