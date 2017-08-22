@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Handler.View ( getViewR
                     , getImageBytesR
@@ -97,18 +98,23 @@ lookupMax :: Map a b -> Maybe (a, b)
 lookupMax m = if Map.null m then Nothing else Just $ Map.findMax m
 
 getNextImageAnyFolder :: Repository -> Text -> Text -> Bool -> Maybe Image
-getNextImageAnyFolder pics folder iname forward= do
-  let gtfn :: (Ord a) => a -> Map a b -> Maybe (a, b)
-      gtfn  = if forward then Map.lookupGT else Map.lookupLT
-      fstfn = if forward then lookupMin else lookupMax
-  curFolder <- pdImages <$> folder `Map.lookup` (repoDirs pics)
-  let nextFolder = snd <$> folder `gtfn` (repoDirs pics)
-  (_, next) <- case gtfn iname curFolder of
-                 Nothing -> do
-                      nf <- nextFolder
-                      fstfn $ pdImages nf
-                 x -> x
-  return next
+getNextImageAnyFolder (repoDirs -> pics) folder iname forward = do
+  let nextElem :: (Ord a) => a -> Map a b -> Maybe (a, b)
+      nextElem  = if forward then Map.lookupGT else Map.lookupLT
+      nextFolder = flip nextElem pics
+      firstImage = if forward then lookupMin else lookupMax
+      hasImages = isJust . firstImage . pdImages
+  curFolder <- pdImages <$> folder `Map.lookup` pics
+  -- The result of any lookup is (k, v), hence the many fst and snd
+  -- calls below.
+  case iname `nextElem` curFolder of
+    Nothing -> do
+      nf <- until
+                    (maybe True (hasImages . snd))
+                    (>>= nextFolder . fst)
+                    (nextFolder folder)
+      fmap snd . firstImage . pdImages . snd $ nf
+    img -> snd <$> img
 
 getViewR :: Text -> Text -> Handler Html
 getViewR folder iname = do
