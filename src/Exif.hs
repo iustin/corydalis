@@ -167,9 +167,9 @@ bExifPath config path =
 extractExifs :: FilePath -> [FilePath] -> IO BS.ByteString
 extractExifs dir paths = do
   let args = [
-        "-struct",
         "-json",
-        "-d", "%s"
+        "-struct",
+        "-n"
         ] ++ paths
       pconfig =
         setStdin closed
