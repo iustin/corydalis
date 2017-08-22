@@ -34,6 +34,7 @@ module Handler.View ( getViewR
 
 import Import
 import Pics
+import Exif
 import Handler.Utils
 
 import qualified Data.Map as Map
@@ -47,22 +48,29 @@ data ImageInfo = ImageInfo
   , iiBytesUrl :: Text
   , iiViewUrl  :: Text
   , iiName     :: Text
+  , iiTransform :: (Int, Bool, Bool)
   }
 
 instance ToJSON ImageInfo where
   toJSON ImageInfo {..} =
-    object [ "info"  .= iiInfoUrl
-           , "bytes" .= iiBytesUrl
-           , "view"  .= iiViewUrl
-           , "name"  .= iiName
+    object [ "info"      .= iiInfoUrl
+           , "bytes"     .= iiBytesUrl
+           , "view"      .= iiViewUrl
+           , "name"      .= iiName
+           , "transform" .= iiTransform
            ]
 
-mkImage :: Text -> Text -> (Route App -> Text) -> ImageInfo
-mkImage folder iname render =
+rotateToJSON :: Rotate -> Int
+rotateToJSON RCenter =  0
+rotateToJSON RLeft   = -1
+rotateToJSON RRight  =  1
+
+mkImage :: Text -> Text -> (Route App -> Text) -> Transform -> ImageInfo
+mkImage folder iname render (Transform r fx fy) =
   ImageInfo (render $ ImageInfoR folder iname)
             (render $ ImageBytesR folder iname)
             (render $ ViewR folder iname)
-            iname
+            iname (rotateToJSON r, fx, fy)
 
 data ViewInfo = ViewInfo
   { viFolder  :: Text
@@ -146,6 +154,20 @@ getImageBytesR folder iname = do
   -- TODO: don't use hardcoded jpeg type!
   sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
 
+fileToView :: Image -> Maybe File
+fileToView img =
+  case imgJpegPath img of
+    f:_ -> Just f
+    [] -> imgRawPath img
+
+transformForFile :: File -> Maybe Transform
+transformForFile  =
+  fmap (affineTransform . exifOrientation) . fileExif
+
+transformForImage :: Image -> Transform
+transformForImage img =
+  fromMaybe def (fileToView img >>= transformForFile)
+
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
   (pics, dir) <- getPicsAndFolder folder
@@ -162,7 +184,8 @@ getImageInfoR folder iname = do
       imgPrev  = getNextImageAnyFolder pics folder iname False
       imgNext  = getNextImageAnyFolder pics folder iname True
       imgLast  = snd  $ Map.findMax images
-      mk = \i -> mkImage (imgParent i) (imgName i) render
+      mk i = mkImage (imgParent i) (imgName i) render
+               (transformForImage i)
   return . toJSON $
     ViewInfo
       folder (render $ FolderR folder)

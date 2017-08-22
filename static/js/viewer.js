@@ -31,7 +31,8 @@ $(document).ready(function() {
             fullscreen: false,
             img: null,
             lastX: 0,
-            msgTimeId: null
+            msgTimeId: null,
+            info: null
         }
     };
 
@@ -48,32 +49,63 @@ $(document).ready(function() {
     var offCanvas = document.createElement('canvas');
     var offContext = offCanvas.getContext('2d');
 
-    function drawImage(img, url, textmsg) {
+    function drawImage(img, url, info) {
         if (!isImageReady(img)) {
             img.onload = function() {
                 LOG("Late load of ", url);
                 setImageState(img, true);
-                drawImage(img, url, textmsg);
+                drawImage(img, url, info);
             };
             return;
         }
 
+        context.setTransform(1, 0, 0, 1, 0, 0);
         context.clearRect(0, 0, canvas.width, canvas.height);
         var cW = $(context.canvas).width();
         var cH = $(context.canvas).height();
-        var scaleX = img.width / cW;
-        var scaleY = img.height / cH;
-        var scale = scaleX >= scaleY ? scaleX : scaleY;
-        var targetW = img.width / scale;
-        var targetH = img.height / scale;
-        var offX = targetW < cW ? (cW - targetW) / 2 : 0;
-        var offY = targetH < cH ? (cH - targetH) / 2 : 0;
-        LOG("pre-draw; imgW: ", img.width, ", imgH: ", img.height,
-            ", cW: ", cW, ", cH: ", cH,
-            ", scaleX: ", scaleX, ", scaleY: ", scaleY);
+        var transform = info == null ? [0, false, false] : info.transform;
+        LOG("transform information:", transform);
+        var rotation = transform[0];
+        var imgW = rotation == 0 ? img.width : img.height;
+        var imgH = rotation == 0 ? img.height : img.width;
+        var scaleX = imgW / cW;
+        var scale_y = imgH / cH;
+        var scale = scaleX >= scale_y ? scaleX : scale_y;
+        // Note: target* must be in original coordinate system, not
+        // rotated! So using img.width, not imgW. This is because from
+        // the point of view of the image, it's drawn straight, not
+        // rotated. Sigh, head hurts.
+        var targetW = Math.round(img.width / scale);
+        var targetH = Math.round(img.height / scale);
+        var offX = targetW < cW ? Math.round((cW - targetW) / 2) : 0;
+        var offY = targetH < cH ? Math.round((cH - targetH) / 2) : 0;
+        LOG("pre-draw; imgW:", imgW, "imgH:", imgH,
+            "cW:", cW, "cH:", cH,
+            "scale_x:", scale_x, "scale_y", scale_y,
+            "targetW:", targetW, "targetH", targetH);
         cory.state.lastX = offX;
         T_START("drawImage");
-        context.drawImage(img, offX, offY, img.width / scale, img.height / scale);
+        var radians = 0;
+        switch (rotation) {
+        case -1:
+            radians = Math.PI * 3/2;
+            break;
+        case 1:
+            radians = Math.PI / 2;
+            break;
+        // Other cases are simply dropped.
+        }
+        var scale_x = transform[1] ? -1 : 1;
+        var scale_y = transform[2] ? -1 : 1;
+        LOG("translated rotation info:", radians, scale_x, scale_y);
+        var r_cos = Math.cos(radians);
+        var r_sin = Math.sin(radians);
+        LOG("transform call:", r_cos * scale_x, r_sin, -r_sin, r_cos * scale_y, cW/2, cH/2);
+        context.transform(r_cos * scale_x, r_sin, -r_sin, r_cos * scale_y, cW/2, cH/2);
+        offX -= cW/2;
+        offY -= cH/2;
+        LOG("draw call:", offX, offY, targetW, targetH);
+        context.drawImage(img, offX, offY, targetW, targetH);
         T_STOP("drawImage");
         LOG("post-draw ", url);
         LOG("url: ", url, "location: ", location.href);
@@ -81,8 +113,10 @@ $(document).ready(function() {
             history.pushState(null, null, url);
         cory.state.img = img;
         cory.state.url = url;
-        if (typeof textmsg !== 'undefined')
-            writeMessage(textmsg);
+        cory.state.info = info;
+        if (info != null) {
+            writeMessage(info.name);
+        }
     };
 
     function updateInfo(url) {
@@ -94,7 +128,7 @@ $(document).ready(function() {
     };
 
     function redrawImage() {
-        drawImage(cory.state.img, cory.state.url);
+        drawImage(cory.state.img, cory.state.url, cory.state.info);
     };
 
     function resizeCanvas() {
@@ -195,7 +229,7 @@ $(document).ready(function() {
         var image = new Image();
         image.onload = function() {
             setImageState(image, true);
-            drawImage(image, info.view, info.name);
+            drawImage(image, info.view, info);
         };
         writeMessage("Loading " + info.name + "...");
         image.src = info.bytes;
@@ -249,7 +283,7 @@ $(document).ready(function() {
         }
         var viewurl = info.view;
         writeMessage("Loading " + info.name, 6000);
-        drawImage(img, viewurl, info.name);
+        drawImage(img, viewurl, info);
         updateInfo(info.info);
     }
 

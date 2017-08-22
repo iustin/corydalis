@@ -24,7 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TemplateHaskell #-}
 
 module Exif ( Exif(..)
+            , Rotate(..)
+            , Transform(..)
             , getExif
+            , affineTransform
             , unknown
             ) where
 
@@ -34,6 +37,7 @@ import Settings.Development
 
 import Prelude
 import Control.DeepSeq
+import Data.Default
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.ByteString as BS (ByteString, readFile, writeFile)
@@ -94,8 +98,8 @@ instance FromJSON RawExif where
     let rExifPeople   = []
     rExifCamera      <- o .:? "Model"
     rExifLens        <- o .: "LensModel" <|>
-                      o .: "LensID"    <|>
-                      o .: "Lens"      <|>
+                        o .: "LensID"    <|>
+                        o .: "Lens"      <|>
                       pure Nothing
     rExifSerial      <- o .:? "Serial"
     rExifOrientation <- o .:? "Orientation"
@@ -120,6 +124,29 @@ $(makeStore ''Exif)
 
 unknown :: Text
 unknown = "unknown"
+
+data Rotate = RCenter
+            | RLeft
+            | RRight
+
+data Transform = Transform
+                   Rotate
+                   Bool -- ^ Flip X.
+                   Bool -- ^ Flip Y.
+
+instance Default Transform where
+  def = Transform RCenter False False
+
+-- | Returns the (partial) affine matrix for the given orientation.
+affineTransform :: Orientation -> Transform
+affineTransform OrientationTopLeft  = Transform RCenter False False
+affineTransform OrientationTopRight = Transform RCenter True  False
+affineTransform OrientationBotRight = Transform RCenter True  True
+affineTransform OrientationBotLeft  = Transform RCenter False True
+affineTransform OrientationLeftTop  = Transform RLeft   False True
+affineTransform OrientationRightTop = Transform RRight  False False
+affineTransform OrientationRightBot = Transform RRight  False True
+affineTransform OrientationLeftBot  = Transform RLeft   False False
 
 exifFromRaw :: RawExif -> Exif
 exifFromRaw RawExif{..} =
