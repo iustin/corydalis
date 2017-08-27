@@ -23,12 +23,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE RecordWildCards #-}
 
 module Cache ( cachedBasename
+             , writeCacheFile
              ) where
 
 import Types
 
 import Prelude
+import qualified Data.ByteString as BS (ByteString, writeFile)
+import qualified Data.ByteString.Lazy as BSL (ByteString, writeFile)
+import System.FilePath (splitFileName)
+import System.Directory (createDirectoryIfMissing)
 
 cachedBasename :: Config -> FilePath -> String
 cachedBasename config path =
   cfgCacheDir config ++ "/" ++ path
+
+class WritableContent a where
+  writeContents :: FilePath -> a -> IO ()
+
+instance WritableContent BS.ByteString where
+  writeContents = BS.writeFile
+
+instance WritableContent BSL.ByteString where
+  writeContents = BSL.writeFile
+
+writeCacheFile :: (WritableContent a) =>
+                  Config
+               -> FilePath
+               -> (Config -> FilePath -> FilePath)
+               -> a
+               -> IO ()
+writeCacheFile config path fn contents = do
+  let rpath = fn config path
+      (parent, _) = splitFileName rpath
+  createDirectoryIfMissing True parent
+  writeContents rpath contents

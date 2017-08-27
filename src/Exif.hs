@@ -40,8 +40,8 @@ import Control.DeepSeq
 import Data.Default
 import qualified Data.Text as T
 import Data.Text (Text)
-import qualified Data.ByteString as BS (ByteString, readFile, writeFile)
-import qualified Data.ByteString.Lazy as BSL (writeFile, toStrict)
+import qualified Data.ByteString as BS (ByteString, readFile)
+import qualified Data.ByteString.Lazy as BSL (toStrict)
 import Data.Aeson
 import Data.Store ()
 import Data.Store.TH (makeStore)
@@ -163,9 +163,8 @@ buildPath dir name = dir ++ "/" ++ name
 
 -- | Writes the (binary) exif cache for a given file.
 writeBExif :: Config -> FilePath -> Exif -> IO ()
-writeBExif config path exif = do
-  let ePath = bExifPath config path
-  BS.writeFile ePath (Data.Store.encode exif)
+writeBExif config path =
+  writeCacheFile config path bExifPath . Data.Store.encode
 
 -- | Tries to read the (binary) exif cache for a given file.
 readBExif :: Config -> FilePath -> IO (Maybe Exif)
@@ -185,8 +184,7 @@ writeExifs :: Config -> FilePath -> RawExif -> IO (FilePath, Exif)
 writeExifs config dir r = do
   let rpath = T.unpack $ rExifSrcFile r
       fpath = buildPath dir rpath
-      epath = exifPath config fpath
-  BSL.writeFile epath (Data.Aeson.encode (rExifRaw r))
+  writeCacheFile config fpath exifPath (Data.Aeson.encode (rExifRaw r))
   let e = exifFromRaw r
   writeBExif config fpath e
   return (rpath, e)
