@@ -26,7 +26,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Handler.Home where
+module Handler.Home ( getHomeR
+                    , getFolderR
+                    , getBrowseFoldersR
+                    , getBrowseImagesR
+                    , postReloadR
+                    , getTimelineR
+                    , getSettingsR
+                    , getImageR
+                    , getUntrackedR
+                    ) where
 
 import Import
 import Pics
