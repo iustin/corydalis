@@ -207,13 +207,16 @@ exifFromRaw :: Config -> RawExif -> Exif
 exifFromRaw config RawExif{..} =
   let pPeople = cfgPeoplePrefix config
       pLocations = cfgLocationPrefix config
+      pIgnore = cfgIgnorePrefix config
+      dropIgnored ks = filter (\k -> not $ pIgnore `T.isPrefixOf` k) ks
       exifPeople      = foldl' (\e ks ->
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
                                    _ -> e) [] rExifHSubjects
       exifKeywords    = foldl' (\e ks ->
                                   case ks of
-                                    x:_ | (x /= pLocations && x /= pPeople) -> ks ++ e
+                                    x:_ | (x /= pLocations && x /= pPeople) ->
+                                          dropIgnored ks ++ e
                                     _ -> e) [] rExifHSubjects
       exifLocations   = foldr (\ks e ->
                                   case ks of

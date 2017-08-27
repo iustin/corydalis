@@ -86,6 +86,7 @@ data Config = Config
     , cfgOutdatedError   :: JSDiffTime
     , cfgPeoplePrefix    :: Text
     , cfgLocationPrefix  :: Text
+    , cfgIgnorePrefix    :: Text
     } deriving (Show)
 
 instance FromJSON Config where
@@ -107,7 +108,8 @@ instance FromJSON Config where
          v .: "copyregex"       <*>
          v .: "outdatederror"   <*>
          v .: "peopleprefix"    <*>
-         v .: "locationprefix"
+         v .: "locationprefix"  <*>
+         v .: "ignoreprefix"
     where autosizes = sort . nub <$> ((:) <$> thumbsize <*> v .: "autoimgsizes")
           thumbsize = v .: "thumbnailsize"
           demandsizes = v .: "demandimgsizes"
