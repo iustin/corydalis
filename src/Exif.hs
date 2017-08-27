@@ -85,6 +85,8 @@ $(makeStore ''Orientation)
 data RawExif = RawExif
   { rExifSrcFile     :: Text
   , rExifPeople      :: [Text]
+  , rExifKeywords    :: [Text]
+  , rExifLocation    :: Maybe Text
   , rExifCamera      :: Maybe Text
   , rExifSerial      :: Maybe Text
   , rExifLens        :: Maybe Text
@@ -96,6 +98,8 @@ instance FromJSON RawExif where
   parseJSON = withObject "RawExif" $ \o -> do
     rExifSrcFile     <- o .: "SourceFile"
     let rExifPeople   = []
+        rExifKeywords = []
+        rExifLocation = Nothing
     rExifCamera      <- o .:? "Model"
     rExifLens        <- o .: "LensModel" <|>
                         o .: "LensID"    <|>
@@ -108,6 +112,8 @@ instance FromJSON RawExif where
 
 data Exif = Exif
   { exifPeople      :: ![Text]
+  , exifKeywords    :: ![Text]
+  , exifLocation    :: !(Maybe Text)
   , exifCamera      :: !Text
   , exifSerial      :: !Text
   , exifLens        :: !Text
@@ -115,9 +121,11 @@ data Exif = Exif
   } deriving (Show)
 
 instance NFData Exif where
-  rnf Exif{..} = rnf exifPeople  `seq`
-                 rnf exifCamera  `seq`
-                 rnf exifSerial  `seq`
+  rnf Exif{..} = rnf exifPeople   `seq`
+                 rnf exifKeywords `seq`
+                 rnf exifLocation `seq`
+                 rnf exifCamera   `seq`
+                 rnf exifSerial   `seq`
                  rnf exifLens
 
 $(makeStore ''Exif)
@@ -151,6 +159,8 @@ affineTransform OrientationLeftBot  = Transform RLeft   False False
 exifFromRaw :: RawExif -> Exif
 exifFromRaw RawExif{..} =
   let exifPeople      = rExifPeople
+      exifKeywords    = rExifKeywords
+      exifLocation    = rExifLocation
       exifCamera      = fromMaybe unknown rExifCamera
       exifLens        = fromMaybe unknown rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
