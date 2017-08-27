@@ -54,7 +54,8 @@ import Data.Scientific (toBoundedInteger)
 
 import Control.Applicative
 import Control.Monad
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as M
+import Data.Map.Strict (Map)
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Maybe
@@ -133,11 +134,11 @@ instance NFData Exif where
                  rnf exifLens
 
 data GroupExif = GroupExif
-  { gExifPeople      :: !(Set Text)
-  , gExifKeywords    :: !(Set Text)
-  , gExifLocations   :: !(Set Text)
-  , gExifCameras     :: !(Set Text)
-  , gExifLenses      :: !(Set Text)
+  { gExifPeople      :: !(Map Text Integer)
+  , gExifKeywords    :: !(Map Text Integer)
+  , gExifLocations   :: !(Map Text Integer)
+  , gExifCameras     :: !(Map Text Integer)
+  , gExifLenses      :: !(Map Text Integer)
   } deriving (Show)
 
 instance NFData GroupExif where
@@ -148,27 +149,29 @@ instance NFData GroupExif where
                       rnf gExifLenses
 
 instance Default GroupExif where
-  def = GroupExif S.empty S.empty S.empty S.empty S.empty
+  def = GroupExif M.empty M.empty M.empty M.empty M.empty
 
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
 addExifToGroup g e =
-  g { gExifPeople    = foldl' (flip S.insert) (gExifPeople g) (exifPeople e)
-    , gExifKeywords  = foldl' (flip S.insert) (gExifKeywords g) (exifKeywords e)
-    , gExifLocations = foldl' (flip S.insert) (gExifLocations g) (exifLocations e)
-    , gExifCameras   = exifCamera e `S.insert` gExifCameras g
-    , gExifLenses    = exifLens e `S.insert` gExifLenses g
+  g { gExifPeople    = foldl' count (gExifPeople g) (exifPeople e)
+    , gExifKeywords  = foldl' count (gExifKeywords g) (exifKeywords e)
+    , gExifLocations = foldl' count (gExifLocations g) (exifLocations e)
+    , gExifCameras   = count (gExifCameras g) (exifCamera e)
+    , gExifLenses    = count (gExifLenses g) (exifLens e)
     }
+    where count m k = M.insertWith (+) k 1 m
 
 instance Semigroup GroupExif where
   g1 <> g2 =
     GroupExif
-    { gExifPeople    = gExifPeople    g1 `S.union` gExifPeople    g2
-    , gExifKeywords  = gExifKeywords  g1 `S.union` gExifKeywords  g2
-    , gExifLocations = gExifLocations g1 `S.union` gExifLocations g2
-    , gExifCameras   = gExifCameras   g1 `S.union` gExifCameras   g2
-    , gExifLenses    = gExifLenses    g1 `S.union` gExifLenses    g2
+    { gExifPeople    = gExifPeople    g1 `merge` gExifPeople    g2
+    , gExifKeywords  = gExifKeywords  g1 `merge` gExifKeywords  g2
+    , gExifLocations = gExifLocations g1 `merge` gExifLocations g2
+    , gExifCameras   = gExifCameras   g1 `merge` gExifCameras   g2
+    , gExifLenses    = gExifLenses    g1 `merge` gExifLenses    g2
     }
+    where merge = M.unionWith (+)
 
 unknown :: Text
 unknown = "unknown"
@@ -296,15 +299,15 @@ readExif config path = do
     else return Nothing
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: Config -> FilePath -> [FilePath] -> IO (Map.Map FilePath Exif)
+getExif :: Config -> FilePath -> [FilePath] -> IO (Map FilePath Exif)
 getExif config dir paths = do
   (cache1, m1) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
                             exif <- readBExif config fpath
                             case exif of
                               Nothing -> return (c, p:m)
-                              Just e  -> return (Map.insert p e c, m)
-                        ) (Map.empty, []) paths
+                              Just e  -> return (M.insert p e c, m)
+                        ) (M.empty, []) paths
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
                             exif <- readExif config fpath
@@ -313,7 +316,7 @@ getExif config dir paths = do
                               Just v -> do
                                 let e = exifFromRaw config v
                                 writeBExif config fpath e
-                                return $ (Map.insert p e c, m)
+                                return $ (M.insert p e c, m)
                  ) (cache1, []) m1
   jsons <- if null m2
              then return []
@@ -322,7 +325,7 @@ getExif config dir paths = do
                return $ fromMaybe [] (parseExifs exifs)
   localCache <- foldM (\m r -> do
                           (path, e) <- writeExifs config dir r
-                          return $ Map.insert path e m
+                          return $ M.insert path e m
                       ) cache2 jsons
   return localCache
 
