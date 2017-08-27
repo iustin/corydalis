@@ -135,8 +135,6 @@ instance NFData Exif where
                  rnf exifSerial   `seq`
                  rnf exifLens
 
-$(makeStore ''Exif)
-
 data GroupExif = GroupExif
   { gExifPeople      :: !(Set Text)
   , gExifKeywords    :: !(Set Text)
@@ -346,3 +344,5 @@ extractExifs dir paths = do
 
 parseExifs :: BS.ByteString -> Maybe [RawExif]
 parseExifs = decodeStrict'
+
+$(makeStore ''Exif)
