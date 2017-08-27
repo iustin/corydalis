@@ -117,7 +117,7 @@ instance FromJSON RawExif where
 data Exif = Exif
   { exifPeople      :: ![Text]
   , exifKeywords    :: ![Text]
-  , exifLocation    :: !(Maybe Text)
+  , exifLocations   :: ![Text]
   , exifCamera      :: !Text
   , exifSerial      :: !Text
   , exifLens        :: !Text
@@ -125,11 +125,11 @@ data Exif = Exif
   } deriving (Show)
 
 instance NFData Exif where
-  rnf Exif{..} = rnf exifPeople   `seq`
-                 rnf exifKeywords `seq`
-                 rnf exifLocation `seq`
-                 rnf exifCamera   `seq`
-                 rnf exifSerial   `seq`
+  rnf Exif{..} = rnf exifPeople    `seq`
+                 rnf exifKeywords  `seq`
+                 rnf exifLocations `seq`
+                 rnf exifCamera    `seq`
+                 rnf exifSerial    `seq`
                  rnf exifLens
 
 data GroupExif = GroupExif
@@ -155,8 +155,7 @@ addExifToGroup :: GroupExif -> Exif -> GroupExif
 addExifToGroup g e =
   g { gExifPeople    = foldl' (flip S.insert) (gExifPeople g) (exifPeople e)
     , gExifKeywords  = foldl' (flip S.insert) (gExifKeywords g) (exifKeywords e)
-    , gExifLocations = maybe (gExifLocations g) (`S.insert` gExifLocations g)
-                       (exifLocation e)
+    , gExifLocations = foldl' (flip S.insert) (gExifLocations g) (exifLocations e)
     , gExifCameras   = exifCamera e `S.insert` gExifCameras g
     , gExifLenses    = exifLens e `S.insert` gExifLenses g
     }
@@ -213,10 +212,10 @@ exifFromRaw config RawExif{..} =
                                   case ks of
                                     x:_ | (x /= pLocations && x /= pPeople) -> ks ++ e
                                     _ -> e) [] rExifHSubjects
-      exifLocation    = foldr (\ks e ->
+      exifLocations   = foldr (\ks e ->
                                   case ks of
-                                    x:_:_ | x == pLocations -> Just $ last ks
-                                    _ -> e) Nothing rExifHSubjects
+                                    x:ls | x == pLocations -> ls ++ e
+                                    _ -> e) [] rExifHSubjects
       exifCamera      = fromMaybe unknown rExifCamera
       exifLens        = fromMaybe unknown rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
@@ -239,14 +238,14 @@ promoteFileExif re se je =
                       x:_ -> x
       exifPeople' = summer exifPeople
       exifKeywords' = summer exifKeywords
-      exifLocation' = first exifLocation
+      exifLocations' = summer exifLocations
       exifCamera' = first' exifCamera unknown
       exifSerial' = first' exifSerial unknown
       exifLens'   = first' exifLens unknown
       exifOrientation' =  first' exifOrientation OrientationTopLeft
   in Just $ Exif { exifPeople = exifPeople'
                  , exifKeywords = exifKeywords'
-                 , exifLocation = exifLocation'
+                 , exifLocations = exifLocations'
                  , exifCamera = exifCamera'
                  , exifSerial = exifSerial'
                  , exifLens = exifLens'
