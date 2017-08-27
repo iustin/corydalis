@@ -24,9 +24,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TemplateHaskell #-}
 
 module Exif ( Exif(..)
+            , GroupExif(..)
             , Rotate(..)
             , Transform(..)
             , getExif
+            , promoteFileExif
+            , addExifToGroup
             , affineTransform
             , unknown
             ) where
@@ -43,6 +46,8 @@ import Data.Text (Text)
 import qualified Data.ByteString as BS (ByteString, readFile)
 import qualified Data.ByteString.Lazy as BSL (toStrict)
 import Data.Aeson
+import Data.List
+import Data.Semigroup
 import Data.Store ()
 import Data.Store.TH (makeStore)
 import Data.Scientific (toBoundedInteger)
@@ -50,6 +55,8 @@ import Data.Scientific (toBoundedInteger)
 import Control.Applicative
 import Control.Monad
 import qualified Data.Map.Strict as Map
+import Data.Set (Set)
+import qualified Data.Set as S
 import Data.Maybe
 import System.Posix.Files hiding (fileSize)
 import System.Process.Typed
@@ -130,6 +137,45 @@ instance NFData Exif where
 
 $(makeStore ''Exif)
 
+data GroupExif = GroupExif
+  { gExifPeople      :: !(Set Text)
+  , gExifKeywords    :: !(Set Text)
+  , gExifLocations   :: !(Set Text)
+  , gExifCameras     :: !(Set Text)
+  , gExifLenses      :: !(Set Text)
+  } deriving (Show)
+
+instance NFData GroupExif where
+  rnf GroupExif{..} = rnf gExifPeople    `seq`
+                      rnf gExifKeywords  `seq`
+                      rnf gExifLocations `seq`
+                      rnf gExifCameras   `seq`
+                      rnf gExifLenses
+
+instance Default GroupExif where
+  def = GroupExif S.empty S.empty S.empty S.empty S.empty
+
+-- | Expands a group exif with a single exif
+addExifToGroup :: GroupExif -> Exif -> GroupExif
+addExifToGroup g e =
+  g { gExifPeople    = foldl' (flip S.insert) (gExifPeople g) (exifPeople e)
+    , gExifKeywords  = foldl' (flip S.insert) (gExifKeywords g) (exifKeywords e)
+    , gExifLocations = maybe (gExifLocations g) (`S.insert` gExifLocations g)
+                       (exifLocation e)
+    , gExifCameras   = exifCamera e `S.insert` gExifCameras g
+    , gExifLenses    = exifLens e `S.insert` gExifLenses g
+    }
+
+instance Semigroup GroupExif where
+  g1 <> g2 =
+    GroupExif
+    { gExifPeople    = gExifPeople    g1 `S.union` gExifPeople    g2
+    , gExifKeywords  = gExifKeywords  g1 `S.union` gExifKeywords  g2
+    , gExifLocations = gExifLocations g1 `S.union` gExifLocations g2
+    , gExifCameras   = gExifCameras   g1 `S.union` gExifCameras   g2
+    , gExifLenses    = gExifLenses    g1 `S.union` gExifLenses    g2
+    }
+
 unknown :: Text
 unknown = "unknown"
 
@@ -166,6 +212,36 @@ exifFromRaw RawExif{..} =
       exifSerial      = fromMaybe unknown rExifSerial
       exifOrientation = fromMaybe OrientationTopLeft rExifOrientation
   in Exif{..}
+
+-- | Promotion rules for file to exif
+promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Maybe Exif
+promoteFileExif re se je =
+  let summer :: (Exif -> [a]) -> [a]
+      summer fn = concat (maybeToList (fn <$> re) ++
+                          maybeToList (fn <$> se) ++
+                          map fn je)
+      first :: (Exif -> Maybe a) -> Maybe a
+      first fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
+      first' :: (Exif -> a) -> a -> a
+      first' fn d = case (catMaybes [fn <$> re, fn <$> se] ++
+                                    map fn je) of
+                      [] -> d
+                      x:_ -> x
+      exifPeople' = summer exifPeople
+      exifKeywords' = summer exifKeywords
+      exifLocation' = first exifLocation
+      exifCamera' = first' exifCamera unknown
+      exifSerial' = first' exifSerial unknown
+      exifLens'   = first' exifLens unknown
+      exifOrientation' =  first' exifOrientation OrientationTopLeft
+  in Just $ Exif { exifPeople = exifPeople'
+                 , exifKeywords = exifKeywords'
+                 , exifLocation = exifLocation'
+                 , exifCamera = exifCamera'
+                 , exifSerial = exifSerial'
+                 , exifLens = exifLens'
+                 , exifOrientation = exifOrientation'
+                 }
 
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath

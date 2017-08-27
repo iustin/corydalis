@@ -54,6 +54,7 @@ module Pics ( PicDir(..)
             , filterDirsByClass
             , filterImagesByClass
             , computeRepoStats
+            , repoGlobalExif
             , computeTimeLine
             , Stats(..)
             , zeroStats
@@ -84,6 +85,7 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
 import Control.Concurrent (forkIO)
+import Data.Default (def)
 import Control.Exception
 import Data.Function (on)
 import qualified Data.Map.Strict as Map
@@ -92,6 +94,7 @@ import Data.Maybe
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Data.Time.Calendar
+import Data.Semigroup
 import System.Directory
 import System.FilePath
 import System.Posix.Files hiding (fileSize)
@@ -187,6 +190,7 @@ data Image = Image
     , imgSidecarPath :: !(Maybe File)
     , imgJpegPath    :: ![File]
     , imgRange       :: !(Maybe (Text, Text))
+    , imgExif        :: !(Maybe Exif)
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
     } deriving (Show)
@@ -279,8 +283,10 @@ mkImageStatus c (Just raw) jpegs@(_:_) sidecar =
 mkImage :: Config -> Text -> Text -> Maybe File
         -> Maybe File -> [File] -> Maybe (Text, Text) -> Flags -> Image
 mkImage config name parent raw sidecar jpeg range =
-  Image name parent raw sidecar jpeg range $
-  mkImageStatus config raw jpeg sidecar
+  let status = mkImageStatus config raw jpeg sidecar
+      exif = promoteFileExif (raw >>= fileExif)
+               (sidecar >>= fileExif) (mapMaybe fileExif jpeg)
+  in Image name parent raw sidecar jpeg range exif status
 
 data PicDir = PicDir
   { pdName      :: !Text
@@ -291,6 +297,7 @@ data PicDir = PicDir
   , pdUntracked :: !(Map.Map Text Untracked)
   , pdYear      :: !(Maybe Integer)  -- ^ The approximate year of the
                                      -- earliest picture.
+  , pdExif      :: !GroupExif
   } deriving (Show)
 
 instance NFData PicDir where
@@ -300,7 +307,8 @@ instance NFData PicDir where
                    rnf pdImages   `seq`
                    rnf pdShadows  `seq`
                    rnf pdUntracked `seq`
-                   rnf pdYear
+                   rnf pdYear      `seq`
+                   rnf pdExif
 
 type RepoDirs = Map.Map Text PicDir
 
@@ -432,6 +440,10 @@ computeRepoStats =
                 in StrictPair picstats' fcstats'
              ) (StrictPair zeroStats Map.empty) . repoDirs
 
+repoGlobalExif :: Repository -> GroupExif
+repoGlobalExif =
+  Map.foldl' (\e f -> e <> pdExif f) def . repoDirs
+
 {-# NOINLINE repoCache #-}
 repoCache :: MVar (Maybe Repository)
 repoCache = unsafePerformIO $ newMVar Nothing
@@ -487,6 +499,7 @@ mergeFolders c x y =
     , pdYear = min <$> pdYear x <*> pdYear y <|>
                pdYear x <|>
                pdYear y
+    , pdExif = pdExif x <> pdExif y
     }
   where
     (bestMainPath, otherMainPath) =
@@ -731,7 +744,11 @@ loadFolder config name path isSource = do
                            a <|>
                            imageYear img
                         ) Nothing images
-  return $!! PicDir tname (T.pack path) [] images shadows untracked year
+      exif = Map.foldl' (\e img -> case imgExif img of
+                                     Just ie -> addExifToGroup e ie
+                                     Nothing -> e
+                        ) def images
+  return $!! PicDir tname (T.pack path) [] images shadows untracked year exif
 
 
 mergeShadows :: Config -> PicDir -> PicDir
