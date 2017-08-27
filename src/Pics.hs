@@ -80,6 +80,7 @@ import qualified Data.ByteString.Lazy as BSL (writeFile, length)
 import System.IO.Unsafe
 import Data.Int (Int64)
 
+import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
 import Control.Concurrent (forkIO)
@@ -235,6 +236,22 @@ newtype ImageSize = ImageSize Int
 fileLastTouch :: File -> POSIXTime
 fileLastTouch f = fileMTime f `max` fileCTime f
 
+-- | The (approximate) year of a file.
+fileYear :: File -> Integer
+fileYear f =
+  let mintime = fileMTime f `min` fileCTime f
+      utc = posixSecondsToUTCTime mintime
+      days = utctDay utc
+      (year, _, _) = toGregorian days
+  in year
+
+-- | The (approximate) year of the image.
+imageYear :: Image -> Maybe Integer
+imageYear img =
+  case (maybeToList (imgRawPath img) ++ imgJpegPath img) of
+    [] -> Nothing
+    xs -> Just . minimum . map fileYear $ xs
+
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
 mkImageStatus :: Config
@@ -272,6 +289,8 @@ data PicDir = PicDir
   , pdImages    :: !(Map.Map Text Image)
   , pdShadows   :: !(Map.Map Text Image)
   , pdUntracked :: !(Map.Map Text Untracked)
+  , pdYear      :: !(Maybe Integer)  -- ^ The approximate year of the
+                                     -- earliest picture.
   } deriving (Show)
 
 instance NFData PicDir where
@@ -280,7 +299,8 @@ instance NFData PicDir where
                    rnf pdSecPaths `seq`
                    rnf pdImages   `seq`
                    rnf pdShadows  `seq`
-                   rnf pdUntracked
+                   rnf pdUntracked `seq`
+                   rnf pdYear
 
 type RepoDirs = Map.Map Text PicDir
 
@@ -464,6 +484,9 @@ mergeFolders c x y =
         Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     , pdUntracked =
         Map.unionWith mergeUntracked (pdUntracked x) (pdUntracked y)
+    , pdYear = min <$> pdYear x <*> pdYear y <|>
+               pdYear x <|>
+               pdYear y
     }
   where
     (bestMainPath, otherMainPath) =
@@ -703,7 +726,12 @@ loadFolder config name path isSource = do
                     LIRUntracked untrk -> (images', shadows',
                                            addUntracked untrk untracked')
                ) (Map.empty, Map.empty, Map.empty) contents
-  return $!! PicDir tname (T.pack path) [] images shadows untracked
+  let year = Map.foldl' (\a img ->
+                           (min <$> a <*> imageYear img) <|>
+                           a <|>
+                           imageYear img
+                        ) Nothing images
+  return $!! PicDir tname (T.pack path) [] images shadows untracked year
 
 
 mergeShadows :: Config -> PicDir -> PicDir
