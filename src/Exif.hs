@@ -91,22 +91,17 @@ $(makeStore ''Orientation)
 
 data RawExif = RawExif
   { rExifSrcFile     :: Text
-  , rExifPeople      :: [Text]
-  , rExifKeywords    :: [Text]
-  , rExifLocation    :: Maybe Text
   , rExifCamera      :: Maybe Text
   , rExifSerial      :: Maybe Text
   , rExifLens        :: Maybe Text
   , rExifOrientation :: Maybe Orientation
+  , rExifHSubjects   :: [[Text]]
   , rExifRaw         :: Object
   } deriving (Show)
 
 instance FromJSON RawExif where
   parseJSON = withObject "RawExif" $ \o -> do
     rExifSrcFile     <- o .: "SourceFile"
-    let rExifPeople   = []
-        rExifKeywords = []
-        rExifLocation = Nothing
     rExifCamera      <- o .:? "Model"
     rExifLens        <- o .: "LensModel" <|>
                         o .: "LensID"    <|>
@@ -114,6 +109,8 @@ instance FromJSON RawExif where
                       pure Nothing
     rExifSerial      <- o .:? "Serial"
     rExifOrientation <- o .:? "Orientation"
+    hsubjs           <- o .:? "HierarchicalSubject" .!= []
+    let rExifHSubjects = map parseHierSubject hsubjs
     let rExifRaw      = o
     return RawExif{..}
 
@@ -189,6 +186,10 @@ data Transform = Transform
 instance Default Transform where
   def = Transform RCenter False False
 
+-- | Parses the (Lightroom-specific?) hierarchical keywords.
+parseHierSubject :: Text -> [Text]
+parseHierSubject = T.splitOn "|"
+
 -- | Returns the (partial) affine matrix for the given orientation.
 affineTransform :: Orientation -> Transform
 affineTransform OrientationTopLeft  = Transform RCenter False False
@@ -200,11 +201,22 @@ affineTransform OrientationRightTop = Transform RRight  False False
 affineTransform OrientationRightBot = Transform RRight  False True
 affineTransform OrientationLeftBot  = Transform RLeft   False False
 
-exifFromRaw :: RawExif -> Exif
-exifFromRaw RawExif{..} =
-  let exifPeople      = rExifPeople
-      exifKeywords    = rExifKeywords
-      exifLocation    = rExifLocation
+exifFromRaw :: Config -> RawExif -> Exif
+exifFromRaw config RawExif{..} =
+  let pPeople = cfgPeoplePrefix config
+      pLocations = cfgLocationPrefix config
+      exifPeople      = foldl' (\e ks ->
+                                 case ks of
+                                   x:p | x == pPeople -> p ++ e
+                                   _ -> e) [] rExifHSubjects
+      exifKeywords    = foldl' (\e ks ->
+                                  case ks of
+                                    x:_ | (x /= pLocations && x /= pPeople) -> ks ++ e
+                                    _ -> e) [] rExifHSubjects
+      exifLocation    = foldr (\ks e ->
+                                  case ks of
+                                    x:_:_ | x == pLocations -> Just $ last ks
+                                    _ -> e) Nothing rExifHSubjects
       exifCamera      = fromMaybe unknown rExifCamera
       exifLens        = fromMaybe unknown rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
@@ -269,7 +281,7 @@ writeExifs config dir r = do
   let rpath = T.unpack $ rExifSrcFile r
       fpath = buildPath dir rpath
   writeCacheFile config fpath exifPath (Data.Aeson.encode (rExifRaw r))
-  let e = exifFromRaw r
+  let e = exifFromRaw config r
   writeBExif config fpath e
   return (rpath, e)
 
@@ -300,7 +312,7 @@ getExif config dir paths = do
                             case exif of
                               Nothing -> return (c, p:m)
                               Just v -> do
-                                let e = exifFromRaw v
+                                let e = exifFromRaw config v
                                 writeBExif config fpath e
                                 return $ (Map.insert p e c, m)
                  ) (cache1, []) m1

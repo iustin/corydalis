@@ -36,6 +36,7 @@ import Control.Monad
 import Data.Aeson
 import Data.List (sort, nub)
 import Data.Time.Clock
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Text.Regex.PCRE as PCRE
 import Yesod
@@ -83,6 +84,8 @@ data Config = Config
     , cfgRangeRegex      :: Regex
     , cfgCopyRegex       :: Regex
     , cfgOutdatedError   :: JSDiffTime
+    , cfgPeoplePrefix    :: Text
+    , cfgLocationPrefix  :: Text
     } deriving (Show)
 
 instance FromJSON Config where
@@ -102,7 +105,9 @@ instance FromJSON Config where
          v .: "dirregex"        <*>
          v .: "rangeregex"      <*>
          v .: "copyregex"       <*>
-         v .: "outdatederror"
+         v .: "outdatederror"   <*>
+         v .: "peopleprefix"    <*>
+         v .: "locationprefix"
     where autosizes = sort . nub <$> ((:) <$> thumbsize <*> v .: "autoimgsizes")
           thumbsize = v .: "thumbnailsize"
           demandsizes = v .: "demandimgsizes"
