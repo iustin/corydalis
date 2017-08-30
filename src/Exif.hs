@@ -97,6 +97,10 @@ data RawExif = RawExif
   , rExifLens        :: Maybe Text
   , rExifOrientation :: Maybe Orientation
   , rExifHSubjects   :: [[Text]]
+  , rExifCountry     :: Maybe Text
+  , rExifState       :: Maybe Text
+  , rExifProvince    :: Maybe Text
+  , rExifCity        :: Maybe Text
   , rExifRaw         :: Object
   } deriving (Show)
 
@@ -112,6 +116,10 @@ instance FromJSON RawExif where
     rExifOrientation <- o .:? "Orientation"
     hsubjs           <- o .:? "HierarchicalSubject" .!= []
     let rExifHSubjects = map parseHierSubject hsubjs
+    rExifCountry     <- o .:? "Country"
+    rExifState       <- o .:? "State"
+    rExifProvince    <- o .:? "Province-State"
+    rExifCity        <- o .:? "City"
     let rExifRaw      = o
     return RawExif{..}
 
@@ -218,10 +226,13 @@ exifFromRaw config RawExif{..} =
                                     x:_ | (x /= pLocations && x /= pPeople) ->
                                           dropIgnored ks ++ e
                                     _ -> e) [] rExifHSubjects
-      exifLocations   = foldr (\ks e ->
+      hierLocations   = foldr (\ks e ->
                                   case ks of
                                     x:ls | x == pLocations -> ls ++ e
                                     _ -> e) [] rExifHSubjects
+      fieldLocations  = catMaybes [rExifCountry, rExifState,
+                                   rExifProvince, rExifCity]
+      exifLocations   = nub $ hierLocations ++ fieldLocations
       exifCamera      = fromMaybe unknown rExifCamera
       exifLens        = fromMaybe unknown rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
