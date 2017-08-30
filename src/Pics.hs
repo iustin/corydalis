@@ -31,6 +31,9 @@ module Pics ( PicDir(..)
             , Repository
             , Exif(..)
             , repoDirs
+            , repoStats
+            , repoExif
+            , RepoStats(..)
             , ImageSize(..)
             , fileLastTouch
             , getRepo
@@ -314,10 +317,14 @@ type RepoDirs = Map.Map Text PicDir
 
 data Repository = Repository
   { repoDirs  :: !RepoDirs
+  , repoStats :: !RepoStats
+  , repoExif  :: !GroupExif
   }
 
 instance NFData Repository where
-  rnf Repository{..} = rnf repoDirs
+  rnf Repository{..} = rnf repoDirs  `seq`
+                       rnf repoStats `seq`
+                       rnf repoExif
 
 type FolderClassStats = Map.Map FolderClass Int
 
@@ -337,6 +344,23 @@ data Stats = Stats
   , sByCamera       :: !(Map.Map Text (Int, FileOffset))
   , sByLens         :: !(Map.Map Text (Int, FileOffset))
   } deriving Show
+
+-- orphan instance, sigh.
+instance NFData COff where
+  rnf (COff x) = rnf x
+
+instance NFData Stats where
+  rnf Stats{..} = rnf sByCamera `seq`
+                  rnf sByLens
+
+data RepoStats = RepoStats
+  { rsPicStats :: !Stats
+  , rsFCStats  :: !FolderClassStats
+  }
+
+instance NFData RepoStats where
+  rnf RepoStats{..} = rnf rsPicStats `seq`
+                      rnf rsFCStats
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
@@ -429,20 +453,20 @@ computeFolderStats p =
 
 data StrictPair a b = StrictPair !a !b
 
-computeRepoStats :: Repository -> (Stats, FolderClassStats)
+computeRepoStats :: RepoDirs -> RepoStats
 computeRepoStats =
-  (\(StrictPair a b) -> (a, b)) .
+  (\(StrictPair a b) -> RepoStats a b) .
   Map.foldl' (\(StrictPair picstats fcstats) dir ->
                 let stats = computeFolderStats dir
                     fc = folderClassFromStats stats
                     picstats' = sumStats picstats stats
                     fcstats' = Map.insertWith (+) fc 1 fcstats
                 in StrictPair picstats' fcstats'
-             ) (StrictPair zeroStats Map.empty) . repoDirs
+             ) (StrictPair zeroStats Map.empty)
 
-repoGlobalExif :: Repository -> GroupExif
+repoGlobalExif :: RepoDirs -> GroupExif
 repoGlobalExif =
-  Map.foldl' (\e f -> e <> pdExif f) def . repoDirs
+  Map.foldl' (\e f -> e <> pdExif f) def
 
 {-# NOINLINE repoCache #-}
 repoCache :: MVar (Maybe Repository)
@@ -792,7 +816,12 @@ scanFilesystem config = do
             Map.empty $ srcdirs ++ outdirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
-      repo'' = Repository { repoDirs = repo' }
+      stats = computeRepoStats repo'
+      rexif = repoGlobalExif repo'
+      repo'' = Repository { repoDirs  = repo'
+                          , repoStats = stats
+                          , repoExif  = rexif
+                          }
   forkIO $ forceBuildThumbCaches config repo''
   return $!! repo''
 

@@ -33,6 +33,7 @@ module Types ( Config(..)
 
 import Control.Applicative
 import Control.Monad
+import Control.DeepSeq
 import Data.Aeson
 import Data.List (sort, nub)
 import Data.Time.Clock
@@ -153,6 +154,9 @@ data FolderClass = FolderEmpty
                  | FolderOutdated
                  | FolderMixed
                    deriving (Show, Read, Eq, Ord, Enum, Bounded)
+
+instance NFData FolderClass where
+  rnf _ = ()
 
 -- | Custom yesod instance for FolderClass. This really could use some TH.
 instance PathPiece FolderClass where

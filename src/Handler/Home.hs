@@ -80,10 +80,11 @@ instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
 getHomeR :: Handler TypedContent
 getHomeR = do
   pics <- getPics
-  let (Stats unprocessed standalone processed outdated orphaned untracked
+  let RepoStats
+        (Stats unprocessed standalone processed outdated orphaned untracked
              rawsize procsize standalonesize sidecarsize untrksize
-             bycamera bylens, fcm) =
-          computeRepoStats pics
+             bycamera bylens) fcm =
+          repoStats pics
       allpics = unprocessed + standalone + processed + outdated
       fstats = Map.toAscList fcm
       numfolders = Map.size $ repoDirs pics
