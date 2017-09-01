@@ -232,6 +232,7 @@ instance YesodBreadcrumbs App where
   breadcrumb RobotsR        = return ("Robots"       , Nothing)
   breadcrumb (AuthR _)      = return ("Auth"         , Just HomeR)
   breadcrumb HomeR          = return ("Home"         , Nothing)
+  breadcrumb NewHomeR       = return ("New home",      Just HomeR)
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
   breadcrumb (FolderR name) = return (name, Just HomeR)
   breadcrumb (ImageR folder image) = return (image,
@@ -251,6 +252,8 @@ instance YesodBreadcrumbs App where
   breadcrumb (BrowseImagesR kind) =
     return ("Showing images of type " `T.append`
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
+  breadcrumb (SearchFoldersR) =
+    return ("Search folders", Just HomeR)
   breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
 

@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE RecordWildCards #-}
 
 module Handler.Home ( getHomeR
+                    , getNewHomeR
                     , getFolderR
                     , getBrowseFoldersR
                     , getBrowseImagesR
@@ -35,14 +36,17 @@ module Handler.Home ( getHomeR
                     , getSettingsR
                     , getImageR
                     , getUntrackedR
+                    , getSearchFoldersR
                     ) where
 
 import Import
+import Exif
 import Pics
 import Types
 import Handler.Utils
 
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Time
 
@@ -76,6 +80,31 @@ instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
            , "mode"  .= gdMode
            , "marker" .= object [ "size" .= map (const (15::Int)) gdX]
            ]
+
+getNewHomeR :: Handler Html
+getNewHomeR = do
+  pics <- getPics
+  let fcm = rsFCStats $ repoStats pics
+      fstats = Map.toAscList fcm
+      numfolders = Map.size $ repoDirs pics
+      all_fc = [minBound..maxBound]
+      all_years = Map.foldl' (\s ->
+                                maybe s (\y -> y `Set.insert` s) . pdYear
+                             ) Set.empty (repoDirs pics)
+      topN n f =
+        take n .
+        reverse .
+        (sortBy (compare `on` snd)) .
+        Map.toList .
+        f $ gexif
+      years = Set.toAscList all_years
+      gexif = repoExif pics
+      topPlaces = topN 10 gExifLocations
+      topPeople = topN 10 gExifPeople
+      topKeywords = topN 10 gExifKeywords
+  defaultLayout $ do
+    setTitle . toHtml $ ("Corydalis: home"::T.Text)
+    $(widgetFile "newhome")
 
 getHomeR :: Handler TypedContent
 getHomeR = do
@@ -259,3 +288,16 @@ getUntrackedR folder uname = do
       setTitle . toHtml $ "Corydalis: Untracked file " `T.append` folder
                  `T.append` "/" `T.append` uname
       $(widgetFile "untracked")
+
+getSearchFoldersR :: Handler Html
+getSearchFoldersR = do
+  loc <- lookupGetParam "loc"
+  let search_string = "location: " ++ show loc
+  let sloc = case loc of
+               Nothing -> const True
+               Just p -> \f -> p `Map.member` (gExifLocations $ pdExif f)
+  pics <- getPics
+  let folders = filter sloc . Map.elems . repoDirs $ pics
+  defaultLayout $ do
+    setTitle . toHtml $ ("Corydalis: searching folders"::Text)
+    $(widgetFile "searchfolders")

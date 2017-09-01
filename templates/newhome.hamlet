@@ -1,0 +1,61 @@
+<h1>Corydalis
+  <small> - photo library analysis
+
+<div .row>
+  <div .col-xs-12 .col-md-3>
+    <div .panel .panel-default>
+      <div .panel-heading>Year view
+      <div .panel-body>
+         $forall year <- years           
+          <a .btn .btn-default role="button" href="#">#{year}
+
+  <div .col-xs-12 .col-md-3>
+    $if null topPlaces
+      <div .panel .panel-warning>
+        <div .panel-heading>Locations view
+        <div .panel-body>
+          No pictures with location keywords!
+    $else 
+      <div .panel .panel-default>
+        <div .panel-heading>Locations view
+        <div .panel-body>
+           $forall (p, c) <- topPlaces
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[("loc", p)])}">#{p} (#{c})
+
+  <div .col-xs-12 .col-md-3>
+    $if null topPeople
+      <div .panel .panel-warning>
+        <div .panel-heading>People view
+        <div .panel-body>
+          No pictures with people tags!
+    $else
+      <div .panel .panel-default>
+        <div .panel-heading>People view
+        <div .panel-body>
+           $forall (p, c) <- topPeople
+            <a .btn .btn-default role="button" href="#">#{p} (#{c})
+  
+  <div .col-xs-12 .col-md-3>
+    $if null topKeywords
+      <div .panel .panel-warning>
+        <div .panel-heading>Keyword view
+        <div .panel-body>
+          No pictures with keywords!
+    $else
+      <div .panel .panel-default>
+        <div .panel-heading>Keyword view
+        <div .panel-body>
+           $forall (kw, c) <- topKeywords
+            <a .btn .btn-default role="button" href="#">#{kw} (#{c})
+  
+
+  <div .col-xs-12 .col-md-6>
+    <div .panel .panel-default>
+      <div .panel-heading>Curate library
+      <div .panel-body>
+        The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
+        <ul>
+          $forall (fc, count) <- fstats
+            $with fclist <- [fc]
+              <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
+

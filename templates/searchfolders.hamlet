@@ -1,0 +1,26 @@
+<h1>Browsing folders #
+  <small>#{search_string}
+
+<div .row>
+ <div .col-xs-12>
+   $if null folders
+     <p .bg-warning>No folders found that match the requested search.
+   $else
+     <div .panel .panel-default>
+       <div .panel-body>
+         The selected filter matches #{length folders} folders.
+         
+     <div .panel .panel-default>
+       <div .panel-heading>Results
+       <table #folderlist .tablesorter .table .table-condensed>
+         <thead>
+           <tr>
+             <th ."{sorter: 'text'}">Name
+             <th ."{sorter: 'text'}">Path
+         <tbody>
+           $forall n <- folders
+             <tr>
+               <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
+               <td>#{pdMainPath n}
+                 $forall sp <- pdSecPaths n
+                   <br />#{sp}

@@ -5,12 +5,14 @@
 /robots.txt RobotsR GET
 
 / HomeR GET
+/new NewHomeR GET
 /reload ReloadR POST
 /folder/#Text FolderR GET
 /folder/#Text/images/#Text ImageR GET
 /folder/#Text/untracked/#Text UntrackedR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET
 /browse/images/#[ImageStatus] BrowseImagesR GET
+/search/folders SearchFoldersR GET
 /view/#Text/#Text ViewR GET
 /image/bytes/#Text/#Text ImageBytesR GET
 /image/info/#Text/#Text ImageInfoR GET
