@@ -36,7 +36,6 @@ module Handler.Home ( getHomeR
                     , getSettingsR
                     , getImageR
                     , getUntrackedR
-                    , getSearchFoldersR
                     ) where
 
 import Import
@@ -288,16 +287,3 @@ getUntrackedR folder uname = do
       setTitle . toHtml $ "Corydalis: Untracked file " `T.append` folder
                  `T.append` "/" `T.append` uname
       $(widgetFile "untracked")
-
-getSearchFoldersR :: Handler Html
-getSearchFoldersR = do
-  loc <- lookupGetParam "loc"
-  let search_string = "location: " ++ show loc
-  let sloc = case loc of
-               Nothing -> const True
-               Just p -> \f -> p `Map.member` (gExifLocations $ pdExif f)
-  pics <- getPics
-  let folders = filter sloc . Map.elems . repoDirs $ pics
-  defaultLayout $ do
-    setTitle . toHtml $ ("Corydalis: searching folders"::Text)
-    $(widgetFile "searchfolders")
