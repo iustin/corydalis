@@ -319,7 +319,7 @@ data Repository = Repository
   { repoDirs  :: !RepoDirs
   , repoStats :: !RepoStats
   , repoExif  :: !GroupExif
-  }
+  } deriving (Show)
 
 instance NFData Repository where
   rnf Repository{..} = rnf repoDirs  `seq`
@@ -356,7 +356,7 @@ instance NFData Stats where
 data RepoStats = RepoStats
   { rsPicStats :: !Stats
   , rsFCStats  :: !FolderClassStats
-  }
+  } deriving (Show)
 
 instance NFData RepoStats where
   rnf RepoStats{..} = rnf rsPicStats `seq`
