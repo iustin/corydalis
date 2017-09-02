@@ -44,12 +44,12 @@ main = do
     performGC
     t2m <- getTime Monotonic
     t2p <- getTime ProcessCPUTime
-    let s1 = computeRepoStats repo
+    let s1 = computeRepoStats (repoDirs repo)
     putStrLn $ "Repository stats #1:"
     print s1
     t3m <- getTime Monotonic
     t3p <- getTime ProcessCPUTime
-    let s2 = computeRepoStats repo
+    let s2 = computeRepoStats (repoDirs repo)
     putStrLn $ "Repository stats #1:"
     print s2
     t4m <- getTime Monotonic
