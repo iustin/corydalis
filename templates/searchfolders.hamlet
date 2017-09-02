@@ -9,18 +9,21 @@
      <div .panel .panel-default>
        <div .panel-body>
          The selected filter matches #{length folders} folders.
-         
+
      <div .panel .panel-default>
        <div .panel-heading>Results
        <table #folderlist .tablesorter .table .table-condensed>
          <thead>
            <tr>
              <th ."{sorter: 'text'}">Name
-             <th ."{sorter: 'text'}">Path
+             <th ."{sorter: 'false'}">Locations
+             <th ."{sorter: 'false'}">People
+             <th ."{sorter: 'false'}">Keywords
+
          <tbody>
            $forall n <- folders
              <tr>
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
-               <td>#{pdMainPath n}
-                 $forall sp <- pdSecPaths n
-                   <br />#{sp}
+               <td>#{folderLocations n}
+               <td>#{folderPeople n}
+               <td>#{folderKeywords n}

@@ -27,6 +27,7 @@ module Handler.Utils where
 import Import
 import Pics
 import Types
+import Exif
 
 import qualified Data.Map as Map
 import qualified Data.Text as T
@@ -143,3 +144,15 @@ formatPerson abbrev name =
                   then f `T.append` " " `T.snoc` (T.head l) `T.snoc` '.'
                   else f `T.append` " " `T.append` l
        _ -> name
+
+folderLocations :: PicDir -> Text
+folderLocations =
+  T.intercalate ", " . Map.keys . gExifLocations . pdExif
+
+folderPeople :: PicDir -> Text
+folderPeople =
+  T.intercalate ", " . map (formatPerson True) . Map.keys . gExifPeople . pdExif
+
+folderKeywords :: PicDir -> Text
+folderKeywords =
+  T.intercalate ", " . Map.keys . gExifKeywords . pdExif
