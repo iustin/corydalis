@@ -7,7 +7,7 @@
       <div .panel-heading>Year view
       <div .panel-body>
          $forall year <- years           
-          <a .btn .btn-default role="button" href="#">#{year}
+          <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TYear, T.pack (show year))])}">#{year}
 
   <div .col-xs-12 .col-md-3>
     $if null topPlaces
@@ -20,7 +20,7 @@
         <div .panel-heading>Locations view
         <div .panel-body>
            $forall (p, c) <- topPlaces
-            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[("loc", p)])}">#{p} (#{c})
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TLocation, p)])}">#{p} (#{c})
 
   <div .col-xs-12 .col-md-3>
     $if null topPeople
@@ -33,7 +33,7 @@
         <div .panel-heading>People view
         <div .panel-body>
            $forall (p, c) <- topPeople
-            <a .btn .btn-default role="button" href="#">#{p} (#{c})
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TPerson, p)])}">#{p} (#{c})
   
   <div .col-xs-12 .col-md-3>
     $if null topKeywords
@@ -46,7 +46,7 @@
         <div .panel-heading>Keyword view
         <div .panel-body>
            $forall (kw, c) <- topKeywords
-            <a .btn .btn-default role="button" href="#">#{kw} (#{c})
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TKeyword, kw)])}">#{kw} (#{c})
   
 
   <div .col-xs-12 .col-md-6>

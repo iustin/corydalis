@@ -42,6 +42,7 @@ import Import
 import Exif
 import Pics
 import Types
+import Indexer
 import Handler.Utils
 
 import qualified Data.Map as Map

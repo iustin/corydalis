@@ -28,6 +28,7 @@ import Import
 import Exif
 import Pics
 import Types
+import Indexer
 import Handler.Utils
 
 import qualified Data.Map as Map
@@ -37,13 +38,17 @@ import Data.Time
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
-  loc <- lookupGetParam "loc"
-  let search_string = "location: " ++ show loc
-  let sloc = case loc of
-               Nothing -> const True
-               Just p -> \f -> p `Map.member` (gExifLocations $ pdExif f)
+  let search_string = ""::Text
+  flt <- foldM (\atoms (kind, param) -> do
+                  p <- lookupGetParam param
+                  case p of
+                    Nothing -> return atoms
+                    Just v -> case buildAtom kind v of
+                                Nothing -> invalidArgs [v]
+                                Just a -> return $ (buildSearchFunction a):atoms
+               ) [] atomNames
   pics <- getPics
-  let folders = filter sloc . Map.elems . repoDirs $ pics
+  let folders = filter (\p -> all (\fn -> fn p) flt) . Map.elems . repoDirs $ pics
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching folders"::Text)
     $(widgetFile "searchfolders")
