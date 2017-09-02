@@ -132,3 +132,14 @@ generatePrevNext k m r = do
 quoteMarkup :: (ToMarkup a) => a -> Markup
 quoteMarkup element = toMarkup [quote, toMarkup element, quote]
   where quote = string "'"
+
+-- | Formats a \"Doe\/John\" name as \"John Doe\" or \"John D.\".
+formatPerson :: Bool -> Text -> Text
+formatPerson abbrev name =
+  let w = "/" `T.splitOn` name
+  in case w of
+       [l, f] | not (T.null l) ->
+                if abbrev
+                  then f `T.append` " " `T.snoc` (T.head l) `T.snoc` '.'
+                  else f `T.append` " " `T.append` l
+       _ -> name

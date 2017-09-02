@@ -36,17 +36,26 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Time
 
+
+atomDescription :: Atom -> Text
+atomDescription (Location place) = "location is " `T.append` place
+atomDescription (Person who) = (formatPerson False who) `T.append`
+                               " is in the picture"
+atomDescription (Keyword what) = "tagged with keyword " `T.append` what
+atomDescription (Year when) = "taken in the year " `T.append` (T.pack $ show when)
+
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
-  let search_string = ""::Text
-  flt <- foldM (\atoms (kind, param) -> do
+  ato <- foldM (\atoms (kind, param) -> do
                   p <- lookupGetParam param
                   case p of
                     Nothing -> return atoms
                     Just v -> case buildAtom kind v of
                                 Nothing -> invalidArgs [v]
-                                Just a -> return $ (buildSearchFunction a):atoms
+                                Just a -> return $ a:atoms
                ) [] atomNames
+  let flt = map buildSearchFunction ato
+      search_string = T.intercalate " and " $ map atomDescription ato
   pics <- getPics
   let folders = filter (\p -> all (\fn -> fn p) flt) . Map.elems . repoDirs $ pics
   defaultLayout $ do

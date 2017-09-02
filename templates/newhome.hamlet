@@ -33,7 +33,7 @@
         <div .panel-heading>People view
         <div .panel-body>
            $forall (p, c) <- topPeople
-            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TPerson, p)])}">#{p} (#{c})
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TPerson, p)])}">#{formatPerson True p} (#{c})
   
   <div .col-xs-12 .col-md-3>
     $if null topKeywords
