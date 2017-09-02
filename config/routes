@@ -5,7 +5,7 @@
 /robots.txt RobotsR GET
 
 / HomeR GET
-/new NewHomeR GET
+/curate CurateR GET
 /reload ReloadR POST
 /folder/#Text FolderR GET
 /folder/#Text/images/#Text ImageR GET

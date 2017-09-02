@@ -232,7 +232,7 @@ instance YesodBreadcrumbs App where
   breadcrumb RobotsR        = return ("Robots"       , Nothing)
   breadcrumb (AuthR _)      = return ("Auth"         , Just HomeR)
   breadcrumb HomeR          = return ("Home"         , Nothing)
-  breadcrumb NewHomeR       = return ("New home",      Just HomeR)
+  breadcrumb CurateR        = return ("Curate"       , Just HomeR)
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
   breadcrumb (FolderR name) = return (name, Just HomeR)
   breadcrumb (ImageR folder image) = return (image,

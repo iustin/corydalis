@@ -26,8 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Handler.Home ( getHomeR
-                    , getNewHomeR
+module Handler.Home ( getCurateR
+                    , getHomeR
                     , getFolderR
                     , getBrowseFoldersR
                     , getBrowseImagesR
@@ -81,8 +81,8 @@ instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
            , "marker" .= object [ "size" .= map (const (15::Int)) gdX]
            ]
 
-getNewHomeR :: Handler Html
-getNewHomeR = do
+getHomeR :: Handler Html
+getHomeR = do
   pics <- getPics
   let fcm = rsFCStats $ repoStats pics
       fstats = Map.toAscList fcm
@@ -104,10 +104,10 @@ getNewHomeR = do
       topKeywords = topN 10 gExifKeywords
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: home"::T.Text)
-    $(widgetFile "newhome")
+    $(widgetFile "homepage")
 
-getHomeR :: Handler TypedContent
-getHomeR = do
+getCurateR :: Handler TypedContent
+getCurateR = do
   pics <- getPics
   let RepoStats
         (Stats unprocessed standalone processed outdated orphaned untracked
@@ -162,9 +162,9 @@ getHomeR = do
                  }::GraphData Int64 Int64
            ]
   let html = do
-        setTitle "Corydalis: home"
+        setTitle "Corydalis: curate"
         addScript $ StaticR js_plotly_js
-        $(widgetFile "homepage")
+        $(widgetFile "curate")
   defaultLayoutJson html (return $ object [ "global" .= json
                                           , "folders" .= j2
                                           , "lenses"  .= jsonl

@@ -4,26 +4,54 @@
 <div .row>
   <div .col-xs-12 .col-md-3>
     <div .panel .panel-default>
-      <div .panel-heading>Images
+      <div .panel-heading>Year view
       <div .panel-body>
-        The repository contains #{allpics} images and #{untracked} #
-        other untracked files, out of which:
-        <ul>
-          $if processed > 0
-            <li>#{processed} <a href=@{BrowseImagesR [ImageProcessed]}>fully processed images</a> backed by RAW files.
-            <li>#{outdated} <a href=@{BrowseImagesR [ImageOutdated]}>outdated images</a> - backed by RAW files which are newer or more recently modified
-          $if unprocessed > 0
-            <li>#{unprocessed} <a href=@{BrowseImagesR [ImageRaw]}>unprocessed</a> files (located in <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
-          $if standalone > 0
-            <li>#{standalone} <a href=@{BrowseImagesR [ImageStandalone]}>standalone JPEGs</a>
-          $if orphaned > 0
-            <li>#{orphaned} <a href=@{BrowseImagesR [ImageOrphaned]}>orphaned sidecar files</a>
-          $if untracked > 0
-            <li>#{untracked} untracked files
+         $forall year <- years           
+          <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TYear, T.pack (show year))])}">#{year}
 
-  <div .col-xs-12 .col-md-4>
+  <div .col-xs-12 .col-md-3>
+    $if null topPlaces
+      <div .panel .panel-warning>
+        <div .panel-heading>Locations view
+        <div .panel-body>
+          No pictures with location keywords!
+    $else 
+      <div .panel .panel-default>
+        <div .panel-heading>Locations view
+        <div .panel-body>
+           $forall (p, c) <- topPlaces
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TLocation, p)])}">#{p} (#{c})
+
+  <div .col-xs-12 .col-md-3>
+    $if null topPeople
+      <div .panel .panel-warning>
+        <div .panel-heading>People view
+        <div .panel-body>
+          No pictures with people tags!
+    $else
+      <div .panel .panel-default>
+        <div .panel-heading>People view
+        <div .panel-body>
+           $forall (p, c) <- topPeople
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TPerson, p)])}">#{formatPerson True p} (#{c})
+  
+  <div .col-xs-12 .col-md-3>
+    $if null topKeywords
+      <div .panel .panel-warning>
+        <div .panel-heading>Keyword view
+        <div .panel-body>
+          No pictures with keywords!
+    $else
+      <div .panel .panel-default>
+        <div .panel-heading>Keyword view
+        <div .panel-body>
+           $forall (kw, c) <- topKeywords
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TKeyword, kw)])}">#{kw} (#{c})
+  
+
+  <div .col-xs-12 .col-md-6>
     <div .panel .panel-default>
-      <div .panel-heading>Folders
+      <div .panel-heading>Curate library
       <div .panel-body>
         The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
         <ul>
@@ -31,29 +59,3 @@
             $with fclist <- [fc]
               <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
 
-  <div .col-xs-12 .col-md-4>
-    <div .panel .panel-default>
-      <div .panel-heading>Bytes
-      <div .panel-body>
-        The overall size of the repository is #{showBinary (rawsize + procsize)}:
-        <ul>
-          <li>#{showBinary rawsize} in raw files
-          <li>#{showBinary procsize} in output files (i.e. files that can be regenerated)
-          <li>#{showBinary standalonesize} in standalone files
-          <li>#{showBinary sidecarsize} in sidecar files
-          <li>#{showBinary untrksize} in untracked files (files of unknown type)
-
-<div .row>
-  <div .col-xs-12 .col-md-6 .col-lg-4>
-    <div #cameraChart .graph>
-  <div .col-xs-12 .col-md-6 .col-lg-4>
-    <div #lensChart .graph>
-  <div .col-xs-12 .col-md-6 .col-lg-4>
-    <div #folderChart .graph>
-
-<a href=@{TimelineR}>Timeline</a>.
-
-You can also
-<form action=@{ReloadR} method=post style="display: inline-block">
-  <button .btn .btn-default .no-padding type="submit">reload
-the cache, or view the <a href=@{SettingsR}>settings</a>.
