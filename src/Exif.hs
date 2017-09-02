@@ -40,6 +40,7 @@ import Settings.Development
 
 import Prelude
 import Control.DeepSeq
+import Data.Aeson.Types (Parser)
 import Data.Default
 import qualified Data.Text as T
 import Data.Text (Text)
@@ -51,6 +52,7 @@ import Data.Semigroup
 import Data.Store ()
 import Data.Store.TH (makeStore)
 import Data.Scientific (toBoundedInteger)
+import Data.Time.LocalTime
 
 import Control.Applicative
 import Control.Monad
@@ -62,6 +64,7 @@ import Data.Maybe
 import System.Posix.Files hiding (fileSize)
 import System.Process.Typed
 import Data.Store
+import Data.Time.Format
 
 data Orientation
   = OrientationTopLeft
@@ -101,6 +104,7 @@ data RawExif = RawExif
   , rExifState       :: Maybe Text
   , rExifProvince    :: Maybe Text
   , rExifCity        :: Maybe Text
+  , rExifCreateDate  :: Maybe LocalTime
   , rExifRaw         :: Object
   } deriving (Show)
 
@@ -120,6 +124,7 @@ instance FromJSON RawExif where
     rExifState       <- o .:? "State"
     rExifProvince    <- o .:? "Province-State"
     rExifCity        <- o .:? "City"
+    rExifCreateDate  <- parseCreateDate o
     let rExifRaw      = o
     return RawExif{..}
 
@@ -131,6 +136,7 @@ data Exif = Exif
   , exifSerial      :: !Text
   , exifLens        :: !Text
   , exifOrientation :: !Orientation
+  , exifCreateDate  :: !(Maybe LocalTime)
   } deriving (Show)
 
 instance NFData Exif where
@@ -139,7 +145,8 @@ instance NFData Exif where
                  rnf exifLocations `seq`
                  rnf exifCamera    `seq`
                  rnf exifSerial    `seq`
-                 rnf exifLens
+                 rnf exifLens      `seq`
+                 rnf exifCreateDate
 
 data GroupExif = GroupExif
   { gExifPeople      :: !(Map Text Integer)
@@ -237,6 +244,7 @@ exifFromRaw config RawExif{..} =
       exifLens        = fromMaybe unknown rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
       exifOrientation = fromMaybe OrientationTopLeft rExifOrientation
+      exifCreateDate  = rExifCreateDate
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -253,20 +261,22 @@ promoteFileExif re se je =
                                     map fn je) of
                       [] -> d
                       x:_ -> x
-      exifPeople' = summer exifPeople
-      exifKeywords' = summer exifKeywords
-      exifLocations' = summer exifLocations
-      exifCamera' = first' exifCamera unknown
-      exifSerial' = first' exifSerial unknown
-      exifLens'   = first' exifLens unknown
-      exifOrientation' =  first' exifOrientation OrientationTopLeft
-  in Just $ Exif { exifPeople = exifPeople'
-                 , exifKeywords = exifKeywords'
-                 , exifLocations = exifLocations'
-                 , exifCamera = exifCamera'
-                 , exifSerial = exifSerial'
-                 , exifLens = exifLens'
+      exifPeople'      = summer exifPeople
+      exifKeywords'    = summer exifKeywords
+      exifLocations'   = summer exifLocations
+      exifCamera'      = first' exifCamera unknown
+      exifSerial'      = first' exifSerial unknown
+      exifLens'        = first' exifLens unknown
+      exifOrientation' = first' exifOrientation OrientationTopLeft
+      exifCreateDate'  = first  exifCreateDate
+  in Just $ Exif { exifPeople      = exifPeople'
+                 , exifKeywords    = exifKeywords'
+                 , exifLocations   = exifLocations'
+                 , exifCamera      = exifCamera'
+                 , exifSerial      = exifSerial'
+                 , exifLens        = exifLens'
                  , exifOrientation = exifOrientation'
+                 , exifCreateDate  = exifCreateDate'
                  }
 
 -- TODO: make this saner/ensure it's canonical path.
@@ -373,4 +383,20 @@ extractExifs dir paths = do
 parseExifs :: BS.ByteString -> Maybe [RawExif]
 parseExifs = decodeStrict'
 
+-- | Tries to compute the date the image was taken.
+parseCreateDate :: Object -> Parser (Maybe LocalTime)
+parseCreateDate o = do
+  dto  <- msum $ map (o .:?) [ "SubSecDateTimeOriginal"
+                             , "DateTimeOriginal"
+                             , "SubSecCreateDate"
+                             , "CreateDate"
+                             ]
+  -- Note: Aeson does have parsing of time itself, but only support
+  -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
+  -- %Y:%m:%d format, so we have to parse the time manually.
+  let dto' = dto >>= parseTimeM True defaultTimeLocale "%Y:%m:%d %T%Q"
+  return dto'
+
 $(makeStore ''Exif)
+$(makeStore ''TimeOfDay)
+$(makeStore ''LocalTime)
