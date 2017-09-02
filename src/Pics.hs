@@ -83,6 +83,8 @@ import qualified Data.Text.Lazy as T (toStrict)
 import qualified Data.ByteString.Lazy as BSL (writeFile, length)
 import System.IO.Unsafe
 import Data.Int (Int64)
+import Data.Time.LocalTime
+import Data.Time.Calendar
 
 import Control.Applicative
 import Control.DeepSeq
@@ -252,12 +254,14 @@ fileYear f =
       (year, _, _) = toGregorian days
   in year
 
--- | The (approximate) year of the image.
+-- | The year of the image, as determined from Exif data.
 imageYear :: Image -> Maybe Integer
-imageYear img =
-  case (maybeToList (imgRawPath img) ++ imgJpegPath img) of
-    [] -> Nothing
-    xs -> Just . minimum . map fileYear $ xs
+imageYear img = do
+  exif <- imgExif img
+  date <- exifCreateDate exif
+  let day = localDay date
+      (y, _, _) = toGregorian day
+  return y
 
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
