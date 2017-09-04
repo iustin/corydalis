@@ -124,7 +124,7 @@ instance FromJSON RawExif where
     rExifState       <- o .:? "State"
     rExifProvince    <- o .:? "Province-State"
     rExifCity        <- o .:? "City"
-    rExifCreateDate  <- parseCreateDate o
+    rExifCreateDate  <- parseCreateDate o <|> pure Nothing
     let rExifRaw      = o
     return RawExif{..}
 
@@ -386,11 +386,11 @@ parseExifs = decodeStrict'
 -- | Tries to compute the date the image was taken.
 parseCreateDate :: Object -> Parser (Maybe LocalTime)
 parseCreateDate o = do
-  dto  <- msum $ map (o .:?) [ "SubSecDateTimeOriginal"
-                             , "DateTimeOriginal"
-                             , "SubSecCreateDate"
-                             , "CreateDate"
-                             ]
+  dto  <- msum $ map (o .:) [ "SubSecDateTimeOriginal"
+                            , "DateTimeOriginal"
+                            , "SubSecCreateDate"
+                            , "CreateDate"
+                            ]
   -- Note: Aeson does have parsing of time itself, but only support
   -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
   -- %Y:%m:%d format, so we have to parse the time manually.
