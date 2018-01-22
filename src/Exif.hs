@@ -105,6 +105,8 @@ data RawExif = RawExif
   , rExifProvince    :: Maybe Text
   , rExifCity        :: Maybe Text
   , rExifCreateDate  :: Maybe LocalTime
+  , rExifTitle       :: Maybe Text
+  , rExifCaption     :: Maybe Text
   , rExifRaw         :: Object
   } deriving (Show)
 
@@ -125,6 +127,8 @@ instance FromJSON RawExif where
     rExifProvince    <- o .:? "Province-State"
     rExifCity        <- o .:? "City"
     rExifCreateDate  <- parseCreateDate o <|> pure Nothing
+    rExifTitle       <- o .:? "Title"
+    rExifCaption     <- o .:? "Caption-Abstract"
     let rExifRaw      = o
     return RawExif{..}
 
@@ -137,16 +141,20 @@ data Exif = Exif
   , exifLens        :: !Text
   , exifOrientation :: !Orientation
   , exifCreateDate  :: !(Maybe LocalTime)
+  , exifTitle       :: !(Maybe Text)
+  , exifCaption     :: !(Maybe Text)
   } deriving (Show)
 
 instance NFData Exif where
-  rnf Exif{..} = rnf exifPeople    `seq`
-                 rnf exifKeywords  `seq`
-                 rnf exifLocations `seq`
-                 rnf exifCamera    `seq`
-                 rnf exifSerial    `seq`
-                 rnf exifLens      `seq`
-                 rnf exifCreateDate
+  rnf Exif{..} = rnf exifPeople     `seq`
+                 rnf exifKeywords   `seq`
+                 rnf exifLocations  `seq`
+                 rnf exifCamera     `seq`
+                 rnf exifSerial     `seq`
+                 rnf exifLens       `seq`
+                 rnf exifCreateDate `seq`
+                 rnf exifTitle      `seq`
+                 rnf exifCaption
 
 data GroupExif = GroupExif
   { gExifPeople      :: !(Map Text Integer)
@@ -245,6 +253,8 @@ exifFromRaw config RawExif{..} =
       exifSerial      = fromMaybe unknown rExifSerial
       exifOrientation = fromMaybe OrientationTopLeft rExifOrientation
       exifCreateDate  = rExifCreateDate
+      exifTitle       = rExifTitle
+      exifCaption     = rExifCaption
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -269,6 +279,10 @@ promoteFileExif re se je =
       exifLens'        = first' exifLens unknown
       exifOrientation' = first' exifOrientation OrientationTopLeft
       exifCreateDate'  = first  exifCreateDate
+      -- TODO: both title and caption (and other fields) could differ
+      -- between various versions. How to expose this in viewer?
+      exifTitle'       = first  exifTitle
+      exifCaption'     = first  exifCaption
   in Just $ Exif { exifPeople      = exifPeople'
                  , exifKeywords    = exifKeywords'
                  , exifLocations   = exifLocations'
@@ -277,6 +291,8 @@ promoteFileExif re se je =
                  , exifLens        = exifLens'
                  , exifOrientation = exifOrientation'
                  , exifCreateDate  = exifCreateDate'
+                 , exifTitle       = exifTitle'
+                 , exifCaption     = exifCaption'
                  }
 
 -- TODO: make this saner/ensure it's canonical path.
