@@ -45,7 +45,6 @@ import Data.Default
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.ByteString as BS (ByteString, readFile)
-import qualified Data.ByteString.Lazy as BSL (toStrict)
 import Data.Aeson
 import Data.List
 import Data.Semigroup
@@ -65,6 +64,7 @@ import System.Posix.Files hiding (fileSize)
 import System.Process.Typed
 import Data.Store
 import Data.Time.Format
+import System.IO.Temp
 
 data Orientation
   = OrientationTopLeft
@@ -362,7 +362,8 @@ bExifPath config path =
   cachedBasename config path ++ "-bexif" ++ devSuffix
 
 extractExifs :: FilePath -> [FilePath] -> IO BS.ByteString
-extractExifs dir paths = do
+extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
+  -- TODO: should instead make exiftool write directly to individual raw exifs?
   let args = [
         "-json",
         "-struct",
@@ -370,15 +371,17 @@ extractExifs dir paths = do
         ] ++ paths
       pconfig =
         setStdin closed
+        . setStdout (useHandleClose fhandle)
+        . setStderr closed  -- TODO: this failes the writes, not sure if OK
         . setCloseFds True
         . setWorkingDir dir
         $ proc "exiftool" args
-  (_, out, _) <- readProcess pconfig
   -- Note: exiftool exits with non-zero exit code if errors happened,
   -- but still generates valid JSON output. So we ignore the exit code
   -- completely, as we can't attribute the error to a specific
   -- file. That should be rather done via 'Error' entry in the object.
-  return $ BSL.toStrict out
+  runProcess_ pconfig
+  BS.readFile fpath
 
 parseExifs :: BS.ByteString -> Maybe [RawExif]
 parseExifs = decodeStrict'
