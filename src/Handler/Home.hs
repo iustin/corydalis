@@ -99,8 +99,8 @@ getHomeR = do
         f $ gexif
       years = Set.toAscList all_years
       gexif = repoExif pics
-      topPlaces = topN 10 gExifLocations
-      topPeople = topN 10 gExifPeople
+      topPlaces = topN 15 gExifLocations
+      topPeople = topN 25 gExifPeople
       topKeywords = topN 10 gExifKeywords
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: home"::T.Text)
