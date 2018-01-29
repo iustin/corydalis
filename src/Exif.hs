@@ -396,7 +396,7 @@ extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle ->
   -- but still generates valid JSON output. So we ignore the exit code
   -- completely, as we can't attribute the error to a specific
   -- file. That should be rather done via 'Error' entry in the object.
-  runProcess_ pconfig
+  _ <- runProcess pconfig
   BS.readFile fpath
 
 parseExifs :: BS.ByteString -> Maybe [RawExif]
