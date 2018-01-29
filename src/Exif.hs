@@ -100,6 +100,7 @@ data RawExif = RawExif
   , rExifLens        :: Maybe Text
   , rExifOrientation :: Maybe Orientation
   , rExifHSubjects   :: [[Text]]
+  , rExifPeople      :: [Text]
   , rExifCountry     :: Maybe Text
   , rExifState       :: Maybe Text
   , rExifProvince    :: Maybe Text
@@ -122,6 +123,7 @@ instance FromJSON RawExif where
     rExifOrientation <- o .:? "Orientation"
     hsubjs           <- o .:? "HierarchicalSubject" .!= []
     let rExifHSubjects = map parseHierSubject hsubjs
+    rExifPeople      <- o .:? "PersonInImage" .!= []
     rExifCountry     <- o .:? "Country"
     rExifState       <- o .:? "State"
     rExifProvince    <- o .:? "Province-State"
@@ -232,14 +234,17 @@ exifFromRaw config RawExif{..} =
       pLocations = cfgLocationPrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored ks = filter (\k -> not $ pIgnore `T.isPrefixOf` k) ks
-      exifPeople      = foldl' (\e ks ->
+      subjPeople      = foldl' (\e ks ->
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
                                    _ -> e) [] rExifHSubjects
+      exifPeople = sort . nub $ rExifPeople ++ subjPeople
+      peopleSet = S.fromList exifPeople
+      dropPeople = filter (not . (`S.member` peopleSet))
       exifKeywords    = foldl' (\e ks ->
                                   case ks of
                                     x:_ | (x /= pLocations && x /= pPeople) ->
-                                          dropIgnored ks ++ e
+                                          (dropPeople . dropIgnored) ks ++ e
                                     _ -> e) [] rExifHSubjects
       hierLocations   = foldr (\ks e ->
                                   case ks of

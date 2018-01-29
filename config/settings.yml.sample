@@ -80,7 +80,8 @@ config:
   outdatederror: 5
   # Prefix in Hierarchical Subject keywords that denote entries
   # underneath it represent people. This keyword itself will be
-  # ignored.
+  # ignored. Additionally, the tag 'PeopleInImage' will also be used,
+  # but without this prefix.
   peopleprefix: "_People"
   # Prefix in Hierarchical Subject keywords that denote entries
   # underneath it represent locations. This is related to manual
