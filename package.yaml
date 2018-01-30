@@ -42,7 +42,7 @@ dependencies:
 - fast-logger >=2.2 && <2.5
 - wai-logger >=2.2 && <2.4
 - file-embed
-- regex-pcre >=0.94
+- regex-tdfa
 - safe
 - unordered-containers
 - containers

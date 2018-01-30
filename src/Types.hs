@@ -39,13 +39,13 @@ import Data.List (sort, nub)
 import Data.Time.Clock
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Text.Regex.PCRE as PCRE
+import qualified Text.Regex.TDFA as TDFA
 import Yesod
 import Prelude
 
 data Regex = Regex
     { reString :: String
-    , reRegex  :: PCRE.Regex
+    , reRegex  :: TDFA.Regex
     }
 
 instance Show Regex where
@@ -54,7 +54,7 @@ instance Show Regex where
 instance FromJSON Regex where
   parseJSON (String txt) =
     let str = T.unpack txt
-    in case PCRE.makeRegexM str of
+    in case TDFA.makeRegexM str of
          Nothing -> mzero
          Just r -> return $ Regex str r
   parseJSON _ = mzero

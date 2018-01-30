@@ -105,7 +105,7 @@ import System.FilePath
 import System.Posix.Files hiding (fileSize)
 import qualified System.Posix.Files (fileSize)
 import System.Posix.Types
-import qualified Text.Regex.PCRE as PCRE
+import qualified Text.Regex.TDFA as TDFA
 import System.Process.Typed
 import System.IO.Error
 import System.Exit
@@ -129,11 +129,11 @@ blacklistedDirs :: Config -> [String]
 blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
 
 isOKDir :: Config -> String -> Bool
-isOKDir cfg = PCRE.match (reRegex $ cfgDirRegex cfg)
+isOKDir cfg = TDFA.match (reRegex $ cfgDirRegex cfg)
 
 dropCopySuffix :: Config -> String -> String
 dropCopySuffix cfg name =
-  case PCRE.match (reRegex $ cfgCopyRegex cfg) name of
+  case TDFA.match (reRegex $ cfgCopyRegex cfg) name of
     [_:base:_] -> base
     _ -> name
 
@@ -144,7 +144,7 @@ maybeRead s = case reads s of
 
 expandRangeFile :: Config -> String -> [String]
 expandRangeFile cfg name =
-  case PCRE.match (reRegex $ cfgRangeRegex cfg) name of
+  case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
     [[_, base, begin, end]] -> let ib = maybeRead begin::Maybe Int
                                    ie = maybeRead end
                                    expand s = if length s >= length begin
