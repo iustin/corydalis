@@ -34,9 +34,9 @@ import qualified Data.ByteString.Lazy as BSL (ByteString, writeFile)
 import System.FilePath (splitFileName)
 import System.Directory (createDirectoryIfMissing)
 
-cachedBasename :: Config -> FilePath -> String
-cachedBasename config path =
-  cfgCacheDir config ++ "/" ++ path
+cachedBasename :: Config -> FilePath -> String -> String
+cachedBasename config path suffix =
+  cfgCacheDir config ++ "/" ++ path ++ "-" ++ suffix
 
 class WritableContent a where
   writeContents :: FilePath -> a -> IO ()

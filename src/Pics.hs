@@ -951,11 +951,11 @@ findBestSize r@(ImageSize s) (x:xs) =
 
 embeddedImagePath :: Config -> FilePath -> String
 embeddedImagePath config path =
-  cachedBasename config path ++ "-embedded"
+  cachedBasename config path "embedded"
 
 scaledImagePath :: Config -> FilePath -> Int -> String
 scaledImagePath config path res =
-  cachedBasename config path ++ "-" ++ show res
+  cachedBasename config path (show res)
 
 -- | Generate a preview for an image.
 --

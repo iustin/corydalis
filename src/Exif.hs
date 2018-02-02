@@ -376,11 +376,11 @@ getExif config dir paths = do
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =
-  cachedBasename config path ++ "-exif"
+  cachedBasename config path "exif"
 
 bExifPath :: Config -> FilePath -> FilePath
 bExifPath config path =
-  cachedBasename config path ++ "-bexif" ++ devSuffix
+  cachedBasename config path ("bexif" ++ devSuffix)
 
 extractExifs :: FilePath -> [FilePath] -> IO BS.ByteString
 extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
