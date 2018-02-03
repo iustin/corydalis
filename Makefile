@@ -19,6 +19,12 @@ profiling:
 view: corydalis.ps
 	gv -orientation seascape $<
 
+# Incremental rebuild and installs in dist/ with the current settings
+# (vs. release which is clean build).
+dist:
+	stack install --local-bin-path dist/
+
+# An entire clean build and install in dist.
 release:
 	stack clean
 	stack build
@@ -48,5 +54,5 @@ lint:
 	  --report=lint-report.html -c \
 	  .
 
-.PHONY: build devel profiling view release doc clean test
+.PHONY: build devel profiling view release doc clean test dist
 .INTERMEDIATE: %.ps
