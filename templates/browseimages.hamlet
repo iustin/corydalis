@@ -33,7 +33,7 @@
                  <td>
                <td>
                  $forall jpath <- imgJpegPath img
-                    #{filePath jpath}
+                    #{filePath jpath}<br/>
                $maybe spath <- imgSidecarPath img
                  <td>#{filePath spath}
                $nothing
