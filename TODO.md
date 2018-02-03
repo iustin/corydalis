@@ -39,3 +39,28 @@ Stats:
 Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 
 - with result field: picture count, etc.
+
+## Bugs
+
+### Handling of copies
+
+1. The current copy system is really bad. A copy is declared as such
+   even when no master is present (for its deduced original name),
+   leading to bad behaviour when multiple copies are possible;
+   e.g. with '-' as separator, pic.xxx, pic-a.xxx, pic-a-b.xxx will
+   lead to bad outcomes.
+
+2. The copy regex handling is across the full "file path",
+   i.e. including any subdirs under its parent folder. If the regex
+   doesn't explicitly exclude slashes and if it also can catch dirs
+   (e.g. '-' as separator, and subdirs that include dashes), it will
+   lead to so broken behaviour that it is funny.
+
+### Multiple "RAW" files
+
+This is related to copy handling. Let's say copy separator is '-', the
+original file is 'img.nef', and a processed copy is 'img-edit.tiff'
+was done. Depending on how the directory listing is, it can lead to
+making 'img-edit.tiff' as main raw file, and 'img.nef' as processed
+output (due to promotion raw→processed when we find such "duplicate"
+raw files).
