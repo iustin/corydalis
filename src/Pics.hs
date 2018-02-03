@@ -834,7 +834,7 @@ forceBuildThumbCaches config repo = do
   let images = filterImagesByClass [ImageProcessed, ImageOutdated, ImageStandalone] repo
   mapM_ (\i ->
            case imgJpegPath i of
-             f:_ -> mapM_ (loadCachedOrBuild config (filePath f) Nothing (fileMTime f))
+             f:_ -> mapM_ (loadCachedOrBuild config (filePath f) Nothing (fileLastTouch f))
                      (map ImageSize (cfgAutoImageSizes config))
              _ -> return ()
         ) images
@@ -1077,4 +1077,4 @@ imageAtRes config img size = do
   case size of
     -- TODO: don't use hardcoded jpeg type!
     Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
-    Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileMTime origFile) s
+    Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileLastTouch origFile) s
