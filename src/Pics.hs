@@ -476,30 +476,58 @@ repoGlobalExif =
 repoCache :: MVar (Maybe Repository)
 repoCache = unsafePerformIO $ newMVar Nothing
 
+-- | Selects the best master file between two masters.
+--
+-- We select in the order of extensions as defined in the
+-- config. Normally both files should have a raw extension, but we
+-- should also handle the \"impossible\" cases: no matching extensions
+-- for either file. If the extensions are the same, this will still
+-- chew through the list. In both these cases, we (randomly) choose
+-- the first file.
+isBetterMaster :: [FilePath] -> FilePath -> FilePath -> Bool
+isBetterMaster [] a b = True
+isBetterMaster (e:es) a b | e == a = True
+isBetterMaster (e:es) a b | e == b = False
+isBetterMaster (e:es) a b | otherwise = isBetterMaster es a b
+
 -- | Selects the best master file when merging images.
 --
--- This simply chooses the first hard master file, and returns update
--- soft master flag and potentially a demoted soft master to jpeg.
-selectMasterFile :: Image -> Image -> (Maybe File, Bool, [File])
-selectMasterFile x y =
+-- This simply chooses the first hard master file, and returns updated
+-- soft master flag and potentially a demoted (usually soft) master to
+-- jpeg. It can also be there are two of what we consider real master
+-- files, in which case use the config order to select between
+-- these. Usually one is really a derivation of the other.
+selectMasterFile :: Config -> Image -> Image -> (Maybe File, Bool, [File])
+selectMasterFile config x y =
   let xsoft = flagsSoftMaster $ imgFlags x
       ysoft = flagsSoftMaster $ imgFlags y
       xraw = imgRawPath x
       yraw = imgRawPath y
+      rexts = cfgRawExts config
   in case (xraw, yraw) of
        (Just xf, Just yf)  -> case (xsoft, ysoft) of
-                              (False, True)  -> (xraw, xsoft, [yf])
-                              -- merging two raw files?!
-                              (False, False) -> (xraw, xsoft, [yf])
-                              (True, True)   -> (xraw, xsoft, [yf])
-                              (True, False)  -> (yraw, ysoft, [xf])
+                              -- Easy cases: only one is a real master.
+                              (False, True)  -> (xraw, False, [yf])
+                              (True, False)  -> (yraw, False, [xf])
+                              -- Also easy: two soft masters, choose
+                              -- either.
+                              (True, True)   -> (xraw, True, [yf])
+                              -- Hard case: two seemingly real
+                              -- masters, let's choose in order of
+                              -- priority.
+                              (False, False) ->
+                                let x_ext = drop 1 . takeExtension . T.unpack . fileName $ xf
+                                    y_ext = drop 1 . takeExtension . T.unpack . fileName $ yf
+                                in if isBetterMaster rexts x_ext y_ext
+                                     then (xraw, False, [yf])
+                                     else (yraw, False, [xf])
        (Just _, Nothing)   -> (xraw, xsoft, [])
        (Nothing, Just _)   -> (yraw, ysoft, [])
        _                   -> (Nothing, False, [])
 
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
-  let (newraw, softmaster, extrajpeg) = selectMasterFile x y
+  let (newraw, softmaster, extrajpeg) = selectMasterFile c x y
       x' =
         x { imgRawPath     = newraw
           , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y

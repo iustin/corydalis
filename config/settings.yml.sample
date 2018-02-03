@@ -59,7 +59,7 @@ config:
   # autoimgsizes, the entry here will have no effect.
   demandimgsizes: [3840, 7680]
   # List of extensions considered "RAW" files:
-  rawexts: ["nef", "tif", "tiff", "dng", "raf", "orf", "crw"]
+  rawexts: ["nef", "raf", "orf", "crw", "tif", "tiff", "dng"]
   # List of extensions considered processed pictures:
   jpegexts: ["jpg", "jpeg"]
   # Lists of extensions for sidecar files:
