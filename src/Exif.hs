@@ -40,6 +40,7 @@ import Settings.Development
 
 import Prelude
 import Control.DeepSeq
+import Control.Exception.Base
 import Data.Aeson.Types (Parser)
 import Data.Default
 import qualified Data.Text as T
@@ -359,8 +360,17 @@ getExif config dir paths = do
   jsons <- if null m2
              then return []
              else do
-               exifs <- extractExifs dir m2
-               return $ fromMaybe [] (parseExifs exifs)
+               -- TODO: fix this. It is very ugly, catches _all_
+               -- exceptions, but it's the only way I found to
+               -- reliably disable the slowloris protection. There a
+               -- quite a few issues on the wai project regarding the
+               -- timeout reaper, but without conclusive
+               -- solutions. See
+               -- https://github.com/yesodweb/wai/issues/351 for
+               -- example.
+               exifs <- (parseExifs <$> extractExifs dir m2) `catch`
+                 (\e -> putStrLn ("Error: " ++ show (e :: SomeException)) >> return Nothing)
+               return $ fromMaybe [] exifs
   localCache <- foldM (\m r -> do
                           (path, e) <- writeExifs config dir r
                           return $ M.insert path e m
