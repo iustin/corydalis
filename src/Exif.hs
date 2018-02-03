@@ -312,15 +312,13 @@ writeBExif config path =
 -- | Tries to read the (binary) exif cache for a given file.
 readBExif :: Config -> FilePath -> IO (Maybe Exif)
 readBExif config path = do
-  let epath = bExifPath config path
-  exists <- fileExist epath
-  if exists
-    then do
-      contents <- BS.readFile epath
-      return $ case Data.Store.decode contents of
-        Left _ -> Nothing
-        Right v -> Just v
-    else return Nothing
+  contents <- readCacheFile config path bExifPath True [exifPath config path]
+  case contents of
+    Nothing -> return Nothing
+    Just c ->
+      return $ case Data.Store.decode c of
+                 Left _ -> Nothing
+                 Right v -> Just v
 
 -- | Writes the exif caches (raw and binary) for a given file.
 writeExifs :: Config -> FilePath -> RawExif -> IO (FilePath, Exif)
@@ -335,13 +333,8 @@ writeExifs config dir r = do
 -- | Tries to read the (raw) exif cache for a given file.
 readExif :: Config -> FilePath -> IO (Maybe RawExif)
 readExif config path = do
-  let epath = exifPath config path
-  exists <- fileExist epath
-  if exists
-    then do
-      contents <- BS.readFile epath
-      return $ decodeStrict' contents
-    else return Nothing
+  contents <- readCacheFile config path exifPath True []
+  return $ contents >>= decodeStrict'
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
 getExif :: Config -> FilePath -> [FilePath] -> IO (Map FilePath Exif)

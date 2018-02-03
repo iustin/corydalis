@@ -24,15 +24,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Cache ( cachedBasename
              , writeCacheFile
+             , readCacheFile
              ) where
 
 import Types
 
 import Prelude
-import qualified Data.ByteString as BS (ByteString, writeFile)
+import qualified Data.ByteString as BS (ByteString, writeFile, readFile)
 import qualified Data.ByteString.Lazy as BSL (ByteString, writeFile)
+import Data.Time.Clock.POSIX
 import System.FilePath (splitFileName)
 import System.Directory (createDirectoryIfMissing)
+import System.IO.Error
+import System.Posix.Files
 
 cachedBasename :: Config -> FilePath -> String -> String
 cachedBasename config path suffix =
@@ -47,6 +51,12 @@ instance WritableContent BS.ByteString where
 instance WritableContent BSL.ByteString where
   writeContents = BSL.writeFile
 
+class ReadableContent a where
+  readContents :: FilePath -> IO a
+
+instance ReadableContent BS.ByteString where
+  readContents = BS.readFile
+
 writeCacheFile :: (WritableContent a) =>
                   Config
                -> FilePath
@@ -58,3 +68,39 @@ writeCacheFile config path fn contents = do
       (parent, _) = splitFileName rpath
   createDirectoryIfMissing True parent
   writeContents rpath contents
+
+newestTime :: FileStatus -> POSIXTime
+newestTime stat =
+  let mtime = modificationTimeHiRes stat
+      ctime = statusChangeTimeHiRes stat
+  in max mtime ctime
+
+lastTouch :: FilePath -> IO POSIXTime
+lastTouch path =
+  (newestTime `fmap` getFileStatus path) `catchIOError` (\e -> if isDoesNotExistError e ||
+                                                                  isPermissionError e
+                                                               then return 0
+                                                               else ioError e)
+
+pathsSorted :: [FilePath] -> IO Bool
+pathsSorted paths = do
+  ts <- mapM lastTouch paths
+  return $ and . map (\(a, b) -> a <= b) . zip ts $ tail ts
+
+readCacheFile :: (ReadableContent a) =>
+                 Config
+              -> FilePath
+              -> (Config -> FilePath -> FilePath)
+              -> Bool
+              -> [FilePath]
+              -> IO (Maybe a)
+readCacheFile config path fn validate extras = do
+  let rpath = fn config path
+  stale <- if validate
+           then do
+               let all_paths = path:extras++[rpath]
+               not <$> pathsSorted all_paths
+           else return False
+  if stale
+    then return Nothing
+    else Just `fmap` readContents rpath
