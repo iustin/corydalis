@@ -19,6 +19,9 @@ profiling:
 view: corydalis.ps
 	gv -orientation seascape $<
 
+%.html: %.md
+	pandoc -s -o $@ $<
+
 # Incremental rebuild and installs in dist/ with the current settings
 # (vs. release which is clean build).
 dist:
