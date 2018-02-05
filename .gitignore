@@ -13,6 +13,7 @@ cabal-dev/
 .stack-work/
 yesod-devel/
 /db/
+/site/
 .cabal-sandbox
 cabal.sandbox.config
 .DS_Store
