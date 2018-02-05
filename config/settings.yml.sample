@@ -9,7 +9,7 @@ host:           "_env:HOST:*4" # any IPv4 host
 # Listen port:
 port:           "_env:PORT:3000"
 # Canonical URL:
-approot:        "_env:APPROOT:http://teal:3000"
+approot:        "_env:APPROOT:http://localhost:3000"
 # Useful when running behind a reverse proxy:
 ip-from-header: "_env:IP_FROM_HEADER:false"
 # Copyright statement
