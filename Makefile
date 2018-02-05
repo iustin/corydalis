@@ -42,7 +42,8 @@ clean:
 	rm -f corydalis.aux corydalis.prof corydalis.ps \
 	  corydalis.hp corydalis.pdf *.html
 	find \( -name '*.hi' -o -name '*.o' \) -delete
-	cabal clean
+	rm -f *.aux *.hp *.prof
+	stack clean
 
 test:
 	cabal configure --enable-test --enable-coverage
