@@ -26,3 +26,7 @@ cabal.sandbox.config
 \#*
 corydalis.cabal
 TAGS
+*.hp
+*.aux
+*.pdf
+*.prof
