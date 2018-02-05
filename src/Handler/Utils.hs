@@ -55,7 +55,6 @@ fcName FolderUnprocessed = "not fully processed"
 fcName FolderProcessed   = "fully processed"
 fcName FolderEmpty       = "empty"
 fcName FolderMixed       = "mixed"
-fcName FolderOutdated    = "outdated"
 
 fcDescription :: FolderClass -> Text
 fcDescription FolderRaw         = "contains only unprocessed RAW files"
@@ -66,10 +65,6 @@ fcDescription FolderProcessed   = "contains RAW files, all processed"
 fcDescription FolderEmpty       = "contains no image files"
 fcDescription FolderMixed       = "contains both RAW files (processed) \
                                   \and files without RAW storage"
-fcDescription FolderOutdated    = "contains RAW files, all processed, but \
-                                  \some of the processed files are outdated \
-                                  \(corresponding RAW file has been retouched \
-                                  \more recently)"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp ts =
@@ -87,7 +82,6 @@ showFileLatestTS = maybe "" (showTimestamp . fileLastTouch)
 imgRowClass :: Image -> Text
 imgRowClass img =
   case imgStatus img of
-   ImageOutdated -> "warning"
    ImageOrphaned -> "danger"
    _ -> ""
 

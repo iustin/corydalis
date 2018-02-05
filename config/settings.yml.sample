@@ -75,9 +75,6 @@ config:
   # Copy regex: the first group is the base filename, any other
   # groups are ignored:
   copyregex: "(.*)(-([0-9]|Edit))"
-  # Delta (in seconds) between raw/sidecar file and processed file
-  # after which the jpeg file is considered "outdated":
-  outdatederror: 5
   # Prefix in Hierarchical Subject keywords that denote entries
   # underneath it represent people. This keyword itself will be
   # ignored. Additionally, the tag 'PeopleInImage' will also be used,

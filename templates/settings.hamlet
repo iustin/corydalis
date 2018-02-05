@@ -44,9 +44,6 @@ Current configuration:
       $forall ext <- sort $ cfgJpegExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
-  <li>maximum delta between raw and jpeg files: #
-    <span .monolight>
-      #{show $ cfgOutdatedError config}
   <li>Pre/auto-generated image sizes:
     <ul>
       $forall sz <- cfgAutoImageSizes config

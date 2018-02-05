@@ -25,7 +25,6 @@
              <th>Images
              <th>Unprocessed
              <th ."{sorter: 'procent'}">U. %
-             <th>Outdated
              <th>Standalone
              <th>Orphaned
              <th>Processed
@@ -42,7 +41,6 @@
                <td .number>
                  $maybe prc <- lp
                    #{prc}
-               <td .number>#{numOutdatedPics n}
                <td .number>#{numStandalonePics n}
                <td .number>#{numOrphanedPics n}
                <td .number>#{numProcessedPics n}
@@ -54,7 +52,6 @@
             <td .number>
               $maybe tprc <- tp
                 #{tprc}
-            <td .number>#{alloutdated}
             <td .number>#{allstandalone}
             <td .number>#{allorphaned}
             <td .number>#{allprocessed}

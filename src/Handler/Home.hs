@@ -110,11 +110,11 @@ getCurateR :: Handler TypedContent
 getCurateR = do
   pics <- getPics
   let RepoStats
-        (Stats unprocessed standalone processed outdated orphaned untracked
+        (Stats unprocessed standalone processed orphaned untracked
              rawsize procsize standalonesize sidecarsize untrksize
              bycamera bylens) fcm =
           repoStats pics
-      allpics = unprocessed + standalone + processed + outdated
+      allpics = unprocessed + standalone + processed
       fstats = Map.toAscList fcm
       numfolders = Map.size $ repoDirs pics
       all_fc = [minBound..maxBound]
@@ -193,7 +193,6 @@ getBrowseFoldersR kinds = do
       allunproc = sum . map numUnprocessedPics $ folders
       allprocessed = sum . map numProcessedPics $ folders
       allstandalone = sum . map numStandalonePics $ folders
-      alloutdated = sum . map numOutdatedPics $ folders
       allorphaned = sum . map numOrphanedPics $ folders
       tp = formatPercent $
            fromIntegral allunproc * 100 / fromIntegral allpics

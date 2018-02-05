@@ -84,7 +84,6 @@ data Config = Config
     , cfgDirRegex        :: Regex
     , cfgRangeRegex      :: Regex
     , cfgCopyRegex       :: Regex
-    , cfgOutdatedError   :: JSDiffTime
     , cfgPeoplePrefix    :: Text
     , cfgLocationPrefix  :: Text
     , cfgIgnorePrefix    :: Text
@@ -107,7 +106,6 @@ instance FromJSON Config where
          v .: "dirregex"        <*>
          v .: "rangeregex"      <*>
          v .: "copyregex"       <*>
-         v .: "outdatederror"   <*>
          v .: "peopleprefix"    <*>
          v .: "locationprefix"  <*>
          v .: "ignoreprefix"
@@ -122,7 +120,6 @@ instance FromJSON Config where
 data ImageStatus = ImageOrphaned
                  | ImageStandalone
                  | ImageRaw
-                 | ImageOutdated
                  | ImageProcessed
                    deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
@@ -131,13 +128,11 @@ instance PathPiece ImageStatus where
   toPathPiece ImageOrphaned   = "orphaned"
   toPathPiece ImageStandalone = "standalone"
   toPathPiece ImageRaw        = "raw"
-  toPathPiece ImageOutdated   = "outdated"
   toPathPiece ImageProcessed  = "processed"
   fromPathPiece "orphaned"    = Just ImageOrphaned
   fromPathPiece "raw"         = Just ImageRaw
   fromPathPiece "standalone"  = Just ImageStandalone
   fromPathPiece "processed"   = Just ImageProcessed
-  fromPathPiece "outdated"    = Just ImageOutdated
   fromPathPiece _             = Nothing
 
 -- | Custom Path piece instance for [ImageStatus].
@@ -151,7 +146,6 @@ data FolderClass = FolderEmpty
                  | FolderStandalone
                  | FolderUnprocessed
                  | FolderProcessed
-                 | FolderOutdated
                  | FolderMixed
                    deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
@@ -165,14 +159,12 @@ instance PathPiece FolderClass where
   toPathPiece FolderStandalone  = "standalone"
   toPathPiece FolderUnprocessed = "unprocessed"
   toPathPiece FolderProcessed   = "processed"
-  toPathPiece FolderOutdated    = "outdated"
   toPathPiece FolderMixed       = "mixed"
   fromPathPiece "empty"       = Just FolderEmpty
   fromPathPiece "raw"         = Just FolderRaw
   fromPathPiece "standalone"  = Just FolderStandalone
   fromPathPiece "unprocessed" = Just FolderUnprocessed
   fromPathPiece "processed"   = Just FolderProcessed
-  fromPathPiece "outdated"    = Just FolderOutdated
   fromPathPiece "mixed"       = Just FolderMixed
   fromPathPiece _             = Nothing
 

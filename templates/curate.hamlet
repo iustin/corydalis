@@ -10,8 +10,7 @@
         other untracked files, out of which:
         <ul>
           $if processed > 0
-            <li>#{processed} <a href=@{BrowseImagesR [ImageProcessed]}>fully processed images</a> backed by RAW files.
-            <li>#{outdated} <a href=@{BrowseImagesR [ImageOutdated]}>outdated images</a> - backed by RAW files which are newer or more recently modified
+            <li>#{processed} <a href=@{BrowseImagesR [ImageProcessed]}>processed images</a> backed by RAW files.
           $if unprocessed > 0
             <li>#{unprocessed} <a href=@{BrowseImagesR [ImageRaw]}>unprocessed</a> files (located in <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
           $if standalone > 0

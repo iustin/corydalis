@@ -26,16 +26,8 @@
       <div .panel-heading>Picture contents
       <div .panel-body>
         <ul>
-          $if (&&) (numProcessedPics dir > 0) (numOutdatedPics dir > 0)
-            <li>#{numProcessedPics dir + numOutdatedPics dir} total processed pictures, out of which:
-              <ul>
-                <li>#{numProcessedPics dir} fully processed pics
-                <li>#{numOutdatedPics dir} processed but outdated pictures
-          $else
-            $if numProcessedPics dir > 0
-              <li>#{numProcessedPics dir} fully processed pics
-            $if numOutdatedPics dir > 0
-              <li>#{numOutdatedPics dir} processed but outdated pictures
+          $if numProcessedPics dir > 0
+            <li>#{numProcessedPics dir} processed pictures
           $if numUnprocessedPics dir > 0
             <li>#{numUnprocessedPics dir} raw pictures still awaiting processing
           $if numStandalonePics dir > 0
@@ -97,8 +89,6 @@
                           unprocessed
                         $of ImageStandalone
                           standalone
-                        $of ImageOutdated
-                          outdated
                         $of ImageOrphaned
                           orphaned
                     <td>#{showFileTimestamp $ imgRawPath img}

@@ -41,7 +41,6 @@ module Pics ( PicDir(..)
             , forceScanAll
             , isProcessed
             , isUnprocessed
-            , isOutdated
             , isStandalone
             , folderClass
             , computeFolderStats
@@ -49,7 +48,6 @@ module Pics ( PicDir(..)
             , numPics
             , numRawPics
             , numUnprocessedPics
-            , numOutdatedPics
             , numStandalonePics
             , numOrphanedPics
             , hasViewablePics
@@ -277,15 +275,7 @@ mkImageStatus _ Nothing  (_:_) (Just _)  = ImageStandalone
   --error "imageStatus - orphaned + jpeg?"
 mkImageStatus _ (Just _) []    _         = ImageRaw
 mkImageStatus _ Nothing  (_:_) _         = ImageStandalone
-mkImageStatus c (Just raw) jpegs@(_:_) sidecar =
-  if raw_ts' > jpeg_ts' + max_skew
-    then ImageOutdated
-    else ImageProcessed
-  where raw_ts = fileMTime raw
-        raw_ts' = max raw_ts sidecar_ts
-        sidecar_ts = maybe raw_ts fileMTime sidecar
-        jpeg_ts' = minimum $ map fileLastTouch jpegs
-        JSDiffTime max_skew = cfgOutdatedError c
+mkImageStatus _ (Just _) jpegs@(_:_) _   = ImageProcessed
 
 mkImage :: Config -> Text -> Text -> Maybe File
         -> Maybe File -> [File] -> Maybe (Text, Text) -> Flags -> Image
@@ -337,7 +327,6 @@ data Stats = Stats
   { sRaw            :: !Int
   , sStandalone     :: !Int
   , sProcessed      :: !Int
-  , sOutdated       :: !Int
   , sOrphaned       :: !Int
   , sUntracked      :: !Int
   , sRawSize        :: !FileOffset
@@ -368,7 +357,7 @@ instance NFData RepoStats where
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
+zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
 
 -- | The total recorded size in a `Stats` structure.
 totalStatsSize :: Stats -> FileOffset
@@ -379,7 +368,7 @@ totalStatsSize stats =
 -- | The total file count in a a `Stats` structure.
 totalStatsCount :: Stats -> Int
 totalStatsCount stats =
-  sRaw stats + sStandalone stats + sProcessed stats + sOutdated stats
+  sRaw stats + sStandalone stats + sProcessed stats
          + sOrphaned stats + sUntracked stats
 
 -- | Data holding timeline stats.
@@ -389,9 +378,9 @@ sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 o1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
-         (Stats r2 s2 p2 o2 h2 u2 rs2 ps2 ss2 ms2 us2 sc2 sl2) =
-  Stats (r1 + r2) (s1 + s2) (p1 + p2) (o1 + o2) (h1 + h2) (u1 + u2)
+sumStats (Stats r1 s1 p1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
+         (Stats r2 s2 p2 h2 u2 rs2 ps2 ss2 ms2 us2 sc2 sl2) =
+  Stats (r1 + r2) (s1 + s2) (p1 + p2) (h1 + h2) (u1 + u2)
         (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2) (us1 + us2)
         sc sl
   where sc = Map.unionWith sumTuple sc1 sc2
@@ -404,7 +393,6 @@ updateStatsWithPic orig img =
                ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
                ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
                ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
-               ImageOutdated   -> orig { sOutdated   = sOutdated orig   + 1 }
                ImageOrphaned   -> orig { sOrphaned   = sOrphaned orig   + 1 }
       rs = sRawSize stats
       rs' = case imgRawPath img of
@@ -412,8 +400,7 @@ updateStatsWithPic orig img =
               Just f -> rs + fileSize f
       jpeg_size = foldl' (\s f -> s + fileSize f) 0 (imgJpegPath img)
       ps = sProcSize stats
-      ps' = if status == ImageProcessed ||
-               status == ImageOutdated
+      ps' = if status == ImageProcessed
               then ps + jpeg_size
               else ps
       ss = sStandaloneSize stats
@@ -573,9 +560,6 @@ isUnprocessed = (== ImageRaw ) . imgStatus
 isProcessed :: Image -> Bool
 isProcessed = (== ImageProcessed) . imgStatus
 
-isOutdated :: Image -> Bool
-isOutdated = (== ImageOutdated) . imgStatus
-
 isOrphaned :: Image -> Bool
 isOrphaned = (== ImageOrphaned) . imgStatus
 
@@ -596,9 +580,6 @@ numProcessedPics = numPicsOfType isProcessed
 isStandalone :: Image -> Bool
 isStandalone = (== ImageStandalone) . imgStatus
 
-numOutdatedPics :: PicDir -> Int
-numOutdatedPics = numPicsOfType isOutdated
-
 computeStandalonePics :: PicDir -> [Image]
 computeStandalonePics =
   filter isStandalone . Map.elems . pdImages
@@ -616,44 +597,39 @@ numOrphanedPics = numPicsOfType isOrphaned
 hasViewablePics :: PicDir -> Bool
 hasViewablePics folder =
   numProcessedPics folder > 0 ||
-  numStandalonePics folder > 0 ||
-  numOutdatedPics folder > 0
+  numStandalonePics folder > 0
 
 folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@(Stats unproc standalone processed
-                                  outdated orphaned
-                                  _ _ _ _ _ _ _ _) =
-  let npics = unproc + standalone + processed + outdated + orphaned
+                                  orphaned _ _ _ _ _ _ _ _) =
+  let npics = unproc + standalone + processed + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0
       has_standalone = standalone /= 0
       all_unproc = unproc == npics
-      has_raw = unproc /= 0 || processed /= 0 || outdated /= 0
-      has_outdated = outdated /= 0
+      has_raw = unproc /= 0 || processed /= 0
       has_orphaned = orphaned /= 0
       conditions = (has_pics, all_unproc, has_unproc,
-                    has_standalone, has_raw, has_outdated, has_orphaned)
+                    has_standalone, has_raw, has_orphaned)
   in case conditions of
-       -- pics all_u  has_u  has_s  has_r  has_ou has_or
+       -- pics all_u  has_u  has_s  has_r  has_or
        -- folder with no pics is empty
-       (False, True , False, False, False, False, False) -> FolderEmpty
+       (False, True , False, False, False, False) -> FolderEmpty
        -- folder with all unprocessed is raw
-       (True,  True , True , False, _    , False, False) -> FolderRaw
+       (True,  True , True , False, _    , False) -> FolderRaw
        -- folder with some unprocessed (and maybe other types) is unprocessed
-       (True,  False, True , _    , _    , _    , _    ) -> FolderUnprocessed
+       (True,  False, True , _    , _    , _    ) -> FolderUnprocessed
        -- folder with no raw files is standalone
-       (True,  False, False, True , False, False, False) -> FolderStandalone
+       (True,  False, False, True , False, False) -> FolderStandalone
        -- folder with both standalone and some raw is mixed
-       (True,  False, False, True , True , _    , False) -> FolderMixed
+       (True,  False, False, True , True , False) -> FolderMixed
        -- folder with orphaned pictures is mixed
-       (True,  False, _    , _    , _    , _    , True ) -> FolderMixed
-       -- folder with outdated pictures is outdated
-       (True,  False, False, False, True , True , False) -> FolderOutdated
+       (True,  False, _    , _    , _    , True ) -> FolderMixed
        -- othewise, folder is perfect - has only processed files
-       (True,  False, False, False, True , False, False) -> FolderProcessed
+       (True,  False, False, False, True , False) -> FolderProcessed
        _ -> error $ "Wrong computation in folderClass: stats=" ++ show stats
                     ++ ", conditions=" ++ show conditions
 
@@ -859,7 +835,7 @@ scanFilesystem config = do
 
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
-  let images = filterImagesByClass [ImageProcessed, ImageOutdated, ImageStandalone] repo
+  let images = filterImagesByClass [ImageProcessed, ImageStandalone] repo
   mapM_ (\i ->
            case imgJpegPath i of
              f:_ -> mapM_ (loadCachedOrBuild config (filePath f) Nothing (fileLastTouch f))
