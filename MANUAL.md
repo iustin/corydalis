@@ -14,9 +14,6 @@ categorised as follows:
 * *processed* if we have both raw and processed outputs (sidecars
   optional)
 * *standalone* if we have a processed file but no raw file
-* *outdated* if we have both a raw and processed file, but based on
-  some heuristics (currently time stamp) the processed file is older
-  than the most recent changes to the raw or sidecar file
 * *orphaned* if we only have a sidecar file
 
 A sidecar file is what image processing programs generate to store
@@ -44,15 +41,11 @@ categories:
 * a folder that has both raw files (with processed output) and
   processed files without a raw file is *mixed*
 * a folder only containing no pictures is *empty*
-* a folder containing fully processed files, but some of them being
-  outdated (per image types above) is classified as *outdated*
 
 The classification of folders into only one of these categories is not
-perfect; note for example that both *processed* and *outdated* folders
-have fully processed files, the difference being in the freshness of
-the JPEG copies. Similarly, an *unprocessed* folder can contain
-standalone files, but is not classified as mixed in order to simplify
-the work flow.
+perfect; for example, an *unprocessed* folder can contain standalone
+files, but is not classified as mixed in order to simplify the
+work-flow.
 
 ## File-system organisation
 
@@ -62,8 +55,8 @@ manager, and Corydalis has less value. However, it can also manage
 cases when the raw files and the jpeg outputs are tracked in
 completely different trees, for example:
 
-* raw files in /raw (/year/date)
-* jpeg files in /jpeg (/year/date)
+* raw files in `/raw` (`/year/date`)
+* jpeg files in `/jpeg` (`/year/date`)
 
 This helps with backups for example (and maybe permissions). Corydalis
 will match a given directory across all trees it it watching based on
@@ -124,26 +117,6 @@ Corydalis flags these folders incorrectly as 'empty', although it
 shows the files in the folder view; ideally there would be a separate
 'other' status for folders.
 
-### Outdated folders
-
-If, after processing a folder, the raw files are revisited and some
-are updated, then either the time stamp on the raw file or on the
-sidecar file will be updated, depending on the raw file type and/or
-the editing program. Corydalis will then flag the directory as outdated.
-
-However, this doesn't work reliably:
-
-* shooting directly in RAW+JPEG results sometimes in files with
-  different time stamps (!), usually one second differences; there is
-  an allowed delta configurable to account for this, however it's
-  imperfect
-* it's also nice to store the JPEGs in the file system with mtime set
-  to the time that the picture was actually taken; this defeats the
-  orphan mechanism completely.
-
-Ideally, Corydalis would look at the EXIF time stamps instead of file
-mtime, however this would make the image scanning much more expensive.
-
 ## Other processed files
 
 There are two types of processed files that Corydalis treats
@@ -157,7 +130,7 @@ file.
 
 ### Panorama/HDR outputs
 
-The usual work flow for a panorama or HDR file is as follows:
+My usual work flow for a panorama or HDR file is as follows:
 
 * a number of RAW files are shot;
 * these are processed and then combined into a panorama;
@@ -177,3 +150,22 @@ Corydalis supports both these cases:
   associate the `jpeg` file to all raw files; this means that the raw
   files will be considered processed, and that the `jpeg` file won't
   be considered as standalone.
+
+## Old concepts
+
+### Outdated outputs
+
+Previously, Corydalis tries to track "outdated" files - that is, files
+that based on some heuristics were deemed to need re-processing (the
+algorithm was: the processed file is older than the most recent
+changes to the raw or sidecar file, modulo a configurable delta).
+
+However, this was too unreliable. It is perfectly valid to do some
+work on the source file that would update the mtime of the
+source/sidecar, but which however do not influence the output file, or
+not enough to warrant reprocessing. Thus, tracking a "processed" vs an
+"outdated" file doesn't make sense. On top of that, in some cases,
+shooting directly in RAW+JPEG sometimes results in files with
+different time stamps (!), usually a one second difference; there is
+an allowed delta configurable to account for this, however it's yet
+another work-around for an unreliable heuristic.
