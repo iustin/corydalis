@@ -975,7 +975,7 @@ scaledImagePath config path res =
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> Text -> Maybe Text -> POSIXTime -> ImageSize -> IO (Text, Text)
+loadCachedOrBuild :: Config -> Text -> Maybe Text -> POSIXTime -> ImageSize -> ExceptT ImageError IO (Text, Text)
 loadCachedOrBuild config origPath srcPath mtime size = do
   let bytesPath = fromMaybe origPath srcPath
       res = findBestSize size (cfgAllImageSizes config)
@@ -986,7 +986,7 @@ loadCachedOrBuild config origPath srcPath mtime size = do
           fpath = scaledImagePath config (T.unpack origPath) res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
-      stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
+      stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
       let needsGen = case stat of
                        Left _ -> True
                        Right st -> modificationTimeHiRes st < mtime
@@ -996,9 +996,9 @@ loadCachedOrBuild config origPath srcPath mtime size = do
                           else ["-resize", geom]
             (parent, _) = splitFileName fpath
             outFile = format ++ ":" ++ fpath
-        createDirectoryIfMissing True parent
-        (exitCode, out, err) <- readProcess $ proc "convert" (concat [[T.unpack bytesPath], operators, [outFile]])
-        return ()
+        lift $ createDirectoryIfMissing True parent
+        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[T.unpack bytesPath], operators, [outFile]])
+        when (exitCode /= ExitSuccess) . throwE . ImageError . T.toStrict . T.decodeUtf8 $ err
       return $ (T.pack $ "image/" ++ format, T.pack fpath)
 
 -- | Ordered list of tags that represent embedded images.
@@ -1084,4 +1084,4 @@ imageAtRes config img size = runExceptT $ do
   case size of
     -- TODO: don't use hardcoded jpeg type!
     Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
-    Just s -> lift $ loadCachedOrBuild config (filePath origFile) srcPath (fileLastTouch origFile) s
+    Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileLastTouch origFile) s
