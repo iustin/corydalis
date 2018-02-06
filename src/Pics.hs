@@ -841,13 +841,10 @@ scanFilesystem config = do
 
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
-  let images = filterImagesByClass [ImageProcessed, ImageStandalone] repo
-  mapM_ (\i ->
-           case imgJpegPath i of
-             f:_ -> mapM_ (loadCachedOrBuild config (filePath f) Nothing (fileLastTouch f))
-                     (map ImageSize (cfgAutoImageSizes config))
-             _ -> return ()
-        ) images
+  let images = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalone] repo
+      builder i = mapM_ (imageAtRes config i)
+                   (map (Just . ImageSize) (cfgAutoImageSizes config))
+  mapM_ builder images
 
 maybeUpdateCache :: Config
                  -> Maybe Repository
