@@ -46,10 +46,16 @@ Using stack:
 
 
 That should be it about the "build" phase, although if you don't
-already have a stack work space, this might take a bit of time and
-CPU.
+already have a stack work space, this will take a bit of time and CPU.
 
-## Installing the binary
+This step will generate three binaries:
+
+- `corydalis`, the main application; this is what you will run later.
+- `db-util`, a tool to set the users in the database; you will need
+  this to initialise the first user(s).
+- `scanner`, which is an internal tool and shouldn't be of much use.
+
+## Completing the installation
 
 Create a few needed directories:
 
@@ -85,8 +91,15 @@ configuration:
 The application uses a database to store users for authentication;
 normally I expect only one or at most a few users - family - to be
 defined, but it was easier to use a database than (e.g.) something
-like htpasswd. There's currently no way to define users in
-non-development mode :(
+like htpasswd. The `db-util` tool can add users:
+
+    $ ./db-util -c /path/to/target/config add <USER>
+
+This will prompt for the password and then add (or update, if the user
+already existed) the user. It can also list and delete users.
+
+When first run, the tool will automatically create (or update, on
+upgrade) the required database tables.
 
 ## Running corydalis
 
