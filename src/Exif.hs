@@ -58,10 +58,8 @@ import Control.Applicative
 import Control.Monad
 import qualified Data.Map.Strict as M
 import Data.Map.Strict (Map)
-import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Maybe
-import System.Posix.Files hiding (fileSize)
 import System.Process.Typed
 import Data.Store
 import Data.Time.Format

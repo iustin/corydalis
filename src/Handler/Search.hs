@@ -25,16 +25,12 @@ module Handler.Search ( getSearchFoldersR
                       ) where
 
 import Import
-import Exif
 import Pics
-import Types
 import Indexer
 import Handler.Utils
 
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import qualified Data.Text as T
-import Data.Time
 
 
 atomDescription :: Atom -> Text
@@ -42,7 +38,7 @@ atomDescription (Location place) = "location is " `T.append` place
 atomDescription (Person who) = (formatPerson False who) `T.append`
                                " is in the picture"
 atomDescription (Keyword what) = "tagged with keyword " `T.append` what
-atomDescription (Year when) = "taken in the year " `T.append` (T.pack $ show when)
+atomDescription (Year year) = "taken in the year " `T.append` (T.pack $ show year)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do

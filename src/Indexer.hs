@@ -29,8 +29,6 @@ module Indexer ( Atom(..)
                , buildSearchFunction
                ) where
 
-import Types
-import Cache
 import Exif
 import Pics
 

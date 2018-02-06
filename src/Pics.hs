@@ -79,7 +79,7 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.Lazy.Encoding as T (decodeUtf8)
 import qualified Data.Text.Lazy as T (toStrict)
-import qualified Data.ByteString.Lazy as BSL (writeFile, length)
+import qualified Data.ByteString.Lazy as BSL (writeFile, length, append)
 import System.IO.Unsafe
 import Data.Int (Int64)
 import Data.Time.LocalTime
@@ -99,7 +99,6 @@ import Data.List
 import Data.Maybe
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
-import Data.Time.Calendar
 import Data.Semigroup
 import System.Directory
 import System.FilePath
@@ -249,15 +248,6 @@ newtype ImageSize = ImageSize Int
 fileLastTouch :: File -> POSIXTime
 fileLastTouch f = fileMTime f `max` fileCTime f
 
--- | The (approximate) year of a file.
-fileYear :: File -> Integer
-fileYear f =
-  let mintime = fileMTime f `min` fileCTime f
-      utc = posixSecondsToUTCTime mintime
-      days = utctDay utc
-      (year, _, _) = toGregorian days
-  in year
-
 -- | The year of the image, as determined from Exif data.
 imageYear :: Image -> Maybe Integer
 imageYear img = do
@@ -281,7 +271,7 @@ mkImageStatus _ Nothing  (_:_) (Just _)  = ImageStandalone
   --error "imageStatus - orphaned + jpeg?"
 mkImageStatus _ (Just _) []    _         = ImageRaw
 mkImageStatus _ Nothing  (_:_) _         = ImageStandalone
-mkImageStatus _ (Just _) jpegs@(_:_) _   = ImageProcessed
+mkImageStatus _ (Just _) (_:_) _         = ImageProcessed
 
 mkImage :: Config -> Text -> Text -> Maybe File
         -> Maybe File -> [File] -> Maybe (Text, Text) -> Flags -> Image
@@ -478,10 +468,10 @@ repoCache = unsafePerformIO $ newMVar Nothing
 -- chew through the list. In both these cases, we (randomly) choose
 -- the first file.
 isBetterMaster :: [FilePath] -> FilePath -> FilePath -> Bool
-isBetterMaster [] a b = True
-isBetterMaster (e:es) a b | e == a = True
-isBetterMaster (e:es) a b | e == b = False
-isBetterMaster (e:es) a b | otherwise = isBetterMaster es a b
+isBetterMaster []     _ _              = True
+isBetterMaster (e:_ ) a _ | e == a     = True
+isBetterMaster (e:_ ) _ b | e == b     = False
+isBetterMaster (_:es) a b | otherwise  = isBetterMaster es a b
 
 -- | Selects the best master file when merging images.
 --
@@ -836,7 +826,7 @@ scanFilesystem config = do
                           , repoStats = stats
                           , repoExif  = rexif
                           }
-  forkIO $ forceBuildThumbCaches config repo''
+  _ <- forkIO $ forceBuildThumbCaches config repo''
   return $!! repo''
 
 forceBuildThumbCaches :: Config -> Repository -> IO ()
@@ -998,7 +988,7 @@ loadCachedOrBuild config origPath srcPath mtime size = do
             outFile = format ++ ":" ++ fpath
         lift $ createDirectoryIfMissing True parent
         (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[T.unpack bytesPath], operators, [outFile]])
-        when (exitCode /= ExitSuccess) . throwE . ImageError . T.toStrict . T.decodeUtf8 $ err
+        when (exitCode /= ExitSuccess) . throwE . ImageError . T.toStrict . T.decodeUtf8 $ err `BSL.append` out
       return $ (T.pack $ "image/" ++ format, T.pack fpath)
 
 -- | Ordered list of tags that represent embedded images.
