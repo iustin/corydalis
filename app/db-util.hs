@@ -107,7 +107,8 @@ listUsers = do
 
 app :: (MonadBaseControl IO m, MonadIO m)
     => Options -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
-app (Options _ cmd) =
+app (Options _ cmd) = do
+  runMigration migrateAll
   case cmd of
     CmdAdd u -> upsertUser u
     CmdDel u -> removeUser u
@@ -127,4 +128,3 @@ main = do
     let conn = sqlDatabase $ appDatabaseConf appSettings
 
     runStderrLoggingT $ runSqlite conn $ app opts
-
