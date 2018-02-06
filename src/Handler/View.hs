@@ -43,6 +43,9 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T (encodeUtf8)
 import System.Random (getStdRandom, randomR)
 import Text.Read (readMaybe)
+import qualified Text.Blaze.Svg as Svg
+import Text.Blaze.Svg11 ((!), text_, docTypeSvg, Svg)
+import qualified Text.Blaze.Svg11.Attributes as SA
 
 data ImageInfo = ImageInfo
   { iiInfoUrl  :: Text
@@ -142,6 +145,23 @@ getViewR folder iname = do
                `T.append` "/" `T.append` imgName img
     $(widgetFile "view")
 
+basicSvg :: Text -> Svg
+basicSvg msg =
+  docTypeSvg ! SA.version "1.1" ! SA.width "600" ! SA.height "600"
+    ! SA.viewbox "0 0 600 600" $ do
+  text_ (Svg.toSvg msg)
+    ! SA.fontSize "14px"
+    ! SA.x "50" ! SA.y "50"
+    ! SA.textlength "500" ! SA.lengthadjust "spacingAndGlyphs"
+
+imageNotViewable :: TypedContent
+imageNotViewable =
+  TypedContent typeSvg . toContent $ basicSvg "Image has no viewable version ☹"
+
+imageError :: Text -> TypedContent
+imageError msg =
+  TypedContent typeSvg . toContent $ basicSvg ("Error: " `T.append` msg)
+
 getImageBytesR :: Text -> Text -> Handler ()
 getImageBytesR folder iname = do
   config <- getConfig
@@ -153,9 +173,15 @@ getImageBytesR folder iname = do
   -- TODO: make this 'res' string and the javascript string derive from the same constant
   res <- lookupGetParam "res"
   let res' = fmap T.unpack res >>= readMaybe
-  (ctype, rpath) <- liftIO $ imageAtRes config img (ImageSize <$> res')
-  -- TODO: don't use hardcoded jpeg type!
-  sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
+  imgbytes <- liftIO $ imageAtRes config img (ImageSize <$> res')
+  case imgbytes of
+    Left ImageNotViewable ->
+      sendResponse imageNotViewable
+    Left (ImageError err) ->
+      sendResponse $ imageError err
+    Right (ctype, rpath) ->
+      -- TODO: don't use hardcoded jpeg type!
+      sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
 
 fileToView :: Image -> Maybe File
 fileToView img =

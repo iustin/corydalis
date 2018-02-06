@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Pics ( PicDir(..)
             , Image(..)
+            , ImageError(..)
             , Untracked(..)
             , File(..)
             , Flags(..)
@@ -90,6 +91,8 @@ import Control.Monad
 import Control.Concurrent (forkIO)
 import Data.Default (def)
 import Control.Exception
+import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Except
 import Data.Function (on)
 import qualified Data.Map.Strict as Map
 import Data.List
@@ -235,6 +238,9 @@ instance NFData InodeInfo where
                       inodeCTime    `seq`
                       inodeSize     `seq`
                       ()
+
+data ImageError = ImageNotViewable
+                | ImageError Text
 
 -- | Represents a scaled down image size.
 newtype ImageSize = ImageSize Int
@@ -1063,22 +1069,22 @@ bestEmbedded config path =
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Text, Text)
-imageAtRes config img size = do
+imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, Text))
+imageAtRes config img size = runExceptT $ do
   (raw, origFile) <- case imgJpegPath img of
                        j:_ -> return (False, j)
                        _   -> case (imgRawPath img, flagsSoftMaster (imgFlags img)) of
                          (Just r, True) -> return (False, r)
                          (Just r, False) -> return (True, r)
-                         _ -> error "Neither raw nor jpeg image available"
+                         _ -> throwE ImageNotViewable
   srcPath <- if raw
                then do
-                 thumb <- bestEmbedded config (filePath origFile)
+                 thumb <- lift $ bestEmbedded config (filePath origFile)
                  case thumb of
-                   Left err -> error $ "Error while extracting embedded image: " ++ T.unpack err
+                   Left err -> throwE $ ImageError err
                    Right path -> return $ Just path
                else return Nothing
   case size of
     -- TODO: don't use hardcoded jpeg type!
     Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
-    Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileLastTouch origFile) s
+    Just s -> lift $ loadCachedOrBuild config (filePath origFile) srcPath (fileLastTouch origFile) s
