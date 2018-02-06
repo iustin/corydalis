@@ -27,12 +27,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import Control.Monad.Logger
 import Database.Persist
 import Database.Persist.Sqlite
-import Import hiding (putStrLn)
+import Import hiding (putStrLn, putStr, getLine)
 import Application
 import Model
 import Options.Applicative
 import Data.Semigroup ((<>))
 import Data.Text.IO
+import System.IO (hFlush, hGetEcho, hSetEcho)
+import Yesod.Auth.HashDB
 
 data Options = Options
   { optSettingsFile :: FilePath
@@ -70,8 +72,20 @@ parseOptions = Options
 
 upsertUser :: (MonadBaseControl IO m, MonadIO m)
            => Text -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
-upsertUser user = do
-  insert (User user Nothing)
+upsertUser username = do
+  password <- liftIO $ do
+    putStr "Enter password: "
+    hFlush stdout
+    l <- bracket (hGetEcho stdin) (hSetEcho stdin) $ \_ -> do
+      hSetEcho stdin False
+      l <- getLine
+      putChar '\n'
+      return l
+    return l
+  let u = User username Nothing
+  withpw <- liftIO $ setPassword password u
+  --let crypted = makePassword password defaultStrength
+  upsertBy (UniqueUser username) withpw [UserPassword =. userPassword withpw]
   return ()
 
 removeUser :: (MonadBaseControl IO m, MonadIO m)
