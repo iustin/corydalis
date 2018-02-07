@@ -1,15 +1,30 @@
-# Corydalis
+# Introduction
 
-… is a simple application to help manage offline (as in non-cloud)
-collections of RAW and processed pictures. I wrote it as I'm not able
-to keep post-processing up with the amount of RAW pictures I take;
-additionally there is a lot of cruft accumulating over time. Corydalis
-should be mostly independent of the actual file types and the program
-used to process the raw files, although maybe I do make some
-assumptions and I'm just not aware of it; its only requirement is that
-ImageMagick (used to generate the downscaled images for web viewing)
-supports the "processed" image format (which in the vast majority of
-cases will be JPEG, so the point is moot).
+Corydalis is a simple application to help manage offline (as in
+non-cloud) collections of RAW and processed pictures. It doesn't
+replace your RAW processor (e.g. Adobe Lightroom, DxO PhotoLab,
+Capture one, Darktable, etc.) but instead acts as a companion to it,
+giving a parallel view on all your files.
+
+Corydalis is also an image viewer, designed to work across and
+understand your entire photo collection; the desktop-only viewers
+(e.g. Geeqie) are folder-based, not collection-based.
+
+Originally, I wrote it as I'm not able to keep post-processing up with
+the amount of RAW pictures I take; additionally there is a lot of
+cruft accumulating over time. It evolved to be an image viewer as I
+needed one that both understands the entire collection, and can export
+(as a web application) the pictures stored on your storage to desktop
+and mobile clients - I want the ease of viewing/browsing pictures in a
+browser, without having to upload my photos to the cloud.
+
+Corydalis should be mostly independent of the actual file types and
+the program used to process the raw files, although maybe I do make
+some assumptions and I'm just not aware of it; its only requirement is
+that _ImageMagick_ (used to generate the downscaled images for web
+viewing) supports the "processed" image format (which in the vast
+majority of cases will be JPEG, so the point is moot), and that
+_exiftool_ can extract metadata from your images.
 
 See [the installation guide](install.md) file for how to quickly
 run and see Corydalis' output; the application only writes to its own

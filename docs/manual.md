@@ -1,9 +1,49 @@
-# Concepts
+# Basic usage
 
-My work flow is that after processing, I export JPEG files for easy
-viewing. Thus, the lack or presence of JPEG files is the criteria for
-"has this picture been processed", and this concept is used for
-categorising folder and so on.
+If you are only interested in the image view capabilities, then
+there's not much to it:
+
+- open the web interface (after following the steps in the
+  [installation guide](install.md))
+- start browsing either from the year, person, location or keyword
+  view
+- or, browse by folder type (in the "Curate library" section)
+
+Once you open a folder, click on the thumbnail of any picture to start
+browsing from it. The controls are:
+
+- left/right (keyboard keys, or swipe): move forward/backward in the list
+  of pictures
+- `f` (key), or tap the image: go full-screen, if the browser allows
+  it
+- `r` (key): go to a random image in the whole library
+- `u` (key): go back to the folder view
+- `home`/`end` (key): go to the first, respectively last, image in the
+  current folder
+
+And that is it. The image advancing flows continuously from one folder
+to the next, so in theory you could go to the first every image in
+your collection and keep scrolling through all of them.
+
+If you want to understand more how Corydalis looks at pictures, read
+on.
+
+## Image metadata
+
+Corydalis will use the image metadata (EXIF, IPTC, XMP, etc.) in order
+to extract information and allow browsing along a limited number of
+criteria: people present in the pictures (if they are tagged),
+locations, keywords. I plan to expand this aspect further.
+
+# Corydalis concepts
+
+My workflow is that after processing the RAW, I export local JPEG
+files for easy viewing. Thus, the lack or presence of JPEG files is
+the criteria for "has this picture been processed", and this concept
+is used for categorising folder and so on.
+
+Also, take a look at the `config/settings.yml.sample` file, to
+understand how some of the behaviours below can be configured.
 
 ## Image types
 
@@ -17,7 +57,16 @@ categorised as follows:
 * *orphaned* if we only have a sidecar file
 
 A sidecar file is what image processing programs generate to store
-metadata and/or history of changes; usually these are `xmp` files.
+metadata and/or history of changes; usually these are `.xmp` files.
+
+For most image types, Corydalis will be able to view them no matter
+the state, either by using the JPEG file directly, or by extracting a
+preview from the RAW file - most RAW file include a full HD, if not
+full-size preview (almost the equivalent of what would happen if you
+would have shot in RAW+JPEG, usually a slightly higher compression
+ratio, but otherwise the same).
+
+See the Workflow section for the case of JPEG-only images.
 
 ## Folders
 
@@ -47,21 +96,21 @@ perfect; for example, an *unprocessed* folder can contain standalone
 files, but is not classified as mixed in order to simplify the
 work-flow.
 
-## File-system organisation
+# File-system organisation
 
 If both the raw and processed files are stored in the same file-system
 directory, then it's very easy to manage the files using a file
-manager, and Corydalis has less value. However, it can also manage
-cases when the raw files and the jpeg outputs are tracked in
-completely different trees, for example:
+manager, and Corydalis has less value. It has more use when the raw
+files and the jpeg outputs are tracked in completely different trees,
+for example:
 
 * raw files in `/raw` (`/year/date`)
 * jpeg files in `/jpeg` (`/year/date`)
 
-This helps with backups for example (and maybe permissions). Corydalis
-will match a given directory across all trees it it watching based on
-its name, which has to be consistent. Note that the depth of the tree
-is important: Corydalis expects a three-level
+In this case, Corydalis will match a given directory across all trees
+it it watching based on its name, which has to be consistent. Note
+that the depth of the tree is important: Corydalis expects a
+three-level
 `toplevel/intermediate-that-is-ignored/directory-that-is-tracked`
 structure.
 
@@ -71,21 +120,57 @@ organised in subdirectories, the only difference is that the same
 structure must exist in all instances of a directory, and the relative
 path will be displayed in the interface.
 
-# Work flow
+# Workflows
 
-After adding a new set of files to the file system, Corydalis will:
+Note that no matter which of the workflows below you use, you will
+need to "refresh" the internal state of Corydalis (via the `Reload
+button in the top toolbar) once you add/remove/change files under the
+directories it has configured. Currently it doesn't have do this
+automatically.
 
-* if these are processed files already, mark the new folder as
-  standalone; no further work needed
-* if these are raw files, mark the new folder as raw; the top-level
-  page will show the number of unprocessed files/folders
+Also, you can mix-and-match the workflows at any time, of course.
 
-As a folder is being processed, it will move from raw to unprocessed
-and then finally to processed. If all folders are in either processed
-or standalone status, everything is perfect, no more work needs to be
-done. However, this is not the case usually.
+## RAW-only workflow
 
-## Dealing with other states
+With a pure RAW workflow, things could look like this:
+
+- You add some RAW files to your file system in a new directory;
+  reloading Corydalis will show a new folder in state 'raw'.
+- You start processing the files, and creating JPEG versions; the
+  folder will become 'unprocessed' after the first JPEG file.
+- You finish processing, and all files have both RAW and JPEG
+  versions; the folder is not 'processed'.
+
+At any stage, you can view the files, either based on the embedded
+preview in the RAW file, or on the processed JPEGs (Corydalis
+automatically determines what to use).
+
+## RAW+JPEG workflow
+
+You shoot both RAW files (for potential further processing) and JPEG
+files, since most of the time you use OOC (out-of-camera) files.
+
+- You add the RAW and JPEG files to the file system, either in the
+  same location or separate locations.
+- Corydalis will show the folder directly in 'processed' state (it
+  doesn't help you much here); viewing the files will always use the
+  JPEG files.
+
+## JPEG-only workflow
+
+Let's say you only shoot JPEG, or that you have some extra JPEG-only
+files (from your phone) on top of the other pictures. How to handle
+these?
+
+For this particular case, Corydalis has the concept of a 'soft
+master': a JPEG file that lives in one of the directories configured
+as raw sources, with no RAW file, will also be considered a
+source/virtual RAW for the purposes of the workflow. So, if there's no
+copy in the JPEG directories, it will consider it 'unprocessed'.
+
+# Other folder/image states
+
+## Folders
 
 ### Unprocessed folders with low count of unprocessed files
 
@@ -117,7 +202,7 @@ Corydalis flags these folders incorrectly as 'empty', although it
 shows the files in the folder view; ideally there would be a separate
 'other' status for folders.
 
-## Other processed files
+## Files
 
 There are two types of processed files that Corydalis treats
 differently: additional copies and what it calls "range" files, used
@@ -130,7 +215,7 @@ file.
 
 ### Panorama/HDR outputs
 
-My usual work flow for a panorama or HDR file is as follows:
+My usual workflow for a panorama or HDR file is as follows:
 
 * a number of RAW files are shot;
 * these are processed and then combined into a panorama;
@@ -151,9 +236,9 @@ Corydalis supports both these cases:
   files will be considered processed, and that the `jpeg` file won't
   be considered as standalone.
 
-## Old concepts
+# Old concepts
 
-### Outdated outputs
+## Outdated outputs
 
 Previously, Corydalis tries to track "outdated" files - that is, files
 that based on some heuristics were deemed to need re-processing (the

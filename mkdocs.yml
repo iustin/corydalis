@@ -1,6 +1,7 @@
 site_name: Corydalis
 docs_dir: docs
 theme: readthedocs
+site_author: Iustin Pop
 pages:
 - Home: index.md
 - Installation guide: install.md
