@@ -25,6 +25,7 @@ module Handler.Search ( getSearchFoldersR
                       ) where
 
 import Import
+import Types
 import Pics
 import Indexer
 import Handler.Utils
@@ -42,6 +43,7 @@ atomDescription (Year year) = "taken in the year " `T.append` T.pack (show year)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
+  config <- getConfig
   ato <- foldM (\atoms (kind, param) -> do
                   p <- lookupGetParam param
                   case p of
@@ -54,6 +56,7 @@ getSearchFoldersR = do
       search_string = T.intercalate " and " $ map atomDescription ato
   pics <- getPics
   let folders = filter (\p -> all (\fn -> fn p) flt) . Map.elems . repoDirs $ pics
+      thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching folders"::Text)
     $(widgetFile "searchfolders")

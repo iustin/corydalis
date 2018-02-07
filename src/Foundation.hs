@@ -242,6 +242,9 @@ instance YesodBreadcrumbs App where
                                                    Nothing)
   breadcrumb (ImageInfoR _ image) = return ("Information for " `T.append` image,
                                                   Nothing)
+  breadcrumb (FolderCoverBytesR folder) =
+    return ("Bytes of first image in " `T.append` folder,
+             Just (FolderR folder))
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)
   breadcrumb (UntrackedR folder untracked) =
     return ("Untracked " `T.append` untracked, Just (FolderR folder))

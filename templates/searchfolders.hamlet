@@ -15,6 +15,7 @@
        <table #folderlist .tablesorter .table .table-condensed>
          <thead>
            <tr>
+             <th>Thumbnail
              <th ."{sorter: 'text'}">Name
              <th ."{sorter: 'false'}">Locations
              <th ."{sorter: 'false'}">People
@@ -23,6 +24,11 @@
          <tbody>
            $forall n <- folders
              <tr>
+               <td>
+                  <img
+                     src="@?{(FolderCoverBytesR (pdName n), [("res", T.pack $ show thumbsize)])}"
+                     style="width: #{thumbsize}px; height: #{thumbsize}px"
+                     >
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
                <td>#{folderLocations n}
                <td>#{folderPeople n}

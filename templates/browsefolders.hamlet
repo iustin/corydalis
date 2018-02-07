@@ -19,6 +19,7 @@
        <table #folderlist .tablesorter .table .table-condensed>
          <thead>
            <tr>
+             <th>Thumbnail
              <th ."{sorter: 'text'}">Name
              <th ."{sorter: 'text'}">Classification
              <th ."{sorter: 'text'}">Path
@@ -31,6 +32,11 @@
          <tbody>
            $forall (n, lp, c) <- npairs
              <tr>
+               <td>
+                  <img
+                     src="@?{(FolderCoverBytesR (pdName n), [("res", T.pack $ show thumbsize)])}"
+                     style="width: #{thumbsize}px; height: #{thumbsize}px"
+                     >
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
                <td>#{c}
                <td>#{pdMainPath n}

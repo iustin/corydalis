@@ -184,6 +184,7 @@ getFolderR name = do
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
 getBrowseFoldersR kinds = do
+  config <- getConfig
   pics <- getPics
   let kinds_string = T.intercalate ", " . map fcName $ kinds
       folders = filterDirsByClass kinds pics
@@ -205,6 +206,7 @@ getBrowseFoldersR kinds = do
                              , formatPercent $ unproc * 100 / numraw
                              , f_class'))
                folders
+      thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setTitle . toHtml $
       "Corydalis: browsing folders of type " `T.append` kinds_string
