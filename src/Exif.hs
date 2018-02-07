@@ -36,6 +36,7 @@ module Exif ( Exif(..)
 
 import Types
 import Cache
+import Compat.Orphans ()
 import Settings.Development
 
 import Prelude
@@ -423,5 +424,3 @@ parseCreateDate o = do
   return dto'
 
 $(makeStore ''Exif)
-$(makeStore ''TimeOfDay)
-$(makeStore ''LocalTime)

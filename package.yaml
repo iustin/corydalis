@@ -71,24 +71,29 @@ dependencies:
 # defined below is just a thin wrapper.
 library:
   source-dirs:
-  - src
-  - app
+    - src
+    - app
   exposed-modules:
-  - Application
-  - Foundation
-  - Handler.Common
-  - Handler.Home
-  - Handler.View
-  - Handler.Utils
-  - Import
-  - Import.NoFoundation
-  - Model
-  - Pics
-  - Settings
-  - Settings.Development
-  - Settings.StaticFiles
-  - Types
-
+    - Application
+    - Cache
+    - Exif
+    - Foundation
+    - Handler.Common
+    - Handler.Home
+    - Handler.View
+    - Handler.Search
+    - Handler.Utils
+    - Import
+    - Import.NoFoundation
+    - Indexer
+    - Model
+    - Pics
+    - Settings
+    - Settings.Development
+    - Settings.StaticFiles
+    - Types
+  other-modules:
+    - Compat.Orphans
 
   when:
   - condition: (flag(dev)) || (flag(library-only))

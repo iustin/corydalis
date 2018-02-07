@@ -72,6 +72,7 @@ module Pics ( PicDir(..)
 import Types
 import Cache
 import Exif
+import Compat.Orphans ()
 
 import Prelude
 import Control.Concurrent.MVar
@@ -333,10 +334,6 @@ data Stats = Stats
   , sByCamera       :: !(Map.Map Text (Int, FileOffset))
   , sByLens         :: !(Map.Map Text (Int, FileOffset))
   } deriving Show
-
--- orphan instance, sigh.
-instance NFData COff where
-  rnf (COff x) = rnf x
 
 instance NFData Stats where
   rnf Stats{..} = rnf sByCamera `seq`

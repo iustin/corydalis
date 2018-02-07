@@ -28,8 +28,6 @@ import Control.Monad.Logger
 import Database.Persist
 import Database.Persist.Sqlite
 import Import hiding (putStrLn, putStr, getLine)
-import Application
-import Model
 import Options.Applicative
 import Data.Semigroup ((<>))
 import Data.Text.IO
@@ -38,7 +36,7 @@ import Yesod.Auth.HashDB
 
 data Options = Options
   { optSettingsFile :: FilePath
-  , optCommand :: Command
+  , optCommand      :: Command
   }
 
 data Command = CmdAdd Text
@@ -84,8 +82,7 @@ upsertUser username = do
     return l
   let u = User username Nothing
   withpw <- liftIO $ setPassword password u
-  --let crypted = makePassword password defaultStrength
-  upsertBy (UniqueUser username) withpw [UserPassword =. userPassword withpw]
+  _ <- upsertBy (UniqueUser username) withpw [UserPassword =. userPassword withpw]
   return ()
 
 removeUser :: (MonadBaseControl IO m, MonadIO m)
@@ -101,13 +98,12 @@ listUsers :: (MonadBaseControl IO m, MonadIO m)
           => ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
 listUsers = do
   users <- selectList [] [Asc UserName]
-  liftIO $ mapM_ (\(Entity _ (User name pw)) -> do
-                     putStrLn name
+  liftIO $ mapM_ (\(Entity _ (User name _)) -> putStrLn name
                  ) users
 
 app :: (MonadBaseControl IO m, MonadIO m)
-    => Options -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
-app (Options _ cmd) = do
+    => Command -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
+app cmd = do
   runMigration migrateAll
   case cmd of
     CmdAdd u -> upsertUser u
@@ -119,12 +115,12 @@ main = do
     opts <- execParser (info (helper <*> parseOptions) $ progDesc "Corydalis database maintenance")
 
     -- Get the settings from all relevant sources
-    appSettings <- loadYamlSettings
+    settings <- loadYamlSettings
         [optSettingsFile opts]
         -- fall back to compile-time values, set to [] to require values at runtime
         [configSettingsYmlValue]
         -- allow environment variables to override
         useEnv
-    let conn = sqlDatabase $ appDatabaseConf appSettings
+    let conn = sqlDatabase $ appDatabaseConf settings
 
-    runStderrLoggingT $ runSqlite conn $ app opts
+    runStderrLoggingT . runSqlite conn . app . optCommand $ opts
