@@ -1,3 +1,16 @@
+# Static files are found in this directory
+static-dir:     "_env:STATIC_DIR:static"
+# Listen address:
+host:           "_env:HOST:*4" # any IPv4 host
+# Listen port:
+port:           "_env:PORT:3000"
+# Canonical URL:
+approot:        "_env:APPROOT:http://localhost:3000"
+# Useful when running behind a reverse proxy:
+ip-from-header: "_env:IP_FROM_HEADER:false"
+# Copyright statement
+copyright: Insert copyright statement here
+
 database:
   # NOTE: By design, this setting prevents the SQLITE_DATABASE environment variable
   # from affecting test runs, so that we don't accidentally affect the
@@ -5,10 +18,29 @@ database:
   # would like to have environment variable overrides, you could instead use
   # something like:
   #
-  #   database: "_env:SQLITE_DATABASE:corydalis_test.sqlite3"
-  database: corydalis_test.sqlite3
+  database: "_env:SQLITE_DATABASE:corydalis_test.sqlite3"
+  poolsize: "_env:SQLITE_POOLSIZE:10"
 
 auth-dummy-login: true
 
 #detailed-logging: true
 #should-log-all: true
+
+config:
+  sourcedirs: []
+  outputdirs: []
+  blacklisteddirs: [".thumbnails"]
+  cachedir: "/pics/cache"
+  thumbnailsize: 64
+  autoimgsizes: [1920, 2560]
+  demandimgsizes: [3840, 7680]
+  rawexts: ["nef", "raf", "orf", "crw", "tif", "tiff", "dng"]
+  jpegexts: ["jpg", "jpeg"]
+  sidecarexts: ["xmp"]
+  otherexts: ["png"]
+  dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
+  rangeregex: "(.*_)([0-9]+)-([0-9]+)"
+  copyregex: "(.*)(-([0-9]|Edit))"
+  peopleprefix: "_People"
+  locationprefix: "_Regions"
+  ignoreprefix: "_"
