@@ -206,8 +206,8 @@ data Rotate = RCenter
 
 data Transform = Transform
                    Rotate
-                   Bool -- ^ Flip X.
-                   Bool -- ^ Flip Y.
+                   Bool -- Flip X.
+                   Bool -- Flip Y.
 
 instance Default Transform where
   def = Transform RCenter False False

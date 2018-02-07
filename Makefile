@@ -36,7 +36,12 @@ release:
 	rsync -a static/css static/fonts static/js dist/static/
 
 doc:
-	@echo This is broken for now
+	cabal configure \
+	  --package-db=clear \
+	  --package-db=global \
+	  --package-db=$$(stack path --snapshot-pkg-db) \
+	  --package-db=$$(stack path --local-pkg-db)
+	cabal haddock --internal --haddock-options=--ignore-all-exports
 
 clean:
 	rm -f corydalis.aux corydalis.prof corydalis.ps \
