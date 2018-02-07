@@ -36,7 +36,7 @@ release:
 	rsync -a static/css static/fonts static/js dist/static/
 
 doc:
-	cabal haddock --internal --haddock-options=--ignore-all-exports
+	@echo This is broken for now
 
 clean:
 	rm -f corydalis.aux corydalis.prof corydalis.ps \
@@ -46,8 +46,7 @@ clean:
 	stack clean
 
 test:
-	cabal configure --enable-test --enable-coverage
-	cabal test
+	stack test --coverage
 
 lint:
 	@rm -f lint-report.html
