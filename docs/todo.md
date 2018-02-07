@@ -1,5 +1,10 @@
 # Random notes and TODOs
 
+## Unit tests!
+
+The code is, practically, not tested today. There's a modicum of a
+test that checks the main web page gets a 200 OK, but nothing else.
+
 ## EXIF handling
 
 - History When (XMP/Lightroom)
