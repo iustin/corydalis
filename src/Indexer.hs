@@ -18,8 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Indexer ( Atom(..)
                , AtomType(..)
@@ -66,13 +64,13 @@ buildAtom TYear when =
 
 buildSearchFunction :: Atom -> (PicDir -> Bool)
 buildSearchFunction (Location loc) =
-  \f -> loc `Map.member` (gExifLocations $ pdExif f)
+  \f -> loc `Map.member` gExifLocations (pdExif f)
 
 buildSearchFunction (Person who) =
-  \f -> who `Map.member` (gExifPeople $ pdExif f)
+  \f -> who `Map.member` gExifPeople (pdExif f)
 
 buildSearchFunction (Keyword what) =
-  \f -> what `Map.member` (gExifKeywords $ pdExif f)
+  \f -> what `Map.member` gExifKeywords (pdExif f)
 
-buildSearchFunction (Year when) =
-  \f -> maybe False (== when) (pdYear f)
+buildSearchFunction (Year year) =
+  (== Just year) . pdYear

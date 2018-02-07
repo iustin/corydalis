@@ -89,12 +89,12 @@ getHomeR = do
       numfolders = Map.size $ repoDirs pics
       all_fc = [minBound..maxBound]
       all_years = Map.foldl' (\s ->
-                                maybe s (\y -> y `Set.insert` s) . pdYear
+                                maybe s (`Set.insert` s) . pdYear
                              ) Set.empty (repoDirs pics)
       topN n f =
         take n .
-        reverse .
-        (sortBy (compare `on` snd)) .
+        -- sortBy + flip (compare `on`) = sortBy + reverse
+        sortBy (flip compare `on` snd) .
         Map.toList .
         f $ gexif
       years = Set.toAscList all_years
@@ -118,7 +118,7 @@ getCurateR = do
       fstats = Map.toAscList fcm
       numfolders = Map.size $ repoDirs pics
       all_fc = [minBound..maxBound]
-      buildTop10 m n = let allItems = reverse . sort $
+      buildTop10 m n = let allItems = sortBy (flip compare) $
                              Map.foldlWithKey' (\a k (cnt, sz) ->
                                                   (cnt, sz, k):a) [] m
                            top10 = if length allItems > n
@@ -178,7 +178,7 @@ getFolderR name = do
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     let stats = computeFolderStats dir
-        rbuilder = ((const .) FolderR)
+        rbuilder = (const .) FolderR
     setTitle . toHtml $ "Corydalis: folder " `T.append` name
     $(widgetFile "folder")
 
@@ -268,7 +268,7 @@ getImageR folder iname = do
   img <- case Map.lookup iname images of
            Nothing -> notFound
            Just img' -> return img'
-  let rbuilder = \ik io -> ImageR (imgParent io) ik
+  let rbuilder ik io = ImageR (imgParent io) ik
       flags = if flagsSoftMaster (imgFlags img)
                  then "soft master"::Text
                  else "(none)"

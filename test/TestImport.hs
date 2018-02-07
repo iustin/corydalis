@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
-{-# LANGUAGE QuasiQuotes #-}
+
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -88,11 +88,11 @@ wipeDB app = do
     flip runSqlPersistMPool pool $ do
         tables <- getTables
         sqlBackend <- ask
-        let queries = map (\t -> "DELETE FROM " ++ (connEscapeName sqlBackend $ DBName t)) tables
+        let queries = map (\t -> "DELETE FROM " ++ connEscapeName sqlBackend (DBName t)) tables
         forM_ queries (\q -> rawExecute q [])
 
 rawConnection :: Text -> IO Sqlite.Connection
-rawConnection t = Sqlite.open t
+rawConnection = Sqlite.open
 
 disableForeignKeys :: Sqlite.Connection -> IO ()
 disableForeignKeys conn = Sqlite.prepare conn "PRAGMA foreign_keys = OFF;" >>= void . Sqlite.step
@@ -106,7 +106,7 @@ getTables = do
 -- being set in test-settings.yaml, which enables dummy authentication in
 -- Foundation.hs
 authenticateAs :: Entity User -> YesodExample App ()
-authenticateAs (Entity _ u) = do
+authenticateAs (Entity _ u) =
     request $ do
         setMethod "POST"
         addPostParam "ident" $ userName u
@@ -114,7 +114,7 @@ authenticateAs (Entity _ u) = do
 
 -- | Create a user.
 createUser :: Text -> YesodExample App (Entity User)
-createUser ident = do
+createUser ident =
     runDB $ insertEntity User
         { userName = ident
         , userPassword = Nothing

@@ -148,7 +148,7 @@ getViewR folder iname = do
 basicSvg :: Text -> Svg
 basicSvg msg =
   docTypeSvg ! SA.version "1.1" ! SA.width "600" ! SA.height "600"
-    ! SA.viewbox "0 0 600 600" $ do
+    ! SA.viewbox "0 0 600 600" $
   text_ (Svg.toSvg msg)
     ! SA.fontSize "14px"
     ! SA.x "50" ! SA.y "50"

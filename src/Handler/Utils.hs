@@ -90,7 +90,7 @@ getConfig = appConfig . appSettings <$> getYesod
 
 getPics :: Handler Repository
 getPics = do
-  cheapRepo <- liftIO $ getRepo
+  cheapRepo <- liftIO getRepo
   case cheapRepo of
     Just repo -> return repo
     Nothing -> do
@@ -114,7 +114,7 @@ getFolder :: Text -> Handler PicDir
 getFolder = fmap snd . getPicsAndFolder
 
 showFile :: Pics.File -> Widget
-showFile f = do
+showFile f =
   $(widgetFile "showfile")
 
 generatePrevNext :: (Ord k) => k -> Map k v -> (k -> v -> Route App) -> Widget
@@ -135,7 +135,7 @@ formatPerson abbrev name =
   in case w of
        [l, f] | not (T.null l) ->
                 if abbrev
-                  then f `T.append` " " `T.snoc` (T.head l) `T.snoc` '.'
+                  then f `T.append` " " `T.snoc` T.head l `T.snoc` '.'
                   else f `T.append` " " `T.append` l
        _ -> name
 

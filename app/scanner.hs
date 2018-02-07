@@ -45,22 +45,22 @@ main = do
     t2m <- getTime Monotonic
     t2p <- getTime ProcessCPUTime
     let s1 = computeRepoStats (repoDirs repo)
-    putStrLn $ "Repository stats #1:"
+    putStrLn "Repository stats #1:"
     print s1
     t3m <- getTime Monotonic
     t3p <- getTime ProcessCPUTime
     let s2 = computeRepoStats (repoDirs repo)
-    putStrLn $ "Repository stats #1:"
+    putStrLn "Repository stats #1:"
     print s2
     t4m <- getTime Monotonic
     t4p <- getTime ProcessCPUTime
-    putStrLn $ "Repo scan time (m/c):"
+    putStrLn "Repo scan time (m/c):"
     print $ diffTimeSpec t2m t1m
     print $ diffTimeSpec t2p t1p
-    putStrLn $ "Stats time #1 (m/c):"
+    putStrLn "Stats time #1 (m/c):"
     print $ diffTimeSpec t3m t2m
     print $ diffTimeSpec t3p t2p
-    putStrLn $ "Stats time #2 (m/c):"
+    putStrLn "Stats time #2 (m/c):"
     print $ diffTimeSpec t4m t3m
     print $ diffTimeSpec t4p t3p
     -- threadDelay 5000000

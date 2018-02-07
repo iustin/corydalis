@@ -17,10 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Cache ( cachedBasename
              , writeCacheFile
@@ -85,7 +82,7 @@ lastTouch path =
 pathsSorted :: [FilePath] -> IO Bool
 pathsSorted paths = do
   ts <- mapM lastTouch paths
-  return $ and . map (\(a, b) -> a <= b) . zip ts $ tail ts
+  return $ all (uncurry (<=)) . zip ts $ tail ts
 
 readCacheFile :: (ReadableContent a) =>
                  Config

@@ -233,7 +233,7 @@ exifFromRaw config RawExif{..} =
   let pPeople = cfgPeoplePrefix config
       pLocations = cfgLocationPrefix config
       pIgnore = cfgIgnorePrefix config
-      dropIgnored ks = filter (\k -> not $ pIgnore `T.isPrefixOf` k) ks
+      dropIgnored = filter (\k -> not $ pIgnore `T.isPrefixOf` k)
       subjPeople      = foldl' (\e ks ->
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
@@ -243,7 +243,7 @@ exifFromRaw config RawExif{..} =
       dropPeople = filter (not . (`S.member` peopleSet))
       exifKeywords    = foldl' (\e ks ->
                                   case ks of
-                                    x:_ | (x /= pLocations && x /= pPeople) ->
+                                    x:_ | x /= pLocations && x /= pPeople ->
                                           (dropPeople . dropIgnored) ks ++ e
                                     _ -> e) [] rExifHSubjects
       hierLocations   = foldr (\ks e ->
@@ -272,8 +272,8 @@ promoteFileExif re se je =
       first :: (Exif -> Maybe a) -> Maybe a
       first fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
       first' :: (Exif -> a) -> a -> a
-      first' fn d = case (catMaybes [fn <$> re, fn <$> se] ++
-                                    map fn je) of
+      first' fn d = case catMaybes [fn <$> re, fn <$> se] ++
+                                    map fn je of
                       [] -> d
                       x:_ -> x
       exifPeople'      = summer exifPeople
@@ -288,17 +288,17 @@ promoteFileExif re se je =
       -- between various versions. How to expose this in viewer?
       exifTitle'       = first  exifTitle
       exifCaption'     = first  exifCaption
-  in Just $ Exif { exifPeople      = exifPeople'
-                 , exifKeywords    = exifKeywords'
-                 , exifLocations   = exifLocations'
-                 , exifCamera      = exifCamera'
-                 , exifSerial      = exifSerial'
-                 , exifLens        = exifLens'
-                 , exifOrientation = exifOrientation'
-                 , exifCreateDate  = exifCreateDate'
-                 , exifTitle       = exifTitle'
-                 , exifCaption     = exifCaption'
-                 }
+  in Just Exif { exifPeople      = exifPeople'
+               , exifKeywords    = exifKeywords'
+               , exifLocations   = exifLocations'
+               , exifCamera      = exifCamera'
+               , exifSerial      = exifSerial'
+               , exifLens        = exifLens'
+               , exifOrientation = exifOrientation'
+               , exifCreateDate  = exifCreateDate'
+               , exifTitle       = exifTitle'
+               , exifCaption     = exifCaption'
+               }
 
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath
@@ -354,7 +354,7 @@ getExif config dir paths = do
                               Just v -> do
                                 let e = exifFromRaw config v
                                 writeBExif config fpath e
-                                return $ (M.insert p e c, m)
+                                return (M.insert p e c, m)
                  ) (cache1, []) m1
   jsons <- if null m2
              then return []
@@ -370,11 +370,10 @@ getExif config dir paths = do
                exifs <- (parseExifs <$> extractExifs dir m2) `catch`
                  (\e -> putStrLn ("Error: " ++ show (e :: SomeException)) >> return Nothing)
                return $ fromMaybe [] exifs
-  localCache <- foldM (\m r -> do
-                          (path, e) <- writeExifs config dir r
-                          return $ M.insert path e m
-                      ) cache2 jsons
-  return localCache
+  foldM (\m r -> do
+            (path, e) <- writeExifs config dir r
+            return $ M.insert path e m
+        ) cache2 jsons
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =

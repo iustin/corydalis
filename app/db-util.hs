@@ -74,12 +74,11 @@ upsertUser username = do
   password <- liftIO $ do
     putStr "Enter password: "
     hFlush stdout
-    l <- bracket (hGetEcho stdin) (hSetEcho stdin) $ \_ -> do
+    bracket (hGetEcho stdin) (hSetEcho stdin) $ \_ -> do
       hSetEcho stdin False
       l <- getLine
       putChar '\n'
       return l
-    return l
   let u = User username Nothing
   withpw <- liftIO $ setPassword password u
   _ <- upsertBy (UniqueUser username) withpw [UserPassword =. userPassword withpw]

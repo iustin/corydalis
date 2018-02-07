@@ -35,10 +35,10 @@ import qualified Data.Text as T
 
 atomDescription :: Atom -> Text
 atomDescription (Location place) = "location is " `T.append` place
-atomDescription (Person who) = (formatPerson False who) `T.append`
+atomDescription (Person who) = formatPerson False who `T.append`
                                " is in the picture"
 atomDescription (Keyword what) = "tagged with keyword " `T.append` what
-atomDescription (Year year) = "taken in the year " `T.append` (T.pack $ show year)
+atomDescription (Year year) = "taken in the year " `T.append` T.pack (show year)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do

@@ -123,9 +123,8 @@ instance Yesod App where
 #else
       sslOnlySessions
 #endif
-      $
-      fmap Just $ defaultClientSessionBackend sessionTimeout
-                    "config/client_session_key.aes"
+      (Just <$> defaultClientSessionBackend sessionTimeout
+        "config/client_session_key.aes")
 
     -- Yesod Middleware allows you to run code before and after each handler function.
     -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
@@ -252,7 +251,7 @@ instance YesodBreadcrumbs App where
   breadcrumb (BrowseImagesR kind) =
     return ("Showing images of type " `T.append`
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
-  breadcrumb (SearchFoldersR) =
+  breadcrumb SearchFoldersR =
     return ("Search folders", Just HomeR)
   breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
@@ -293,7 +292,7 @@ instance YesodAuth App where
       where ident = credsIdent creds
 
     -- Simple HashDB auth and in test/dev dummy auth.
-    authPlugins app = [ authHashDBWithForm loginWidget (Just . UniqueUser) ] ++ extraAuthPlugins
+    authPlugins app = authHashDBWithForm loginWidget (Just . UniqueUser):extraAuthPlugins
         -- Enable authDummy login if enabled.
         where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
 

@@ -60,6 +60,7 @@ lint:
 	  --ignore "Use first" \
 	  --ignore "Use &&&" \
 	  --report=lint-report.html -c \
+	  --cross \
 	  .
 
 .PHONY: build devel profiling view release doc clean test dist

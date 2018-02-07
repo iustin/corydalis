@@ -17,8 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE TupleSections #-}
-
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -404,7 +402,7 @@ updateStatsWithPic orig img =
       ms' = ms + maybe 0 fileSize (imgSidecarPath img)
       camera = case imgRawPath img of
                  Nothing -> unknown
-                 Just f -> fromMaybe unknown (exifCamera <$> fileExif f)
+                 Just f -> maybe unknown exifCamera (fileExif f)
       xsize = case imgRawPath img of
                Just f -> fileSize f
                Nothing -> case imgJpegPath img of
@@ -412,9 +410,9 @@ updateStatsWithPic orig img =
                             _ -> 0
       lens = case imgRawPath img of
                  Nothing -> case imgJpegPath img of
-                   j:_ -> fromMaybe unknown (exifLens <$> fileExif j)
+                   j:_ -> maybe unknown exifLens (fileExif j)
                    _ -> unknown
-                 Just f -> fromMaybe unknown (exifLens <$> fileExif f)
+                 Just f -> maybe unknown exifLens (fileExif f)
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
@@ -468,7 +466,7 @@ isBetterMaster :: [FilePath] -> FilePath -> FilePath -> Bool
 isBetterMaster []     _ _              = True
 isBetterMaster (e:_ ) a _ | e == a     = True
 isBetterMaster (e:_ ) _ b | e == b     = False
-isBetterMaster (_:es) a b | otherwise  = isBetterMaster es a b
+isBetterMaster (_:es) a b              = isBetterMaster es a b
 
 -- | Selects the best master file when merging images.
 --
@@ -829,8 +827,8 @@ scanFilesystem config = do
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
   let images = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalone] repo
-      builder i = mapM_ (imageAtRes config i)
-                   (map (Just . ImageSize) (cfgAutoImageSizes config))
+      builder i = mapM_ (imageAtRes config i . Just . ImageSize)
+                    (cfgAutoImageSizes config)
   mapM_ builder images
 
 maybeUpdateCache :: Config
@@ -986,7 +984,7 @@ loadCachedOrBuild config origPath srcPath mtime size = do
         lift $ createDirectoryIfMissing True parent
         (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[T.unpack bytesPath], operators, [outFile]])
         when (exitCode /= ExitSuccess) . throwE . ImageError . T.toStrict . T.decodeUtf8 $ err `BSL.append` out
-      return $ (T.pack $ "image/" ++ format, T.pack fpath)
+      return (T.pack $ "image/" ++ format, T.pack fpath)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]
