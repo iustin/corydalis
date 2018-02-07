@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Handler.Utils where
 
@@ -116,6 +117,18 @@ getFolder = fmap snd . getPicsAndFolder
 showFile :: Pics.File -> Widget
 showFile f =
   $(widgetFile "showfile")
+
+folderCover :: Int -> PicDir -> Widget
+folderCover thumbsize folder = do
+  let name = pdName folder
+  case Map.lookupMin $ pdImages folder of
+    Nothing -> toWidget [hamlet|<span .disabled>N/A|]
+    Just (_, img) ->
+      toWidget [hamlet|<a href=@{ViewR name (imgName img)}>
+                         <img
+                           src="@?{(ImageBytesR name (imgName img), [("res", T.pack $ show thumbsize)])}"
+                           style="width: #{thumbsize}px; height: #{thumbsize}px"
+                           >|]
 
 generatePrevNext :: (Ord k) => k -> Map k v -> (k -> v -> Route App) -> Widget
 generatePrevNext k m r = do

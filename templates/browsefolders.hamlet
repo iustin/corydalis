@@ -33,10 +33,7 @@
            $forall (n, lp, c) <- npairs
              <tr>
                <td>
-                  <img
-                     src="@?{(FolderCoverBytesR (pdName n), [("res", T.pack $ show thumbsize)])}"
-                     style="width: #{thumbsize}px; height: #{thumbsize}px"
-                     >
+                 ^{folderCover thumbsize n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
                <td>#{c}
                <td>#{pdMainPath n}

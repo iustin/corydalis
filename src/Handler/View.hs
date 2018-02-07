@@ -28,7 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.View ( getViewR
                     , getImageBytesR
-                    , getFolderCoverBytesR
                     , getImageInfoR
                     , getRandomImageInfoR
                     ) where
@@ -183,26 +182,6 @@ getImageBytesR folder iname = do
     Right (ctype, rpath) ->
       -- TODO: don't use hardcoded jpeg type!
       sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
-
-getFolderCoverBytesR :: Text -> Handler ()
-getFolderCoverBytesR folder = do
-  config <- getConfig
-  dir <- getFolder folder
-  case lookupMin $ pdImages dir of
-    Nothing -> sendResponse $ imageError "No images in folder"
-    Just (_, img) -> do
-      -- TODO: make this 'res' string and the javascript string derive from the same constant
-      res <- lookupGetParam "res"
-      let res' = fmap T.unpack res >>= readMaybe
-      imgbytes <- liftIO $ imageAtRes config img (ImageSize <$> res')
-      case imgbytes of
-        Left ImageNotViewable ->
-          sendResponse imageNotViewable
-        Left (ImageError err) ->
-          sendResponse $ imageError err
-        Right (ctype, rpath) ->
-          -- TODO: don't use hardcoded jpeg type!
-          sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
 
 fileToView :: Image -> Maybe File
 fileToView img =

@@ -47,9 +47,6 @@ A number of issues:
 - doesn't show first valid image, but plain first one
 - even better, for consistency, should try to find a landscape image
   first
-- is not link-able; ideally, there would be a widget that is called
-  which returns the <a href=…><img></a> entire block, guaranteeing
-  that the href and img parts are consistent
 
 ## Bugs
 
