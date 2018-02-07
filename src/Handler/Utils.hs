@@ -123,12 +123,15 @@ folderCover thumbsize folder = do
   let name = pdName folder
   case Map.lookupMin $ pdImages folder of
     Nothing -> toWidget [hamlet|<span .disabled>N/A|]
-    Just (_, img) ->
-      toWidget [hamlet|<a href=@{ViewR name (imgName img)}>
-                         <img
-                           src="@?{(ImageBytesR name (imgName img), [("res", T.pack $ show thumbsize)])}"
-                           style="width: #{thumbsize}px; height: #{thumbsize}px"
-                           >|]
+    Just (_, img) -> imageBytes thumbsize name (imgName img)
+
+imageBytes :: Int -> Text -> Text -> Widget
+imageBytes thumbsize folder image =
+  toWidget [hamlet|<a href=@{ViewR folder image}>
+                     <img
+                       src="@?{(ImageBytesR folder image, [("res", T.pack $ show thumbsize)])}"
+                       style="width: #{thumbsize}px; height: #{thumbsize}px"
+                       >|]
 
 generatePrevNext :: (Ord k) => k -> Map k v -> (k -> v -> Route App) -> Widget
 generatePrevNext k m r = do

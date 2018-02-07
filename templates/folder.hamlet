@@ -74,11 +74,7 @@
                 $forall img <- pdImages dir
                   <tr .#{imgRowClass img}>
                     <td>
-                        <a href=@{ViewR name (imgName img)}>
-                          <img
-                            src="@?{(ImageBytesR name (imgName img), [("res", T.pack $ show thumbsize)])}"
-                            style="width: #{thumbsize}px; height: #{thumbsize}px"
-                            >
+                      ^{imageBytes thumbsize name (imgName img)}
                     <td>
                         <a href=@{ImageR name (imgName img)}>#{imgName img}
                     <td>
