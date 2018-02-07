@@ -130,11 +130,7 @@ getNextImageAnyFolder (repoDirs -> pics) folder iname forward = do
 
 getViewR :: Text -> Text -> Handler Html
 getViewR folder iname = do
-  dir <- getFolder folder
-  let images = pdImages dir
-  img <- case Map.lookup iname images of
-           Nothing -> notFound
-           Just img' -> return img'
+  img <- getImage folder iname
   let Transform r fx fy = transformForImage img
       initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
   debug <- appShouldLogAll . appSettings <$> getYesod
@@ -165,11 +161,7 @@ imageError msg =
 getImageBytesR :: Text -> Text -> Handler ()
 getImageBytesR folder iname = do
   config <- getConfig
-  dir <- getFolder folder
-  let images = pdImages dir
-  img <- case Map.lookup iname images of
-           Nothing -> notFound
-           Just img' -> return img'
+  img <- getImage folder iname
   -- TODO: make this 'res' string and the javascript string derive from the same constant
   res <- lookupGetParam "res"
   let res' = fmap T.unpack res >>= readMaybe
@@ -201,9 +193,7 @@ getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
   (pics, dir) <- getPicsAndFolder folder
   let images = pdImages dir
-  img <- case Map.lookup iname images of
-           Nothing -> notFound
-           Just img' -> return img'
+  img <- getFolderImage dir iname
   render <- getUrlRender
   let -- since we have an image, it follows that min/max must exist
       -- (they might be the same), hence we can use the non-total

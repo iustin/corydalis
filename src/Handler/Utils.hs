@@ -114,6 +114,17 @@ getPicsAndFolder folder = do
 getFolder :: Text -> Handler PicDir
 getFolder = fmap snd . getPicsAndFolder
 
+getFolderImage :: PicDir -> Text -> Handler Image
+getFolderImage dir iname =
+  case Map.lookup iname (pdImages dir) of
+    Nothing -> notFound
+    Just img -> return img
+
+getImage :: Text -> Text -> Handler Image
+getImage folder iname = do
+  dir <- getFolder folder
+  getFolderImage dir iname
+
 showFile :: Pics.File -> Widget
 showFile f =
   $(widgetFile "showfile")
