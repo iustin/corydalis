@@ -30,7 +30,7 @@ dist:
 # An entire clean build and install in dist.
 release:
 	stack clean
-	stack build
+	stack build --pedantic
 	stack install --local-bin-path dist/
 	mkdir -p dist/static/
 	rsync -a static/css static/fonts static/js dist/static/
