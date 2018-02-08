@@ -50,7 +50,6 @@ import qualified Data.ByteString as BS (ByteString, readFile)
 import Data.Aeson
 import Data.List
 import Data.Semigroup
-import Data.Store ()
 import Data.Store.TH (makeStore)
 import Data.Scientific (toBoundedInteger)
 import Data.Time.LocalTime

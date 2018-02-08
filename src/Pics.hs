@@ -175,6 +175,7 @@ instance NFData File where
 
 -- | Flags (on an image or a directory) showing exceptional
 -- statuses.
+{-# ANN Flags ("HLint: ignore Use newtype instead of data"::String) #-}
 data Flags = Flags
   { flagsSoftMaster :: !Bool
   } deriving (Show)

@@ -111,20 +111,17 @@ instance Yesod App where
     -- Controls the base of generated URLs. For more information on modifying,
     -- see: https://github.com/yesodweb/yesod/wiki/Overriding-approot
     approot = ApprootRequest $ \app req ->
-        case appRoot $ appSettings app of
-            Nothing -> getApprootText guessApproot app req
-            Just root -> root
+        fromMaybe (getApprootText guessApproot app req) (appRoot $ appSettings app)
 
     -- Store session data on the client in encrypted cookies,
     -- default session idle timeout is 120 minutes
     makeSessionBackend _ =
 #if DEVELOPMENT
-      id
 #else
-      sslOnlySessions
+      sslOnlySessions $
 #endif
-      (Just <$> defaultClientSessionBackend sessionTimeout
-        "config/client_session_key.aes")
+      Just <$> defaultClientSessionBackend sessionTimeout
+        "config/client_session_key.aes"
 
     -- Yesod Middleware allows you to run code before and after each handler function.
     -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
@@ -135,11 +132,9 @@ instance Yesod App where
     -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
     yesodMiddleware =
 #if DEVELOPMENT
-      id
 #else
-      sslOnlyMiddleware sessionTimeout
+      sslOnlyMiddleware sessionTimeout .
 #endif
-      .
       defaultYesodMiddleware
 
     defaultLayout widget = do

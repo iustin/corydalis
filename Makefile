@@ -30,6 +30,7 @@ dist:
 # An entire clean build and install in dist.
 release:
 	stack clean
+	$(MAKE) lint
 	stack build --pedantic
 	stack install --local-bin-path dist/
 	mkdir -p dist/static/
@@ -55,12 +56,13 @@ test:
 
 lint:
 	@rm -f lint-report.html
-	@hlint \
-	  --ignore "Use fewer imports" \
+	hlint \
+	  -j \
 	  --ignore "Use first" \
 	  --ignore "Use &&&" \
 	  --report=lint-report.html -c \
 	  --cross \
+	  --cpp-define=DEVELOPMENT=1 \
 	  .
 
 .PHONY: build devel profiling view release doc clean test dist

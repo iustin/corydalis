@@ -24,24 +24,24 @@ module Handler.HomeSpec (spec) where
 
 import TestImport
 
+checkLoginSuccessful :: YesodExample App ()
+checkLoginSuccessful = do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+
+      get HomeR
+      statusIs 200
+
 spec :: Spec
 spec = withApp $ do
     it "asserts redirect on access to home for anonymous users" $ do
         get HomeR
         statusIs 303
 
-    it "asserts access to home for authenticated users" $ do
-      userEntity <- createUser "foo"
-      authenticateAs userEntity
-
-      get HomeR
-      statusIs 200
+    it "asserts access to home for authenticated users"
+      checkLoginSuccessful
     it "loads the index and checks it looks right" $ do
-      userEntity <- createUser "foo"
-      authenticateAs userEntity
-
-      get HomeR
-      statusIs 200
+      checkLoginSuccessful
       htmlAllContain "h1" "Corydalis"
       htmlAnyContain "div#main" "Year view"
       htmlAnyContain "div#main" "Locations view"
