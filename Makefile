@@ -1,6 +1,8 @@
 # this is only used for custom development!
 # well, except for the release target
 
+all: build
+
 build:
 	stack build
 
@@ -28,15 +30,16 @@ dist:
 	stack install --local-bin-path dist/
 
 # An entire clean build and install in dist.
-release:
-	stack clean
-	$(MAKE) lint
+release: clean lint doc
 	stack build --pedantic
 	stack install --local-bin-path dist/
 	mkdir -p dist/static/
 	rsync -a static/css static/fonts static/js dist/static/
 
 doc:
+	mkdocs build -s
+
+haddock:
 	cabal configure \
 	  --package-db=clear \
 	  --package-db=global \
@@ -45,10 +48,7 @@ doc:
 	cabal haddock --internal --haddock-options=--ignore-all-exports
 
 clean:
-	rm -f corydalis.aux corydalis.prof corydalis.ps \
-	  corydalis.hp corydalis.pdf *.html
-	find \( -name '*.hi' -o -name '*.o' \) -delete
-	rm -f *.aux *.hp *.prof
+	rm -rf site/
 	stack clean
 
 test:
@@ -65,5 +65,5 @@ lint:
 	  --cpp-define=DEVELOPMENT=1 \
 	  .
 
-.PHONY: build devel profiling view release doc clean test dist
+.PHONY: build devel profiling view release doc haddock clean test dist
 .INTERMEDIATE: %.ps
