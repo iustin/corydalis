@@ -12,8 +12,6 @@ port:           "_env:PORT:3000"
 approot:        "_env:APPROOT:http://localhost:3000"
 # Useful when running behind a reverse proxy:
 ip-from-header: "_env:IP_FROM_HEADER:false"
-# Copyright statement
-copyright: Insert copyright statement here
 
 # NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:PGPASS:'123'")
 # See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings

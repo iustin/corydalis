@@ -86,3 +86,7 @@ table.vmiddle tr th {
 table.vmiddle tr td {
   vertical-align: middle;
 }
+
+footer {
+    font-style: italic;
+}

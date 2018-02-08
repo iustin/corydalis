@@ -143,7 +143,6 @@ instance Yesod App where
       defaultYesodMiddleware
 
     defaultLayout widget = do
-        master <- getYesod
         mmsg <- getMessage
         mmsgKind <- lookupSession msgTypeKey
         let mmsgClass = case mmsgKind of

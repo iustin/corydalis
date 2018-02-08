@@ -45,4 +45,4 @@ $doctype 5
         ^{pageBody pc}
         <br>
         <footer>
-          #{appCopyright $ appSettings master}
+          Corydalis v#{corydalisVersion}

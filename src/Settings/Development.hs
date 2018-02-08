@@ -47,3 +47,6 @@ devSuffix =
 #else
   ""
 #endif
+
+corydalisVersion :: String
+corydalisVersion = CURRENT_PACKAGE_VERSION

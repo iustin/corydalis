@@ -8,8 +8,6 @@ port:           "_env:PORT:3000"
 approot:        "_env:APPROOT:http://localhost:3000"
 # Useful when running behind a reverse proxy:
 ip-from-header: "_env:IP_FROM_HEADER:false"
-# Copyright statement
-copyright: Insert copyright statement here
 
 database:
   # NOTE: By design, this setting prevents the SQLITE_DATABASE environment variable
