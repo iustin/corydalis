@@ -41,9 +41,12 @@ You will need
 [stack](https://docs.haskellstack.org/en/stable/README/), a number of
 common command line utilities, and to read the [installation
 guide](docs/install.md). Then read the [manual](docs/manual.md) in
-order to understand what Corydalis shows.
+order to understand what Corydalis shows. You can also see the
+documentation online at
+[readthedocs](http://corydalis.readthedocs.io/).
 
 ## Bugs/features
 
 There is a raw list of ideas/issues in the [todo
-list](docs/todo.md). Otherwise, feel free to file bugs.
+list](docs/todo.md). Otherwise, feel free to [file
+bugs](https://github.com/iustin/corydalis/issues).

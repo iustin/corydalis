@@ -1,5 +1,5 @@
 name:    corydalis
-version: "0.0.1"
+version: "0.2.0"
 license: AGPL-3
 license-file: [LICENCE, LICENCE-AGPL]
 category: Image
@@ -9,6 +9,7 @@ maintainer:
   - Iustin Pop <iustin@k1024.org>
 copyright:
   - (c) 2013 Iustin Pop
+github: iustin/corydalis
 stability: experimental
 synopsis: A photo library management and viewer
 description: >
@@ -24,6 +25,7 @@ description: >
   stored them in the cloud (but many features are still missing).
 
   See README.md for more details.
+
 extra-source-files:
   - templates/*
   - static/css/*
