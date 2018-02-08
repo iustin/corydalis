@@ -29,9 +29,9 @@ Current configuration:
         $forall dir <- sort $ cfgBlacklistedDirs config
           <li>
             <span .monolight>#{quoteMarkup dir}
-  <li>extensions considered raw files:
+  <li>extensions considered raw files (in priority order):
     <ul>
-      $forall ext <- sort $ cfgRawExts config
+      $forall ext <- cfgRawExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
   <li>extensions considered sidecar files:
