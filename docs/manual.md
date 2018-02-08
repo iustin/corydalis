@@ -12,14 +12,16 @@ there's not much to it:
 Once you open a folder, click on the thumbnail of any picture to start
 browsing from it. The controls are:
 
-- left/right (keyboard keys, or swipe): move forward/backward in the list
-  of pictures
+- left/right (keyboard keys, or swipe for touchscreens): move backward
+  (previous) and forward (next) in the list of pictures; this switches
+  automatically to the next folder;
+- space key: move forward (next picture);
 - `f` (key), or tap the image: go full-screen, if the browser allows
-  it
-- `r` (key): go to a random image in the whole library
-- `u` (key): go back to the folder view
+  it;
+- `r` (key): go to a random image in the whole library;
+- `u` (key): go back to the folder view;
 - `home`/`end` (key): go to the first, respectively last, image in the
-  current folder
+  current folder;
 
 And that is it. The image advancing flows continuously from one folder
 to the next, so in theory you could go to the first every image in

@@ -328,6 +328,7 @@ $(document).ready(function() {
         case 37: // left arrow
             advanceImage(false);
             break;
+        case 32: // space
         case 39: // right arrow
             advanceImage(true);
             break;
