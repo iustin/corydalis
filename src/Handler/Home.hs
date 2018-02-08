@@ -84,11 +84,7 @@ instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
 getHomeR :: Handler Html
 getHomeR = do
   pics <- getPics
-  let fcm = rsFCStats $ repoStats pics
-      fstats = Map.toAscList fcm
-      numfolders = Map.size $ repoDirs pics
-      all_fc = [minBound..maxBound]
-      all_years = Map.foldl' (\s ->
+  let all_years = Map.foldl' (\s ->
                                 maybe s (`Set.insert` s) . pdYear
                              ) Set.empty (repoDirs pics)
       topN n f =

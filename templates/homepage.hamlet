@@ -6,7 +6,7 @@
     <div .panel .panel-default>
       <div .panel-heading>Year view
       <div .panel-body>
-         $forall year <- years           
+         $forall year <- years
           <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TYear, T.pack (show year))])}">#{year}
 
   <div .col-xs-12 .col-md-3>
@@ -15,7 +15,7 @@
         <div .panel-heading>Locations view
         <div .panel-body>
           No pictures with location keywords!
-    $else 
+    $else
       <div .panel .panel-default>
         <div .panel-heading>Locations view
         <div .panel-body>
@@ -34,7 +34,7 @@
         <div .panel-body>
            $forall (p, c) <- topPeople
             <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TPerson, p)])}">#{formatPerson True p} (#{c})
-  
+
   <div .col-xs-12 .col-md-3>
     $if null topKeywords
       <div .panel .panel-warning>
@@ -47,15 +47,3 @@
         <div .panel-body>
            $forall (kw, c) <- topKeywords
             <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TKeyword, kw)])}">#{kw} (#{c})
-  
-
-  <div .col-xs-12 .col-md-6>
-    <div .panel .panel-default>
-      <div .panel-heading>Curate library
-      <div .panel-body>
-        The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
-        <ul>
-          $forall (fc, count) <- fstats
-            $with fclist <- [fc]
-              <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
-
