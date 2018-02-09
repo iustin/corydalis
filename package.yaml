@@ -122,6 +122,7 @@ library:
     - Foundation
     - Handler.Browse
     - Handler.Common
+    - Handler.Curate
     - Handler.Folder
     - Handler.Home
     - Handler.Image

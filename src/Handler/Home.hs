@@ -26,51 +26,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Handler.Home ( getCurateR
-                    , getHomeR
-                    ) where
+module Handler.Home
+  ( getHomeR
+  ) where
 
 import Import
 import Exif
 import Pics
-import Types
 import Indexer
 import Handler.Utils
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
-
-data GraphData a b = GraphData
-  { gdName  :: Text
-  , gdType  :: Text
-  , gdX     :: [a]
-  , gdY     :: [b]
-  , gdText  :: Maybe [Text]
---  , gdYAxis :: Maybe Text
-  , gdMode  :: Maybe Text
-  }
-
-instance Default (GraphData a b) where
-  def = GraphData { gdName = ""
-                  , gdType = "scatter"
-                  , gdX = []
-                  , gdY = []
-                  , gdText = Nothing
-                  , gdMode = Nothing
-                  }
-
-instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
-  toJSON GraphData {..} =
-    object [ "name"  .= gdName
-           , "type"  .= gdType
-           , "x"     .= gdX
-           , "y"     .= gdY
-           , "text"  .= gdText
-           --, "yaxis" .= gdYAxis
-           , "mode"  .= gdMode
-           , "marker" .= object [ "size" .= map (const (15::Int)) gdX]
-           ]
 
 getHomeR :: Handler Html
 getHomeR = do
@@ -92,67 +60,3 @@ getHomeR = do
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: home"::T.Text)
     $(widgetFile "homepage")
-
-getCurateR :: Handler TypedContent
-getCurateR = do
-  pics <- getPics
-  let RepoStats
-        (Stats unprocessed standalone processed orphaned untracked
-             rawsize procsize standalonesize sidecarsize untrksize
-             bycamera bylens) fcm =
-          repoStats pics
-      allpics = unprocessed + standalone + processed
-      fstats = Map.toAscList fcm
-      numfolders = Map.size $ repoDirs pics
-      all_fc = [minBound..maxBound]
-      buildTop10 m n = let allItems = sortBy (flip compare) $
-                             Map.foldlWithKey' (\a k (cnt, sz) ->
-                                                  (cnt, sz, k):a) [] m
-                           top10 = if length allItems > n
-                                     then let t10 = reverse $ take (n-1) allItems
-                                              r  = drop (n-1) allItems
-                                              (rc, rs) = foldl' (\(c, s) (cnt, sz, _) ->
-                                                                   (c+cnt, s+sz)) (0, 0) r
-                                          in (rc, rs, "Others"): t10
-                                     else allItems
-                       in top10
-      top10c = buildTop10 bycamera 10
-      json = foldl' (\a (cnt, sz, k) ->
-                       def { gdName = k
-                           , gdType = "scatter"
-                           , gdMode = Just "markers"
-                           , gdX = [fromIntegral cnt]
-                           , gdY = [fromIntegral sz]
-                           }:a)
-               ([]::[GraphData Int64 Int64]) top10c
-      top10l = buildTop10 bylens 12
-      jsonl = foldl' (\a (cnt, _, k) ->
-                        def { gdName = k
-                            , gdType = "bar"
-                            , gdMode = Just "markers"
-                            , gdX = [k]
-                            , gdY = [fromIntegral cnt]
-                            }:a)
-              ([]::[GraphData Text Int64]) top10l
-      perFolderStats = Map.foldl'
-                       (\l f -> let stats = computeFolderStats f
-                                in (fromIntegral $ totalStatsSize stats,
-                                    fromIntegral $ totalStatsCount stats,
-                                    pdName f):l) [] (repoDirs pics)
-      (xdata, ydata, textdata) = unzip3 perFolderStats
-      j2 = [ def { gdName = "Folders"
-                 , gdType = "scatter"
-                 , gdMode = Just "markers"
-                 , gdX = xdata
-                 , gdY = ydata
-                 , gdText = Just textdata
-                 }::GraphData Int64 Int64
-           ]
-  let html = do
-        setTitle "Corydalis: curate"
-        addScript $ StaticR js_plotly_js
-        $(widgetFile "curate")
-  defaultLayoutJson html (return $ object [ "global" .= json
-                                          , "folders" .= j2
-                                          , "lenses"  .= jsonl
-                                          ])
