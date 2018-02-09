@@ -31,7 +31,6 @@ module Handler.Home ( getCurateR
                     , getFolderR
                     , getBrowseFoldersR
                     , getBrowseImagesR
-                    , postReloadR
                     ) where
 
 import Import
@@ -220,12 +219,3 @@ getBrowseImagesR kinds = do
         "Corydalis: showing images of type " `T.append` kinds_string
       $(widgetFile "browseimages")
     provideRep $ return $ "\n" `T.intercalate` allpaths
-
-
-postReloadR :: Handler Html
-postReloadR = do
-  setUltDestReferer
-  reloadPics
-  setMessage "Cache reloaded"
-  setSession msgTypeKey msgSuccess
-  redirectUltDest HomeR

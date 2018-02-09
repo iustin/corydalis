@@ -64,6 +64,7 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 import Handler.Common
 import Handler.Home
 import Handler.Image
+import Handler.Reload
 import Handler.Search
 import Handler.Settings
 import Handler.Untracked

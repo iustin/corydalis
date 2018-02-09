@@ -123,6 +123,7 @@ library:
     - Handler.Common
     - Handler.Home
     - Handler.Image
+    - Handler.Reload
     - Handler.Search
     - Handler.Settings
     - Handler.Untracked
