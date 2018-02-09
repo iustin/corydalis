@@ -120,6 +120,7 @@ library:
     - Cache
     - Exif
     - Foundation
+    - Handler.Browse
     - Handler.Common
     - Handler.Home
     - Handler.Image

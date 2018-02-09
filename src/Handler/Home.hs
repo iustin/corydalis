@@ -29,8 +29,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.Home ( getCurateR
                     , getHomeR
                     , getFolderR
-                    , getBrowseFoldersR
-                    , getBrowseImagesR
                     ) where
 
 import Import
@@ -171,51 +169,3 @@ getFolderR name = do
         rbuilder = (const .) FolderR
     setTitle . toHtml $ "Corydalis: folder " `T.append` name
     $(widgetFile "folder")
-
-getBrowseFoldersR :: [FolderClass] -> Handler Html
-getBrowseFoldersR kinds = do
-  config <- getConfig
-  pics <- getPics
-  let kinds_string = T.intercalate ", " . map fcName $ kinds
-      folders = filterDirsByClass kinds pics
-      stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
-      allpics = sum . map numPics $ folders
-      -- allraws = sum . map numRawPics $ folders
-      allunproc = sum . map numUnprocessedPics $ folders
-      allprocessed = sum . map numProcessedPics $ folders
-      allstandalone = sum . map numStandalonePics $ folders
-      allorphaned = sum . map numOrphanedPics $ folders
-      tp = formatPercent $
-           fromIntegral allunproc * 100 / fromIntegral allpics
-      npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
-                              numraw = fromIntegral (numRawPics n)
-                              f_class = show $ folderClass n
-                              f_class' = fromMaybe f_class $
-                                         stripPrefix "Folder" f_class
-                          in ( n
-                             , formatPercent $ unproc * 100 / numraw
-                             , f_class'))
-               folders
-      thumbsize = cfgThumbnailSize config
-  defaultLayout $ do
-    setTitle . toHtml $
-      "Corydalis: browsing folders of type " `T.append` kinds_string
-    $(widgetFile "browsefolders")
-
-getBrowseImagesR :: [ImageStatus] -> Handler TypedContent
-getBrowseImagesR kinds = do
-  pics <- getPics
-  let kinds_string = T.intercalate ", " . map (T.pack . show) $ kinds
-      images = filterImagesByClass kinds pics
-      allpaths = foldl' (\paths img ->
-                           let jpaths = map filePath . imgJpegPath $ img
-                               withJpegs = jpaths  ++ paths
-                           in case imgRawPath img of
-                             Nothing -> withJpegs
-                             Just r -> filePath r:withJpegs) [] images
-  selectRep $ do
-    provideRep $ defaultLayout $ do
-      setTitle . toHtml $
-        "Corydalis: showing images of type " `T.append` kinds_string
-      $(widgetFile "browseimages")
-    provideRep $ return $ "\n" `T.intercalate` allpaths

@@ -61,6 +61,7 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
+import Handler.Browse
 import Handler.Common
 import Handler.Home
 import Handler.Image
