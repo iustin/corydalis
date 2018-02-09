@@ -33,7 +33,6 @@ module Handler.Home ( getCurateR
                     , getBrowseImagesR
                     , postReloadR
                     , getTimelineR
-                    , getSettingsR
                     ) where
 
 import Import
@@ -249,10 +248,3 @@ getTimelineR = do
         $(widgetFile "timeline")
       json = return ([]::[Value])
   defaultLayoutJson html json
-
-getSettingsR :: Handler Html
-getSettingsR = do
-  config <- getConfig
-  defaultLayout $ do
-    setTitle "Corydalis: Settings"
-    $(widgetFile "settings")

@@ -124,6 +124,7 @@ library:
     - Handler.Home
     - Handler.Image
     - Handler.Search
+    - Handler.Settings
     - Handler.Untracked
     - Handler.Utils
     - Handler.View
