@@ -28,7 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Home ( getCurateR
                     , getHomeR
-                    , getFolderR
                     ) where
 
 import Import
@@ -157,15 +156,3 @@ getCurateR = do
                                           , "folders" .= j2
                                           , "lenses"  .= jsonl
                                           ])
-
-getFolderR :: Text -> Handler Html
-getFolderR name = do
-  config <- getConfig
-  (pics, dir) <- getPicsAndFolder name
-  let allpaths = pdMainPath dir:pdSecPaths dir
-      thumbsize = cfgThumbnailSize config
-  defaultLayout $ do
-    let stats = computeFolderStats dir
-        rbuilder = (const .) FolderR
-    setTitle . toHtml $ "Corydalis: folder " `T.append` name
-    $(widgetFile "folder")
