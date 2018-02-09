@@ -122,10 +122,11 @@ library:
     - Foundation
     - Handler.Common
     - Handler.Home
-    - Handler.View
+    - Handler.Image
     - Handler.Search
-    - Handler.Utils
     - Handler.Untracked
+    - Handler.Utils
+    - Handler.View
     - Import
     - Import.NoFoundation
     - Indexer

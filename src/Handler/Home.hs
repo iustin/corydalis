@@ -34,7 +34,6 @@ module Handler.Home ( getCurateR
                     , postReloadR
                     , getTimelineR
                     , getSettingsR
-                    , getImageR
                     ) where
 
 import Import
@@ -257,17 +256,3 @@ getSettingsR = do
   defaultLayout $ do
     setTitle "Corydalis: Settings"
     $(widgetFile "settings")
-
-getImageR :: Text -> Text -> Handler Html
-getImageR folder iname = do
-  dir <- getFolder folder
-  img <- getFolderImage dir iname
-  let images = pdImages dir
-  let rbuilder ik io = ImageR (imgParent io) ik
-      flags = if flagsSoftMaster (imgFlags img)
-                 then "soft master"::Text
-                 else "(none)"
-  defaultLayout $ do
-    setTitle . toHtml $ "Corydalis: Image " `T.append` folder
-               `T.append` "/" `T.append` imgName img
-    $(widgetFile "image")
