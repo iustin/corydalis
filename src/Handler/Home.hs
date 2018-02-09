@@ -35,7 +35,6 @@ module Handler.Home ( getCurateR
                     , getTimelineR
                     , getSettingsR
                     , getImageR
-                    , getUntrackedR
                     ) where
 
 import Import
@@ -272,14 +271,3 @@ getImageR folder iname = do
     setTitle . toHtml $ "Corydalis: Image " `T.append` folder
                `T.append` "/" `T.append` imgName img
     $(widgetFile "image")
-
-getUntrackedR :: Text -> Text -> Handler Html
-getUntrackedR folder uname = do
-  dir <- getFolder folder
-  untrk <- case Map.lookup uname (pdUntracked dir) of
-             Nothing -> notFound
-             Just untrk' -> return untrk'
-  defaultLayout $ do
-      setTitle . toHtml $ "Corydalis: Untracked file " `T.append` folder
-                 `T.append` "/" `T.append` uname
-      $(widgetFile "untracked")

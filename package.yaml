@@ -125,6 +125,7 @@ library:
     - Handler.View
     - Handler.Search
     - Handler.Utils
+    - Handler.Untracked
     - Import
     - Import.NoFoundation
     - Indexer
