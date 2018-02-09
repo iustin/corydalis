@@ -31,16 +31,10 @@ module Handler.Image
   ) where
 
 import Import
-import Exif
 import Pics
-import Types
-import Indexer
 import Handler.Utils
 
-import qualified Data.Map as Map
-import qualified Data.Set as Set
 import qualified Data.Text as T
-import Data.Time
 
 getImageR :: Text -> Text -> Handler Html
 getImageR folder iname = do
