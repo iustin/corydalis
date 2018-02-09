@@ -32,7 +32,6 @@ module Handler.Home ( getCurateR
                     , getBrowseFoldersR
                     , getBrowseImagesR
                     , postReloadR
-                    , getTimelineR
                     ) where
 
 import Import
@@ -45,7 +44,6 @@ import Handler.Utils
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
-import Data.Time
 
 data GraphData a b = GraphData
   { gdName  :: Text
@@ -231,20 +229,3 @@ postReloadR = do
   setMessage "Cache reloaded"
   setSession msgTypeKey msgSuccess
   redirectUltDest HomeR
-
-getTimelineR :: Handler TypedContent
-getTimelineR = do
-  pics <- getPics
-  let timeline = computeTimeLine pics
-      days = Map.toAscList timeline
-      tstats = do -- Maybe monad in order to avoid unsafe min/max functions
-        firstday <- (fst . fst) <$> Map.minViewWithKey timeline
-        lastday <- (fst . fst) <$> Map.maxViewWithKey timeline
-        let numdays = diffDays lastday firstday
-        return (firstday, lastday, numdays)
-      formatDay = formatTime defaultTimeLocale "%F"
-      html = do
-        setTitle "Corydalis: timeline stats"
-        $(widgetFile "timeline")
-      json = return ([]::[Value])
-  defaultLayoutJson html json

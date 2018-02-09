@@ -50,8 +50,6 @@
   <div .col-xs-12 .col-md-6 .col-lg-4>
     <div #folderChart .graph>
 
-<a href=@{TimelineR}>Timeline</a>.
-
 You can also
 <form action=@{ReloadR} method=post style="display: inline-block">
   <button .btn .btn-default .no-padding type="submit">reload

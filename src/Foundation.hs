@@ -247,7 +247,6 @@ instance YesodBreadcrumbs App where
             T.intercalate ", " (map toPathPiece kind), Just HomeR)
   breadcrumb SearchFoldersR =
     return ("Search folders", Just HomeR)
-  breadcrumb TimelineR      = return ("Timeline"     , Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
 
 -- How to run database actions.
