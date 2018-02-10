@@ -19,7 +19,7 @@
        <table #folderlist .tablesorter .table .table-condensed>
          <thead>
            <tr>
-             <th>Thumbnail
+             <th ."{sorter: false}">Thumbnail
              <th ."{sorter: 'text'}">Name
              <th ."{sorter: 'text'}">Classification
              <th ."{sorter: 'text'}">Path
