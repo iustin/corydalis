@@ -43,11 +43,11 @@
           <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
 <div .row>
-  <div .col-xs-12 .col-md-6 .col-lg-4>
+  <div .col-xs-12 .col-md-6 .col-lg-6>
     <div #cameraChart .graph>
-  <div .col-xs-12 .col-md-6 .col-lg-4>
+  <div .col-xs-12 .col-md-6 .col-lg-6>
     <div #lensChart .graph>
-  <div .col-xs-12 .col-md-6 .col-lg-4>
+  <div .col-xs-12 .col-md-6 .col-lg-6>
     <div #folderChart .graph>
 
 You can also
