@@ -36,9 +36,10 @@
                  ^{folderCover thumbsize n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
                <td>#{c}
-               <td>#{pdMainPath n}
+               <td>
+                 <span class="monolight">#{quoteMarkup $ pdMainPath n}
                  $forall sp <- pdSecPaths n
-                   <br />#{sp}
+                   <br /><span class="monolight">#{quoteMarkup sp}
                <td .number>#{numPics n}
                <td .number>#{numUnprocessedPics n}
                <td .number>
