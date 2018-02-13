@@ -273,11 +273,13 @@ mkImageStatus _ (Just _) (_:_) _         = ImageProcessed
 
 mkImage :: Config -> Text -> Text -> Maybe File
         -> Maybe File -> [File] -> Maybe (Text, Text) -> Flags -> Image
-mkImage config name parent raw sidecar jpeg range =
-  let status = mkImageStatus config raw jpeg sidecar
-      exif = promoteFileExif (raw >>= fileExif)
-               (sidecar >>= fileExif) (mapMaybe fileExif jpeg)
-  in Image name parent raw sidecar jpeg range exif status
+mkImage config name parent raw sidecar jpegs range =
+  let status = mkImageStatus config raw jpegs sidecar
+      exif = promoteFileExif
+               (raw >>= fileExif)
+               (sidecar >>= fileExif)
+               (mapMaybe fileExif jpegs)
+  in Image name parent raw sidecar jpegs range exif status
 
 data PicDir = PicDir
   { pdName      :: !Text
