@@ -501,6 +501,17 @@ selectMasterFile config x y =
        (Nothing, Just _)   -> (yraw, ysoft, [])
        _                   -> (Nothing, False, [])
 
+updateImageAfterMerge :: Config -> Image -> Image
+updateImageAfterMerge c img@(Image{..}) =
+  let status' = mkImageStatus c imgRawPath imgJpegPath imgSidecarPath
+      exif' = promoteFileExif
+                (imgRawPath >>= fileExif)
+                (imgSidecarPath >>= fileExif)
+                (mapMaybe fileExif $ imgJpegPath)
+  in force $ img { imgStatus = status'
+                 , imgExif = exif'
+                 }
+
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
   let (newraw, softmaster, extrajpeg) = selectMasterFile c x y
@@ -511,9 +522,7 @@ mergePictures c x y =
                              `mplus` extrajpeg
           , imgFlags = (imgFlags x) { flagsSoftMaster = softmaster }
           }
-      status' = mkImageStatus c (imgRawPath x') (imgJpegPath x')
-                  (imgSidecarPath x')
-  in force $ x' { imgStatus = status' }
+  in updateImageAfterMerge c x'
 
 mergeUntracked :: Untracked -> Untracked -> Untracked
 mergeUntracked x y =
