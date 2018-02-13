@@ -232,7 +232,7 @@ exifFromRaw config RawExif{..} =
   let pPeople = cfgPeoplePrefix config
       pLocations = cfgLocationPrefix config
       pIgnore = cfgIgnorePrefix config
-      dropIgnored = filter (\k -> not $ pIgnore `T.isPrefixOf` k)
+      dropIgnored = filter (not . (pIgnore `T.isPrefixOf`))
       subjPeople      = foldl' (\e ks ->
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
