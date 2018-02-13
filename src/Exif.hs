@@ -59,6 +59,7 @@ import Control.Monad
 import qualified Data.Map.Strict as M
 import Data.Map.Strict (Map)
 import qualified Data.Set as S
+import Data.Set (Set)
 import Data.Maybe
 import System.Process.Typed
 import Data.Store
@@ -134,8 +135,8 @@ instance FromJSON RawExif where
     return RawExif{..}
 
 data Exif = Exif
-  { exifPeople      :: ![Text]
-  , exifKeywords    :: ![Text]
+  { exifPeople      :: !(Set Text)
+  , exifKeywords    :: !(Set Text)
   , exifLocations   :: ![Text]
   , exifCamera      :: !Text
   , exifSerial      :: !Text
@@ -237,10 +238,10 @@ exifFromRaw config RawExif{..} =
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
                                    _ -> e) [] rExifHSubjects
-      exifPeople = sort . nub $ rExifPeople ++ subjPeople
-      peopleSet = S.fromList exifPeople
-      dropPeople = filter (not . (`S.member` peopleSet))
-      exifKeywords    = foldl' (\e ks ->
+      exifPeople = S.fromList $ rExifPeople ++ subjPeople
+      dropPeople = filter (not . (`S.member` exifPeople))
+      exifKeywords    = S.fromList $
+                        foldl' (\e ks ->
                                   case ks of
                                     x:_ | x /= pLocations && x /= pPeople ->
                                           (dropPeople . dropIgnored) ks ++ e
@@ -268,6 +269,10 @@ promoteFileExif re se je =
       summer fn = concat (maybeToList (fn <$> re) ++
                           maybeToList (fn <$> se) ++
                           map fn je)
+      setmerge :: (Ord a) => (Exif -> Set a) -> Set a
+      setmerge fn = S.unions $ fromMaybe S.empty (fn <$> re):
+                               fromMaybe S.empty (fn <$> se):
+                               map fn je
       first :: (Exif -> Maybe a) -> Maybe a
       first fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
       first' :: (Exif -> a) -> a -> a
@@ -275,8 +280,8 @@ promoteFileExif re se je =
                                     map fn je of
                       [] -> d
                       x:_ -> x
-      exifPeople'      = summer exifPeople
-      exifKeywords'    = summer exifKeywords
+      exifPeople'      = setmerge exifPeople
+      exifKeywords'    = setmerge exifKeywords
       exifLocations'   = summer exifLocations
       exifCamera'      = first' exifCamera unknown
       exifSerial'      = first' exifSerial unknown
