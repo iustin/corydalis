@@ -533,20 +533,21 @@ mergeFolders c x y =
   force $
   x { pdMainPath = pdMainPath bestMainPath
     , pdSecPaths = pdSecPaths x ++ pdMainPath otherMainPath:pdSecPaths y
-    , pdImages =
-        Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
+    , pdImages = newimages
     , pdUntracked =
         Map.unionWith mergeUntracked (pdUntracked x) (pdUntracked y)
     , pdYear = min <$> pdYear x <*> pdYear y <|>
                pdYear x <|>
                pdYear y
-    , pdExif = pdExif x <> pdExif y
+    , pdExif = buildGroupExif newimages
     }
   where
     (bestMainPath, otherMainPath) =
       case (compare `on` (\z -> (numRawPics z, numPics z))) x y of
                                      GT -> (x, y)
                                      _ -> (y, x)
+    newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
+
 
 
 numRawPics :: PicDir -> Int
@@ -709,6 +710,13 @@ addUntracked u = Map.insertWith mergeUntracked (untrkName u) u
 data LoadImageRes = LIRImage !Image ![Image]  -- ^ A single image with potential shadows.
                   | LIRUntracked !Untracked   -- ^ An untracked file.
 
+buildGroupExif :: Map.Map Text Image -> GroupExif
+buildGroupExif =
+  Map.foldl' (\e img -> case imgExif img of
+                          Just ie -> addExifToGroup e ie
+                          Nothing -> e
+             ) def
+
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
 loadFolder config name path isSource = do
@@ -774,10 +782,7 @@ loadFolder config name path isSource = do
                            a <|>
                            imageYear img
                         ) Nothing images
-      exif = Map.foldl' (\e img -> case imgExif img of
-                                     Just ie -> addExifToGroup e ie
-                                     Nothing -> e
-                        ) def images
+      exif = buildGroupExif images
   return $!! PicDir tname (T.pack path) [] images shadows untracked year exif
 
 
