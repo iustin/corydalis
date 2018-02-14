@@ -281,7 +281,7 @@ promoteFileExif re se je =
                       [] -> d
                       x:_ -> x
       exifPeople'      = setmerge exifPeople
-      exifKeywords'    = setmerge exifKeywords
+      exifKeywords'    = setmerge exifKeywords `S.difference` exifPeople'
       exifLocations'   = summer exifLocations
       exifCamera'      = first' exifCamera unknown
       exifSerial'      = first' exifSerial unknown
