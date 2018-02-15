@@ -93,6 +93,48 @@ instance FromJSON Orientation where
 
 $(makeStore ''Orientation)
 
+extractRaw :: (FromJSON a) => Text -> Value -> Parser a
+extractRaw t =
+  withObject (T.unpack t ++ "/num|val") (\o -> o .: "num" <|> o .: "val")
+
+extractParsed :: (FromJSON a) => Text -> Value -> Parser a
+extractParsed t =
+  withObject (T.unpack t ++ "/val") (.: "val")
+
+rawValue :: (FromJSON a) => Object -> Text -> Parser a
+rawValue parent key =
+  parent .: key >>= extractRaw key
+
+(.!:) :: (FromJSON a) => Object -> Text -> Parser a
+(.!:) = rawValue
+
+parsedValue :: (FromJSON a) => Object -> Text -> Parser a
+parsedValue parent key =
+  parent .: key >>= extractParsed key
+
+(.~:) :: (FromJSON a) => Object -> Text -> Parser a
+(.~:) = parsedValue
+
+optRawValue :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+optRawValue parent key = do
+  e <- parent .:? key
+  case e of
+    Nothing -> return Nothing
+    Just e' -> extractRaw key e' >>= return . Just
+
+(.!:?) :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+(.!:?) = optRawValue
+
+optParsedValue :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+optParsedValue parent key = do
+  e <- parent .:? key
+  case e of
+    Nothing -> return Nothing
+    Just e' -> extractParsed key e' >>= return . Just
+
+(.~:?) :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+(.~:?) = optParsedValue
+
 data RawExif = RawExif
   { rExifSrcFile     :: Text
   , rExifCamera      :: Maybe Text
@@ -114,23 +156,24 @@ data RawExif = RawExif
 instance FromJSON RawExif where
   parseJSON = withObject "RawExif" $ \o -> do
     rExifSrcFile     <- o .: "SourceFile"
-    rExifCamera      <- o .:? "Model"
-    rExifLens        <- o .: "LensModel" <|>
-                        o .: "LensID"    <|>
-                        o .: "Lens"      <|>
+    rExifCamera      <- o .!:? "Model"
+    rExifLens        <- o .~: "LensSpec"  <|>
+                        o .~: "LensModel" <|>
+                        o .~: "LensID"    <|>
+                        o .~: "Lens"      <|>
                       pure Nothing
-    rExifSerial      <- o .:? "Serial"
-    rExifOrientation <- o .:? "Orientation"
-    hsubjs           <- o .:? "HierarchicalSubject" .!= []
+    rExifSerial      <- o .!:? "Serial"
+    rExifOrientation <- o .!:? "Orientation"
+    hsubjs           <- o .!:? "HierarchicalSubject" .!= []
     let rExifHSubjects = map parseHierSubject hsubjs
-    rExifPeople      <- o .:? "PersonInImage" .!= []
-    rExifCountry     <- o .:? "Country"
-    rExifState       <- o .:? "State"
-    rExifProvince    <- o .:? "Province-State"
-    rExifCity        <- o .:? "City"
+    rExifPeople      <- o .!:? "PersonInImage" .!= []
+    rExifCountry     <- o .~:? "Country"
+    rExifState       <- o .~:? "State"
+    rExifProvince    <- o .~:? "Province-State"
+    rExifCity        <- o .~:? "City"
     rExifCreateDate  <- parseCreateDate o <|> pure Nothing
-    rExifTitle       <- o .:? "Title"
-    rExifCaption     <- o .:? "Caption-Abstract"
+    rExifTitle       <- o .!:? "Title"
+    rExifCaption     <- o .!:? "Caption-Abstract"
     let rExifRaw      = o
     return RawExif{..}
 
@@ -381,7 +424,7 @@ getExif config dir paths = do
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =
-  cachedBasename config path "exif"
+  cachedBasename config path ("exif" ++ devSuffix)
 
 bExifPath :: Config -> FilePath -> FilePath
 bExifPath config path =
@@ -393,7 +436,7 @@ extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle ->
   let args = [
         "-json",
         "-struct",
-        "-n"
+        "-l"
         ] ++ paths
       pconfig =
         setStdin closed
@@ -415,11 +458,11 @@ parseExifs = decodeStrict'
 -- | Tries to compute the date the image was taken.
 parseCreateDate :: Object -> Parser (Maybe LocalTime)
 parseCreateDate o = do
-  dto  <- msum $ map (o .:) [ "SubSecDateTimeOriginal"
-                            , "DateTimeOriginal"
-                            , "SubSecCreateDate"
-                            , "CreateDate"
-                            ]
+  dto  <- msum $ map (o .!:) [ "SubSecDateTimeOriginal"
+                             , "DateTimeOriginal"
+                             , "SubSecCreateDate"
+                             , "CreateDate"
+                             ]
   -- Note: Aeson does have parsing of time itself, but only support
   -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
   -- %Y:%m:%d format, so we have to parse the time manually.
