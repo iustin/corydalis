@@ -54,6 +54,7 @@ module Pics ( PicDir(..)
             , numProcessedPics
             , filterDirsByClass
             , filterImagesByClass
+            , filterImagesBy
             , computeRepoStats
             , repoGlobalExif
             , Stats(..)
@@ -880,10 +881,15 @@ filterDirsByClass classes =
 
 filterImagesByClass :: [ImageStatus] -> Repository -> [Image]
 filterImagesByClass classes =
+  filterImagesBy (\p -> imgStatus p `elem` classes)
+
+filterImagesBy :: (Image -> Bool) -> Repository -> [Image]
+filterImagesBy flt =
   foldl' (\pics folder ->
-           let folderPics = filter (\p -> imgStatus p `elem` classes) .
-                            Map.elems . pdImages $ folder
-           in pics ++ folderPics) [] . Map.elems . repoDirs
+            Map.foldl' (\l img -> if flt img
+                                  then img:l
+                                  else l) pics (pdImages folder)
+         ) [] . Map.elems . repoDirs
 
 allImageFiles :: Image -> [File]
 allImageFiles img =
