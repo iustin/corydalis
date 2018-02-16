@@ -32,7 +32,6 @@ module Handler.LensStats
 
 import Import
 import Pics
-import Types
 import Exif
 import Handler.Utils
 
@@ -74,9 +73,7 @@ getLensStatsR :: Handler TypedContent
 getLensStatsR = do
   pics <- getPics
   let RepoStats
-        (Stats unprocessed standalone processed orphaned untracked
-             rawsize procsize standalonesize sidecarsize untrksize
-             bycamera bylens) _ =
+        (Stats _ _ _ _ _ _ _ _ _ _ _ bylens) _ =
           repoStats pics
       lenses = Map.toList bylens
       buildTop10 m n = let allItems = sortBy (flip compare) $
