@@ -48,6 +48,7 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.ByteString as BS (ByteString, readFile)
 import Data.Aeson
+import Data.Aeson.Types
 import Data.List
 import Data.Semigroup
 import Data.Store.TH (makeStore)
@@ -95,11 +96,15 @@ $(makeStore ''Orientation)
 
 extractRaw :: (FromJSON a) => Text -> Value -> Parser a
 extractRaw t =
-  withObject (T.unpack t ++ "/num|val") (\o -> o .: "num" <|> o .: "val")
+  modifyFailure (\s -> "Parsing " ++ desc ++ ": " ++ s) .
+  withObject (desc ++ "/num|val") (\o -> o .: "num" <|> o .: "val")
+  where desc = T.unpack t
 
 extractParsed :: (FromJSON a) => Text -> Value -> Parser a
 extractParsed t =
-  withObject (T.unpack t ++ "/val") (.: "val")
+  modifyFailure (\s -> "Parsing " ++ desc ++ ": " ++ s) .
+  withObject (desc ++ "/val") (.: "val")
+  where desc = T.unpack t
 
 rawValue :: (FromJSON a) => Object -> Text -> Parser a
 rawValue parent key =
