@@ -191,7 +191,9 @@ lensInfoFromObject o = do
             o .~: "LensModel" <|>
             o .~: "Lens"      <|>
             pure unknown
-  liName <- o .~: "LensID" <|> pure liSpec
+  liName <- o .~: "LensID"    <|>
+            o .~: "LensModel" <|>
+            pure liSpec
   minFL <- o .!:? "MinFocalLength"
   maxFL <- o .!:? "MaxFocalLength"
   let liFL =
