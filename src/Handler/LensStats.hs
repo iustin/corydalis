@@ -76,18 +76,7 @@ getLensStatsR = do
         (Stats _ _ _ _ _ _ _ _ _ _ _ bylens) _ =
           repoStats pics
       lenses = Map.toList bylens
-      buildTop10 m n = let allItems = sortBy (flip compare) $
-                             Map.foldlWithKey' (\a k (li, (cnt, sz)) ->
-                                                  (cnt, sz, k, li):a) [] m
-                           top10 = if length allItems > n
-                                     then let t10 = reverse $ take (n-1) allItems
-                                              r  = drop (n-1) allItems
-                                              (rc, rs) = foldl' (\(c, s) (cnt, sz, _, _) ->
-                                                                   (c+cnt, s+sz)) (0, 0) r
-                                          in (rc, rs, "Others", unknownLens): t10
-                                     else allItems
-                       in top10
-      top10l = buildTop10 bylens 30
+      top10l = buildTopNLenses bylens 30
       bestName li = if T.length (liName li) < T.length (liSpec li)
                        then liName li
                        else liSpec li
