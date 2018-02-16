@@ -18,3 +18,4 @@
 /image/info/#Text/#Text ImageInfoR GET
 /image/random RandomImageInfoR GET
 /settings SettingsR GET
+/stats/lenses LensStatsR GET

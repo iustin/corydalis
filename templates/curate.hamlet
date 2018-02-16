@@ -42,6 +42,13 @@
           <li>#{showBinary sidecarsize} in sidecar files
           <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
+  <div .col-xs-12 .col-md-4>
+    <div .panel .panel-default>
+      <div .panel-heading>Equipment
+      <div .panel-body>
+        <ul>
+          <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>
+
 <div .row>
   <div .col-xs-12 .col-md-6 .col-lg-6>
     <div #cameraChart .graph>

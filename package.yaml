@@ -126,6 +126,7 @@ library:
     - Handler.Folder
     - Handler.Home
     - Handler.Image
+    - Handler.LensStats
     - Handler.Reload
     - Handler.Search
     - Handler.Settings

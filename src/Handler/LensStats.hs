@@ -26,16 +26,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Handler.Curate
-  ( getCurateR
+module Handler.LensStats
+  ( getLensStatsR
   ) where
 
 import Import
 import Pics
 import Types
+import Exif
 import Handler.Utils
 
 import qualified Data.Map as Map
+import qualified Data.Text as T
 
 data GraphData a b = GraphData
   { gdName  :: Text
@@ -68,67 +70,41 @@ instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
            , "marker" .= object [ "size" .= map (const (15::Int)) gdX]
            ]
 
-getCurateR :: Handler TypedContent
-getCurateR = do
+getLensStatsR :: Handler TypedContent
+getLensStatsR = do
   pics <- getPics
   let RepoStats
         (Stats unprocessed standalone processed orphaned untracked
              rawsize procsize standalonesize sidecarsize untrksize
-             bycamera bylens) fcm =
+             bycamera bylens) _ =
           repoStats pics
-      allpics = unprocessed + standalone + processed
-      fstats = Map.toAscList fcm
-      numfolders = Map.size $ repoDirs pics
-      numLenses = Map.size bylens
-      all_fc = [minBound..maxBound]
+      lenses = Map.toList bylens
       buildTop10 m n = let allItems = sortBy (flip compare) $
-                             Map.foldlWithKey' (\a k (cnt, sz) ->
-                                                  (cnt, sz, k):a) [] m
+                             Map.foldlWithKey' (\a k (li, (cnt, sz)) ->
+                                                  (cnt, sz, k, li):a) [] m
                            top10 = if length allItems > n
                                      then let t10 = reverse $ take (n-1) allItems
                                               r  = drop (n-1) allItems
-                                              (rc, rs) = foldl' (\(c, s) (cnt, sz, _) ->
+                                              (rc, rs) = foldl' (\(c, s) (cnt, sz, _, _) ->
                                                                    (c+cnt, s+sz)) (0, 0) r
-                                          in (rc, rs, "Others"): t10
+                                          in (rc, rs, "Others", unknownLens): t10
                                      else allItems
                        in top10
-      top10c = buildTop10 bycamera 10
-      json = foldl' (\a (cnt, sz, k) ->
-                       def { gdName = k
-                           , gdType = "scatter"
-                           , gdMode = Just "markers"
-                           , gdX = [fromIntegral cnt]
-                           , gdY = [fromIntegral sz]
-                           }:a)
-               ([]::[GraphData Int64 Int64]) top10c
-      top10l = buildTopNLenses bylens 12
-      jsonl = foldl' (\a (cnt, _, k, _) ->
-                        def { gdName = k
+      top10l = buildTop10 bylens 30
+      bestName li = if T.length (liName li) < T.length (liSpec li)
+                       then liName li
+                       else liSpec li
+      jsonl = foldl' (\a (cnt, _, k, li) ->
+                        def { gdName = bestName li
                             , gdType = "bar"
                             , gdMode = Just "markers"
                             , gdX = [k]
                             , gdY = [fromIntegral cnt]
                             }:a)
               ([]::[GraphData Text Int64]) top10l
-      perFolderStats = Map.foldl'
-                       (\l f -> let stats = computeFolderStats f
-                                in (fromIntegral $ totalStatsSize stats,
-                                    fromIntegral $ totalStatsCount stats,
-                                    pdName f):l) [] (repoDirs pics)
-      (xdata, ydata, textdata) = unzip3 perFolderStats
-      j2 = [ def { gdName = "Folders"
-                 , gdType = "scatter"
-                 , gdMode = Just "markers"
-                 , gdX = xdata
-                 , gdY = ydata
-                 , gdText = Just textdata
-                 }::GraphData Int64 Int64
-           ]
   let html = do
-        setTitle "Corydalis: curate"
+        setTitle "Corydalis: lens statistics"
         addScript $ StaticR js_plotly_js
-        $(widgetFile "curate")
-  defaultLayoutJson html (return $ object [ "global" .= json
-                                          , "folders" .= j2
-                                          , "lenses"  .= jsonl
+        $(widgetFile "lensstats")
+  defaultLayoutJson html (return $ object [ "lenses"  .= jsonl
                                           ])

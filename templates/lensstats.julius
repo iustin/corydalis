@@ -1,0 +1,36 @@
+$(document).ready(function() {
+
+    function onDataReceived(series) {
+
+        var lensLayout = {
+            yaxis: {
+                type: 'log',
+                exponentformat: 'SI',
+                rangemode: 'nonnegative',
+                title: 'File count'
+            },
+        }
+        var config = {
+            showLink: false,
+            sendData: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+        }
+        Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
+    }
+
+    $.ajax({
+        url: "@{LensStatsR}",
+        type: "GET",
+        dataType: "json",
+        success: onDataReceived
+    });
+
+    $("#lenslist").tablesorter({
+        sortList: [[2,1], [0,0], [1, 0]],
+        theme: "bootstrap-simple",
+        headerTemplate: "{content} {icon}",
+        widgets : [ "uitheme" ],
+    });
+
+});

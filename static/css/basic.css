@@ -28,6 +28,10 @@ div#message {
     min-height: 400px;
 }
 
+.largegraph {
+    min-height: 600px;
+}
+
 /* Improve upon bootstrap's breadcrumb by not using a slash as
 separator, since that can appear in image names as well */
 .breadcrumb > li + li:before {
