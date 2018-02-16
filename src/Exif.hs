@@ -147,7 +147,6 @@ optParsedValue parent key = do
 data LensFocalLength
   = Prime !Double
   | Zoom !Double !Double
-  | FLUnknown
   deriving (Show, Eq, Ord)
 
 $(makeStore ''LensFocalLength)
@@ -155,12 +154,10 @@ $(makeStore ''LensFocalLength)
 instance NFData LensFocalLength where
   rnf (Prime x) = rnf x
   rnf (Zoom x y) = rnf x `seq` rnf y
-  rnf FLUnknown = rnf ()
 
 data LensAperture
   = FixedAperture !Double
   | VariableAperture !Double !Double
-  | APUnknown
   deriving (Show, Eq, Ord)
 
 $(makeStore ''LensAperture)
@@ -168,13 +165,12 @@ $(makeStore ''LensAperture)
 instance NFData LensAperture where
   rnf (FixedAperture x) = rnf x
   rnf (VariableAperture x y) = rnf x `seq` rnf y
-  rnf APUnknown = rnf ()
 
 data LensInfo = LensInfo
   { liName :: !Text
   , liSpec :: !Text
-  , liFL   :: !LensFocalLength
-  , liAp   :: !LensAperture
+  , liFL   :: !(Maybe LensFocalLength)
+  , liAp   :: !(Maybe LensAperture)
   } deriving (Show, Eq, Ord)
 
 $(makeStore ''LensInfo)
@@ -186,7 +182,7 @@ instance NFData LensInfo where
                      rnf liAp
 
 unknownLens :: LensInfo
-unknownLens = LensInfo unknown unknown FLUnknown APUnknown
+unknownLens = LensInfo unknown unknown Nothing Nothing
 
 lensInfoFromObject :: Object -> Parser LensInfo
 lensInfoFromObject o = do
@@ -201,17 +197,17 @@ lensInfoFromObject o = do
   let liFL =
         case (minFL, maxFL) of
           (Just m1, Just m2) -> if m1 == m2
-                                  then Prime m1
-                                  else Zoom m1 m2
-          _ -> FLUnknown
+                                  then Just $ Prime m1
+                                  else Just $ Zoom m1 m2
+          _ -> Nothing
   apMinFL <- o .!:? "MaxApertureAtMinFocal"
   apMaxFL <- o .!:? "MaxApertureAtMaxFocal"
   let liAp =
         case (apMinFL, apMaxFL) of
           (Just a1, Just a2) -> if a1 == a2
-                                  then FixedAperture a1
-                                  else VariableAperture a1 a2
-          _ -> APUnknown
+                                  then Just $ FixedAperture a1
+                                  else Just $ VariableAperture a1 a2
+          _ -> Nothing
   return LensInfo{..}
 
 data RawExif = RawExif
@@ -407,8 +403,8 @@ promoteFileExif re se je =
       exifSerial'      = first' exifSerial unknown
       liName'          = first' (liName <$> exifLens) unknown
       liSpec'          = first' (liSpec <$> exifLens) unknown
-      liFL'            = first' (liFL   <$> exifLens) FLUnknown
-      liAperture'      = first' (liAp   <$> exifLens) APUnknown
+      liFL'            = first (liFL   <$> exifLens)
+      liAperture'      = first (liAp   <$> exifLens)
       exifLens'        = LensInfo liName' liSpec' liFL' liAperture'
       exifOrientation' = first' exifOrientation OrientationTopLeft
       exifCreateDate'  = first  exifCreateDate
