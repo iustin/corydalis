@@ -394,9 +394,10 @@ promoteFileExif re se je =
                                map fn je
       first :: (Exif -> Maybe a) -> Maybe a
       first fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
+      skipMaybes :: (Exif -> a) -> [a]
+      skipMaybes fn = catMaybes [fn <$> re, fn <$> se] ++ map fn je
       first' :: (Exif -> a) -> a -> a
-      first' fn d = case catMaybes [fn <$> re, fn <$> se] ++
-                                    map fn je of
+      first' fn d = case skipMaybes fn of
                       [] -> d
                       x:_ -> x
       exifPeople'      = setmerge exifPeople
