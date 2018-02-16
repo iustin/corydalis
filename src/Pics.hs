@@ -34,6 +34,7 @@ module Pics ( PicDir(..)
             , repoExif
             , RepoStats(..)
             , ImageSize(..)
+            , FileOffset
             , fileLastTouch
             , getRepo
             , scanAll
@@ -331,7 +332,7 @@ data Stats = Stats
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
   , sByCamera       :: !(Map.Map Text (Int, FileOffset))
-  , sByLens         :: !(Map.Map Text (Int, FileOffset))
+  , sByLens         :: !(Map.Map Text (LensInfo, (Int, FileOffset)))
   } deriving Show
 
 instance NFData Stats where
@@ -366,6 +367,9 @@ totalStatsCount stats =
 sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
 sumTuple (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
+sumLensData :: (Num a, Num b) => (LensInfo, (a, b)) -> (LensInfo, (a, b)) -> (LensInfo, (a, b))
+sumLensData (_, x) (li, y) = (li, sumTuple x y)
+
 sumStats :: Stats -> Stats -> Stats
 sumStats (Stats r1 s1 p1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
          (Stats r2 s2 p2 h2 u2 rs2 ps2 ss2 ms2 us2 sc2 sl2) =
@@ -373,7 +377,7 @@ sumStats (Stats r1 s1 p1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
         (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2) (us1 + us2)
         sc sl
   where sc = Map.unionWith sumTuple sc1 sc2
-        sl = Map.unionWith sumTuple sl1 sl2
+        sl = Map.unionWith sumLensData sl1 sl2
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
@@ -406,17 +410,15 @@ updateStatsWithPic orig img =
                Nothing -> case imgJpegPath img of
                             x:_ -> fileSize x
                             _ -> 0
-      lens = case imgRawPath img of
-                 Nothing -> case imgJpegPath img of
-                   j:_ -> maybe unknown exifLens (fileExif j)
-                   _ -> unknown
-                 Just f -> maybe unknown exifLens (fileExif f)
+      lens = case imgExif img of
+                 Nothing -> unknownLens
+                 Just x -> exifLens x
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
            , sSidecarSize = ms'
            , sByCamera = Map.insertWith sumTuple camera (1, xsize) (sByCamera orig)
-           , sByLens = Map.insertWith sumTuple lens (1, xsize) (sByLens orig)
+           , sByLens = Map.insertWith sumLensData (liName lens) (lens, (1, xsize)) (sByLens orig)
            }
 
 updateStatsWithUntracked :: Stats -> Untracked -> Stats

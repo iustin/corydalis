@@ -27,11 +27,15 @@ module Exif ( Exif(..)
             , GroupExif(..)
             , Rotate(..)
             , Transform(..)
+            , LensInfo(..)
+            , LensFocalLength(..)
+            , LensAperture(..)
             , getExif
             , promoteFileExif
             , addExifToGroup
             , affineTransform
             , unknown
+            , unknownLens
             ) where
 
 import Types
@@ -140,11 +144,81 @@ optParsedValue parent key = do
 (.~:?) :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
 (.~:?) = optParsedValue
 
+data LensFocalLength
+  = Prime !Double
+  | Zoom !Double !Double
+  | FLUnknown
+  deriving (Show, Eq, Ord)
+
+$(makeStore ''LensFocalLength)
+
+instance NFData LensFocalLength where
+  rnf (Prime x) = rnf x
+  rnf (Zoom x y) = rnf x `seq` rnf y
+  rnf FLUnknown = rnf ()
+
+data LensAperture
+  = FixedAperture !Double
+  | VariableAperture !Double !Double
+  | APUnknown
+  deriving (Show, Eq, Ord)
+
+$(makeStore ''LensAperture)
+
+instance NFData LensAperture where
+  rnf (FixedAperture x) = rnf x
+  rnf (VariableAperture x y) = rnf x `seq` rnf y
+  rnf APUnknown = rnf ()
+
+data LensInfo = LensInfo
+  { liName :: !Text
+  , liSpec :: !Text
+  , liFL   :: !LensFocalLength
+  , liAp   :: !LensAperture
+  } deriving (Show, Eq, Ord)
+
+$(makeStore ''LensInfo)
+
+instance NFData LensInfo where
+  rnf LensInfo{..} = rnf liName `seq`
+                     rnf liSpec `seq`
+                     rnf liFL   `seq`
+                     rnf liAp
+
+unknownLens :: LensInfo
+unknownLens = LensInfo unknown unknown FLUnknown APUnknown
+
+lensInfoFromObject :: Object -> Parser LensInfo
+lensInfoFromObject o = do
+  liSpec <- o .~: "LensSpec"  <|>
+            o .~: "LensInfo"  <|>
+            o .~: "LensModel" <|>
+            o .~: "Lens"      <|>
+            pure unknown
+  liName <- o .~: "LensID" <|> pure liSpec
+  minFL <- o .!:? "MinFocalLength"
+  maxFL <- o .!:? "MaxFocalLength"
+  let liFL =
+        case (minFL, maxFL) of
+          (Just m1, Just m2) -> if m1 == m2
+                                  then Prime m1
+                                  else Zoom m1 m2
+          _ -> FLUnknown
+  apMinFL <- o .!:? "MaxApertureAtMinFocal"
+  apMaxFL <- o .!:? "MaxApertureAtMaxFocal"
+  let liAp =
+        case (apMinFL, apMaxFL) of
+          (Just a1, Just a2) -> if a1 == a2
+                                  then FixedAperture a1
+                                  else VariableAperture a1 a2
+          _ -> APUnknown
+  return LensInfo{..}
+
 data RawExif = RawExif
   { rExifSrcFile     :: Text
   , rExifCamera      :: Maybe Text
   , rExifSerial      :: Maybe Text
-  , rExifLens        :: Maybe Text
+  , rExifLens        :: Maybe LensInfo
   , rExifOrientation :: Maybe Orientation
   , rExifHSubjects   :: [[Text]]
   , rExifPeople      :: [Text]
@@ -162,11 +236,8 @@ instance FromJSON RawExif where
   parseJSON = withObject "RawExif" $ \o -> do
     rExifSrcFile     <- o .: "SourceFile"
     rExifCamera      <- o .!:? "Model"
-    rExifLens        <- o .~: "LensSpec"  <|>
-                        o .~: "LensModel" <|>
-                        o .~: "LensID"    <|>
-                        o .~: "Lens"      <|>
-                      pure Nothing
+    rExifLens        <- (Just <$> lensInfoFromObject o) <|>
+                        pure Nothing
     rExifSerial      <- o .!:? "Serial"
     rExifOrientation <- o .!:? "Orientation"
     hsubjs           <- o .!:? "HierarchicalSubject" .!= []
@@ -188,7 +259,7 @@ data Exif = Exif
   , exifLocations   :: ![Text]
   , exifCamera      :: !Text
   , exifSerial      :: !Text
-  , exifLens        :: !Text
+  , exifLens        :: !LensInfo
   , exifOrientation :: !Orientation
   , exifCreateDate  :: !(Maybe LocalTime)
   , exifTitle       :: !(Maybe Text)
@@ -231,7 +302,7 @@ addExifToGroup g e =
     , gExifKeywords  = foldl' count (gExifKeywords g) (exifKeywords e)
     , gExifLocations = foldl' count (gExifLocations g) (exifLocations e)
     , gExifCameras   = count (gExifCameras g) (exifCamera e)
-    , gExifLenses    = count (gExifLenses g) (exifLens e)
+    , gExifLenses    = count (gExifLenses g) (liName $ exifLens e)
     }
     where count m k = M.insertWith (+) k 1 m
 
@@ -302,7 +373,7 @@ exifFromRaw config RawExif{..} =
                                    rExifProvince, rExifCity]
       exifLocations   = nub $ hierLocations ++ fieldLocations
       exifCamera      = fromMaybe unknown rExifCamera
-      exifLens        = fromMaybe unknown rExifLens
+      exifLens        = fromMaybe unknownLens rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
       exifOrientation = fromMaybe OrientationTopLeft rExifOrientation
       exifCreateDate  = rExifCreateDate
@@ -333,7 +404,11 @@ promoteFileExif re se je =
       exifLocations'   = summer exifLocations
       exifCamera'      = first' exifCamera unknown
       exifSerial'      = first' exifSerial unknown
-      exifLens'        = first' exifLens unknown
+      liName'          = first' (liName <$> exifLens) unknown
+      liSpec'          = first' (liSpec <$> exifLens) unknown
+      liFL'            = first' (liFL   <$> exifLens) FLUnknown
+      liAperture'      = first' (liAp   <$> exifLens) APUnknown
+      exifLens'        = LensInfo liName' liSpec' liFL' liAperture'
       exifOrientation' = first' exifOrientation OrientationTopLeft
       exifCreateDate'  = first  exifCreateDate
       -- TODO: both title and caption (and other fields) could differ

@@ -100,8 +100,8 @@ getCurateR = do
                            , gdY = [fromIntegral sz]
                            }:a)
                ([]::[GraphData Int64 Int64]) top10c
-      top10l = buildTop10 bylens 12
-      jsonl = foldl' (\a (cnt, _, k) ->
+      top10l = buildTopNLenses bylens 12
+      jsonl = foldl' (\a (cnt, _, k, _) ->
                         def { gdName = k
                             , gdType = "bar"
                             , gdMode = Just "markers"
