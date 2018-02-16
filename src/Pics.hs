@@ -194,7 +194,7 @@ data Image = Image
     , imgSidecarPath :: !(Maybe File)
     , imgJpegPath    :: ![File]
     , imgRange       :: !(Maybe (Text, Text))
-    , imgExif        :: !(Maybe Exif)
+    , imgExif        :: !Exif
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
     } deriving (Show)
@@ -250,7 +250,7 @@ fileLastTouch f = fileMTime f `max` fileCTime f
 -- | The year of the image, as determined from Exif data.
 imageYear :: Image -> Maybe Integer
 imageYear img = do
-  exif <- imgExif img
+  let exif = imgExif img
   date <- exifCreateDate exif
   let day = localDay date
       (y, _, _) = toGregorian day
@@ -410,9 +410,7 @@ updateStatsWithPic orig img =
                Nothing -> case imgJpegPath img of
                             x:_ -> fileSize x
                             _ -> 0
-      lens = case imgExif img of
-                 Nothing -> unknownLens
-                 Just x -> exifLens x
+      lens = exifLens $ imgExif img
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
@@ -714,10 +712,7 @@ data LoadImageRes = LIRImage !Image ![Image]  -- ^ A single image with potential
 
 buildGroupExif :: Map.Map Text Image -> GroupExif
 buildGroupExif =
-  Map.foldl' (\e img -> case imgExif img of
-                          Just ie -> addExifToGroup e ie
-                          Nothing -> e
-             ) def
+  Map.foldl' (\e img -> addExifToGroup e (imgExif img)) def
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir

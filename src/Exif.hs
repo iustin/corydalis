@@ -378,7 +378,7 @@ exifFromRaw config RawExif{..} =
   in Exif{..}
 
 -- | Promotion rules for file to exif
-promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Maybe Exif
+promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Exif
 promoteFileExif re se je =
   let summer :: (Exif -> [a]) -> [a]
       summer fn = concat (maybeToList (fn <$> re) ++
@@ -412,17 +412,17 @@ promoteFileExif re se je =
       -- between various versions. How to expose this in viewer?
       exifTitle'       = first  exifTitle
       exifCaption'     = first  exifCaption
-  in Just Exif { exifPeople      = exifPeople'
-               , exifKeywords    = exifKeywords'
-               , exifLocations   = exifLocations'
-               , exifCamera      = exifCamera'
-               , exifSerial      = exifSerial'
-               , exifLens        = exifLens'
-               , exifOrientation = exifOrientation'
-               , exifCreateDate  = exifCreateDate'
-               , exifTitle       = exifTitle'
-               , exifCaption     = exifCaption'
-               }
+  in Exif { exifPeople      = exifPeople'
+          , exifKeywords    = exifKeywords'
+          , exifLocations   = exifLocations'
+          , exifCamera      = exifCamera'
+          , exifSerial      = exifSerial'
+          , exifLens        = exifLens'
+          , exifOrientation = exifOrientation'
+          , exifCreateDate  = exifCreateDate'
+          , exifTitle       = exifTitle'
+          , exifCaption     = exifCaption'
+          }
 
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath
