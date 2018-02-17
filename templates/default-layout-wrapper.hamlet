@@ -49,4 +49,4 @@ $doctype 5
         ^{pageBody pc}
         <br>
         <footer>
-          Corydalis v#{corydalisVersion}
+          Corydalis #{corydalisVersion}

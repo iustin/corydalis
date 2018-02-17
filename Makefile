@@ -1,6 +1,8 @@
 # this is only used for custom development!
 # well, except for the release target
 
+SHELL=/bin/bash
+
 all: build
 
 build:
@@ -24,13 +26,27 @@ view: corydalis.ps
 %.html: %.md
 	pandoc -s -o $@ $<
 
+git-version:
+	if test -d .git; then \
+	  git describe --dirty > $@ ; \
+	elif test ! -f $@ ; then \
+	  echo "Error: cannot generate the '$@' file!"; exit 1; \
+	fi
+
+.PHONY: clean-git-version
+clean-git-version:
+	rm -f git-version
+
+.PHONY: regen-git-version
+regen-git-version: clean-git-version git-version
+
 # Incremental rebuild and installs in dist/ with the current settings
 # (vs. release which is clean build).
 dist:
 	stack install --local-bin-path dist/
 
 # An entire clean build and install in dist.
-release: clean lint doc
+release: clean lint doc regen-git-version
 	stack build --pedantic
 	stack install --local-bin-path dist/
 	mkdir -p dist/static/

@@ -18,9 +18,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Settings.Development where
 
+import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
+import Data.Text
+import Data.Text.IO
 import Prelude
 
 development :: Bool
@@ -48,5 +53,15 @@ devSuffix =
   ""
 #endif
 
+gitVersion :: String
+gitVersion =
+  $(addDependentFile "git-version" >>
+    runIO (Data.Text.IO.readFile "git-version" >>=
+            return . unpack . strip) >>=
+    stringE)
+
+buildDate :: String
+buildDate = __DATE__
+
 corydalisVersion :: String
-corydalisVersion = CURRENT_PACKAGE_VERSION
+corydalisVersion = gitVersion ++ ", built on " ++ buildDate ++ "."

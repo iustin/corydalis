@@ -26,6 +26,7 @@ cabal.sandbox.config
 *~
 \#*
 corydalis.cabal
+git-version
 TAGS
 *.hp
 *.aux
