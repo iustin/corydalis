@@ -35,6 +35,7 @@ import Import
 import Pics
 import Types
 import Handler.Utils
+import Handler.Widgets
 
 import qualified Data.Text as T
 

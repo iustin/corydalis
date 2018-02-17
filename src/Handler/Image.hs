@@ -33,6 +33,7 @@ module Handler.Image
 import Import
 import Pics
 import Exif
+import Handler.Widgets
 import Handler.Utils
 
 import qualified Data.Text as T

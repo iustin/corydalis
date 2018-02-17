@@ -28,6 +28,7 @@ import Import
 import Types
 import Pics
 import Indexer
+import Handler.Widgets
 import Handler.Utils
 
 import qualified Data.Map as Map

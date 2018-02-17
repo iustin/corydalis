@@ -134,6 +134,7 @@ library:
     - Handler.Untracked
     - Handler.Utils
     - Handler.View
+    - Handler.Widgets
     - Import
     - Import.NoFoundation
     - Indexer

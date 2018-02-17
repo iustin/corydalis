@@ -32,6 +32,7 @@ module Handler.Untracked
 
 import Import
 import Pics
+import Handler.Widgets
 import Handler.Utils
 
 import qualified Data.Map as Map
