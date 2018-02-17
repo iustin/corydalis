@@ -71,6 +71,9 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
              , "mode"  .= gdMode
              ] ++ map (\(t, v) -> t .= v) gdExtra
 
+counterOne :: Int64
+counterOne = 1
+
 getLensInfoR :: Text -> Handler TypedContent
 getLensInfoR lensname = do
   pics <- getPics
@@ -81,30 +84,40 @@ getLensInfoR lensname = do
             Nothing -> notFound
             Just (l, _) -> return l
   let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensname) pics
-      (x, y) = foldl' (\c@(ax,ay) i ->
+      fam = foldl' (\m i ->
                        let e = imgExif i
                            fl = exifFocalLength e
                            aper = exifAperture e
                        in case (fl, aper) of
-                            (Just fl', Just aper') -> (fl':ax, aper':ay)
-                            _ -> c) ([],[]) images
+                            (Just fl', Just aper') -> Map.insertWith (+) (fl', aper') counterOne m
+                            _ -> m) Map.empty images
       cameras = foldl' (\m i -> let c = exifCamera (imgExif i)
                                 in if c == unknown
                                    then m
-                                   else  Map.insertWith (+) c (1::Int64) m) Map.empty images
+                                   else  Map.insertWith (+) c counterOne m) Map.empty images
+      faml = Map.toList fam
+      (xys, cnt) = unzip faml
+      maxCnt = fromIntegral $ maybe 5 maximum $ fromNullable cnt
+      (x, y) = unzip xys
       allapertures = Set.toAscList $ Set.fromList y
       tickVals = allapertures
       tickText = map show allapertures
+      hoverFmt ((fl', ap'), cnt') =
+        show fl'++"mm @ f/" ++ show ap' ++ ": " ++ show cnt' ++ " images"
   let jsonl = def { gdName = ""
-                  , gdType = "histogram2dcontour"
-                  , gdMode = Nothing
+                  , gdType = "scatter"
+                  , gdMode = Just "markers"
                   , gdX = Just x
                   , gdY = Just y
                   , gdExtra = [ ("colorscale", "YIGnBu")
                               , ("reversescale", Bool True)
-                                 --toJSON $ [ ("0.0"::String, "rgb(255,255,255)"::String)
-                                 --                       , ("1.0", "rgb(255,127,0)")
-                                 --                       ])
+                              , ("marker", object [ "size" .= (toJSON cnt::Value)
+                                                  , "sizemin" .= (toJSON (4::Int))
+                                                  , "sizemode" .= String "area"
+                                                  , "sizeref" .= toJSON (2.0 * maxCnt / (90 ** 2)::Double)
+                                                  ])
+                              , ("text", toJSON $ map hoverFmt faml)
+                              , ("hoverinfo", "text")
                               ]
                   } :: GraphData Double Double Double
   let html = do

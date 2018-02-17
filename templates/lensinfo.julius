@@ -13,6 +13,7 @@ $(document).ready(function() {
                 ticktext: series.yticktext,
                 type: 'log',
             },
+            hovermode: 'closest',
         }
         var config = {
             showLink: false,
