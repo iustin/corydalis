@@ -19,9 +19,9 @@
        <table #lenslist .tablesorter .table .table-condensed>
          <thead>
            <tr>
-             <th ."{sorter: 'text'}">Name
-             <th ."{sorter: 'text'}">Short name
-             <th ."{sorter: 'digit'}">Count
+             <th .sorter-text>Name
+             <th .sorter-text>Short name
+             <th .sorter-digit>Count
          <tbody>
            $forall (name, (li, (count, _))) <- lenses
              <tr>

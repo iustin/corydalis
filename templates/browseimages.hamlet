@@ -15,12 +15,12 @@
        <table #imagelist .tablesorter .table .table-condensed>
          <thead>
            <tr>
-             <th ."{sorter: 'text'}">Name
-             <th ."{sorter: 'text'}">Folder
-             <th ."{sorter: 'text'}">Status
-             <th ."{sorter: 'text'}">Raw path
-             <th ."{sorter: 'text'}">Jpeg path
-             <th ."{sorter: 'text'}">Sidecar path
+             <th .sorter-text>Name
+             <th .sorter-text>Folder
+             <th .sorter-text>Status
+             <th .sorter-text>Raw path
+             <th .sorter-text>Jpeg path
+             <th .sorter-text>Sidecar path
          <tbody>
            $forall img <- images
              <tr>

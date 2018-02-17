@@ -16,10 +16,10 @@
          <thead>
            <tr>
              <th>Thumbnail
-             <th ."{sorter: 'text'}">Name
-             <th ."{sorter: 'false'}">Locations
-             <th ."{sorter: 'false'}">People
-             <th ."{sorter: 'false'}">Keywords
+             <th .sorter-text>Name
+             <th .sorter-false>Locations
+             <th .sorter-false>People
+             <th .sorter-false>Keywords
 
          <tbody>
            $forall n <- folders
