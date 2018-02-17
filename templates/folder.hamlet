@@ -21,7 +21,7 @@
                 <li>
                   <span .monolight>#{quoteMarkup $ path}
 
-  <div .col-xs-12 .col-md-4>
+  <div .col-xs-12 .col-md-3>
     <div .panel .panel-default>
       <div .panel-heading>Picture contents
       <div .panel-body>
@@ -33,7 +33,7 @@
           $if numStandalonePics dir > 0
             <li>#{numStandalonePics dir} final files without a source raw file
 
-  <div .col-xs-12 .col-md-3>
+  <div .col-xs-12 .col-md-4>
    <div .panel .panel-default>
     <div .panel-heading>Folder size
     <div .panel-body>
@@ -50,6 +50,31 @@
         $if sUntrackedSize stats > 0
           <li>#{showBinary $ sUntrackedSize stats} untracked files
 
+  <div .col-xs-6 .col-md-3>
+   <div .panel .panel-default>
+    <div .panel-heading>Camera(s)
+    <table .table>
+      $if null cameras
+        <tr>No camera information
+      $else
+        $forall (c', cnt) <- cameras
+          <tr>
+            <td>#{c'}
+            <td .number>#{cnt}
+
+  <div .col-xs-6 .col-md-4>
+   <div .panel .panel-default>
+    <div .panel-heading>Lens information
+    <table .table>
+      $if null lenses
+        <tr>No lens information
+      $else
+        $forall (c', cnt) <- lenses
+          <tr>
+            <td><a href=@{LensInfoR (liName c')}>
+              #{liName c'}
+            <td .number>#{cnt}
+
 <div .row>
   <div .col-xs-12>
     <div .panel .panel-default>
@@ -62,21 +87,26 @@
               <col style="width: #{thumbsize}px;">
               <thead>
                 <tr>
-                  <th rowspan=2 ."{sorter: false}">Icon
-                  <th rowspan=2>Name
-                  <th rowspan=2>Type
-                  <th colspan=3 ."{sorter: false}">Timestamps
-                <tr>
-                  <th ."{sorter: 'text'}">RAW
-                  <th ."{sorter: 'text'}">Sidecar
-                  <th ."{sorter: 'text'}">JPEG
+                  <th ."{sorter: false}">Icon
+                  <th>Name
+                  <th ."{sorter: 'text'}">Capture date
+                  $if numCameras > 1
+                    <th>Camera
+                  $if numLenses > 1
+                    <th>Lens
+                  <th>Type
               <tbody>
-                $forall img <- pdImages dir
+                $forall img@Image{imgExif=e} <- pdImages dir
                   <tr .#{imgRowClass img}>
                     <td>
                       ^{imageBytes thumbsize name (imgName img)}
                     <td>
                         <a href=@{ImageR name (imgName img)}>#{imgName img}
+                    <td>#{showExifDate img}
+                    $if numCameras > 1
+                      <td>#{exifCamera e}
+                    $if numLenses > 1
+                      <td>#{liName (exifLens e) }
                     <td>
                       $case imgStatus img
                         $of ImageProcessed
@@ -87,9 +117,6 @@
                           standalone
                         $of ImageOrphaned
                           orphaned
-                    <td>#{showFileTimestamp $ imgRawPath img}
-                    <td>#{showFileTimestamp $ imgSidecarPath img}
-                    <td>#{showFileLatestTS $ listToMaybe $ imgJpegPath img}
               <tfoot>
 
 <div .row>

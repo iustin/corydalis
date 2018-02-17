@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoCPP #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Handler.Utils where
 
@@ -65,11 +66,20 @@ fcDescription FolderMixed       = "contains both RAW files (processed) \
                                   \and files without RAW storage"
 
 showTimestamp :: NominalDiffTime -> Text
-showTimestamp ts =
+showTimestamp =
+  showLocalTime . utcToLocalTime utc . posixSecondsToUTCTime
+
+showLocalTime :: LocalTime -> Text
+showLocalTime ts =
   T.pack $ ft ++ pico
-    where ts' = posixSecondsToUTCTime ts
-          pico = take 4 $ formatTime defaultTimeLocale "%q" ts'
-          ft = formatTime defaultTimeLocale "%F %T." ts'
+    where pico = take 4 $ formatTime defaultTimeLocale "%q" ts
+          ft = formatTime defaultTimeLocale "%F %T." ts
+
+showExifDate :: Image -> Text
+showExifDate (imgExif -> e) =
+  case exifCreateDate e of
+    Just lt -> showLocalTime lt
+    Nothing -> "?"
 
 showFileTimestamp :: Maybe File -> Text
 showFileTimestamp = maybe "" (showTimestamp . fileMTime)

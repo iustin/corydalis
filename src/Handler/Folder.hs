@@ -32,6 +32,7 @@ module Handler.Folder
 
 import Import
 import Pics
+import Exif
 import Types
 import Handler.Utils
 import Handler.Widgets
@@ -48,5 +49,18 @@ getFolderR name = do
   defaultLayout $ do
     let stats = computeFolderStats dir
         rbuilder = (const .) FolderR
+        images = pdImages dir
+        exifs = map imgExif images
+        one = 1::Int64
+        cameras =
+          Map.toList .
+          foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
+          map exifCamera $ exifs
+        numCameras = length cameras
+        lenses =
+          Map.toList .
+          foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
+          map exifLens $ exifs
+        numLenses = length lenses
     setTitle . toHtml $ "Corydalis: folder " `T.append` name
     $(widgetFile "folder")
