@@ -3,6 +3,9 @@ $(document).ready(function() {
         sortList: [[1,0]],
         theme: "bootstrap-simple",
         headerTemplate: "{content} {icon}",
-        widgets : [ "uitheme" ],
+        widgets : [ "uitheme", "filter" ],
+        widgetOptions : {
+            filter_hideFilters: true,
+        }
     });
 });
