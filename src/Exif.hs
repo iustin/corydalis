@@ -227,6 +227,9 @@ data RawExif = RawExif
   , rExifCreateDate  :: Maybe LocalTime
   , rExifTitle       :: Maybe Text
   , rExifCaption     :: Maybe Text
+  , rExifAperture    :: Maybe Double
+  , rExifFocalLength :: Maybe Double
+  , rExifFL35mm      :: Maybe Double
   , rExifRaw         :: Object
   } deriving (Show)
 
@@ -248,6 +251,9 @@ instance FromJSON RawExif where
     rExifCreateDate  <- parseCreateDate o <|> pure Nothing
     rExifTitle       <- o .!:? "Title"
     rExifCaption     <- o .!:? "Caption-Abstract"
+    rExifAperture    <- o .!:? "Aperture"
+    rExifFocalLength <- o .!:? "FocalLength"
+    rExifFL35mm      <- o .!:? "FocalLengthIn35mmFormat"
     let rExifRaw      = o
     return RawExif{..}
 
@@ -262,6 +268,9 @@ data Exif = Exif
   , exifCreateDate  :: !(Maybe LocalTime)
   , exifTitle       :: !(Maybe Text)
   , exifCaption     :: !(Maybe Text)
+  , exifAperture    :: !(Maybe Double)
+  , exifFocalLength :: !(Maybe Double)
+  , exifFL35mm      :: !(Maybe Double)
   } deriving (Show)
 
 instance NFData Exif where
@@ -273,7 +282,10 @@ instance NFData Exif where
                  rnf exifLens       `seq`
                  rnf exifCreateDate `seq`
                  rnf exifTitle      `seq`
-                 rnf exifCaption
+                 rnf exifCaption    `seq`
+                 rnf exifAperture   `seq`
+                 rnf exifFocalLength `seq`
+                 rnf exifFL35mm
 
 data GroupExif = GroupExif
   { gExifPeople      :: !(Map Text Integer)
@@ -377,6 +389,9 @@ exifFromRaw config RawExif{..} =
       exifCreateDate  = rExifCreateDate
       exifTitle       = rExifTitle
       exifCaption     = rExifCaption
+      exifAperture    = rExifAperture
+      exifFocalLength = rExifFocalLength
+      exifFL35mm      = rExifFL35mm
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -410,6 +425,9 @@ promoteFileExif re se je =
       exifLens'        = LensInfo liName' liSpec' liFL' liAperture'
       exifOrientation' = first' exifOrientation OrientationTopLeft
       exifCreateDate'  = first  exifCreateDate
+      exifAperture'    = first  exifAperture
+      exifFocalLength' = first  exifFocalLength
+      exifFL35mm'      = first  exifFL35mm
       -- TODO: both title and caption (and other fields) could differ
       -- between various versions. How to expose this in viewer?
       exifTitle'       = first  exifTitle
@@ -424,6 +442,9 @@ promoteFileExif re se je =
           , exifCreateDate  = exifCreateDate'
           , exifTitle       = exifTitle'
           , exifCaption     = exifCaption'
+          , exifAperture    = exifAperture'
+          , exifFocalLength = exifFocalLength'
+          , exifFL35mm      = exifFL35mm'
           }
 
 -- TODO: make this saner/ensure it's canonical path.
