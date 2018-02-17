@@ -11,16 +11,16 @@
      <div .panel-heading>Basic information
      <table .table>
         <tr>
-          <td>LensName
+          <td>Lens name
           <td>#{lensname}
         <tr>
-          <td>Lens specification
+          <td>Specification
           <td>#{liSpec lens}
         <tr>
-          <td>Lens focal length
+          <td>Focal length
           <td>#{showLensFL $ liFL lens}
         <tr>
-          <td>Lens aperture
+          <td>Maximum aperture
           <td>#{showLensAperture $ liAp lens}
 
  <div .col-xs-4>
@@ -28,28 +28,25 @@
      <div .panel-heading>Camera information
      <table .table>
         <tr>
-          <td>Used on #{Map.size cameras} cameras
-        $case Map.size cameras
-          $of 1
+          <td>Used on #{numCameras} cameras
+        $if numCameras == 1
            <tr>
              <td>Camera
              <td>#{fst $ Map.findMin cameras}
-          $of _
+        $else
            <tr>
               <td>Most used camera
               <td>
-                $case topCamera
-                  $of Just (cnt, c)
+                $maybe (cnt, c) <- topCamera
                     #{c} (#{cnt} images)
-                  $of Nothing
+                $nothing
                     No camera information
            <tr>
               <td>Least used camera
               <td>
-                $case botCamera
-                  $of Just (cnt, c)
+                $maybe (cnt, c) <- botCamera
                     #{c} (#{cnt} images)
-                  $of Nothing
+                $nothing
                     No camera information
 
 <div .row>
@@ -60,3 +57,16 @@
        <tr>
         <td>Number of images
         <td .number>#{length images}
+       $maybe ((dmin, cmin), (dmax, cmax)) <-  imgTopBot
+           <tr>
+             <td>Earliest image
+             <td>#{show dmin}
+               $if numCameras > 1
+                 \ (#{cmin})
+           <tr>
+             <td>Latest image
+             <td>#{show dmax}
+               $if numCameras > 1
+                 \ (#{cmax})
+       $nothing
+           <tr>No available image date information

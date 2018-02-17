@@ -108,6 +108,16 @@ getLensInfoR lensname = do
         sort . map (\(a, b) -> (b, a)) . Map.toList $ cameras
       topCamera = listToMaybe $ reverse cameraCounts
       botCamera = listToMaybe cameraCounts
+      numCameras = Map.size cameras
+      imgTopBot = let cds =
+                        sort .
+                        foldl' (\a i -> let e = imgExif i
+                                            cd = exifCreateDate e
+                                            cam = exifCamera e
+                                        in case cd of
+                                             Nothing -> a
+                                             Just cd' -> (cd', cam):a) [] $ images
+                  in maybe Nothing (\nn -> Just (head nn, last nn)) $ fromNullable cds
   let jsonl = def { gdName = ""
                   , gdType = "scatter"
                   , gdMode = Just "markers"
