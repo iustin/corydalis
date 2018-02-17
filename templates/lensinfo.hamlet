@@ -9,8 +9,7 @@
  <div .col-xs-4>
    <div .panel .panel-default>
      <div .panel-heading>Basic information
-     <div .panel-body>
-      <table .table>
+     <table .table>
         <tr>
           <td>LensName
           <td>#{lensname}
@@ -27,8 +26,7 @@
  <div .col-xs-4>
    <div .panel .panel-default>
      <div .panel-heading>Camera information
-     <div .panel-body>
-      <table .table>
+     <table .table>
         <tr>
           <td>Used on #{Map.size cameras} cameras
         $case Map.size cameras
@@ -58,8 +56,7 @@
  <div .col-xs-4>
    <div .panel .panel-default>
      <div .panel-heading>Image information
-     <div .panel-body>
-      <table .table>
+     <table .table>
        <tr>
         <td>Number of images
         <td .number>#{length images}
