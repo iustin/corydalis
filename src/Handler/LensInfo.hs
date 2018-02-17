@@ -36,6 +36,7 @@ import Exif
 import Handler.Utils
 
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 data GraphData a b c = GraphData
   { gdName  :: Text
@@ -91,6 +92,9 @@ getLensInfoR lensname = do
                                 in if c == unknown
                                    then m
                                    else  Map.insertWith (+) c (1::Int64) m) Map.empty images
+      allapertures = Set.toAscList $ Set.fromList y
+      tickVals = allapertures
+      tickText = map show allapertures
   let jsonl = def { gdName = ""
                   , gdType = "histogram2dcontour"
                   , gdMode = Nothing
@@ -108,4 +112,6 @@ getLensInfoR lensname = do
         addScript $ StaticR js_plotly_js
         $(widgetFile "lensinfo")
   defaultLayoutJson html (return $ object [ "lensflap"  .= [jsonl]
+                                          , "ytickvals" .= tickVals
+                                          , "yticktext" .= tickText
                                           ])
