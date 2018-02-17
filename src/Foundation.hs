@@ -249,6 +249,7 @@ instance YesodBreadcrumbs App where
     return ("Search folders", Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
   breadcrumb LensStatsR     = return ("Lens statistsics", Just CurateR)
+  breadcrumb (LensInfoR image) = return (image, Just LensStatsR)
 
 -- How to run database actions.
 instance YesodPersist App where

@@ -1,0 +1,28 @@
+$(document).ready(function() {
+
+    function onDataReceived(series) {
+
+        var lensLayout = {
+            xaxis: {
+                title: 'Focal length'
+            },
+            yaxis: {
+                title: 'Aperture'
+            },
+        }
+        var config = {
+            showLink: false,
+            sendData: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+        }
+        Plotly.newPlot('lensFlApChart', series.lensflap, lensLayout, config);
+    }
+
+    $.ajax({
+        url: "@{LensInfoR lensname}",
+        type: "GET",
+        dataType: "json",
+        success: onDataReceived
+    });
+});

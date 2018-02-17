@@ -1,0 +1,65 @@
+<h1>Lens statistics #
+
+
+<div .row>
+  <div .col-xs-12>
+    <div #lensFlApChart .largegraph>
+
+<div .row>
+ <div .col-xs-4>
+   <div .panel .panel-default>
+     <div .panel-heading>Basic information
+     <div .panel-body>
+      <table .table>
+        <tr>
+          <td>LensName
+          <td>#{lensname}
+        <tr>
+          <td>Lens specification
+          <td>#{liSpec lens}
+        <tr>
+          <td>Lens focal length
+          <td>#{show $ liFL lens}
+        <tr>
+          <td>Lens aperture
+          <td>#{show $ liAp lens}
+
+ <div .col-xs-4>
+   <div .panel .panel-default>
+     <div .panel-heading>Camera information
+     <div .panel-body>
+      <table .table>
+        <tr>
+          <td>Used on #{Map.size cameras} cameras
+        $case Map.size cameras
+          $of 1
+           <tr>
+             <td>Camera
+             <td>#{fst $ Map.findMin cameras}
+          $of _
+           <tr>
+              <td>Most used camera
+              <td>
+                $case Map.lookupMax cameras
+                  $of Just (c, cnt)
+                    #{c} (#{cnt} images)
+                  $of Nothing
+                    No camera information
+           <tr>
+              <td>Least used camera
+              <td>
+                $case Map.lookupMin cameras
+                  $of Just (c, cnt)
+                    #{c} (#{cnt} images)
+                  $of Nothing
+                    No camera information
+
+<div .row>
+ <div .col-xs-4>
+   <div .panel .panel-default>
+     <div .panel-heading>Image information
+     <div .panel-body>
+      <table .table>
+       <tr>
+        <td>Number of images
+        <td .number>#{length images}

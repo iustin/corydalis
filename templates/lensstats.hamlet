@@ -13,7 +13,7 @@
      <div .panel .panel-default>
        <div .panel-body>
          There are #{length lenses} lenses in the database.
-         
+
      <div .panel .panel-default>
        <div .panel-heading>Lenses
        <table #lenslist .tablesorter .table .table-condensed>
@@ -25,6 +25,6 @@
          <tbody>
            $forall (name, (li, (count, _))) <- lenses
              <tr>
-               <td>#{name}
+               <td><a href=@{LensInfoR name}>#{name}</a>
                <td>#{liSpec li}
                <td>#{count}
