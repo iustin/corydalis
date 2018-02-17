@@ -32,6 +32,7 @@ module Handler.Image
 
 import Import
 import Pics
+import Exif
 import Handler.Utils
 
 import qualified Data.Text as T
@@ -45,6 +46,7 @@ getImageR folder iname = do
       flags = if flagsSoftMaster (imgFlags img)
                  then "soft master"::Text
                  else "(none)"
+      lensName = liName . exifLens . imgExif $ img
   defaultLayout $ do
     setTitle . toHtml $ "Corydalis: Image " `T.append` folder
                `T.append` "/" `T.append` imgName img
