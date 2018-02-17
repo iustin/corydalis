@@ -166,6 +166,7 @@ instance Yesod App where
           addScript $ StaticR js_jquery_metadata_js
           addScript $ StaticR js_jquery_tablesorter_js
           addScript $ StaticR js_tablesorter_widget_uitheme_js
+          addScript $ StaticR js_tablesorter_widget_filter_js
           addScript $ StaticR js_tablesorter_uitheme_simple_js
           addScript $ StaticR js_bootstrap_js
 
