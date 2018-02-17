@@ -69,7 +69,7 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
              , "z"     .= gdZ
              , "text"  .= gdText
              , "mode"  .= gdMode
-             ] ++ map (\(t, v) -> t .= v) gdExtra
+             ] ++ map (uncurry (.=)) gdExtra
 
 counterOne :: Int64
 counterOne = 1
@@ -126,7 +126,7 @@ getLensInfoR lensname = do
                   , gdExtra = [ ("colorscale", "YIGnBu")
                               , ("reversescale", Bool True)
                               , ("marker", object [ "size" .= (toJSON cnt::Value)
-                                                  , "sizemin" .= (toJSON (4::Int))
+                                                  , "sizemin" .= toJSON (4::Int)
                                                   , "sizemode" .= String "area"
                                                   , "sizeref" .= toJSON (2.0 * maxCnt / (90 ** 2)::Double)
                                                   ])

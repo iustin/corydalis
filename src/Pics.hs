@@ -503,12 +503,12 @@ selectMasterFile config x y =
        _                   -> (Nothing, False, [])
 
 updateImageAfterMerge :: Config -> Image -> Image
-updateImageAfterMerge c img@(Image{..}) =
+updateImageAfterMerge c img@Image{..} =
   let status' = mkImageStatus c imgRawPath imgJpegPath imgSidecarPath
       exif' = promoteFileExif
                 (imgRawPath >>= fileExif)
                 (imgSidecarPath >>= fileExif)
-                (mapMaybe fileExif $ imgJpegPath)
+                (mapMaybe fileExif imgJpegPath)
   in force $ img { imgStatus = status'
                  , imgExif = exif'
                  }

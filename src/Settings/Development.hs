@@ -56,8 +56,7 @@ devSuffix =
 gitVersion :: String
 gitVersion =
   $(addDependentFile "git-version" >>
-    runIO (Data.Text.IO.readFile "git-version" >>=
-            return . unpack . strip) >>=
+    runIO ((unpack . strip) <$> Data.Text.IO.readFile "git-version") >>=
     stringE)
 
 buildDate :: String

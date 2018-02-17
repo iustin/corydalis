@@ -43,33 +43,31 @@ import Cache
 import Compat.Orphans ()
 import Settings.Development
 
-import Prelude
+import Control.Applicative
 import Control.DeepSeq
 import Control.Exception.Base
-import Data.Aeson.Types (Parser)
-import Data.Default
-import qualified Data.Text as T
-import Data.Text (Text)
-import qualified Data.ByteString as BS (ByteString, readFile)
-import Data.Aeson
-import Data.Aeson.Types
-import Data.List
-import Data.Semigroup
-import Data.Store.TH (makeStore)
-import Data.Scientific (toBoundedInteger)
-import Data.Time.LocalTime
-
-import Control.Applicative
 import Control.Monad
-import qualified Data.Map.Strict as M
+import Data.Aeson
+import Data.Aeson.Types (Parser, modifyFailure)
+import Data.Default
+import Data.List
 import Data.Map.Strict (Map)
-import qualified Data.Set as S
-import Data.Set (Set)
 import Data.Maybe
-import System.Process.Typed
+import Data.Scientific (toBoundedInteger)
+import Data.Semigroup
+import Data.Set (Set)
 import Data.Store
+import Data.Store.TH (makeStore)
+import Data.Text (Text)
 import Data.Time.Format
+import Data.Time.LocalTime
+import Prelude
 import System.IO.Temp
+import System.Process.Typed
+import qualified Data.ByteString as BS (ByteString, readFile)
+import qualified Data.Map.Strict as M
+import qualified Data.Set as S
+import qualified Data.Text as T
 
 data Orientation
   = OrientationTopLeft
@@ -129,7 +127,7 @@ optRawValue parent key = do
   e <- parent .:? key
   case e of
     Nothing -> return Nothing
-    Just e' -> extractRaw key e' >>= return . Just
+    Just e' -> Just <$> extractRaw key e'
 
 (.!:?) :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
 (.!:?) = optRawValue
@@ -139,7 +137,7 @@ optParsedValue parent key = do
   e <- parent .:? key
   case e of
     Nothing -> return Nothing
-    Just e' -> extractParsed key e' >>= return . Just
+    Just e' -> Just <$> extractParsed key e'
 
 (.~:?) :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
 (.~:?) = optParsedValue
@@ -402,8 +400,8 @@ promoteFileExif re se je =
                           maybeToList (fn <$> se) ++
                           map fn je)
       setmerge :: (Ord a) => (Exif -> Set a) -> Set a
-      setmerge fn = S.unions $ fromMaybe S.empty (fn <$> re):
-                               fromMaybe S.empty (fn <$> se):
+      setmerge fn = S.unions $ maybe S.empty fn re:
+                               maybe S.empty fn se:
                                map fn je
       first :: (Exif -> Maybe a) -> Maybe a
       first fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
