@@ -36,6 +36,9 @@ import qualified Data.Text as T
 
 
 atomDescription :: Atom -> Text
+atomDescription (Country  place) = "country is "  `T.append` place
+atomDescription (Province place) = "province is " `T.append` place
+atomDescription (City     place) = "city is "     `T.append` place
 atomDescription (Location place) = "location is " `T.append` place
 atomDescription (Person who) = formatPerson False who `T.append`
                                " is in the picture"

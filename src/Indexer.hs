@@ -35,13 +35,19 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Text.Read (readMaybe)
 
-data AtomType = TLocation
+data AtomType = TCountry
+              | TProvince
+              | TCity
+              | TLocation
               | TPerson
               | TKeyword
               | TYear
                 deriving (Enum, Bounded)
 
-data Atom = Location Text
+data Atom = Country  Text
+          | Province Text
+          | City     Text
+          | Location Text
           | Person   Text
           | Keyword  Text
           | Year     Integer
@@ -50,12 +56,18 @@ atomNames :: [(AtomType, Text)]
 atomNames = map (\t -> (t, atomName t)) [minBound..maxBound]
 
 atomName :: AtomType -> Text
+atomName TCountry  = "country"
+atomName TProvince = "province"
+atomName TCity     = "city"
 atomName TLocation = "loc"
 atomName TPerson   = "who"
 atomName TKeyword  = "kw"
 atomName TYear     = "when"
 
 buildAtom :: AtomType -> Text -> Maybe Atom
+buildAtom TCountry  place = Just $ Country  place
+buildAtom TProvince place = Just $ Province place
+buildAtom TCity     place = Just $ City     place
 buildAtom TLocation place = Just $ Location place
 buildAtom TPerson who = Just $ Person who
 buildAtom TKeyword kw = Just $ Keyword kw
@@ -63,6 +75,15 @@ buildAtom TYear when =
   Year <$> readMaybe (Text.unpack when)
 
 buildSearchFunction :: Atom -> (PicDir -> Bool)
+buildSearchFunction (Country loc) =
+  \f -> loc `Map.member` gExifCountries (pdExif f)
+
+buildSearchFunction (Province loc) =
+  \f -> loc `Map.member` gExifProvinces (pdExif f)
+
+buildSearchFunction (City loc) =
+  \f -> loc `Map.member` gExifCities (pdExif f)
+
 buildSearchFunction (Location loc) =
   \f -> loc `Map.member` gExifLocations (pdExif f)
 
