@@ -18,10 +18,10 @@
           <td>#{liSpec lens}
         <tr>
           <td>Lens focal length
-          <td>#{show $ liFL lens}
+          <td>#{showLensFL $ liFL lens}
         <tr>
           <td>Lens aperture
-          <td>#{show $ liAp lens}
+          <td>#{showLensAperture $ liAp lens}
 
  <div .col-xs-4>
    <div .panel .panel-default>

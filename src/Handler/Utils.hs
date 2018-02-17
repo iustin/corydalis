@@ -164,3 +164,17 @@ buildTopNLenses m n =
                      in (rc, rs, "Others", unknownLens): t10
               else allItems
   in top10
+
+showLensAperture :: Maybe LensAperture -> String
+showLensAperture Nothing = "?"
+showLensAperture (Just (FixedAperture x)) =
+  printf "f/%.01f (%.03f)" x x
+showLensAperture (Just (VariableAperture min' max')) =
+  printf "f/%.01f-%.01f (%.03f-%.03f)" min' max' min' max'
+
+showLensFL :: Maybe LensFocalLength -> String
+showLensFL Nothing = "?"
+showLensFL (Just (Prime fl)) =
+  printf "%.0fmm (%.03f)" fl fl
+showLensFL (Just (Zoom min' max')) =
+  printf "%.0f-%.0fmm (%.03f-%.03f)" min' max' min' max'
