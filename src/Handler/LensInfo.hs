@@ -104,6 +104,10 @@ getLensInfoR lensname = do
       tickText = map show allapertures
       hoverFmt ((fl', ap'), cnt') =
         show fl'++"mm @ f/" ++ show ap' ++ ": " ++ show cnt' ++ " images"
+      cameraCounts =
+        sort . map (\(a, b) -> (b, a)) . Map.toList $ cameras
+      topCamera = listToMaybe $ reverse cameraCounts
+      botCamera = listToMaybe cameraCounts
   let jsonl = def { gdName = ""
                   , gdType = "scatter"
                   , gdMode = Just "markers"

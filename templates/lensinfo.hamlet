@@ -38,16 +38,16 @@
            <tr>
               <td>Most used camera
               <td>
-                $case Map.lookupMax cameras
-                  $of Just (c, cnt)
+                $case topCamera
+                  $of Just (cnt, c)
                     #{c} (#{cnt} images)
                   $of Nothing
                     No camera information
            <tr>
               <td>Least used camera
               <td>
-                $case Map.lookupMin cameras
-                  $of Just (c, cnt)
+                $case botCamera
+                  $of Just (cnt, c)
                     #{c} (#{cnt} images)
                   $of Nothing
                     No camera information
