@@ -163,7 +163,6 @@ instance Yesod App where
           addStylesheet $ StaticR css_basic_css
 
           addScript $ StaticR js_jquery_js
-          addScript $ StaticR js_jquery_metadata_js
           addScript $ StaticR js_jquery_tablesorter_js
           addScript $ StaticR js_tablesorter_widget_uitheme_js
           addScript $ StaticR js_tablesorter_widget_filter_js
