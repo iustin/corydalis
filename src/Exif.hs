@@ -219,9 +219,9 @@ data RawExif = RawExif
   , rExifHSubjects   :: [[Text]]
   , rExifPeople      :: [Text]
   , rExifCountry     :: Maybe Text
-  , rExifState       :: Maybe Text
   , rExifProvince    :: Maybe Text
   , rExifCity        :: Maybe Text
+  , rExifLocation    :: Maybe Text
   , rExifCreateDate  :: Maybe LocalTime
   , rExifTitle       :: Maybe Text
   , rExifCaption     :: Maybe Text
@@ -233,20 +233,25 @@ data RawExif = RawExif
 
 instance FromJSON RawExif where
   parseJSON = withObject "RawExif" $ \o -> do
+    let giveUp        = pure Nothing
     rExifSrcFile     <- o .: "SourceFile"
     rExifCamera      <- o .!:? "Model"
     rExifLens        <- (Just <$> lensInfoFromObject o) <|>
-                        pure Nothing
+                        giveUp
     rExifSerial      <- o .!:? "Serial"
     rExifOrientation <- o .!:? "Orientation"
     hsubjs           <- o .!:? "HierarchicalSubject" .!= []
     let rExifHSubjects = map parseHierSubject hsubjs
     rExifPeople      <- o .!:? "PersonInImage" .!= []
     rExifCountry     <- o .~:? "Country"
-    rExifState       <- o .~:? "State"
-    rExifProvince    <- o .~:? "Province-State"
+    rExifProvince    <- o .~: "Province-State" <|>
+                        o .~: "State" <|>
+                        giveUp
     rExifCity        <- o .~:? "City"
-    rExifCreateDate  <- parseCreateDate o <|> pure Nothing
+    rExifLocation    <- o .~: "Sub-location" <|>
+                        o .~: "Location" <|>
+                        giveUp
+    rExifCreateDate  <- parseCreateDate o <|> giveUp
     rExifTitle       <- o .!:? "Title"
     rExifCaption     <- o .!:? "Caption-Abstract"
     rExifAperture    <- o .!:? "Aperture"
@@ -258,7 +263,10 @@ instance FromJSON RawExif where
 data Exif = Exif
   { exifPeople      :: !(Set Text)
   , exifKeywords    :: !(Set Text)
-  , exifLocations   :: ![Text]
+  , exifCountry     :: !(Maybe Text)
+  , exifProvince    :: !(Maybe Text)
+  , exifCity        :: !(Maybe Text)
+  , exifLocation    :: !(Maybe Text)
   , exifCamera      :: !Text
   , exifSerial      :: !Text
   , exifLens        :: !LensInfo
@@ -274,7 +282,10 @@ data Exif = Exif
 instance NFData Exif where
   rnf Exif{..} = rnf exifPeople     `seq`
                  rnf exifKeywords   `seq`
-                 rnf exifLocations  `seq`
+                 rnf exifCountry    `seq`
+                 rnf exifProvince   `seq`
+                 rnf exifCity       `seq`
+                 rnf exifLocation   `seq`
                  rnf exifCamera     `seq`
                  rnf exifSerial     `seq`
                  rnf exifLens       `seq`
@@ -285,32 +296,43 @@ instance NFData Exif where
                  rnf exifFocalLength `seq`
                  rnf exifFL35mm
 
+type NameStats = Map Text Integer
+
 data GroupExif = GroupExif
-  { gExifPeople      :: !(Map Text Integer)
-  , gExifKeywords    :: !(Map Text Integer)
-  , gExifLocations   :: !(Map Text Integer)
-  , gExifCameras     :: !(Map Text Integer)
-  , gExifLenses      :: !(Map Text Integer)
+  { gExifPeople      :: !NameStats
+  , gExifKeywords    :: !NameStats
+  , gExifCountries   :: !NameStats
+  , gExifProvinces   :: !NameStats
+  , gExifCities      :: !NameStats
+  , gExifLocations   :: !NameStats
+  , gExifCameras     :: !NameStats
+  , gExifLenses      :: !NameStats
   } deriving (Show)
 
 instance NFData GroupExif where
   rnf GroupExif{..} = rnf gExifPeople    `seq`
                       rnf gExifKeywords  `seq`
+                      rnf gExifCountries `seq`
+                      rnf gExifProvinces `seq`
+                      rnf gExifCities    `seq`
                       rnf gExifLocations `seq`
                       rnf gExifCameras   `seq`
                       rnf gExifLenses
 
 instance Default GroupExif where
-  def = GroupExif M.empty M.empty M.empty M.empty M.empty
+  def = GroupExif M.empty M.empty M.empty M.empty M.empty M.empty M.empty M.empty
 
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
 addExifToGroup g e =
-  g { gExifPeople    = foldl' count (gExifPeople g) (exifPeople e)
-    , gExifKeywords  = foldl' count (gExifKeywords g) (exifKeywords e)
-    , gExifLocations = foldl' count (gExifLocations g) (exifLocations e)
+  g { gExifPeople    = foldl' count (gExifPeople    g) (exifPeople   e)
+    , gExifKeywords  = foldl' count (gExifKeywords  g) (exifKeywords e)
+    , gExifCountries = foldl' count (gExifCountries g) (exifCountry  e)
+    , gExifProvinces = foldl' count (gExifProvinces g) (exifProvince e)
+    , gExifCities    = foldl' count (gExifCities    g) (exifCity     e)
+    , gExifLocations = foldl' count (gExifLocations g) (exifLocation e)
     , gExifCameras   = count (gExifCameras g) (exifCamera e)
-    , gExifLenses    = count (gExifLenses g) (liName $ exifLens e)
+    , gExifLenses    = count (gExifLenses  g) (liName $ exifLens e)
     }
     where count m k = M.insertWith (+) k 1 m
 
@@ -319,6 +341,9 @@ instance Semigroup GroupExif where
     GroupExif
     { gExifPeople    = gExifPeople    g1 `merge` gExifPeople    g2
     , gExifKeywords  = gExifKeywords  g1 `merge` gExifKeywords  g2
+    , gExifCountries = gExifCountries g1 `merge` gExifCountries g2
+    , gExifProvinces = gExifProvinces g1 `merge` gExifProvinces g2
+    , gExifCities    = gExifCities    g1 `merge` gExifCities    g2
     , gExifLocations = gExifLocations g1 `merge` gExifLocations g2
     , gExifCameras   = gExifCameras   g1 `merge` gExifCameras   g2
     , gExifLenses    = gExifLenses    g1 `merge` gExifLenses    g2
@@ -358,7 +383,6 @@ affineTransform OrientationLeftBot  = Transform RLeft   False False
 exifFromRaw :: Config -> RawExif -> Exif
 exifFromRaw config RawExif{..} =
   let pPeople = cfgPeoplePrefix config
-      pLocations = cfgLocationPrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored = filter (not . (pIgnore `T.isPrefixOf`))
       subjPeople      = foldl' (\e ks ->
@@ -370,16 +394,13 @@ exifFromRaw config RawExif{..} =
       exifKeywords    = S.fromList $
                         foldl' (\e ks ->
                                   case ks of
-                                    x:_ | x /= pLocations && x /= pPeople ->
+                                    x:_ | x /= pPeople ->
                                           (dropPeople . dropIgnored) ks ++ e
                                     _ -> e) [] rExifHSubjects
-      hierLocations   = foldr (\ks e ->
-                                  case ks of
-                                    x:ls | x == pLocations -> ls ++ e
-                                    _ -> e) [] rExifHSubjects
-      fieldLocations  = catMaybes [rExifCountry, rExifState,
-                                   rExifProvince, rExifCity]
-      exifLocations   = nub $ hierLocations ++ fieldLocations
+      exifCountry     = rExifCountry
+      exifProvince    = rExifProvince
+      exifCity        = rExifCity
+      exifLocation    = rExifLocation
       exifCamera      = fromMaybe unknown rExifCamera
       exifLens        = fromMaybe unknownLens rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
@@ -395,11 +416,7 @@ exifFromRaw config RawExif{..} =
 -- | Promotion rules for file to exif
 promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Exif
 promoteFileExif re se je =
-  let summer :: (Exif -> [a]) -> [a]
-      summer fn = concat (maybeToList (fn <$> re) ++
-                          maybeToList (fn <$> se) ++
-                          map fn je)
-      setmerge :: (Ord a) => (Exif -> Set a) -> Set a
+  let setmerge :: (Ord a) => (Exif -> Set a) -> Set a
       setmerge fn = S.unions $ maybe S.empty fn re:
                                maybe S.empty fn se:
                                map fn je
@@ -413,7 +430,10 @@ promoteFileExif re se je =
                       x:_ -> x
       exifPeople'      = setmerge exifPeople
       exifKeywords'    = setmerge exifKeywords `S.difference` exifPeople'
-      exifLocations'   = summer exifLocations
+      exifCountry'     = first  exifCountry
+      exifProvince'    = first  exifProvince
+      exifCity'        = first  exifCity
+      exifLocation'    = first  exifLocation
       exifCamera'      = first' exifCamera unknown
       exifSerial'      = first' exifSerial unknown
       liName'          = first' (liName <$> exifLens) unknown
@@ -432,7 +452,10 @@ promoteFileExif re se je =
       exifCaption'     = first  exifCaption
   in Exif { exifPeople      = exifPeople'
           , exifKeywords    = exifKeywords'
-          , exifLocations   = exifLocations'
+          , exifCountry     = exifCountry'
+          , exifProvince    = exifProvince'
+          , exifCity        = exifCity'
+          , exifLocation    = exifLocation'
           , exifCamera      = exifCamera'
           , exifSerial      = exifSerial'
           , exifLens        = exifLens'
