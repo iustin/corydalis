@@ -76,13 +76,8 @@ config:
   # Prefix in Hierarchical Subject keywords that denote entries
   # underneath it represent people. This keyword itself will be
   # ignored. Additionally, the tag 'PeopleInImage' will also be used,
-  # but without this prefix.
+  # but without using/requiring this prefix.
   peopleprefix: "_People"
-  # Prefix in Hierarchical Subject keywords that denote entries
-  # underneath it represent locations. This is related to manual
-  # tagging, not to the auto-filled country/state/city from GPS
-  # coordinates. This keyword itself will be ignored.
-  locationprefix: "_Regions"
   # Ignore any (individual) keywords prefixed with this string. Again,
   # useful for hierarchies.
   ignoreprefix: "_"

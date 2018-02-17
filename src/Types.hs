@@ -83,7 +83,6 @@ data Config = Config
     , cfgRangeRegex      :: Regex
     , cfgCopyRegex       :: Regex
     , cfgPeoplePrefix    :: Text
-    , cfgLocationPrefix  :: Text
     , cfgIgnorePrefix    :: Text
     } deriving (Show)
 
@@ -105,7 +104,6 @@ instance FromJSON Config where
          v .: "rangeregex"      <*>
          v .: "copyregex"       <*>
          v .: "peopleprefix"    <*>
-         v .: "locationprefix"  <*>
          v .: "ignoreprefix"
     where autosizes = sort . nub <$> ((:) <$> thumbsize <*> v .: "autoimgsizes")
           thumbsize = v .: "thumbnailsize"
