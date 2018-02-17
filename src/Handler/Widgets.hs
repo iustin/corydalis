@@ -27,6 +27,7 @@ module Handler.Widgets where
 
 import Import
 import Pics
+import Indexer
 import Handler.Utils
 
 import qualified Data.Map as Map
@@ -35,6 +36,10 @@ import qualified Data.Text as T
 showFile :: Pics.File -> Widget
 showFile f =
   $(widgetFile "showfile")
+
+searchDiv :: AtomType -> Text -> Text -> (Text -> Text) -> [(Text, Integer)] -> Widget
+searchDiv atom kindPlCap kind formatter items =
+  $(widgetFile "searchdiv")
 
 folderCover :: Int -> PicDir -> Widget
 folderCover thumbsize folder = do

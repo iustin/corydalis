@@ -35,6 +35,7 @@ import Exif
 import Pics
 import Indexer
 import Handler.Utils
+import Handler.Widgets
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -54,9 +55,12 @@ getHomeR = do
         f $ gexif
       years = Set.toAscList all_years
       gexif = repoExif pics
-      topPlaces = topN 15 gExifLocations
-      topPeople = topN 25 gExifPeople
-      topKeywords = topN 10 gExifKeywords
+      topCountries  = topN 10 gExifCountries
+      topProvinces  = topN 15 gExifProvinces
+      topCities     = topN 15 gExifCities
+      topLocations  = topN 10 gExifLocations
+      topPeople     = topN 10 gExifPeople
+      topKeywords   = topN 10 gExifKeywords
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: home"::T.Text)
     $(widgetFile "homepage")
