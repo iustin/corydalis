@@ -89,6 +89,7 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
 import Control.Concurrent (forkIO)
+import Control.Concurrent.Async
 import Data.Default (def)
 import Control.Exception
 import Control.Monad.Trans.Class (lift)
@@ -655,29 +656,24 @@ getDirContents config base = do
 
 -- | Scans one of the directories defined in the configuration.
 scanBaseDir :: Config
-            -> RepoDirs
             -> String
             -> Bool
-            -> IO RepoDirs
-scanBaseDir config repo base isSource = do
+            -> IO [PicDir]
+scanBaseDir config base isSource = do
   (dirs, _) <- getDirContents config base
-  foldM (\r p -> scanSubDir config r (base </> p) isSource) repo dirs
+  concat <$> mapConcurrently (\p -> scanSubDir config (base </> p) isSource) dirs
 
 -- | Scans a directory one level below a base dir. The actual
 -- subdirectory name is currently discarded and will not appear in the
 -- final folder names.
 scanSubDir :: Config
-           -> RepoDirs
            -> String
            -> Bool
-           -> IO RepoDirs
-scanSubDir config repository path isSource = do
+           -> IO [PicDir]
+scanSubDir config path isSource = do
   (dirpaths, _) <- getDirContents config path
   let allpaths' = filter (isOKDir config) dirpaths
-  foldM (\r s -> do
-            dir <- loadFolder config s (path </> s) isSource
-            return $! addDirToRepo config dir r)
-    repository allpaths'
+  mapM (\s -> loadFolder config s (path </> s) isSource) allpaths'
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
 addDirToRepo config dir =
@@ -825,8 +821,9 @@ scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
-  repo <- foldM (\repo (dir,issrc) -> scanBaseDir config repo dir issrc)
-            Map.empty $ srcdirs ++ outdirs
+  asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
+                 $ srcdirs ++ outdirs
+  let repo = foldl' (flip (addDirToRepo config)) Map.empty $ concat asyncDirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
       stats = computeRepoStats repo'
