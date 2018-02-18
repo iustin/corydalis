@@ -9,8 +9,6 @@ test that checks the main web page gets a 200 OK, but nothing else.
 
 - History When (XMP/Lightroom)
 - Metadata Date (XMP/Lightroom)
-- TODO: failure on zero-byte file
-- To solve: how to promote file to image exif
 - Move exif to fully generic? Track all fields, re-introduce Object
   but binary serialization.
 
@@ -52,6 +50,18 @@ A number of issues:
 - doesn't show first valid image, but plain first one
 - even better, for consistency, should try to find a landscape image
   first
+
+## Dependencies status
+
+### FontAwesome 5
+
+Version 5 moves to svg+js, but this seems somewhat cumbersome to me:
+either include a 600KiB JS file (non-min, non-compressed), or go
+through the trouble of selecting and maintaining the list of used
+icons.
+
+In comparison, v4 is 66KiB/82KiB for the entire fonts (woff/woff2),
+which allows using without any care of icon selection. Sigh.
 
 ## Bugs
 
