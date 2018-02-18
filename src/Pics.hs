@@ -676,8 +676,12 @@ scanSubDir config repository path isSource = do
   let allpaths' = filter (isOKDir config) dirpaths
   foldM (\r s -> do
             dir <- loadFolder config s (path </> s) isSource
-            return $! Map.insertWith (mergeFolders config) (pdName dir) dir r)
+            return $! addDirToRepo config dir r)
     repository allpaths'
+
+addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
+addDirToRepo config dir =
+  Map.insertWith (mergeFolders config) (pdName dir) dir
 
 -- | Builds the filepath and filestatus pairs recursively for all
 -- entries beneats a directory.
