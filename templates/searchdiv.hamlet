@@ -5,8 +5,30 @@
           No pictures have a #{kind} defined!
     $else
       <div .panel .panel-default>
-        <div .panel-heading>#{kindPlCap}
+        <div .panel-heading>
+          <a href="@{ListItemsR atom}">
+            <span .fa .fa-list>
+            #{kindPlCap}
         <div .panel-body>
            $forall (p, c) <- items
-            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName atom, p)])}">#{formatter p} (#{c})
-           <a .btn .btn-default role="button" href="@{ListItemsR atom}">…
+            $with searchParams <- [(atomName atom, p)]
+             <div .btn-group role="group">
+               <a .btn .btn-default href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
+               <button type="button" .btn .btn-default .dropdown-toggle data-toggle="dropdown">
+                 <span .caret>
+               <ul .dropdown-menu role="menu">
+                <li>
+                  <a href="@?{(SearchFoldersR,searchParams)}">
+                    <span .fa .fa-fw .fa-folder-o>
+                    View folders
+                <li>
+                  <a href="@?{(SearchImagesR,searchParams)}">
+                    <span .fa .fa-fw .fa-picture-o>
+                    View the #{c} images
+                <li role="separator" .divider>
+                <li .disabled>
+                  <a href="#">
+                    <span .fa .fa-fw .fa-info>
+                    View item details
+
+           <a .btn .btn-default href="@{ListItemsR atom}">…

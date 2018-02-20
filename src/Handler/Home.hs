@@ -57,9 +57,9 @@ getHomeR = do
       years = Set.toAscList all_years
       gexif = repoExif pics
       topCountries  = topN 10 gExifCountries
-      topProvinces  = topN 15 gExifProvinces
-      topCities     = topN 15 gExifCities
-      topLocations  = topN 10 gExifLocations
+      topProvinces  = topN 7 gExifProvinces
+      topCities     = topN 7 gExifCities
+      topLocations  = topN 7 gExifLocations
       topPeople     = topN 10 gExifPeople
       topKeywords   = topN 10 gExifKeywords
   defaultLayout $ do
