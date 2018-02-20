@@ -5,7 +5,7 @@
   (hamlet/basic-offset . 2)
   (haskell-process-use-ghci . t))
  (haskell-mode
+  (haskell-tags-on-save . t)
   (haskell-stylish-on-save . t)
   (haskell-indent-spaces . 2)
   (haskell-process-use-ghci . t)))
-
