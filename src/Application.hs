@@ -17,13 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Application
@@ -40,40 +40,46 @@ module Application
     , db
     ) where
 
-import Control.Monad.Logger                 (liftLoc, runLoggingT)
-import Database.Persist.Sqlite              (createSqlitePool, runSqlPool,
-                                             sqlDatabase, sqlPoolSize)
-import Import
-import Language.Haskell.TH.Syntax           (qLocation)
-import Network.Wai (Middleware)
-import Network.Wai.Handler.Warp             (Settings, defaultSettings,
-                                             defaultShouldDisplayException,
-                                             setHost, setOnException,
-                                             setPort, getPort)
-import Network.Wai.Handler.WarpTLS          (TLSSettings, tlsSettings,
-                                             onInsecure, OnInsecure(..), runTLS)
-import Network.Wai.Middleware.RequestLogger (Destination (Logger),
-                                             IPAddrSource (..),
-                                             OutputFormat (..), destination,
-                                             mkRequestLogger, outputFormat)
-import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
-                                             toLogStr)
+import           Control.Monad.Logger                 (liftLoc, runLoggingT)
+import           Database.Persist.Sqlite              (createSqlitePool,
+                                                       runSqlPool, sqlDatabase,
+                                                       sqlPoolSize)
+import           Import
+import           Language.Haskell.TH.Syntax           (qLocation)
+import           Network.Wai                          (Middleware)
+import           Network.Wai.Handler.Warp             (Settings,
+                                                       defaultSettings,
+                                                       defaultShouldDisplayException,
+                                                       getPort, setHost,
+                                                       setOnException, setPort)
+import           Network.Wai.Handler.WarpTLS          (OnInsecure (..),
+                                                       TLSSettings, onInsecure,
+                                                       runTLS, tlsSettings)
+import           Network.Wai.Middleware.RequestLogger (Destination (Logger),
+                                                       IPAddrSource (..),
+                                                       OutputFormat (..),
+                                                       destination,
+                                                       mkRequestLogger,
+                                                       outputFormat)
+import           System.Log.FastLogger                (defaultBufSize,
+                                                       newStdoutLoggerSet,
+                                                       toLogStr)
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
-import Handler.Browse
-import Handler.Common
-import Handler.Curate
-import Handler.Folder
-import Handler.Home
-import Handler.Image
-import Handler.Reload
-import Handler.Search
-import Handler.Settings
-import Handler.Untracked
-import Handler.View
-import Handler.LensStats
-import Handler.LensInfo
+import           Handler.Browse
+import           Handler.Common
+import           Handler.Curate
+import           Handler.Folder
+import           Handler.Home
+import           Handler.Image
+import           Handler.LensInfo
+import           Handler.LensStats
+import           Handler.Reload
+import           Handler.Search
+import           Handler.Settings
+import           Handler.Untracked
+import           Handler.View
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
