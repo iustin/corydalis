@@ -13,7 +13,7 @@
           <td>Image name
           <td>
             <a href=@{ViewR (imgParent img) (imgName img)}>
-             <span .fa .fa-picture-o>
+             <span .far .fa-image>
              #{imgName img}
         <tr>
           <td>Parent folder

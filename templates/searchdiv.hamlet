@@ -8,7 +8,7 @@
         <div .panel-heading>
           <h3 .panel-title>
             <a href="@{ListItemsR atom}">
-              <span .fa .fa-list>
+              <span .fas .fa-list>
               #{kindPlCap}
         <div .panel-body>
            $forall (p, c) <- items
@@ -20,17 +20,17 @@
                <ul .dropdown-menu role="menu">
                 <li>
                   <a href="@?{(SearchFoldersR,searchParams)}">
-                    <span .fa .fa-fw .fa-folder-o>
+                    <span .far .fa-fw .fa-folder-open>
                     View folders
                 <li>
                   <a href="@?{(SearchImagesR,searchParams)}">
-                    <span .fa .fa-fw .fa-picture-o>
+                    <span .far .fa-fw .fa-images>
                     View images
                     <span .badge>#{c}
                 <li role="separator" .divider>
                 <li .disabled>
                   <a href="#">
-                    <span .fa .fa-fw .fa-info>
+                    <span .fas .fa-fw .fa-info>
                     View item details
 
            <a .btn .btn-default href="@{ListItemsR atom}">…

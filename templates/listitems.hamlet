@@ -21,7 +21,7 @@
            $forall (n, count) <- items
              <tr>
                <td>
-                 <a href="@?{(SearchFoldersR,[(atomName atom, n)])}"><span class="fa fa-folder-open-o">
-                 <a href="@?{(SearchImagesR,[(atomName atom, n)])}"><span class="fa fa-picture-o">
+                 <a href="@?{(SearchFoldersR,[(atomName atom, n)])}"><span class="far fa-folder-open">
+                 <a href="@?{(SearchImagesR,[(atomName atom, n)])}"><span class="far fa-images">
                  #{n}
                <td>#{count}

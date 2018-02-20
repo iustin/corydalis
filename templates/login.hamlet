@@ -5,4 +5,5 @@
      $maybe tok <- mtok
        <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
      <button .btn .btn-primary type="submit">
-       Login <span class="fa fa-sign-in"></span>
+       Login
+       <span class="fas fa-sign-in-alt">
