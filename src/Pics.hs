@@ -86,9 +86,9 @@ import qualified Data.Map.Strict            as Map
 import           Data.Maybe
 import           Data.Semigroup
 import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import qualified Data.Text.Lazy             as T (toStrict)
-import qualified Data.Text.Lazy.Encoding    as T (decodeUtf8)
+import qualified Data.Text                  as Text
+import qualified Data.Text.Lazy             as Text (toStrict)
+import qualified Data.Text.Lazy.Encoding    as Text (decodeUtf8)
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
@@ -493,8 +493,8 @@ selectMasterFile config x y =
                               -- masters, let's choose in order of
                               -- priority.
                               (False, False) ->
-                                let x_ext = drop 1 . takeExtension . T.unpack . fileName $ xf
-                                    y_ext = drop 1 . takeExtension . T.unpack . fileName $ yf
+                                let x_ext = drop 1 . takeExtension . Text.unpack . fileName $ xf
+                                    y_ext = drop 1 . takeExtension . Text.unpack . fileName $ yf
                                 in if isBetterMaster rexts x_ext y_ext
                                      then (xraw, False, [yf])
                                      else (yraw, False, [xf])
@@ -722,15 +722,15 @@ loadFolder config name path isSource = do
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
-      tname = T.pack name
+      tname = Text.pack name
       loadImage ii  =
         let f = inodeName ii
             base = dropCopySuffix config $ dropExtensions f
-            tbase = T.pack base
-            torig = T.pack f
+            tbase = Text.pack base
+            torig = Text.pack f
             f' = reverse f
-            tf = T.pack f
-            fullPath = T.pack $ path </> f
+            tf = Text.pack f
+            fullPath = Text.pack $ path </> f
             exif = f `Map.lookup` lcache
             jf = File tf ctime mtime size fullPath exif
             jtf = strictJust jf
@@ -749,12 +749,12 @@ loadFolder config name path isSource = do
             snames = expandRangeFile config base
             range = case snames of
                       [] -> Nothing
-                      _  -> Just (T.pack $ head snames, T.pack $ last snames)
+                      _  -> Just (Text.pack $ head snames, Text.pack $ last snames)
             flags = Flags {
               flagsSoftMaster = isSoftMaster
               }
             simgs = map (\expname ->
-                           mkImage config (T.pack expname) tname
+                           mkImage config (Text.pack expname) tname
                                    Nothing Nothing [jf] Nothing emptyFlags
                         ) snames
             untrk = Untracked torig tname [jf]
@@ -780,7 +780,7 @@ loadFolder config name path isSource = do
                            imageYear img
                         ) Nothing images
       exif = buildGroupExif images
-  return $!! PicDir tname (T.pack path) [] images shadows untracked year exif
+  return $!! PicDir tname (Text.pack path) [] images shadows untracked year exif
 
 
 mergeShadows :: Config -> PicDir -> PicDir
@@ -947,7 +947,7 @@ loadCachedOrBuild config origPath srcPath mtime size = do
     Nothing -> return ("image/jpeg", bytesPath)
     Just res' -> do
       let geom = show res' ++ "x" ++ show res'
-          fpath = scaledImagePath config (T.unpack origPath) res'
+          fpath = scaledImagePath config (Text.unpack origPath) res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
       stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
@@ -961,9 +961,9 @@ loadCachedOrBuild config origPath srcPath mtime size = do
             (parent, _) = splitFileName fpath
             outFile = format ++ ":" ++ fpath
         lift $ createDirectoryIfMissing True parent
-        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[T.unpack bytesPath], operators, [outFile]])
-        when (exitCode /= ExitSuccess) . throwE . ImageError . T.toStrict . T.decodeUtf8 $ err `BSL.append` out
-      return (T.pack $ "image/" ++ format, T.pack fpath)
+        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[Text.unpack bytesPath], operators, [outFile]])
+        when (exitCode /= ExitSuccess) . throwE . ImageError . Text.toStrict . Text.decodeUtf8 $ err `BSL.append` out
+      return (Text.pack $ "image/" ++ format, Text.pack fpath)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]
@@ -978,12 +978,12 @@ minImageSize = 512
 -- The extract image type is presumed (and required) to be jpeg.
 extractEmbedded :: Config -> Text -> String -> IO (Either Text Text)
 extractEmbedded config path tag = do
-  let outputPath = embeddedImagePath config (T.unpack path)
+  let outputPath = embeddedImagePath config (Text.unpack path)
       (outputDir, _) = splitFileName outputPath
       args = [
         "-b",
         "-" ++ tag,
-        T.unpack path
+        Text.unpack path
         ]
   exists <- fileExist outputPath
   if not exists
@@ -999,11 +999,11 @@ extractEmbedded config path tag = do
         then do
           createDirectoryIfMissing True outputDir
           BSL.writeFile outputPath out
-          return $ Right $ T.pack outputPath
+          return $ Right $ Text.pack outputPath
         else
-          return $ Left $ T.toStrict $ T.decodeUtf8 err -- partial function!
+          return $ Left $ Text.toStrict $ Text.decodeUtf8 err -- partial function!
     else
-      return $ Right $ T.pack outputPath
+      return $ Right $ Text.pack outputPath
 
 -- | Extract the first valid thumbnail from an image.
 bestEmbedded :: Config -> Text -> IO (Either Text Text)
