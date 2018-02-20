@@ -20,3 +20,4 @@
 /settings SettingsR GET
 /stats/lenses LensStatsR GET
 /stats/lens/#Text LensInfoR GET
+/list/#AtomType ListItemsR GET

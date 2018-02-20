@@ -9,3 +9,4 @@
         <div .panel-body>
            $forall (p, c) <- items
             <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName atom, p)])}">#{formatter p} (#{c})
+           <a .btn .btn-default role="button" href="@{ListItemsR atom}">…

@@ -17,20 +17,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Indexer ( Atom(..)
-               , AtomType(..)
+module Indexer ( AtomType(..)
+               , Atom(..)
                , atomNames
                , atomName
+               , atomTypeDescriptions
                , buildAtom
                , buildSearchFunction
+               , getAtoms
                ) where
 
 import qualified Data.Map  as Map
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Text.Read (readMaybe)
+import           Yesod     (PathPiece (..))
 
 import           Exif
 import           Pics
@@ -42,7 +46,18 @@ data AtomType = TCountry
               | TPerson
               | TKeyword
               | TYear
-                deriving (Enum, Bounded)
+                deriving (Enum, Bounded, Show, Read, Eq)
+
+instance PathPiece AtomType where
+  toPathPiece  = atomTypeDescriptions
+  fromPathPiece "countries" = Just TCountry
+  fromPathPiece "provinces" = Just TProvince
+  fromPathPiece "cities"    = Just TCity
+  fromPathPiece "locations" = Just TLocation
+  fromPathPiece "people"    = Just TPerson
+  fromPathPiece "keywords"  = Just TKeyword
+  fromPathPiece "years"     = Just TYear
+  fromPathPiece _           = Nothing
 
 data Atom = Country  Text
           | Province Text
@@ -59,10 +74,19 @@ atomName :: AtomType -> Text
 atomName TCountry  = "country"
 atomName TProvince = "province"
 atomName TCity     = "city"
-atomName TLocation = "loc"
-atomName TPerson   = "who"
-atomName TKeyword  = "kw"
-atomName TYear     = "when"
+atomName TLocation = "location"
+atomName TPerson   = "person"
+atomName TKeyword  = "keyword"
+atomName TYear     = "year"
+
+atomTypeDescriptions :: AtomType -> Text
+atomTypeDescriptions TCountry  = "countries"
+atomTypeDescriptions TProvince = "provinces"
+atomTypeDescriptions TCity     = "cities"
+atomTypeDescriptions TLocation = "locations"
+atomTypeDescriptions TPerson   = "people"
+atomTypeDescriptions TKeyword  = "keywords"
+atomTypeDescriptions TYear     = "years"
 
 buildAtom :: AtomType -> Text -> Maybe Atom
 buildAtom TCountry  place = Just $ Country  place
@@ -95,3 +119,12 @@ buildSearchFunction (Keyword what) =
 
 buildSearchFunction (Year year) =
   (== Just year) . pdYear
+
+getAtoms :: AtomType -> Repository -> NameStats
+getAtoms TCountry  = gExifCountries . repoExif
+getAtoms TProvince = gExifProvinces . repoExif
+getAtoms TCity     = gExifCities    . repoExif
+getAtoms TLocation = gExifLocations . repoExif
+getAtoms TPerson   = gExifPeople    . repoExif
+getAtoms TKeyword  = gExifKeywords  . repoExif
+getAtoms TYear     = const Map.empty

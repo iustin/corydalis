@@ -46,6 +46,7 @@ import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
                                         renderBootstrap3, withAutofocus)
 
 import qualified Data.Text             as Text
+import           Indexer
 import           Types                 (FolderClass (..), ImageStatus (..))
 
 -- | The foundation datatype for your application. This can be a good place to
@@ -250,6 +251,8 @@ instance YesodBreadcrumbs App where
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
   breadcrumb LensStatsR     = return ("Lens statistsics", Just CurateR)
   breadcrumb (LensInfoR image) = return (image, Just LensStatsR)
+  breadcrumb (ListItemsR atom) =
+    return ("Listing " <> atomTypeDescriptions atom, Just HomeR)
 
 -- How to run database actions.
 instance YesodPersist App where

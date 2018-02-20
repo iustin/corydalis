@@ -75,6 +75,7 @@ import           Handler.Home
 import           Handler.Image
 import           Handler.LensInfo
 import           Handler.LensStats
+import           Handler.List
 import           Handler.Reload
 import           Handler.Search
 import           Handler.Settings

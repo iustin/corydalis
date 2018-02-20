@@ -130,6 +130,7 @@ library:
     - Handler.Image
     - Handler.LensInfo
     - Handler.LensStats
+    - Handler.List
     - Handler.Reload
     - Handler.Search
     - Handler.Settings

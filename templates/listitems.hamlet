@@ -1,0 +1,25 @@
+<h1>Listing #{description}
+
+<div .row>
+ <div .col-xs-12>
+   $if null items
+     <p .bg-warning>No #{description} found in the repository.
+   $else
+     <div .panel .panel-default>
+       <div .panel-body>
+         There are #{length items} #{description}.
+
+     <div .panel .panel-default>
+       <div .panel-heading>Results
+       <table #folderlist .tablesorter .table .table-condensed>
+         <thead>
+           <tr>
+             <th>Name
+             <th .sorter-digit>Count
+
+         <tbody>
+           $forall (n, count) <- items
+             <tr>
+               <td>#{n}
+               <td>
+                 <a href="@?{(SearchFoldersR,[(atomName atom, n)])}">#{count}

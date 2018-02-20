@@ -29,6 +29,7 @@ module Exif ( Exif(..)
             , LensInfo(..)
             , LensFocalLength(..)
             , LensAperture(..)
+            , NameStats
             , getExif
             , promoteFileExif
             , addExifToGroup
