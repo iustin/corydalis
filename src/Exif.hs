@@ -52,7 +52,7 @@ import           Data.Maybe
 import           Data.Scientific        (toBoundedInteger)
 import           Data.Semigroup
 import           Data.Set               (Set)
-import qualified Data.Set               as S
+import qualified Data.Set               as Set
 import           Data.Store
 import           Data.Store.TH          (makeStore)
 import           Data.Text              (Text)
@@ -388,9 +388,9 @@ exifFromRaw config RawExif{..} =
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
                                    _   -> e) [] rExifHSubjects
-      exifPeople = S.fromList $ rExifPeople ++ subjPeople
-      dropPeople = filter (not . (`S.member` exifPeople))
-      exifKeywords    = S.fromList $
+      exifPeople = Set.fromList $ rExifPeople ++ subjPeople
+      dropPeople = filter (not . (`Set.member` exifPeople))
+      exifKeywords    = Set.fromList $
                         foldl' (\e ks ->
                                   case ks of
                                     x:_ | x /= pPeople ->
@@ -416,8 +416,8 @@ exifFromRaw config RawExif{..} =
 promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Exif
 promoteFileExif re se je =
   let setmerge :: (Ord a) => (Exif -> Set a) -> Set a
-      setmerge fn = S.unions $ maybe S.empty fn re:
-                               maybe S.empty fn se:
+      setmerge fn = Set.unions $ maybe Set.empty fn re:
+                               maybe Set.empty fn se:
                                map fn je
       first :: (Exif -> Maybe a) -> Maybe a
       first fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
@@ -428,7 +428,7 @@ promoteFileExif re se je =
                       []  -> d
                       x:_ -> x
       exifPeople'      = setmerge exifPeople
-      exifKeywords'    = setmerge exifKeywords `S.difference` exifPeople'
+      exifKeywords'    = setmerge exifKeywords `Set.difference` exifPeople'
       exifCountry'     = first  exifCountry
       exifProvince'    = first  exifProvince
       exifCity'        = first  exifCity
