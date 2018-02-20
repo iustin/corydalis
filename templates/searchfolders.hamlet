@@ -12,7 +12,7 @@
 
      <div .panel .panel-default>
        <div .panel-heading>Results
-       <table #folderlist .tablesorter .table .table-condensed>
+       <table #folderlist .tablesorter .table .table-condensed .vmiddle>
          <thead>
            <tr>
              <th>Thumbnail
