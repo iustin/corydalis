@@ -1,7 +1,7 @@
 $(document).ready(function() {
   $("#folderlist").tablesorter({
         sortList: [[4,1]],
-        theme: "bootstrap-simple",
+        theme: "bootstrap",
         headerTemplate: "{content} {icon}",
         widgets : [ "uitheme" ],
     });
