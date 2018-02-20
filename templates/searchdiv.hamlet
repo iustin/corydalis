@@ -25,7 +25,8 @@
                 <li>
                   <a href="@?{(SearchImagesR,searchParams)}">
                     <span .fa .fa-fw .fa-picture-o>
-                    View the #{c} images
+                    View images
+                    <span .badge>#{c}
                 <li role="separator" .divider>
                 <li .disabled>
                   <a href="#">
