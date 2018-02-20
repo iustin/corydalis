@@ -48,18 +48,16 @@ getFolderR name = do
   defaultLayout $ do
     let stats = computeFolderStats dir
         rbuilder = (const .) FolderR
-        images = pdImages dir
+        images = map snd . Map.toList $ pdImages dir
         exifs = map imgExif images
         one = 1::Int64
         cameras =
           Map.toList .
           foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
           map exifCamera $ exifs
-        numCameras = length cameras
         lenses =
           Map.toList .
           foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
           map exifLens $ exifs
-        numLenses = length lenses
     setTitle . toHtml $ "Corydalis: folder " <> name
     $(widgetFile "folder")

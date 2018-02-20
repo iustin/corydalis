@@ -1,5 +1,5 @@
 $(document).ready(function() {
-  $("#folder").tablesorter({
+  $("#imagelist").tablesorter({
         sortList: [[1,0]],
         theme: "bootstrap",
         headerTemplate: "{content} {icon}",

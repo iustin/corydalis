@@ -1,0 +1,35 @@
+        <table #imagelist .tablesorter .table .table-condensed .vmiddle>
+              <col style="width: #{thumbsize}px;">
+              <thead>
+                <tr>
+                  <th .sorter-false .filter-false>Icon
+                  <th>Name
+                  <th .sorter-text>Capture date
+                  $if numCameras > 1
+                    <th .filter-select>Camera
+                  $if numLenses > 1
+                    <th .filter-select>Lens
+                  <th .filter-select>Type
+              <tbody>
+                $forall img@Image{imgExif=e} <- images
+                  <tr .#{imgRowClass img}>
+                    <td>
+                      ^{imageBytes thumbsize (imgParent img) (imgName img)}
+                    <td>
+                        <a href=@{ImageR (imgParent img) (imgName img)}>#{imgName img}
+                    <td>#{showExifDate img}
+                    $if numCameras > 1
+                      <td>#{exifCamera e}
+                    $if numLenses > 1
+                      <td>#{liName (exifLens e) }
+                    <td>
+                      $case imgStatus img
+                        $of ImageProcessed
+                          processed
+                        $of ImageRaw
+                          unprocessed
+                        $of ImageStandalone
+                          standalone
+                        $of ImageOrphaned
+                          orphaned
+              <tfoot>

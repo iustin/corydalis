@@ -25,13 +25,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Widgets where
 
+import qualified Data.Map      as Map
+import qualified Data.Text     as Text
+
+import           Exif
 import           Handler.Utils
 import           Import
 import           Indexer
 import           Pics
-
-import qualified Data.Map      as Map
-import qualified Data.Text     as Text
+import           Types
 
 showFile :: Pics.File -> Widget
 showFile f =
@@ -61,3 +63,19 @@ generatePrevNext k m r = do
   let prevRoute = uncurry r <$> Map.lookupLT k m
       nextRoute = uncurry r <$> Map.lookupGT k m
   $(widgetFile "prevnext")
+
+imageList :: Int -> [Image] -> Widget
+imageList thumbsize images = do
+  let exifs = map imgExif images
+      one = 1::Int64
+      cameras =
+        Map.toList .
+        foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
+        map exifCamera $ exifs
+      numCameras = length cameras
+      lenses =
+        Map.toList .
+        foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
+        map exifLens $ exifs
+      numLenses = length lenses
+  $(widgetFile "imagelist")
