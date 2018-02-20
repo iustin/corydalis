@@ -1,0 +1,11 @@
+    $if null items
+      <div .panel .panel-warning>
+        <div .panel-heading>#{kindPlCap}
+        <div .panel-body>
+          No pictures have a #{kind} defined!
+    $else
+      <div .panel .panel-default>
+        <div .panel-heading>#{kindPlCap}
+        <div .panel-body>
+           $forall (p, c) <- items
+            <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName atom, p)])}">#{formatter p} (#{c})
