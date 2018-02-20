@@ -17,9 +17,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Pics ( PicDir(..)
             , Image(..)
@@ -68,47 +68,46 @@ module Pics ( PicDir(..)
             , allRepoFiles
             ) where
 
-import Types
-import Cache
-import Exif
-import Compat.Orphans ()
+import           Control.Applicative
+import           Control.Concurrent         (forkIO)
+import           Control.Concurrent.Async
+import           Control.Concurrent.MVar
+import           Control.DeepSeq
+import           Control.Exception
+import           Control.Monad
+import           Control.Monad.Trans.Class  (lift)
+import           Control.Monad.Trans.Except
+import qualified Data.ByteString.Lazy       as BSL (append, length, writeFile)
+import           Data.Default               (def)
+import           Data.Function              (on)
+import           Data.Int                   (Int64)
+import           Data.List
+import qualified Data.Map.Strict            as Map
+import           Data.Maybe
+import           Data.Semigroup
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
+import qualified Data.Text.Lazy             as T (toStrict)
+import qualified Data.Text.Lazy.Encoding    as T (decodeUtf8)
+import           Data.Time.Calendar
+import           Data.Time.Clock.POSIX
+import           Data.Time.LocalTime
+import           Prelude
+import           System.Directory
+import           System.Exit
+import           System.FilePath
+import           System.IO.Error
+import           System.IO.Unsafe
+import           System.Posix.Files         hiding (fileSize)
+import qualified System.Posix.Files         (fileSize)
+import           System.Posix.Types
+import           System.Process.Typed
+import qualified Text.Regex.TDFA            as TDFA
 
-import Prelude
-import Control.Concurrent.MVar
-import qualified Data.Text as T
-import Data.Text (Text)
-import qualified Data.Text.Lazy.Encoding as T (decodeUtf8)
-import qualified Data.Text.Lazy as T (toStrict)
-import qualified Data.ByteString.Lazy as BSL (writeFile, length, append)
-import System.IO.Unsafe
-import Data.Int (Int64)
-import Data.Time.LocalTime
-import Data.Time.Calendar
-
-import Control.Applicative
-import Control.DeepSeq
-import Control.Monad
-import Control.Concurrent (forkIO)
-import Control.Concurrent.Async
-import Data.Default (def)
-import Control.Exception
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Except
-import Data.Function (on)
-import qualified Data.Map.Strict as Map
-import Data.List
-import Data.Maybe
-import Data.Time.Clock.POSIX
-import Data.Semigroup
-import System.Directory
-import System.FilePath
-import System.Posix.Files hiding (fileSize)
-import qualified System.Posix.Files (fileSize)
-import System.Posix.Types
-import qualified Text.Regex.TDFA as TDFA
-import System.Process.Typed
-import System.IO.Error
-import System.Exit
+import           Cache
+import           Compat.Orphans             ()
+import           Exif
+import           Types
 
 addRevDot :: [FilePath] -> [FilePath]
 addRevDot = map (reverse . ('.':))
@@ -135,12 +134,12 @@ dropCopySuffix :: Config -> String -> String
 dropCopySuffix cfg name =
   case TDFA.match (reRegex $ cfgCopyRegex cfg) name of
     [_:base:_] -> base
-    _ -> name
+    _          -> name
 
 maybeRead :: (Read a) => String -> Maybe a
 maybeRead s = case reads s of
                 [(i, [])] -> Just i
-                _   -> Nothing
+                _         -> Nothing
 
 expandRangeFile :: Config -> String -> [String]
 expandRangeFile cfg name =
@@ -392,7 +391,7 @@ updateStatsWithPic orig img =
       rs = sRawSize stats
       rs' = case imgRawPath img of
               Nothing -> rs
-              Just f -> rs + fileSize f
+              Just f  -> rs + fileSize f
       jpeg_size = foldl' (\s f -> s + fileSize f) 0 (imgJpegPath img)
       ps = sProcSize stats
       ps' = if status == ImageProcessed
@@ -401,17 +400,17 @@ updateStatsWithPic orig img =
       ss = sStandaloneSize stats
       ss' = case status of
               ImageStandalone -> ss + jpeg_size
-              _ -> ss
+              _               -> ss
       ms = sSidecarSize stats
       ms' = ms + maybe 0 fileSize (imgSidecarPath img)
       camera = case imgRawPath img of
                  Nothing -> unknown
-                 Just f -> maybe unknown exifCamera (fileExif f)
+                 Just f  -> maybe unknown exifCamera (fileExif f)
       xsize = case imgRawPath img of
                Just f -> fileSize f
                Nothing -> case imgJpegPath img of
                             x:_ -> fileSize x
-                            _ -> 0
+                            _   -> 0
       lens = exifLens $ imgExif img
   in stats { sRawSize = rs'
            , sProcSize = ps'
@@ -463,10 +462,10 @@ repoCache = unsafePerformIO $ newMVar Nothing
 -- chew through the list. In both these cases, we (randomly) choose
 -- the first file.
 isBetterMaster :: [FilePath] -> FilePath -> FilePath -> Bool
-isBetterMaster []     _ _              = True
+isBetterMaster []     _ _ = True
 isBetterMaster (e:_ ) a _ | e == a     = True
 isBetterMaster (e:_ ) _ b | e == b     = False
-isBetterMaster (_:es) a b              = isBetterMaster es a b
+isBetterMaster (_:es) a b = isBetterMaster es a b
 
 -- | Selects the best master file when merging images.
 --
@@ -547,7 +546,7 @@ mergeFolders c x y =
     (bestMainPath, otherMainPath) =
       case (compare `on` (\z -> (numRawPics z, numPics z))) x y of
                                      GT -> (x, y)
-                                     _ -> (y, x)
+                                     _  -> (y, x)
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
 
 
@@ -750,7 +749,7 @@ loadFolder config name path isSource = do
             snames = expandRangeFile config base
             range = case snames of
                       [] -> Nothing
-                      _ -> Just (T.pack $ head snames, T.pack $ last snames)
+                      _  -> Just (T.pack $ head snames, T.pack $ last snames)
             flags = Flags {
               flagsSoftMaster = isSoftMaster
               }
@@ -811,7 +810,7 @@ resolveProcessedRanges config picd =
   let images' =
         Map.foldl (\accimgs img ->
                      case maybeUpdateStandaloneRange  config picd img of
-                       Nothing -> accimgs
+                       Nothing   -> accimgs
                        Just img' -> Map.insert (imgName img') img' accimgs)
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
@@ -953,7 +952,7 @@ loadCachedOrBuild config origPath srcPath mtime size = do
           format = if isThumb then "png" else "jpg"
       stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
       let needsGen = case stat of
-                       Left _ -> True
+                       Left _   -> True
                        Right st -> modificationTimeHiRes st < mtime
       when needsGen $ do
         let operators = if isThumb
@@ -1016,7 +1015,7 @@ bestEmbedded config path =
           case r of
             Left _ -> case xs of
               [] -> return r
-              _ -> go c p xs
+              _  -> go c p xs
             Right _ -> return r
 
 -- | Return the path (on the filesystem) to a specific size rendering of an image.
@@ -1036,14 +1035,14 @@ imageAtRes config img size = runExceptT $ do
   (raw, origFile) <- case imgJpegPath img of
                        j:_ -> return (False, j)
                        _   -> case (imgRawPath img, flagsSoftMaster (imgFlags img)) of
-                         (Just r, True) -> return (False, r)
+                         (Just r, True)  -> return (False, r)
                          (Just r, False) -> return (True, r)
-                         _ -> throwE ImageNotViewable
+                         _               -> throwE ImageNotViewable
   srcPath <- if raw
                then do
                  thumb <- lift $ bestEmbedded config (filePath origFile)
                  case thumb of
-                   Left err -> throwE $ ImageError err
+                   Left err   -> throwE $ ImageError err
                    Right path -> return $ Just path
                else return Nothing
   case size of
