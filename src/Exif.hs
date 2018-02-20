@@ -17,11 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TupleSections     #-}
 
 module Exif ( Exif(..)
             , GroupExif(..)
@@ -38,36 +37,36 @@ module Exif ( Exif(..)
             , unknownLens
             ) where
 
-import Types
-import Cache
-import Compat.Orphans ()
-import Settings.Development
+import           Control.Applicative
+import           Control.DeepSeq
+import           Control.Exception.Base
+import           Control.Monad
+import           Data.Aeson
+import           Data.Aeson.Types       (Parser, modifyFailure)
+import qualified Data.ByteString        as BS (ByteString, readFile)
+import           Data.Default
+import           Data.List
+import           Data.Map.Strict        (Map)
+import qualified Data.Map.Strict        as M
+import           Data.Maybe
+import           Data.Scientific        (toBoundedInteger)
+import           Data.Semigroup
+import           Data.Set               (Set)
+import qualified Data.Set               as S
+import           Data.Store
+import           Data.Store.TH          (makeStore)
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import           Data.Time.Format
+import           Data.Time.LocalTime
+import           Prelude
+import           System.IO.Temp
+import           System.Process.Typed
 
-import Control.Applicative
-import Control.DeepSeq
-import Control.Exception.Base
-import Control.Monad
-import Data.Aeson
-import Data.Aeson.Types (Parser, modifyFailure)
-import Data.Default
-import Data.List
-import Data.Map.Strict (Map)
-import Data.Maybe
-import Data.Scientific (toBoundedInteger)
-import Data.Semigroup
-import Data.Set (Set)
-import Data.Store
-import Data.Store.TH (makeStore)
-import Data.Text (Text)
-import Data.Time.Format
-import Data.Time.LocalTime
-import Prelude
-import System.IO.Temp
-import System.Process.Typed
-import qualified Data.ByteString as BS (ByteString, readFile)
-import qualified Data.Map.Strict as M
-import qualified Data.Set as S
-import qualified Data.Text as T
+import           Cache
+import           Compat.Orphans         ()
+import           Settings.Development
+import           Types
 
 data Orientation
   = OrientationTopLeft
@@ -150,7 +149,7 @@ data LensFocalLength
 $(makeStore ''LensFocalLength)
 
 instance NFData LensFocalLength where
-  rnf (Prime x) = rnf x
+  rnf (Prime x)  = rnf x
   rnf (Zoom x y) = rnf x `seq` rnf y
 
 data LensAperture
@@ -161,7 +160,7 @@ data LensAperture
 $(makeStore ''LensAperture)
 
 instance NFData LensAperture where
-  rnf (FixedAperture x) = rnf x
+  rnf (FixedAperture x)      = rnf x
   rnf (VariableAperture x y) = rnf x `seq` rnf y
 
 data LensInfo = LensInfo
@@ -299,14 +298,14 @@ instance NFData Exif where
 type NameStats = Map Text Integer
 
 data GroupExif = GroupExif
-  { gExifPeople      :: !NameStats
-  , gExifKeywords    :: !NameStats
-  , gExifCountries   :: !NameStats
-  , gExifProvinces   :: !NameStats
-  , gExifCities      :: !NameStats
-  , gExifLocations   :: !NameStats
-  , gExifCameras     :: !NameStats
-  , gExifLenses      :: !NameStats
+  { gExifPeople    :: !NameStats
+  , gExifKeywords  :: !NameStats
+  , gExifCountries :: !NameStats
+  , gExifProvinces :: !NameStats
+  , gExifCities    :: !NameStats
+  , gExifLocations :: !NameStats
+  , gExifCameras   :: !NameStats
+  , gExifLenses    :: !NameStats
   } deriving (Show)
 
 instance NFData GroupExif where
@@ -388,7 +387,7 @@ exifFromRaw config RawExif{..} =
       subjPeople      = foldl' (\e ks ->
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
-                                   _ -> e) [] rExifHSubjects
+                                   _   -> e) [] rExifHSubjects
       exifPeople = S.fromList $ rExifPeople ++ subjPeople
       dropPeople = filter (not . (`S.member` exifPeople))
       exifKeywords    = S.fromList $
@@ -426,7 +425,7 @@ promoteFileExif re se je =
       skipMaybes fn = catMaybes [fn <$> re, fn <$> se] ++ map fn je
       first' :: (Exif -> a) -> a -> a
       first' fn d = case skipMaybes fn of
-                      [] -> d
+                      []  -> d
                       x:_ -> x
       exifPeople'      = setmerge exifPeople
       exifKeywords'    = setmerge exifKeywords `S.difference` exifPeople'
@@ -485,7 +484,7 @@ readBExif config path = do
     Nothing -> return Nothing
     Just c ->
       return $ case Data.Store.decode c of
-                 Left _ -> Nothing
+                 Left _  -> Nothing
                  Right v -> Just v
 
 -- | Writes the exif caches (raw and binary) for a given file.
