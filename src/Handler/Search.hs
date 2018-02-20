@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Handler.Search ( getSearchFoldersR
+                      , getSearchImagesR
                       ) where
 
 import           Handler.Utils
@@ -64,3 +65,23 @@ getSearchFoldersR = do
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching folders"::Text)
     $(widgetFile "searchfolders")
+
+getSearchImagesR :: Handler Html
+getSearchImagesR = do
+  config <- getConfig
+  ato <- foldM (\atoms (kind, param) -> do
+                  p <- lookupGetParam param
+                  case p of
+                    Nothing -> return atoms
+                    Just v -> case buildAtom kind v of
+                                Nothing -> invalidArgs [v]
+                                Just a  -> return $ a:atoms
+               ) [] atomNames
+  let flt = map imageSearchFunction ato
+      search_string = Text.intercalate " and " $ map atomDescription ato
+  pics <- getPics
+  let images = filterImagesBy (\i -> all (\fn -> fn i) flt) pics
+      thumbsize = cfgThumbnailSize config
+  defaultLayout $ do
+    setTitle . toHtml $ ("Corydalis: searching folders"::Text)
+    $(widgetFile "searchimages")

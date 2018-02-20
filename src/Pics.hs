@@ -66,6 +66,7 @@ module Pics ( PicDir(..)
             , imageAtRes
             , allImageFiles
             , allRepoFiles
+            , imageYear
             ) where
 
 import           Control.Applicative

@@ -3,6 +3,8 @@
               <thead>
                 <tr>
                   <th .sorter-false .filter-false>Icon
+                  $if showParent
+                    <th .filter-select>Folder
                   <th>Name
                   <th .sorter-text>Capture date
                   $if numCameras > 1
@@ -11,12 +13,17 @@
                     <th .filter-select>Lens
                   <th .filter-select>Type
               <tbody>
-                $forall img@Image{imgExif=e} <- images
+                $forall img@Image{imgExif=e, imgParent=p} <- images
                   <tr .#{imgRowClass img}>
                     <td>
-                      ^{imageBytes thumbsize (imgParent img) (imgName img)}
+                      ^{imageBytes thumbsize p (imgName img)}
+                    $if showParent
+                      <td>
+                        <a href=@{FolderR p}>
+                          <span .fa .fa-folder-o>
+                          #{p}
                     <td>
-                        <a href=@{ImageR (imgParent img) (imgName img)}>#{imgName img}
+                        <a href=@{ImageR p (imgName img)}>#{imgName img}
                     <td>#{showExifDate img}
                     $if numCameras > 1
                       <td>#{exifCamera e}

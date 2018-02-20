@@ -1,0 +1,15 @@
+<h1>Searching images #
+  <small>#{search_string}
+
+<div .row>
+ <div .col-xs-12>
+   $if null images
+     <p .bg-warning>No images found that match the requested search.
+   $else
+     <div .panel .panel-default>
+       <div .panel-body>
+         The selected filter matches #{length images} images.
+
+     <div .panel .panel-default>
+       <div .panel-heading>Pictures
+       ^{imageList thumbsize True images}

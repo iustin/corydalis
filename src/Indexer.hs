@@ -27,10 +27,12 @@ module Indexer ( AtomType(..)
                , atomTypeDescriptions
                , buildAtom
                , buildSearchFunction
+               , imageSearchFunction
                , getAtoms
                ) where
 
 import qualified Data.Map  as Map
+import qualified Data.Set  as Set
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Text.Read (readMaybe)
@@ -119,6 +121,28 @@ buildSearchFunction (Keyword what) =
 
 buildSearchFunction (Year year) =
   (== Just year) . pdYear
+
+imageSearchFunction :: Atom -> (Image -> Bool)
+imageSearchFunction (Country loc) =
+  (== Just loc) . exifCountry . imgExif
+
+imageSearchFunction (Province loc) =
+  (== Just loc) . exifProvince . imgExif
+
+imageSearchFunction (City loc) =
+  (== Just loc) . exifCity . imgExif
+
+imageSearchFunction (Location loc) =
+  (== Just loc) . exifLocation . imgExif
+
+imageSearchFunction (Person who) =
+  (who `Set.member`) . exifPeople . imgExif
+
+imageSearchFunction (Keyword what) =
+  (what `Set.member`) . exifKeywords . imgExif
+
+imageSearchFunction (Year year) =
+  (== Just year) . imageYear
 
 getAtoms :: AtomType -> Repository -> NameStats
 getAtoms TCountry  = gExifCountries . repoExif

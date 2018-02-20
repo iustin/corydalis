@@ -64,8 +64,8 @@ generatePrevNext k m r = do
       nextRoute = uncurry r <$> Map.lookupGT k m
   $(widgetFile "prevnext")
 
-imageList :: Int -> [Image] -> Widget
-imageList thumbsize images = do
+imageList :: Int -> Bool -> [Image] -> Widget
+imageList thumbsize showParent images = do
   let exifs = map imgExif images
       one = 1::Int64
       cameras =
@@ -78,4 +78,7 @@ imageList thumbsize images = do
         foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
         map exifLens $ exifs
       numLenses = length lenses
+      sortColumn = if showParent
+                     then toJSON (2::Int)
+                     else toJSON (1::Int)
   $(widgetFile "imagelist")

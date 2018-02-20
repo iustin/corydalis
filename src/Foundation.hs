@@ -248,6 +248,8 @@ instance YesodBreadcrumbs App where
             Text.intercalate ", " (map toPathPiece kind), Just HomeR)
   breadcrumb SearchFoldersR =
     return ("Search folders", Just HomeR)
+  breadcrumb SearchImagesR =
+    return ("Search images", Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
   breadcrumb LensStatsR     = return ("Lens statistsics", Just CurateR)
   breadcrumb (LensInfoR image) = return (image, Just LensStatsR)
