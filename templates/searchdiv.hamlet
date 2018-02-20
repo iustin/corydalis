@@ -6,9 +6,10 @@
     $else
       <div .panel .panel-default>
         <div .panel-heading>
-          <a href="@{ListItemsR atom}">
-            <span .fa .fa-list>
-            #{kindPlCap}
+          <h3 .panel-title>
+            <a href="@{ListItemsR atom}">
+              <span .fa .fa-list>
+              #{kindPlCap}
         <div .panel-body>
            $forall (p, c) <- items
             $with searchParams <- [(atomName atom, p)]
