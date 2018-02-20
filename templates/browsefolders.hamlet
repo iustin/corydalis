@@ -23,14 +23,13 @@
              <th .sorter-text>Name
              <th .sorter-text>Classification
              <th .sorter-text>Path
-             <th>Images
-             <th>Unprocessed
-             <th .sorter-procent>U. %
-             <th>Standalone
-             <th>Orphaned
-             <th>Processed
+             <th .sorter-digit>Images
+             <th .sorter-digit>Unprocessed
+             <th .sorter-digit>Standalone
+             <th .sorter-digit>Orphaned
+             <th .sorter-digit>Processed
          <tbody>
-           $forall (n, lp, c) <- npairs
+           $forall (n, c) <- npairs
              <tr>
                <td>
                  ^{folderCover thumbsize n}
@@ -42,9 +41,6 @@
                    <br /><span class="monolight">#{quoteMarkup sp}
                <td .number>#{numPics n}
                <td .number>#{numUnprocessedPics n}
-               <td .number>
-                 $maybe prc <- lp
-                   #{prc}
                <td .number>#{numStandalonePics n}
                <td .number>#{numOrphanedPics n}
                <td .number>#{numProcessedPics n}
@@ -53,9 +49,6 @@
             <td colspan=4>Total files
             <td .number>#{allpics}
             <td .number>#{allunproc}
-            <td .number>
-              $maybe tprc <- tp
-                #{tprc}
             <td .number>#{allstandalone}
             <td .number>#{allorphaned}
             <td .number>#{allprocessed}

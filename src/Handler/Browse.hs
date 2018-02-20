@@ -52,16 +52,10 @@ getBrowseFoldersR kinds = do
       allprocessed = sum . map numProcessedPics $ folders
       allstandalone = sum . map numStandalonePics $ folders
       allorphaned = sum . map numOrphanedPics $ folders
-      tp = formatPercent $
-           fromIntegral allunproc * 100 / fromIntegral allpics
-      npairs = map (\n -> let unproc = fromIntegral (numUnprocessedPics n)
-                              numraw = fromIntegral (numRawPics n)
-                              f_class = show $ folderClass n
+      npairs = map (\n -> let f_class = show $ folderClass n
                               f_class' = fromMaybe f_class $
                                          stripPrefix "Folder" f_class
-                          in ( n
-                             , formatPercent $ unproc * 100 / numraw
-                             , f_class'))
+                          in ( n, f_class'))
                folders
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
