@@ -1,11 +1,11 @@
 $(document).ready(function() {
   $("#folder").tablesorter({
         sortList: [[1,0]],
-        theme: "bootstrap-simple",
+        theme: "bootstrap",
         headerTemplate: "{content} {icon}",
         widgets : [ "uitheme", "filter" ],
         widgetOptions : {
-            filter_hideFilters: true,
+            filter_hideFilters: false,
         }
     });
 });
