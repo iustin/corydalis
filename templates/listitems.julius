@@ -1,0 +1,11 @@
+$(document).ready(function() {
+  $("#itemlist").tablesorter({
+        sortList: [[0,0]],
+        theme: "bootstrap",
+        headerTemplate: "{content} {icon}",
+        widgets : [ "uitheme", "filter" ],
+        widgetOptions : {
+            filter_hideFilters: false,
+        }
+    });
+});
