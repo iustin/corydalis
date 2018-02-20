@@ -161,7 +161,13 @@ instance Yesod App where
           addStylesheet $ StaticR css_bootstrap_css
 
           addStylesheet $ StaticR css_tablesorter_theme_bootstrap_css
-          addStylesheet $ StaticR css_font_awesome_css
+
+          -- Font Awesome assets.
+          addStylesheet $ AssetsR font_awesome_css_fontawesome_css
+          addStylesheet $ AssetsR font_awesome_css_fa_regular_css
+          addStylesheet $ AssetsR font_awesome_css_fa_solid_css
+
+          -- Own CSS.
           addStylesheet $ StaticR css_basic_css
 
           addScript $ StaticR js_jquery_js

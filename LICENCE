@@ -46,11 +46,14 @@ Comment: this is a fork from https://github.com/Mottie/tablesorter
 License: MIT or GPL
 
 Files:
-  static/fonts/fontawesome-*
+  assets/font-awesome/webfonts/*
 License: SIL OFL 1.1
+Comment: Font Awesome license file available as LICENSE-fontawesome
 
-Files: static/css/font-awesome.css
-Comment: file slightly tweaked to only refer to woff/woff2 fonts
+Files:
+  assets/font-awesome/css/*
+Comment: files slightly tweaked to only refer to woff/woff2 fonts
+Comment: Font Awesome license file available as LICENSE-fontawesome
 License: MIT
 
 Files:
