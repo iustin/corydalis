@@ -30,13 +30,13 @@ module Handler.LensStats
   ( getLensStatsR
   ) where
 
+import qualified Data.Map      as Map
+import qualified Data.Text     as Text
+
 import           Exif
 import           Handler.Utils
 import           Import
 import           Pics
-
-import qualified Data.Map      as Map
-import qualified Data.Text     as T
 
 data GraphData a b = GraphData
   { gdName :: Text
@@ -77,7 +77,7 @@ getLensStatsR = do
           repoStats pics
       lenses = Map.toList bylens
       top10l = buildTopNLenses bylens 30
-      bestName li = if T.length (liName li) < T.length (liSpec li)
+      bestName li = if Text.length (liName li) < Text.length (liSpec li)
                        then liName li
                        else liSpec li
       jsonl = foldl' (\a (cnt, _, k, li) ->

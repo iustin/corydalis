@@ -35,7 +35,7 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.List           (nub, sort)
 import           Data.Text           (Text)
-import qualified Data.Text           as T
+import qualified Data.Text           as Text
 import           Data.Time.Clock
 import           Prelude
 import qualified Text.Regex.TDFA     as TDFA
@@ -51,7 +51,7 @@ instance Show Regex where
 
 instance FromJSON Regex where
   parseJSON (String txt) =
-    let str = T.unpack txt
+    let str = Text.unpack txt
     in case TDFA.makeRegexM str of
          Nothing -> mzero
          Just r  -> return $ Regex str r
@@ -133,9 +133,9 @@ instance PathPiece ImageStatus where
 
 -- | Custom Path piece instance for [ImageStatus].
 instance PathPiece [ImageStatus] where
-  toPathPiece = T.intercalate "," . map toPathPiece
+  toPathPiece = Text.intercalate "," . map toPathPiece
   fromPathPiece "all" = Just [minBound..maxBound]
-  fromPathPiece v     = mapM fromPathPiece $ T.split (==',') v
+  fromPathPiece v     = mapM fromPathPiece $ Text.split (==',') v
 
 data FolderClass = FolderEmpty
                  | FolderRaw
@@ -166,6 +166,6 @@ instance PathPiece FolderClass where
 
 -- | Custom Path piece instance for [FolderClass].
 instance PathPiece [FolderClass] where
-  toPathPiece = T.intercalate "," . map toPathPiece
+  toPathPiece = Text.intercalate "," . map toPathPiece
   fromPathPiece "all" = Just [minBound..maxBound]
-  fromPathPiece v     = mapM fromPathPiece $ T.split (==',') v
+  fromPathPiece v     = mapM fromPathPiece $ Text.split (==',') v

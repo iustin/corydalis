@@ -32,7 +32,7 @@ import           Pics
 import           Types
 
 import qualified Data.Map        as Map
-import qualified Data.Text       as T
+import qualified Data.Text       as Text
 
 
 atomDescription :: Atom -> Text
@@ -43,7 +43,7 @@ atomDescription (Location place) = "location is " <> place
 atomDescription (Person who) = formatPerson False who <>
                                " is in the picture"
 atomDescription (Keyword what) = "tagged with keyword " <> what
-atomDescription (Year year) = "taken in the year " <> T.pack (show year)
+atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
@@ -57,7 +57,7 @@ getSearchFoldersR = do
                                 Just a  -> return $ a:atoms
                ) [] atomNames
   let flt = map buildSearchFunction ato
-      search_string = T.intercalate " and " $ map atomDescription ato
+      search_string = Text.intercalate " and " $ map atomDescription ato
   pics <- getPics
   let folders = filter (\p -> all (\fn -> fn p) flt) . Map.elems . repoDirs $ pics
       thumbsize = cfgThumbnailSize config

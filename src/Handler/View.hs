@@ -39,8 +39,8 @@ import           Pics
 
 import           Data.Aeson.Text             (encodeToLazyText)
 import qualified Data.Map                    as Map
-import qualified Data.Text                   as T
-import qualified Data.Text.Encoding          as T (encodeUtf8)
+import qualified Data.Text                   as Text
+import qualified Data.Text.Encoding          as Text (encodeUtf8)
 import           System.Random               (getStdRandom, randomR)
 import qualified Text.Blaze.Svg              as Svg
 import           Text.Blaze.Svg11            (Svg, docTypeSvg, text_, (!))
@@ -164,7 +164,7 @@ getImageBytesR folder iname = do
   img <- getImage folder iname
   -- TODO: make this 'res' string and the javascript string derive from the same constant
   res <- lookupGetParam "res"
-  let res' = fmap T.unpack res >>= readMaybe
+  let res' = fmap Text.unpack res >>= readMaybe
   imgbytes <- liftIO $ imageAtRes config img (ImageSize <$> res')
   case imgbytes of
     Left ImageNotViewable ->
@@ -173,7 +173,7 @@ getImageBytesR folder iname = do
       sendResponse $ imageError err
     Right (ctype, rpath) ->
       -- TODO: don't use hardcoded jpeg type!
-      sendFile (T.encodeUtf8 ctype) (T.unpack rpath)
+      sendFile (Text.encodeUtf8 ctype) (Text.unpack rpath)
 
 fileToView :: Image -> Maybe File
 fileToView img =

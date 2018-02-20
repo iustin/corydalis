@@ -37,13 +37,13 @@ import           Import
 import           Pics
 import           Types
 
-import qualified Data.Text       as T
+import qualified Data.Text       as Text
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
 getBrowseFoldersR kinds = do
   config <- getConfig
   pics <- getPics
-  let kinds_string = T.intercalate ", " . map fcName $ kinds
+  let kinds_string = Text.intercalate ", " . map fcName $ kinds
       folders = filterDirsByClass kinds pics
       stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
       allpics = sum . map numPics $ folders
@@ -72,7 +72,7 @@ getBrowseFoldersR kinds = do
 getBrowseImagesR :: [ImageStatus] -> Handler TypedContent
 getBrowseImagesR kinds = do
   pics <- getPics
-  let kinds_string = T.intercalate ", " . map (T.pack . show) $ kinds
+  let kinds_string = Text.intercalate ", " . map (Text.pack . show) $ kinds
       images = filterImagesByClass kinds pics
       allpaths = foldl' (\paths img ->
                            let jpaths = map filePath . imgJpegPath $ img
@@ -85,4 +85,4 @@ getBrowseImagesR kinds = do
       setTitle . toHtml $
         "Corydalis: showing images of type " <> kinds_string
       $(widgetFile "browseimages")
-    provideRep $ return $ "\n" `T.intercalate` allpaths
+    provideRep $ return $ "\n" `Text.intercalate` allpaths

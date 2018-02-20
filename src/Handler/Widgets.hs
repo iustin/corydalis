@@ -31,7 +31,7 @@ import           Indexer
 import           Pics
 
 import qualified Data.Map      as Map
-import qualified Data.Text     as T
+import qualified Data.Text     as Text
 
 showFile :: Pics.File -> Widget
 showFile f =
@@ -52,7 +52,7 @@ imageBytes :: Int -> Text -> Text -> Widget
 imageBytes thumbsize folder image =
   toWidget [hamlet|<a href=@{ViewR folder image}>
                      <img
-                       src="@?{(ImageBytesR folder image, [("res", T.pack $ show thumbsize)])}"
+                       src="@?{(ImageBytesR folder image, [("res", Text.pack $ show thumbsize)])}"
                        style="width: #{thumbsize}px; height: #{thumbsize}px"
                        >|]
 

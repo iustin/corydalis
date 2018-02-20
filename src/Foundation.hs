@@ -45,7 +45,7 @@ import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
                                         renderBootstrap3, withAutofocus)
 
 import qualified Data.Set              as S
-import qualified Data.Text             as T
+import qualified Data.Text             as Text
 import           Types                 (FolderClass (..), ImageStatus (..))
 
 -- | The foundation datatype for your application. This can be a good place to
@@ -241,10 +241,10 @@ instance YesodBreadcrumbs App where
     return ("Untracked " <> untracked, Just (FolderR folder))
   breadcrumb (BrowseFoldersR kind) =
     return ("Browsing folders of type " <>
-            T.intercalate ", " (map toPathPiece kind), Just HomeR)
+            Text.intercalate ", " (map toPathPiece kind), Just HomeR)
   breadcrumb (BrowseImagesR kind) =
     return ("Showing images of type " <>
-            T.intercalate ", " (map toPathPiece kind), Just HomeR)
+            Text.intercalate ", " (map toPathPiece kind), Just HomeR)
   breadcrumb SearchFoldersR =
     return ("Search folders", Just HomeR)
   breadcrumb SettingsR      = return ("Settings"     , Just HomeR)

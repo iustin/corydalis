@@ -30,7 +30,7 @@ import           Types
 
 import qualified Data.Map              as Map
 import           Data.Prefix.Units
-import qualified Data.Text             as T
+import qualified Data.Text             as Text
 import           Data.Time
 import           Data.Time.Clock.POSIX
 import           Text.Blaze            (Markup, ToMarkup, string, toMarkup)
@@ -71,7 +71,7 @@ showTimestamp =
 
 showLocalTime :: LocalTime -> Text
 showLocalTime ts =
-  T.pack $ ft ++ pico
+  Text.pack $ ft ++ pico
     where pico = take 4 $ formatTime defaultTimeLocale "%q" ts
           ft = formatTime defaultTimeLocale "%F %T." ts
 
@@ -140,25 +140,25 @@ quoteMarkup element = toMarkup [quote, toMarkup element, quote]
 -- | Formats a \"Doe\/John\" name as \"John Doe\" or \"John D.\".
 formatPerson :: Bool -> Text -> Text
 formatPerson abbrev name =
-  let w = "/" `T.splitOn` name
+  let w = "/" `Text.splitOn` name
   in case w of
-       [l, f] | not (T.null l) ->
+       [l, f] | not (Text.null l) ->
                 if abbrev
-                  then f <> " " `T.snoc` T.head l `T.snoc` '.'
+                  then f <> " " `Text.snoc` Text.head l `Text.snoc` '.'
                   else f <> " " <> l
        _ -> name
 
 folderLocations :: PicDir -> Text
 folderLocations =
-  T.intercalate ", " . Map.keys . gExifLocations . pdExif
+  Text.intercalate ", " . Map.keys . gExifLocations . pdExif
 
 folderPeople :: PicDir -> Text
 folderPeople =
-  T.intercalate ", " . map (formatPerson True) . Map.keys . gExifPeople . pdExif
+  Text.intercalate ", " . map (formatPerson True) . Map.keys . gExifPeople . pdExif
 
 folderKeywords :: PicDir -> Text
 folderKeywords =
-  T.intercalate ", " . Map.keys . gExifKeywords . pdExif
+  Text.intercalate ", " . Map.keys . gExifKeywords . pdExif
 
 buildTopNLenses :: Map.Map Text (LensInfo, (Int, FileOffset)) -> Int -> [(Int, FileOffset, Text, LensInfo)]
 buildTopNLenses m n =

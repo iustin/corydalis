@@ -56,7 +56,7 @@ import qualified Data.Set               as S
 import           Data.Store
 import           Data.Store.TH          (makeStore)
 import           Data.Text              (Text)
-import qualified Data.Text              as T
+import qualified Data.Text              as Text
 import           Data.Time.Format
 import           Data.Time.LocalTime
 import           Prelude
@@ -99,13 +99,13 @@ extractRaw :: (FromJSON a) => Text -> Value -> Parser a
 extractRaw t =
   modifyFailure (\s -> "Parsing " ++ desc ++ ": " ++ s) .
   withObject (desc ++ "/num|val") (\o -> o .: "num" <|> o .: "val")
-  where desc = T.unpack t
+  where desc = Text.unpack t
 
 extractParsed :: (FromJSON a) => Text -> Value -> Parser a
 extractParsed t =
   modifyFailure (\s -> "Parsing " ++ desc ++ ": " ++ s) .
   withObject (desc ++ "/val") (.: "val")
-  where desc = T.unpack t
+  where desc = Text.unpack t
 
 rawValue :: (FromJSON a) => Object -> Text -> Parser a
 rawValue parent key =
@@ -366,7 +366,7 @@ instance Default Transform where
 
 -- | Parses the (Lightroom-specific?) hierarchical keywords.
 parseHierSubject :: Text -> [Text]
-parseHierSubject = T.splitOn "|"
+parseHierSubject = Text.splitOn "|"
 
 -- | Returns the (partial) affine matrix for the given orientation.
 affineTransform :: Orientation -> Transform
@@ -383,7 +383,7 @@ exifFromRaw :: Config -> RawExif -> Exif
 exifFromRaw config RawExif{..} =
   let pPeople = cfgPeoplePrefix config
       pIgnore = cfgIgnorePrefix config
-      dropIgnored = filter (not . (pIgnore `T.isPrefixOf`))
+      dropIgnored = filter (not . (pIgnore `Text.isPrefixOf`))
       subjPeople      = foldl' (\e ks ->
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
@@ -490,7 +490,7 @@ readBExif config path = do
 -- | Writes the exif caches (raw and binary) for a given file.
 writeExifs :: Config -> FilePath -> RawExif -> IO (FilePath, Exif)
 writeExifs config dir r = do
-  let rpath = T.unpack $ rExifSrcFile r
+  let rpath = Text.unpack $ rExifSrcFile r
       fpath = buildPath dir rpath
   writeCacheFile config fpath exifPath (Data.Aeson.encode (rExifRaw r))
   let e = exifFromRaw config r
