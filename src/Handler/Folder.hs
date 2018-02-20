@@ -38,7 +38,6 @@ import           Pics
 import           Types
 
 import qualified Data.Map        as Map
-import qualified Data.Text       as T
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do
@@ -62,5 +61,5 @@ getFolderR name = do
           foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
           map exifLens $ exifs
         numLenses = length lenses
-    setTitle . toHtml $ "Corydalis: folder " `T.append` name
+    setTitle . toHtml $ "Corydalis: folder " <> name
     $(widgetFile "folder")

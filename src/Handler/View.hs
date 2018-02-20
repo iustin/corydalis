@@ -137,8 +137,8 @@ getViewR folder iname = do
   defaultLayout $ do
     addScript $ StaticR js_viewer_js
     addScript $ StaticR js_hammer_js
-    setTitle . toHtml $ "Corydalis: Image " `T.append` folder
-               `T.append` "/" `T.append` imgName img
+    setTitle . toHtml $ "Corydalis: Image " <> folder
+               <> "/" <> imgName img
     $(widgetFile "view")
 
 basicSvg :: Text -> Svg
@@ -156,7 +156,7 @@ imageNotViewable =
 
 imageError :: Text -> TypedContent
 imageError msg =
-  TypedContent typeSvg . toContent $ basicSvg ("Error: " `T.append` msg)
+  TypedContent typeSvg . toContent $ basicSvg ("Error: " <> msg)
 
 getImageBytesR :: Text -> Text -> Handler ()
 getImageBytesR folder iname = do

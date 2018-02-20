@@ -36,8 +36,6 @@ import           Handler.Widgets
 import           Import
 import           Pics
 
-import qualified Data.Text       as T
-
 getImageR :: Text -> Text -> Handler Html
 getImageR folder iname = do
   dir <- getFolder folder
@@ -49,6 +47,6 @@ getImageR folder iname = do
                  else "(none)"
       lensName = liName . exifLens . imgExif $ img
   defaultLayout $ do
-    setTitle . toHtml $ "Corydalis: Image " `T.append` folder
-               `T.append` "/" `T.append` imgName img
+    setTitle . toHtml $ "Corydalis: Image " <> folder
+               <> "/" <> imgName img
     $(widgetFile "image")

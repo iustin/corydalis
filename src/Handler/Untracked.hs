@@ -36,7 +36,6 @@ import           Import
 import           Pics
 
 import qualified Data.Map        as Map
-import qualified Data.Text       as T
 
 getUntrackedR :: Text -> Text -> Handler Html
 getUntrackedR folder uname = do
@@ -45,6 +44,6 @@ getUntrackedR folder uname = do
              Nothing     -> notFound
              Just untrk' -> return untrk'
   defaultLayout $ do
-      setTitle . toHtml $ "Corydalis: Untracked file " `T.append` folder
-                 `T.append` "/" `T.append` uname
+      setTitle . toHtml $ "Corydalis: Untracked file " <> folder
+                 <> "/" <> uname
       $(widgetFile "untracked")

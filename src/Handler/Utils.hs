@@ -144,8 +144,8 @@ formatPerson abbrev name =
   in case w of
        [l, f] | not (T.null l) ->
                 if abbrev
-                  then f `T.append` " " `T.snoc` T.head l `T.snoc` '.'
-                  else f `T.append` " " `T.append` l
+                  then f <> " " `T.snoc` T.head l `T.snoc` '.'
+                  else f <> " " <> l
        _ -> name
 
 folderLocations :: PicDir -> Text

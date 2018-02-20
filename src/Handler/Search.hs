@@ -36,14 +36,14 @@ import qualified Data.Text       as T
 
 
 atomDescription :: Atom -> Text
-atomDescription (Country  place) = "country is "  `T.append` place
-atomDescription (Province place) = "province is " `T.append` place
-atomDescription (City     place) = "city is "     `T.append` place
-atomDescription (Location place) = "location is " `T.append` place
-atomDescription (Person who) = formatPerson False who `T.append`
+atomDescription (Country  place) = "country is "  <> place
+atomDescription (Province place) = "province is " <> place
+atomDescription (City     place) = "city is "     <> place
+atomDescription (Location place) = "location is " <> place
+atomDescription (Person who) = formatPerson False who <>
                                " is in the picture"
-atomDescription (Keyword what) = "tagged with keyword " `T.append` what
-atomDescription (Year year) = "taken in the year " `T.append` T.pack (show year)
+atomDescription (Keyword what) = "tagged with keyword " <> what
+atomDescription (Year year) = "taken in the year " <> T.pack (show year)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
