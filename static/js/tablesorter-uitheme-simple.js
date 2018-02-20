@@ -4,7 +4,7 @@
     var ts = $.tablesorter || {};
 
     $.extend(ts.themes.bootstrap, {
-        table        : 'table table-bordered',
+        table        : 'table',
         icons        : '', // add 'icon-white' to make them white; this icon class is added to the <i> in the header
         iconSortNone : 'fa fa-sort', // class name added to icon when column is not sorted
         iconSortAsc  : 'fa fa-sort-asc', // class name added to icon when column has ascending sort
