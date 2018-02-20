@@ -17,26 +17,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoCPP #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NoCPP                 #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Handler.Image
   ( getImageR
   ) where
 
-import Import
-import Pics
-import Exif
-import Handler.Widgets
-import Handler.Utils
+import           Exif
+import           Handler.Utils
+import           Handler.Widgets
+import           Import
+import           Pics
 
-import qualified Data.Text as T
+import qualified Data.Text       as T
 
 getImageR :: Text -> Text -> Handler Html
 getImageR folder iname = do

@@ -17,34 +17,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoCPP #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NoCPP                 #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Handler.Curate
   ( getCurateR
   ) where
 
-import Import
-import Pics
-import Types
-import Handler.Utils
+import           Handler.Utils
+import           Import
+import           Pics
+import           Types
 
-import qualified Data.Map as Map
+import qualified Data.Map      as Map
 
 data GraphData a b = GraphData
-  { gdName  :: Text
-  , gdType  :: Text
-  , gdX     :: [a]
-  , gdY     :: [b]
-  , gdText  :: Maybe [Text]
+  { gdName :: Text
+  , gdType :: Text
+  , gdX    :: [a]
+  , gdY    :: [b]
+  , gdText :: Maybe [Text]
 --  , gdYAxis :: Maybe Text
-  , gdMode  :: Maybe Text
+  , gdMode :: Maybe Text
   }
 
 instance Default (GraphData a b) where

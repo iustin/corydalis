@@ -29,17 +29,17 @@ module Types ( Config(..)
              , JSDiffTime(..)
              ) where
 
-import Control.Applicative
-import Control.Monad
-import Control.DeepSeq
-import Data.Aeson
-import Data.List (sort, nub)
-import Data.Time.Clock
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Text.Regex.TDFA as TDFA
-import Yesod
-import Prelude
+import           Control.Applicative
+import           Control.DeepSeq
+import           Control.Monad
+import           Data.Aeson
+import           Data.List           (nub, sort)
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Data.Time.Clock
+import           Prelude
+import qualified Text.Regex.TDFA     as TDFA
+import           Yesod
 
 data Regex = Regex
     { reString :: String
@@ -54,7 +54,7 @@ instance FromJSON Regex where
     let str = T.unpack txt
     in case TDFA.makeRegexM str of
          Nothing -> mzero
-         Just r -> return $ Regex str r
+         Just r  -> return $ Regex str r
   parseJSON _ = mzero
 
 -- | Wrapper over NominalDiffTime so that we can add our FromJSON
@@ -125,11 +125,11 @@ instance PathPiece ImageStatus where
   toPathPiece ImageStandalone = "standalone"
   toPathPiece ImageRaw        = "raw"
   toPathPiece ImageProcessed  = "processed"
-  fromPathPiece "orphaned"    = Just ImageOrphaned
-  fromPathPiece "raw"         = Just ImageRaw
-  fromPathPiece "standalone"  = Just ImageStandalone
-  fromPathPiece "processed"   = Just ImageProcessed
-  fromPathPiece _             = Nothing
+  fromPathPiece "orphaned"   = Just ImageOrphaned
+  fromPathPiece "raw"        = Just ImageRaw
+  fromPathPiece "standalone" = Just ImageStandalone
+  fromPathPiece "processed"  = Just ImageProcessed
+  fromPathPiece _            = Nothing
 
 -- | Custom Path piece instance for [ImageStatus].
 instance PathPiece [ImageStatus] where

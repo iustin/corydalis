@@ -24,16 +24,16 @@ module Cache ( cachedBasename
              , readCacheFile
              ) where
 
-import Types
+import qualified Data.ByteString       as BS (ByteString, readFile, writeFile)
+import qualified Data.ByteString.Lazy  as BSL (ByteString, writeFile)
+import           Data.Time.Clock.POSIX
+import           Prelude
+import           System.Directory      (createDirectoryIfMissing)
+import           System.FilePath       (splitFileName)
+import           System.IO.Error
+import           System.Posix.Files
 
-import Prelude
-import qualified Data.ByteString as BS (ByteString, writeFile, readFile)
-import qualified Data.ByteString.Lazy as BSL (ByteString, writeFile)
-import Data.Time.Clock.POSIX
-import System.FilePath (splitFileName)
-import System.Directory (createDirectoryIfMissing)
-import System.IO.Error
-import System.Posix.Files
+import           Types
 
 cachedBasename :: Config -> FilePath -> String -> String
 cachedBasename config path suffix =

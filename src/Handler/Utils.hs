@@ -16,25 +16,25 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoCPP #-}
+{-# LANGUAGE NoCPP             #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Handler.Utils where
 
-import Import
-import Pics
-import Types
-import Exif
+import           Exif
+import           Import
+import           Pics
+import           Types
 
-import qualified Data.Map as Map
-import qualified Data.Text as T
-import Data.Time
-import Data.Time.Clock.POSIX
-import Text.Printf
-import Data.Prefix.Units
-import Text.Blaze (ToMarkup, Markup, toMarkup, string)
+import qualified Data.Map              as Map
+import           Data.Prefix.Units
+import qualified Data.Text             as T
+import           Data.Time
+import           Data.Time.Clock.POSIX
+import           Text.Blaze            (Markup, ToMarkup, string, toMarkup)
+import           Text.Printf
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
@@ -91,7 +91,7 @@ imgRowClass :: Image -> Text
 imgRowClass img =
   case imgStatus img of
    ImageOrphaned -> "danger"
-   _ -> ""
+   _             -> ""
 
 getConfig :: Handler Config
 getConfig = appConfig . appSettings <$> getYesod
@@ -115,7 +115,7 @@ getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
   pics <- getPics
   case Map.lookup folder (repoDirs pics) of
-   Nothing -> notFound
+   Nothing  -> notFound
    Just dir -> return (pics, dir)
 
 getFolder :: Text -> Handler PicDir
@@ -124,7 +124,7 @@ getFolder = fmap snd . getPicsAndFolder
 getFolderImage :: PicDir -> Text -> Handler Image
 getFolderImage dir iname =
   case Map.lookup iname (pdImages dir) of
-    Nothing -> notFound
+    Nothing  -> notFound
     Just img -> return img
 
 getImage :: Text -> Text -> Handler Image

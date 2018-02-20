@@ -17,29 +17,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoCPP #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NoCPP                 #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Handler.Home
   ( getHomeR
   ) where
 
-import Import
-import Exif
-import Pics
-import Indexer
-import Handler.Utils
-import Handler.Widgets
+import           Exif
+import           Handler.Utils
+import           Handler.Widgets
+import           Import
+import           Indexer
+import           Pics
 
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-import qualified Data.Text as T
+import qualified Data.Map        as Map
+import qualified Data.Set        as Set
+import qualified Data.Text       as T
 
 getHomeR :: Handler Html
 getHomeR = do

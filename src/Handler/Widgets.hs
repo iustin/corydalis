@@ -16,22 +16,22 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoCPP #-}
+{-# LANGUAGE NoCPP             #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TupleSections     #-}
 
 module Handler.Widgets where
 
-import Import
-import Pics
-import Indexer
-import Handler.Utils
+import           Handler.Utils
+import           Import
+import           Indexer
+import           Pics
 
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import qualified Data.Map      as Map
+import qualified Data.Text     as T
 
 showFile :: Pics.File -> Widget
 showFile f =
@@ -45,7 +45,7 @@ folderCover :: Int -> PicDir -> Widget
 folderCover thumbsize folder = do
   let name = pdName folder
   case Map.lookupMin $ pdImages folder of
-    Nothing -> toWidget [hamlet|<span .disabled>N/A|]
+    Nothing       -> toWidget [hamlet|<span .disabled>N/A|]
     Just (_, img) -> imageBytes thumbsize name (imgName img)
 
 imageBytes :: Int -> Text -> Text -> Widget

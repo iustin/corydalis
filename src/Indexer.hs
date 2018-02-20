@@ -27,13 +27,13 @@ module Indexer ( Atom(..)
                , buildSearchFunction
                ) where
 
-import Exif
-import Pics
-
-import qualified Data.Map as Map
-import Data.Text (Text)
+import qualified Data.Map  as Map
+import           Data.Text (Text)
 import qualified Data.Text as Text
-import Text.Read (readMaybe)
+import           Text.Read (readMaybe)
+
+import           Exif
+import           Pics
 
 data AtomType = TCountry
               | TProvince

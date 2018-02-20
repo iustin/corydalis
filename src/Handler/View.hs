@@ -17,14 +17,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 module Handler.View ( getViewR
                     , getImageBytesR
@@ -32,26 +32,26 @@ module Handler.View ( getViewR
                     , getRandomImageInfoR
                     ) where
 
-import Import
-import Pics
-import Exif
-import Handler.Utils
+import           Exif
+import           Handler.Utils
+import           Import
+import           Pics
 
-import Data.Aeson.Text (encodeToLazyText)
-import qualified Data.Map as Map
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T (encodeUtf8)
-import System.Random (getStdRandom, randomR)
-import Text.Read (readMaybe)
-import qualified Text.Blaze.Svg as Svg
-import Text.Blaze.Svg11 ((!), text_, docTypeSvg, Svg)
+import           Data.Aeson.Text             (encodeToLazyText)
+import qualified Data.Map                    as Map
+import qualified Data.Text                   as T
+import qualified Data.Text.Encoding          as T (encodeUtf8)
+import           System.Random               (getStdRandom, randomR)
+import qualified Text.Blaze.Svg              as Svg
+import           Text.Blaze.Svg11            (Svg, docTypeSvg, text_, (!))
 import qualified Text.Blaze.Svg11.Attributes as SA
+import           Text.Read                   (readMaybe)
 
 data ImageInfo = ImageInfo
-  { iiInfoUrl  :: Text
-  , iiBytesUrl :: Text
-  , iiViewUrl  :: Text
-  , iiName     :: Text
+  { iiInfoUrl   :: Text
+  , iiBytesUrl  :: Text
+  , iiViewUrl   :: Text
+  , iiName      :: Text
   , iiTransform :: (Int, Bool, Bool)
   }
 
@@ -179,7 +179,7 @@ fileToView :: Image -> Maybe File
 fileToView img =
   case imgJpegPath img of
     f:_ -> Just f
-    [] -> imgRawPath img
+    []  -> imgRawPath img
 
 transformForFile :: File -> Maybe Transform
 transformForFile  =

@@ -17,32 +17,32 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoCPP #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NoCPP                 #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Handler.Untracked
   ( getUntrackedR
   ) where
 
-import Import
-import Pics
-import Handler.Widgets
-import Handler.Utils
+import           Handler.Utils
+import           Handler.Widgets
+import           Import
+import           Pics
 
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import qualified Data.Map        as Map
+import qualified Data.Text       as T
 
 getUntrackedR :: Text -> Text -> Handler Html
 getUntrackedR folder uname = do
   dir <- getFolder folder
   untrk <- case Map.lookup uname (pdUntracked dir) of
-             Nothing -> notFound
+             Nothing     -> notFound
              Just untrk' -> return untrk'
   defaultLayout $ do
       setTitle . toHtml $ "Corydalis: Untracked file " `T.append` folder

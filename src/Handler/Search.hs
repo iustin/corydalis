@@ -18,21 +18,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Handler.Search ( getSearchFoldersR
                       ) where
 
-import Import
-import Types
-import Pics
-import Indexer
-import Handler.Widgets
-import Handler.Utils
+import           Handler.Utils
+import           Handler.Widgets
+import           Import
+import           Indexer
+import           Pics
+import           Types
 
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import qualified Data.Map        as Map
+import qualified Data.Text       as T
 
 
 atomDescription :: Atom -> Text
@@ -54,7 +54,7 @@ getSearchFoldersR = do
                     Nothing -> return atoms
                     Just v -> case buildAtom kind v of
                                 Nothing -> invalidArgs [v]
-                                Just a -> return $ a:atoms
+                                Just a  -> return $ a:atoms
                ) [] atomNames
   let flt = map buildSearchFunction ato
       search_string = T.intercalate " and " $ map atomDescription ato

@@ -17,36 +17,36 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 module Foundation where
 
-import Import.NoFoundation
-import Database.Persist.Sql (ConnectionPool, runSqlPool)
-import Text.Hamlet          (hamletFile)
-import Text.Jasmine         (minifym)
+import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
+import           Import.NoFoundation
+import           Text.Hamlet           (hamletFile)
+import           Text.Jasmine          (minifym)
 
 -- Used only when in "auth-dummy-login" setting is enabled.
-import Yesod.Auth.Dummy
+import           Yesod.Auth.Dummy
 
-import Yesod.Auth.HashDB (authHashDBWithForm)
+import           Yesod.Auth.HashDB     (authHashDBWithForm)
 
-import Yesod.Default.Util   (addStaticContentExternal)
-import Yesod.Core.Types     (Logger)
-import qualified Yesod.Core.Unsafe as Unsafe
-import Yesod.Auth.Message
-import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3,
-                              withAutofocus, bfs)
+import           Yesod.Auth.Message
+import           Yesod.Core.Types      (Logger)
+import qualified Yesod.Core.Unsafe     as Unsafe
+import           Yesod.Default.Util    (addStaticContentExternal)
+import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
+                                        renderBootstrap3, withAutofocus)
 
-import Types (FolderClass(..), ImageStatus(..))
-import qualified Data.Text as T
-import qualified Data.Set as S
+import qualified Data.Set              as S
+import qualified Data.Text             as T
+import           Types                 (FolderClass (..), ImageStatus (..))
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -177,14 +177,14 @@ instance Yesod App where
     authRoute _ = Just $ AuthR LoginR
 
     -- Routes not requiring authentication.
-    isAuthorized (AuthR _) _ = return Authorized
-    isAuthorized FaviconR _ = return Authorized
-    isAuthorized RobotsR _ = return Authorized
+    isAuthorized (AuthR _) _   = return Authorized
+    isAuthorized FaviconR _    = return Authorized
+    isAuthorized RobotsR _     = return Authorized
     isAuthorized (StaticR _) _ = return Authorized
 
     -- All other routes require authentication, with all authenticated
     -- users authorized.
-    isAuthorized _ _ = isAuthenticated
+    isAuthorized _ _           = isAuthenticated
 
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
@@ -314,7 +314,7 @@ isAuthenticated = do
     muid <- maybeAuthId
     return $ case muid of
         Nothing -> AuthenticationRequired
-        Just _ -> Authorized
+        Just _  -> Authorized
 
 instance YesodAuthPersist App
 

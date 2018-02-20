@@ -17,26 +17,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NoCPP #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NoCPP                 #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Handler.LensInfo
   ( getLensInfoR
   ) where
 
-import Import
-import Pics
-import Exif
-import Handler.Utils
+import           Exif
+import           Handler.Utils
+import           Import
+import           Pics
 
-import qualified Data.Map as Map
-import qualified Data.Set as Set
+import qualified Data.Map      as Map
+import qualified Data.Set      as Set
 
 data GraphData a b c = GraphData
   { gdName  :: Text
@@ -81,7 +81,7 @@ getLensInfoR lensname = do
         (Stats _ _ _ _ _ _ _ _ _ _ _ bylens) _ =
           repoStats pics
   lens <- case lensname `Map.lookup` bylens of
-            Nothing -> notFound
+            Nothing     -> notFound
             Just (l, _) -> return l
   let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensname) pics
       fam = foldl' (\m i ->
@@ -115,7 +115,7 @@ getLensInfoR lensname = do
                                             cd = exifCreateDate e
                                             cam = exifCamera e
                                         in case cd of
-                                             Nothing -> a
+                                             Nothing  -> a
                                              Just cd' -> (cd', cam):a) [] $ images
                   in maybe Nothing (\nn -> Just (head nn, last nn)) $ fromNullable cds
   let jsonl = def { gdName = ""

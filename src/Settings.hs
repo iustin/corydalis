@@ -29,21 +29,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- declared in the Foundation.hs file.
 module Settings where
 
-import ClassyPrelude.Yesod
-import qualified Control.Exception as Exception
-import Data.Aeson                  (Result (..), fromJSON, parseJSON,
-                                    withObject, (.!=),
-                                    (.:?), (.:), FromJSON, Value)
-import Data.FileEmbed              (embedFile)
-import Data.Yaml                   (decodeEither')
-import Database.Persist.Sqlite     (SqliteConf)
-import Language.Haskell.TH.Syntax  (Exp, Name, Q)
-import Network.Wai.Handler.Warp    (HostPreference)
-import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
-import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
-                                    widgetFileReload)
+import           ClassyPrelude.Yesod
+import qualified Control.Exception          as Exception
+import           Data.Aeson                 (FromJSON, Result (..), Value,
+                                             fromJSON, parseJSON, withObject,
+                                             (.!=), (.:), (.:?))
+import           Data.FileEmbed             (embedFile)
+import           Data.Yaml                  (decodeEither')
+import           Database.Persist.Sqlite    (SqliteConf)
+import           Language.Haskell.TH.Syntax (Exp, Name, Q)
+import           Network.Wai.Handler.Warp   (HostPreference)
+import           Yesod.Default.Config2      (applyEnvValue, configSettingsYml)
+import           Yesod.Default.Util         (WidgetFileSettings,
+                                             widgetFileNoReload,
+                                             widgetFileReload)
 
-import Types
+import           Types
 
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
@@ -144,7 +145,7 @@ configSettingsYmlValue = either Exception.throw id
 compileTimeAppSettings :: AppSettings
 compileTimeAppSettings =
     case fromJSON $ applyEnvValue False mempty configSettingsYmlValue of
-        Error e -> error e
+        Error e          -> error e
         Success settings -> settings
 
 -- The following two functions can be used to combine multiple CSS or JS files
