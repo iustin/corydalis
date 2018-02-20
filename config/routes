@@ -1,4 +1,5 @@
 /static StaticR Static appStatic
+/assets AssetsR Static appAssets
 /auth   AuthR   Auth   getAuth
 
 /favicon.ico FaviconR GET

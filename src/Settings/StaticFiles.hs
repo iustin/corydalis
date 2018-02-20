@@ -23,7 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Settings.StaticFiles where
 
-import           Settings     (appStaticDir, compileTimeAppSettings)
+import           Settings     (appAssetsDir, appStaticDir,
+                               compileTimeAppSettings)
 import           Yesod.Static (staticFiles)
 
 -- This generates easy references to files in the static directory at compile time,
@@ -39,3 +40,4 @@ import           Yesod.Static (staticFiles)
 --
 --     StaticFile ["js", "script.js"] []
 staticFiles (appStaticDir compileTimeAppSettings)
+staticFiles (appAssetsDir compileTimeAppSettings)

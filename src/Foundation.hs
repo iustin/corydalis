@@ -56,6 +56,7 @@ import           Types                 (FolderClass (..), ImageStatus (..))
 data App = App
     { appSettings    :: AppSettings
     , appStatic      :: Static -- ^ Settings for static file serving.
+    , appAssets      :: Static -- ^ Settings for assets (upstream static files) serving.
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
@@ -222,6 +223,7 @@ instance Yesod App where
 -- Define breadcrumbs.
 instance YesodBreadcrumbs App where
   breadcrumb (StaticR _)    = return ("Static route" , Nothing)
+  breadcrumb (AssetsR _)    = return ("Assets route" , Nothing)
   breadcrumb FaviconR       = return ("Favicon"      , Nothing)
   breadcrumb RobotsR        = return ("Robots"       , Nothing)
   breadcrumb (AuthR _)      = return ("Auth"         , Just HomeR)
