@@ -30,7 +30,7 @@ $(document).ready(function() {
         sortList: [[2,1], [0,0], [1, 0]],
         theme: "bootstrap",
         headerTemplate: "{content} {icon}",
-        widgets : [ "uitheme" ],
+        widgets : [ "uitheme", "filter" ],
     });
 
 });

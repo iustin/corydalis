@@ -3,6 +3,6 @@ $(document).ready(function() {
         sortList: [[4,1]],
         theme: "bootstrap",
         headerTemplate: "{content} {icon}",
-        widgets : [ "uitheme" ],
+        widgets : [ "uitheme", "filter" ],
     });
 });
