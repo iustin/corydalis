@@ -7,7 +7,7 @@
       <div .panel-heading>
         <h3 .panel-title>
           <span class="#{atomIcon TYear} fa-fw">
-          Year
+          Years
       <div .panel-body>
          $forall year <- years
           <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TYear, Text.pack (show year))])}">#{year}
