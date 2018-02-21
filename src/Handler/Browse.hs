@@ -63,8 +63,10 @@ getBrowseFoldersR kinds = do
 
 getBrowseImagesR :: [ImageStatus] -> Handler TypedContent
 getBrowseImagesR kinds = do
+  config <- getConfig
   pics <- getPics
   let kinds_string = Text.intercalate ", " . map (Text.pack . show) $ kinds
+      thumbsize = cfgThumbnailSize config
       images = filterImagesByClass kinds pics
       allpaths = foldl' (\paths img ->
                            let jpaths = map filePath . imgJpegPath $ img

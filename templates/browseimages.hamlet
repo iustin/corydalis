@@ -4,36 +4,15 @@
 <div .row>
  <div .col-xs-12>
    $if null images
-     <p .bg-warning>No images found that match the requested type(s).
+     <div .panel .panel-warning>
+       <div .panel-heading>
+         Error
+       <div .panel-body>
+         No images found that match the requested type(s).
    $else
      <div .panel .panel-default>
        <div .panel-body>
          The selected filter matches #{length images} images.
 
      <div .panel .panel-default>
-       <table #imagelist .tablesorter .table .table-condensed>
-         <thead>
-           <tr>
-             <th .sorter-text>Name
-             <th .sorter-text>Folder
-             <th .sorter-text>Status
-             <th .sorter-text>Raw path
-             <th .sorter-text>Jpeg path
-             <th .sorter-text>Sidecar path
-         <tbody>
-           $forall img <- images
-             <tr>
-               <td><a href=@{ImageR (imgParent img) (imgName img)}>#{imgName img}</a>
-               <td><a href=@{FolderR (imgParent img)}>#{imgParent img}</a>
-               <td>#{show $ imgStatus img}
-               $maybe rpath <- imgRawPath img
-                 <td>#{filePath rpath}
-               $nothing
-                 <td>
-               <td>
-                 $forall jpath <- imgJpegPath img
-                    #{filePath jpath}<br/>
-               $maybe spath <- imgSidecarPath img
-                 <td>#{filePath spath}
-               $nothing
-                 <td>
+       ^{imageList thumbsize True True images}
