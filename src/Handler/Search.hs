@@ -46,9 +46,13 @@ atomDescription (Person who) = formatPerson False who <>
 atomDescription (Keyword what) = "tagged with keyword " <> what
 atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
 
+getParams :: Handler [(Text, Text)]
+getParams = reqGetParams <$> getRequest
+
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
   config <- getConfig
+  params <- getParams
   ato <- foldM (\atoms (kind, param) -> do
                   p <- lookupGetParam param
                   case p of
@@ -69,6 +73,7 @@ getSearchFoldersR = do
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
   config <- getConfig
+  params <- getParams
   ato <- foldM (\atoms (kind, param) -> do
                   p <- lookupGetParam param
                   case p of

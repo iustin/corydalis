@@ -9,6 +9,8 @@
      <div .panel .panel-default>
        <div .panel-body>
          The selected filter matches #{length folders} folders.
+         Go to the <a href="@?{(SearchImagesR, params)}">image list</a>
+         for this filter.
 
      <div .panel .panel-default>
        <div .panel-heading>Results
