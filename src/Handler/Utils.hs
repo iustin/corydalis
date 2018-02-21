@@ -55,6 +55,29 @@ fcName FolderProcessed   = "fully processed"
 fcName FolderEmpty       = "empty"
 fcName FolderMixed       = "mixed"
 
+rawIcon :: Text
+rawIcon = "fas fa-image"
+
+processedIcon :: Text
+processedIcon = "far fa-image"
+
+doneIcon :: Text
+doneIcon = "fas fa-check"
+
+inProgressIcon :: Text
+inProgressIcon = "fas fa-hourglass-half"
+
+folderIcon :: Text
+folderIcon = "far fa-folder"
+
+fcIcon :: FolderClass -> [Text]
+fcIcon FolderRaw         = [rawIcon]
+fcIcon FolderStandalone  = [processedIcon]
+fcIcon FolderUnprocessed = [rawIcon, processedIcon, inProgressIcon]
+fcIcon FolderProcessed   = [rawIcon, processedIcon, doneIcon]
+fcIcon FolderEmpty       = [folderIcon]
+fcIcon FolderMixed       = [processedIcon, rawIcon, processedIcon]
+
 fcDescription :: FolderClass -> Text
 fcDescription FolderRaw         = "contains only unprocessed RAW files"
 fcDescription FolderStandalone  = "contains only files without a RAW format"

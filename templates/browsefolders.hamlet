@@ -21,24 +21,22 @@
            <tr>
              <th .sorter-false .filter-false>Thumbnail
              <th .sorter-text>Name
-             <th .sorter-text>Classification
-             <th .sorter-text>Path
+             <th .sorter-text>Status
              <th .sorter-digit>Images
              <th .sorter-digit>Unprocessed
              <th .sorter-digit>Standalone
              <th .sorter-digit>Orphaned
              <th .sorter-digit>Processed
          <tbody>
-           $forall (n, c) <- npairs
+           $forall (n, classes) <- npairs
              <tr>
                <td>
                  ^{folderCover thumbsize n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
-               <td>#{c}
                <td>
-                 <span class="monolight">#{quoteMarkup $ pdMainPath n}
-                 $forall sp <- pdSecPaths n
-                   <br /><span class="monolight">#{quoteMarkup sp}
+                 <span title="#{fcDescription (folderClass n)}">
+                   $forall iclass <- classes
+                     <span class="#{iclass}">
                <td .number>#{numPics n}
                <td .number>#{numUnprocessedPics n}
                <td .number>#{numStandalonePics n}

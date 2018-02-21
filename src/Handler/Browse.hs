@@ -52,10 +52,8 @@ getBrowseFoldersR kinds = do
       allprocessed = sum . map numProcessedPics $ folders
       allstandalone = sum . map numStandalonePics $ folders
       allorphaned = sum . map numOrphanedPics $ folders
-      npairs = map (\n -> let f_class = show $ folderClass n
-                              f_class' = fromMaybe f_class $
-                                         stripPrefix "Folder" f_class
-                          in ( n, f_class'))
+      npairs = map (\n -> let f_class = (fcIcon . folderClass) n
+                          in (n, f_class))
                folders
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
