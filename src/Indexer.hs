@@ -26,7 +26,7 @@ module Indexer ( AtomType(..)
                , atomName
                , atomTypeDescriptions
                , buildAtom
-               , buildSearchFunction
+               , folderSearchFunction
                , imageSearchFunction
                , getAtoms
                ) where
@@ -100,26 +100,26 @@ buildAtom TKeyword kw = Just $ Keyword kw
 buildAtom TYear when =
   Year <$> readMaybe (Text.unpack when)
 
-buildSearchFunction :: Atom -> (PicDir -> Bool)
-buildSearchFunction (Country loc) =
+folderSearchFunction :: Atom -> (PicDir -> Bool)
+folderSearchFunction (Country loc) =
   \f -> loc `Map.member` gExifCountries (pdExif f)
 
-buildSearchFunction (Province loc) =
+folderSearchFunction (Province loc) =
   \f -> loc `Map.member` gExifProvinces (pdExif f)
 
-buildSearchFunction (City loc) =
+folderSearchFunction (City loc) =
   \f -> loc `Map.member` gExifCities (pdExif f)
 
-buildSearchFunction (Location loc) =
+folderSearchFunction (Location loc) =
   \f -> loc `Map.member` gExifLocations (pdExif f)
 
-buildSearchFunction (Person who) =
+folderSearchFunction (Person who) =
   \f -> who `Map.member` gExifPeople (pdExif f)
 
-buildSearchFunction (Keyword what) =
+folderSearchFunction (Keyword what) =
   \f -> what `Map.member` gExifKeywords (pdExif f)
 
-buildSearchFunction (Year year) =
+folderSearchFunction (Year year) =
   (== Just year) . pdYear
 
 imageSearchFunction :: Atom -> (Image -> Bool)

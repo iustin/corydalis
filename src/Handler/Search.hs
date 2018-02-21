@@ -61,7 +61,7 @@ getSearchFoldersR = do
                                 Nothing -> invalidArgs [v]
                                 Just a  -> return $ a:atoms
                ) [] atomNames
-  let flt = map buildSearchFunction ato
+  let flt = map folderSearchFunction ato
       search_string = Text.intercalate " and " $ map atomDescription ato
   pics <- getPics
   let folders = filter (\p -> all (\fn -> fn p) flt) . Map.elems . repoDirs $ pics
