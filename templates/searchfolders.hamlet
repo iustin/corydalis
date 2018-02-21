@@ -18,7 +18,7 @@
          <col style="width: #{thumbsize}px;">
          <thead>
            <tr>
-             <th>Icon
+             <th .sorter-false .filter-false>Icon
              <th .sorter-text>Name
              <th .sorter-false>Locations
              <th .sorter-false>People
