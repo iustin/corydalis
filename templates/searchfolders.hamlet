@@ -15,9 +15,10 @@
      <div .panel .panel-default>
        <div .panel-heading>Results
        <table #folderlist .tablesorter .table .table-condensed .vmiddle>
+         <col style="width: #{thumbsize}px;">
          <thead>
            <tr>
-             <th>Thumbnail
+             <th>Icon
              <th .sorter-text>Name
              <th .sorter-false>Locations
              <th .sorter-false>People
