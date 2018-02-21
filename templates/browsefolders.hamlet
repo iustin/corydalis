@@ -44,7 +44,7 @@
                <td .number>#{numProcessedPics n}
          <tfoot>
            <tr>
-            <td colspan=4>Total files
+            <td colspan=3>Total files
             <td .number>#{allpics}
             <td .number>#{allunproc}
             <td .number>#{allstandalone}
