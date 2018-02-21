@@ -49,18 +49,27 @@ atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
 getParams :: Handler [(Text, Text)]
 getParams = reqGetParams <$> getRequest
 
-getSearchFoldersR :: Handler Html
-getSearchFoldersR = do
+extractAtomParams :: Handler [Atom]
+extractAtomParams =
+  foldM (\atoms (kind, param) -> do
+            p <- lookupGetParam param
+            case p of
+              Nothing -> return atoms
+              Just v -> case buildAtom kind v of
+                          Nothing -> invalidArgs [v]
+                          Just a  -> return $ a:atoms
+        ) [] atomNames
+
+searchContext :: Handler (Config, [(Text, Text)], [Atom])
+searchContext = do
   config <- getConfig
   params <- getParams
-  ato <- foldM (\atoms (kind, param) -> do
-                  p <- lookupGetParam param
-                  case p of
-                    Nothing -> return atoms
-                    Just v -> case buildAtom kind v of
-                                Nothing -> invalidArgs [v]
-                                Just a  -> return $ a:atoms
-               ) [] atomNames
+  ato <- extractAtomParams
+  return (config, params, ato)
+
+getSearchFoldersR :: Handler Html
+getSearchFoldersR = do
+  (config, params, ato) <- searchContext
   let flt = map folderSearchFunction ato
       search_string = Text.intercalate " and " $ map atomDescription ato
   pics <- getPics
@@ -72,16 +81,7 @@ getSearchFoldersR = do
 
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
-  config <- getConfig
-  params <- getParams
-  ato <- foldM (\atoms (kind, param) -> do
-                  p <- lookupGetParam param
-                  case p of
-                    Nothing -> return atoms
-                    Just v -> case buildAtom kind v of
-                                Nothing -> invalidArgs [v]
-                                Just a  -> return $ a:atoms
-               ) [] atomNames
+  (config, params, ato) <- searchContext
   let flt = map imageSearchFunction ato
       search_string = Text.intercalate " and " $ map atomDescription ato
   pics <- getPics
