@@ -5,7 +5,9 @@
   <div .col-xs-12 .col-md-3>
     <div .panel .panel-default>
       <div .panel-heading>
-        <h3 .panel-title>Year
+        <h3 .panel-title>
+          <span class="#{atomIcon TYear} fa-fw">
+          Year
       <div .panel-body>
          $forall year <- years
           <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(atomName TYear, Text.pack (show year))])}">#{year}

@@ -25,6 +25,7 @@ module Handler.Utils where
 
 import           Exif
 import           Import
+import           Indexer
 import           Pics
 import           Types
 
@@ -87,6 +88,16 @@ fcDescription FolderProcessed   = "contains RAW files, all processed"
 fcDescription FolderEmpty       = "contains no image files"
 fcDescription FolderMixed       = "contains both RAW files (processed) \
                                   \and files without RAW storage"
+
+atomIcon :: AtomType -> Text
+atomIcon TCountry  = "fas fa-globe"
+atomIcon TProvince = "fas fa-map"
+atomIcon TCity     = "fas fa-building"
+atomIcon TLocation = "fas fa-map-signs"
+atomIcon TPerson   = "fas fa-users"
+atomIcon TKeyword  = "fas fa-tags"
+atomIcon TYear     = "fas fa-calendar"
+
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =

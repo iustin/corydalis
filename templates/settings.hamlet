@@ -29,7 +29,7 @@ Current configuration:
         $forall dir <- sort $ cfgBlacklistedDirs config
           <li>
             <span .monolight>#{quoteMarkup dir}
-  <li>extensions considered raw files (in priority order):
+  <li>extensions considered raw <span class="fas fa-image"></span> files (in priority order):
     <ul>
       $forall ext <- cfgRawExts config
         <li>
@@ -39,7 +39,7 @@ Current configuration:
       $forall ext <- sort $ cfgSidecarExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
-  <li>extensions considered jpeg files:
+  <li>extensions considered jpeg <span class="far fa-image"></span> files:
     <ul>
       $forall ext <- sort $ cfgJpegExts config
         <li>
