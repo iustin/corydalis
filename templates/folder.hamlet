@@ -72,7 +72,7 @@
         $forall (c', cnt) <- lenses
           <tr>
             <td><a href=@{LensInfoR (liName c')}>
-              #{liName c'}
+              #{lensDisplayName c'}
             <td .number>#{cnt}
 
 <div .row>
