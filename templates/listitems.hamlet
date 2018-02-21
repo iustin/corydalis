@@ -24,4 +24,4 @@
                  <a href="@?{(SearchFoldersR,[(atomName atom, n)])}"><span class="far fa-folder-open">
                  <a href="@?{(SearchImagesR,[(atomName atom, n)])}"><span class="far fa-images">
                  #{n}
-               <td>#{count}
+               <td .number>#{count}
