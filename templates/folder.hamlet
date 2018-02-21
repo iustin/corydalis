@@ -88,8 +88,8 @@
 <div .row>
   <div .col-xs-12>
     <div .panel .panel-default>
+      <div .panel-heading>Untracked files
       $if Map.null (pdUntracked dir)
-        <div .panel-heading>Untracked files
         <div .panel-body>
           Folder contains no untracked files.
       $else
