@@ -64,8 +64,8 @@ generatePrevNext k m r = do
       nextRoute = uncurry r <$> Map.lookupGT k m
   $(widgetFile "prevnext")
 
-imageList :: Int -> Bool -> [Image] -> Widget
-imageList thumbsize showParent images = do
+imageList :: Int -> Bool -> Bool -> [Image] -> Widget
+imageList thumbsize showParent hideType images = do
   let exifs = map imgExif images
       one = 1::Int64
       cameras =

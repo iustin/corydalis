@@ -11,7 +11,8 @@
                     <th .filter-select>Camera
                   $if numLenses > 1
                     <th .filter-select>Lens
-                  <th .filter-select>Type
+                  $if not hideType
+                    <th .filter-select>Type
               <tbody>
                 $forall img@Image{imgExif=e, imgParent=p} <- images
                   <tr .#{imgRowClass img}>
@@ -31,14 +32,15 @@
                       <td>
                         <a href="@{LensInfoR (liName (exifLens e))}">
                           #{lensDisplayName (exifLens e) }
-                    <td>
-                      $case imgStatus img
-                        $of ImageProcessed
-                          processed
-                        $of ImageRaw
-                          unprocessed
-                        $of ImageStandalone
-                          standalone
-                        $of ImageOrphaned
-                          orphaned
+                    $if not hideType
+                      <td>
+                        $case imgStatus img
+                          $of ImageProcessed
+                            processed
+                          $of ImageRaw
+                            unprocessed
+                          $of ImageStandalone
+                            standalone
+                          $of ImageOrphaned
+                            orphaned
               <tfoot>

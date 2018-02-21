@@ -13,4 +13,4 @@
          for this filter.
 
      <div .panel .panel-default>
-       ^{imageList thumbsize True images}
+       ^{imageList thumbsize True False images}
