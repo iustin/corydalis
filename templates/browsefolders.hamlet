@@ -15,7 +15,6 @@
             #{showBinary $ sUntrackedSize stats} for untracked files.
 
      <div .panel .panel-default>
-       <div .panel-heading>Results
        <table #folderlist .tablesorter .table .table-condensed>
          <col style="width: #{thumbsize}px;">
          <thead>

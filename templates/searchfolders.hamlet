@@ -13,7 +13,6 @@
          for this filter.
 
      <div .panel .panel-default>
-       <div .panel-heading>Results
        <table #folderlist .tablesorter .table .table-condensed .vmiddle>
          <col style="width: #{thumbsize}px;">
          <thead>

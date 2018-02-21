@@ -15,7 +15,6 @@
          There are #{length lenses} lenses in the database.
 
      <div .panel .panel-default>
-       <div .panel-heading>Lenses
        <table #lenslist .tablesorter .table .table-condensed>
          <thead>
            <tr>

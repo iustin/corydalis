@@ -78,18 +78,18 @@
 <div .row>
   <div .col-xs-12>
     <div .panel .panel-default>
-      <div .panel-heading>Pictures
       $if Map.null (pdImages dir)
+        <div .panel-heading>Pictures
         <div .panel-body>
-          Folder contains no images.
+            Folder contains no images.
       $else
         ^{imageList thumbsize False images}
 
 <div .row>
   <div .col-xs-12>
     <div .panel .panel-default>
-      <div .panel-heading>Untracked files
       $if Map.null (pdUntracked dir)
+        <div .panel-heading>Untracked files
         <div .panel-body>
           Folder contains no untracked files.
       $else

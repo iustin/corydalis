@@ -13,5 +13,4 @@
          for this filter.
 
      <div .panel .panel-default>
-       <div .panel-heading>Pictures
        ^{imageList thumbsize True images}

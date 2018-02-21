@@ -10,7 +10,6 @@
          There are #{length items} #{description}.
 
      <div .panel .panel-default>
-       <div .panel-heading>Results
        <table #itemlist .tablesorter .table .table-condensed>
          <thead>
            <tr>
