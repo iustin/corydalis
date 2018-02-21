@@ -28,7 +28,9 @@
                     $if numCameras > 1
                       <td>#{exifCamera e}
                     $if numLenses > 1
-                      <td>#{liName (exifLens e) }
+                      <td>
+                        <a href="@{LensInfoR (liName (exifLens e))}">
+                          #{lensDisplayName (exifLens e) }
                     <td>
                       $case imgStatus img
                         $of ImageProcessed

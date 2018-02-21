@@ -36,6 +36,8 @@ module Exif ( Exif(..)
             , affineTransform
             , unknown
             , unknownLens
+            , lensDisplayName
+            , lensShortName
             ) where
 
 import           Control.Applicative
@@ -209,6 +211,19 @@ lensInfoFromObject o = do
                                   else Just $ VariableAperture a1 a2
           _ -> Nothing
   return LensInfo{..}
+
+lensDisplayName :: LensInfo -> Text
+lensDisplayName LensInfo{..} =
+  if "Unknown (" `Text.isPrefixOf` liName &&
+     liSpec /= unknown
+    then liSpec
+    else liName
+
+lensShortName :: LensInfo -> Text
+lensShortName LensInfo{..} =
+  if Text.length liSpec < Text.length liName
+     then liSpec
+     else liName
 
 data RawExif = RawExif
   { rExifSrcFile     :: Text

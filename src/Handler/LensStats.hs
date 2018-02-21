@@ -31,7 +31,6 @@ module Handler.LensStats
   ) where
 
 import qualified Data.Map      as Map
-import qualified Data.Text     as Text
 
 import           Exif
 import           Handler.Utils
@@ -77,11 +76,8 @@ getLensStatsR = do
           repoStats pics
       lenses = Map.toList bylens
       top10l = buildTopNLenses bylens 30
-      bestName li = if Text.length (liName li) < Text.length (liSpec li)
-                       then liName li
-                       else liSpec li
       jsonl = foldl' (\a (cnt, _, k, li) ->
-                        def { gdName = bestName li
+                        def { gdName = lensShortName li
                             , gdType = "bar"
                             , gdMode = Just "markers"
                             , gdX = [k]
