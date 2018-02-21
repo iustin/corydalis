@@ -27,9 +27,9 @@ description: >
   See README.md for more details.
 
 extra-source-files:
+  - assets/*/*/*
   - templates/*
   - static/css/*
-  - static/fonts/*
   - static/js/*
   - README.md
   - docs/*.md
