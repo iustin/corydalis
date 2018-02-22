@@ -49,8 +49,7 @@ dist:
 release: clean lint doc regen-git-version
 	stack build --pedantic
 	stack install --local-bin-path dist/
-	mkdir -p dist/static/
-	rsync -a static/css static/fonts static/js dist/static/
+	rsync -a static assets dist/
 
 doc:
 	mkdocs build -s
@@ -64,7 +63,7 @@ haddock:
 	cabal haddock --internal --haddock-options=--ignore-all-exports
 
 clean:
-	rm -rf site/
+	rm -rf site/ dist/
 	stack clean
 
 test:
