@@ -29,17 +29,17 @@ Current configuration:
         $forall dir <- sort $ cfgBlacklistedDirs config
           <li>
             <span .monolight>#{quoteMarkup dir}
-  <li>extensions considered raw <span class="fas fa-image"></span> files (in priority order):
+  <li>extensions considered raw <span class="#{iconRaw}"></span> files (in priority order):
     <ul>
       $forall ext <- cfgRawExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
-  <li>extensions considered sidecar files:
+  <li>extensions considered <span class="#{iconPlainFile}"></span> sidecar files:
     <ul>
       $forall ext <- sort $ cfgSidecarExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
-  <li>extensions considered jpeg <span class="far fa-image"></span> files:
+  <li>extensions considered jpeg <span class="#{iconProcessed}"></span> files:
     <ul>
       $forall ext <- sort $ cfgJpegExts config
         <li>
