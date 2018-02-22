@@ -128,8 +128,7 @@ library:
     - Handler.Folder
     - Handler.Home
     - Handler.Image
-    - Handler.LensInfo
-    - Handler.LensStats
+    - Handler.Lens
     - Handler.List
     - Handler.Reload
     - Handler.Search

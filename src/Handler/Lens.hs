@@ -26,8 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-module Handler.LensInfo
+module Handler.Lens
   ( getLensInfoR
+  , getLensStatsR
   ) where
 
 import           Exif
@@ -141,4 +142,27 @@ getLensInfoR lensname = do
   defaultLayoutJson html (return $ object [ "lensflap"  .= [jsonl]
                                           , "ytickvals" .= tickVals
                                           , "yticktext" .= tickText
+                                          ])
+
+getLensStatsR :: Handler TypedContent
+getLensStatsR = do
+  pics <- getPics
+  let RepoStats
+        (Stats _ _ _ _ _ _ _ _ _ _ _ bylens) _ =
+          repoStats pics
+      lenses = Map.toList bylens
+      top10l = buildTopNLenses bylens 30
+      jsonl = foldl' (\a (cnt, _, k, li) ->
+                        def { gdName = lensShortName li
+                            , gdType = "bar"
+                            , gdMode = Just "markers"
+                            , gdX = Just [k]
+                            , gdY = Just [fromIntegral cnt]
+                            }:a)
+              ([]::[GraphData Text Int64 Int64]) top10l
+  let html = do
+        setTitle "Corydalis: lens statistics"
+        addScript $ StaticR js_plotly_js
+        $(widgetFile "lensstats")
+  defaultLayoutJson html (return $ object [ "lenses"  .= jsonl
                                           ])

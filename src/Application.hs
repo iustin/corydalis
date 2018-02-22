@@ -73,8 +73,7 @@ import           Handler.Curate
 import           Handler.Folder
 import           Handler.Home
 import           Handler.Image
-import           Handler.LensInfo
-import           Handler.LensStats
+import           Handler.Lens
 import           Handler.List
 import           Handler.Reload
 import           Handler.Search
