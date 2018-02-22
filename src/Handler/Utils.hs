@@ -56,6 +56,14 @@ fcName FolderProcessed   = "fully processed"
 fcName FolderEmpty       = "empty"
 fcName FolderMixed       = "mixed"
 
+fcShortName :: FolderClass -> Text
+fcShortName FolderRaw         = "raw"
+fcShortName FolderStandalone  = "standalone"
+fcShortName FolderUnprocessed = "in progress"
+fcShortName FolderProcessed   = "processed"
+fcShortName FolderEmpty       = "empty"
+fcShortName FolderMixed       = "mixed"
+
 rawIcon :: Text
 rawIcon = "fas fa-image"
 
