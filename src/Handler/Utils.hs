@@ -64,28 +64,28 @@ fcShortName FolderProcessed   = "processed"
 fcShortName FolderEmpty       = "empty"
 fcShortName FolderMixed       = "mixed"
 
-rawIcon :: Text
-rawIcon = "fas fa-file-image"
+iconRaw :: Text
+iconRaw = "fas fa-file-image"
 
-processedIcon :: Text
-processedIcon = "far fa-file-image"
+iconProcessed :: Text
+iconProcessed = "far fa-file-image"
 
-doneIcon :: Text
-doneIcon = "fas fa-check"
+iconDone :: Text
+iconDone = "fas fa-check"
 
-inProgressIcon :: Text
-inProgressIcon = "fas fa-hourglass-half"
+iconWIP :: Text
+iconWIP = "fas fa-hourglass-half"
 
-folderIcon :: Text
-folderIcon = "far fa-folder"
+iconFolder :: Text
+iconFolder = "far fa-folder"
 
 fcIcon :: FolderClass -> [Text]
-fcIcon FolderRaw         = [rawIcon]
-fcIcon FolderStandalone  = [processedIcon]
-fcIcon FolderUnprocessed = [rawIcon, processedIcon, inProgressIcon]
-fcIcon FolderProcessed   = [rawIcon, processedIcon, doneIcon]
-fcIcon FolderEmpty       = [folderIcon]
-fcIcon FolderMixed       = [processedIcon, rawIcon, processedIcon]
+fcIcon FolderRaw         = [iconRaw]
+fcIcon FolderStandalone  = [iconProcessed]
+fcIcon FolderUnprocessed = [iconRaw, iconProcessed, iconWIP]
+fcIcon FolderProcessed   = [iconRaw, iconProcessed, iconDone]
+fcIcon FolderEmpty       = [iconFolder]
+fcIcon FolderMixed       = [iconProcessed, iconRaw, iconProcessed]
 
 fcDescription :: FolderClass -> Text
 fcDescription FolderRaw         = "contains only unprocessed RAW files"
