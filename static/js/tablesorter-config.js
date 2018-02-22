@@ -6,10 +6,5 @@
         theme: "bootstrap",
         headerTemplate: "{content} {icon}",
         widgets : [ "uitheme", "filter" ],
-        textExtraction: {
-            '.data-sort-value': function(node, table, cellIndex) {
-                return $(node).data("sortValue");
-            },
-        }
     });
 })(jQuery);

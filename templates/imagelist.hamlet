@@ -12,7 +12,7 @@
                   $if numLenses > 1
                     <th .filter-select>Lens
                   $if not hideType
-                    <th .filter-select .data-sort-value>Type
+                    <th .filter-select>Type
               <tbody>
                 $forall img@Image{imgExif=e, imgParent=p, imgStatus=s} <- images
                   <tr .#{imgRowClass img}>
@@ -33,7 +33,7 @@
                         <a href="@{LensInfoR (liName (exifLens e))}">
                           #{lensDisplayName (exifLens e) }
                     $if not hideType
-                      <td data-sort-value="#{isShortName s}">
+                      <td data-text="#{isShortName s}">
                         <span title="#{isShortName s}">
                           $forall iclass <- isIcon s
                             <span class="#{iclass}">

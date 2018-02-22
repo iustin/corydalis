@@ -21,7 +21,7 @@
            <tr>
              <th .sorter-false .filter-false>Icon
              <th .sorter-text>Name
-             <th .sorter-text .filter-select .data-sort-value>Status
+             <th .sorter-text .filter-select>Status
              <th .sorter-digit>Images
              <th .sorter-digit>Unprocessed
              <th .sorter-digit>Standalone
@@ -33,7 +33,7 @@
                <td>
                  ^{folderCover thumbsize n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
-               <td data-sort-value="#{fcShortName (folderClass n)}">
+               <td data-text="#{fcShortName (folderClass n)}">
                  <span title="#{fcDescription (folderClass n)}">
                    $forall iclass <- classes
                      <span class="#{iclass}">
