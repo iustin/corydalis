@@ -177,6 +177,8 @@ instance Yesod App where
           addScript $ StaticR js_tablesorter_uitheme_simple_js
           addScript $ StaticR js_bootstrap_js
 
+          addScript $ StaticR js_tablesorter_config_js
+
           $(widgetFile "default-layout")
         let inflist = [1..]::[Int]
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
