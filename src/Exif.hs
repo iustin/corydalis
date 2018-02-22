@@ -50,7 +50,7 @@ import qualified Data.ByteString        as BS (ByteString, readFile)
 import           Data.Default
 import           Data.List
 import           Data.Map.Strict        (Map)
-import qualified Data.Map.Strict        as M
+import qualified Data.Map.Strict        as Map
 import           Data.Maybe
 import           Data.Scientific        (toBoundedInteger)
 import           Data.Semigroup
@@ -335,7 +335,7 @@ instance NFData GroupExif where
                       rnf gExifLenses
 
 instance Default GroupExif where
-  def = GroupExif M.empty M.empty M.empty M.empty M.empty M.empty M.empty M.empty
+  def = GroupExif Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
 
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
@@ -349,7 +349,7 @@ addExifToGroup g e =
     , gExifCameras   = count (gExifCameras g) (exifCamera e)
     , gExifLenses    = count (gExifLenses  g) (liName $ exifLens e)
     }
-    where count m k = M.insertWith (+) k 1 m
+    where count m k = Map.insertWith (+) k 1 m
 
 instance Semigroup GroupExif where
   g1 <> g2 =
@@ -363,7 +363,7 @@ instance Semigroup GroupExif where
     , gExifCameras   = gExifCameras   g1 `merge` gExifCameras   g2
     , gExifLenses    = gExifLenses    g1 `merge` gExifLenses    g2
     }
-    where merge = M.unionWith (+)
+    where merge = Map.unionWith (+)
 
 unknown :: Text
 unknown = "unknown"
@@ -527,8 +527,8 @@ getExif config dir paths = do
                             exif <- readBExif config fpath
                             case exif of
                               Nothing -> return (c, p:m)
-                              Just e  -> return (M.insert p e c, m)
-                        ) (M.empty, []) paths
+                              Just e  -> return (Map.insert p e c, m)
+                        ) (Map.empty, []) paths
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
                             exif <- readExif config fpath
@@ -537,7 +537,7 @@ getExif config dir paths = do
                               Just v -> do
                                 let e = exifFromRaw config v
                                 writeBExif config fpath e
-                                return (M.insert p e c, m)
+                                return (Map.insert p e c, m)
                  ) (cache1, []) m1
   jsons <- if null m2
              then return []
@@ -555,7 +555,7 @@ getExif config dir paths = do
                return $ fromMaybe [] exifs
   foldM (\m r -> do
             (path, e) <- writeExifs config dir r
-            return $ M.insert path e m
+            return $ Map.insert path e m
         ) cache2 jsons
 
 exifPath :: Config -> FilePath -> FilePath
