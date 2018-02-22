@@ -65,10 +65,10 @@ fcShortName FolderEmpty       = "empty"
 fcShortName FolderMixed       = "mixed"
 
 rawIcon :: Text
-rawIcon = "fas fa-image"
+rawIcon = "fas fa-file-image"
 
 processedIcon :: Text
-processedIcon = "far fa-image"
+processedIcon = "far fa-file-image"
 
 doneIcon :: Text
 doneIcon = "fas fa-check"
