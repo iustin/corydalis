@@ -67,16 +67,9 @@ generatePrevNext k m r = do
 imageList :: Int -> Bool -> Bool -> [Image] -> Widget
 imageList thumbsize showParent hideType images = do
   let exifs = map imgExif images
-      one = 1::Int64
-      cameras =
-        Map.toList .
-        foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
-        map exifCamera $ exifs
+      cameras = countItems . map exifCamera $ exifs
       numCameras = length cameras
-      lenses =
-        Map.toList .
-        foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
-        map exifLens $ exifs
+      lenses = countItems . map exifLens $ exifs
       numLenses = length lenses
       sortColumn = if showParent
                      then toJSON (2::Int)

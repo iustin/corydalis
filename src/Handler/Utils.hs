@@ -221,3 +221,8 @@ showLensFL (Just (Prime fl)) =
   printf "%.0fmm (%.03f)" fl fl
 showLensFL (Just (Zoom min' max')) =
   printf "%.0f-%.0fmm (%.03f-%.03f)" min' max' min' max'
+
+countItems :: (Ord a) => [a] -> [(a, Int64)]
+countItems =
+  Map.toList .
+  foldl' (\m c -> Map.insertWith (+) c 1 m) Map.empty

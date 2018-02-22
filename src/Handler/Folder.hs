@@ -50,14 +50,7 @@ getFolderR name = do
         rbuilder = (const .) FolderR
         images = map snd . Map.toList $ pdImages dir
         exifs = map imgExif images
-        one = 1::Int64
-        cameras =
-          Map.toList .
-          foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
-          map exifCamera $ exifs
-        lenses =
-          Map.toList .
-          foldl' (\m c -> Map.insertWith (+) c one m) Map.empty .
-          map exifLens $ exifs
+        cameras = countItems . map exifCamera $ exifs
+        lenses = countItems . map exifLens $ exifs
     setTitle . toHtml $ "Corydalis: folder " <> name
     $(widgetFile "folder")
