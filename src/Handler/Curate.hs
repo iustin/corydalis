@@ -82,7 +82,7 @@ getCurateR = do
       numLenses = Map.size bylens
       all_fc = [minBound..maxBound]
       buildTop10 m n = let allItems = sortBy (flip compare) $
-                             Map.foldlWithKey' (\a k (cnt, sz) ->
+                             Map.foldlWithKey' (\a k (Occurrence cnt sz _) ->
                                                   (cnt, sz, k):a) [] m
                            top10 = if length allItems > n
                                      then let t10 = reverse $ take (n-1) allItems

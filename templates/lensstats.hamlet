@@ -20,10 +20,12 @@
            <tr>
              <th .sorter-text>Name
              <th .sorter-text>Short name
-             <th .sorter-digit>Count
+             <th .sorter-digit>Image count
+             <th .sorter-digit>Folder count
          <tbody>
-           $forall (name, (li, (count, _))) <- lenses
+           $forall (name, (li, oc)) <- lenses
              <tr>
                <td><a href=@{LensInfoR name}>#{name}</a>
                <td>#{liSpec li}
-               <td>#{count}
+               <td .number>#{ocFiles oc}
+               <td .number>#{ocFolders oc}

@@ -217,10 +217,10 @@ folderKeywords :: PicDir -> Text
 folderKeywords =
   Text.intercalate ", " . Map.keys . gExifKeywords . pdExif
 
-buildTopNLenses :: Map.Map Text (LensInfo, (Int, FileOffset)) -> Int -> [(Int, FileOffset, Text, LensInfo)]
+buildTopNLenses :: Map.Map Text (LensInfo, Occurrence) -> Int -> [(Integer, FileOffset, Text, LensInfo)]
 buildTopNLenses m n =
   let allItems = sortBy (flip compare) $
-                 Map.foldlWithKey' (\a k (li, (cnt, sz)) ->
+                 Map.foldlWithKey' (\a k (li, Occurrence cnt sz _) ->
                                        (cnt, sz, k, li):a) [] m
       top10 = if length allItems > n
                 then let t10 = reverse $ take (n-1) allItems

@@ -35,6 +35,7 @@ module Pics ( PicDir(..)
             , RepoStats(..)
             , ImageSize(..)
             , FileOffset
+            , Occurrence(..)
             , fileLastTouch
             , getRepo
             , scanAll
@@ -79,7 +80,7 @@ import           Control.Monad
 import           Control.Monad.Trans.Class  (lift)
 import           Control.Monad.Trans.Except
 import qualified Data.ByteString.Lazy       as BSL (append, length, writeFile)
-import           Data.Default               (def)
+import           Data.Default               (Default, def)
 import           Data.Function              (on)
 import           Data.Int                   (Int64)
 import           Data.List
@@ -321,6 +322,36 @@ instance NFData Repository where
 
 type FolderClassStats = Map.Map FolderClass Int
 
+data Occurrence = Occurrence
+  { ocFiles    :: !Integer
+  , ocFileSize :: !FileOffset
+  , ocFolders  :: !Integer
+  } deriving (Show)
+
+instance Default Occurrence where
+  def = Occurrence 0 0 0
+
+instance Monoid Occurrence where
+  mempty = def
+  mappend x y = Occurrence { ocFiles = ocFiles x + ocFiles y
+                           , ocFileSize = ocFileSize x + ocFileSize y
+                           , ocFolders = ocFolders x + ocFolders y
+                           }
+
+instance Semigroup Occurrence
+
+instance NFData Occurrence where
+  -- All fields are strict and simple, so weak head normal form is
+  -- enough.
+  rnf = rwhnf
+
+ocFromSize :: FileOffset -> Occurrence
+ocFromSize size =
+  Occurrence { ocFiles = 1
+             , ocFileSize = size
+             , ocFolders = 0
+             }
+
 -- | Data type holding per-folder picture statistics.
 data Stats = Stats
   { sRaw            :: !Int
@@ -333,8 +364,8 @@ data Stats = Stats
   , sStandaloneSize :: !FileOffset
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
-  , sByCamera       :: !(Map.Map Text (Int, FileOffset))
-  , sByLens         :: !(Map.Map Text (LensInfo, (Int, FileOffset)))
+  , sByCamera       :: !(Map.Map Text Occurrence)
+  , sByLens         :: !(Map.Map Text (LensInfo, Occurrence))
   } deriving Show
 
 instance NFData Stats where
@@ -366,11 +397,8 @@ totalStatsCount stats =
   sRaw stats + sStandalone stats + sProcessed stats
          + sOrphaned stats + sUntracked stats
 
-sumTuple :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
-sumTuple (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-
-sumLensData :: (Num a, Num b) => (LensInfo, (a, b)) -> (LensInfo, (a, b)) -> (LensInfo, (a, b))
-sumLensData (_, x) (li, y) = (li, sumTuple x y)
+sumLensData :: (Semigroup a) => (LensInfo, a) -> (LensInfo, a) -> (LensInfo, a)
+sumLensData (_, x) (li, y) = (li, x <> y)
 
 sumStats :: Stats -> Stats -> Stats
 sumStats (Stats r1 s1 p1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
@@ -378,7 +406,7 @@ sumStats (Stats r1 s1 p1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
   Stats (r1 + r2) (s1 + s2) (p1 + p2) (h1 + h2) (u1 + u2)
         (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2) (us1 + us2)
         sc sl
-  where sc = Map.unionWith sumTuple sc1 sc2
+  where sc = Map.unionWith mappend sc1 sc2
         sl = Map.unionWith sumLensData sl1 sl2
 
 updateStatsWithPic :: Stats -> Image -> Stats
@@ -413,12 +441,13 @@ updateStatsWithPic orig img =
                             x:_ -> fileSize x
                             _   -> 0
       lens = exifLens $ imgExif img
+      occurrence = ocFromSize xsize
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
            , sSidecarSize = ms'
-           , sByCamera = Map.insertWith sumTuple camera (1, xsize) (sByCamera orig)
-           , sByLens = Map.insertWith sumLensData (liName lens) (lens, (1, xsize)) (sByLens orig)
+           , sByCamera = Map.insertWith mappend camera occurrence (sByCamera orig)
+           , sByLens = Map.insertWith sumLensData (liName lens) (lens, occurrence) (sByLens orig)
            }
 
 updateStatsWithUntracked :: Stats -> Untracked -> Stats
