@@ -45,7 +45,7 @@ getImageR folder iname = do
       flags = if flagsSoftMaster (imgFlags img)
                  then "soft master"::Text
                  else "(none)"
-      lensName = liName . exifLens . imgExif $ img
+      lens = exifLens . imgExif $ img
   defaultLayout $ do
     setTitle . toHtml $ "Corydalis: Image " <> folder
                <> "/" <> imgName img
