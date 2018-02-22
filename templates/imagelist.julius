@@ -1,6 +1,6 @@
 $(document).ready(function() {
   $("#imagelist").tablesorter({
-        sortList: [[#{sortColumn},0]],
+        sortList: #{sortColumns},
         theme: "bootstrap",
         headerTemplate: "{content} {icon}",
         widgets : [ "uitheme", "filter" ],

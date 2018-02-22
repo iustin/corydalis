@@ -71,7 +71,8 @@ imageList thumbsize showParent hideType images = do
       numCameras = length cameras
       lenses = countItems . map exifLens $ exifs
       numLenses = length lenses
-      sortColumn = if showParent
-                     then toJSON (2::Int)
-                     else toJSON (1::Int)
+      sortColumns = toJSON $
+                    if showParent
+                      then [[1, 0], [2, 0]]
+                      else [[1, 0]]::[[Int]]
   $(widgetFile "imagelist")
