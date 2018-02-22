@@ -158,9 +158,9 @@ instance Yesod App where
         -- you to use normal widget features in default-layout.
 
         pc <- widgetToPageContent $ do
-          addStylesheet $ StaticR css_bootstrap_css
-
-          addStylesheet $ StaticR css_tablesorter_theme_bootstrap_css
+          -- Bootstrap CSS (with tablesorter).
+          addStylesheet $ AssetsR bootstrap_css_bootstrap_css
+          addStylesheet $ AssetsR tablesorter_css_tablesorter_theme_bootstrap_css
 
           -- Font Awesome assets.
           addStylesheet $ AssetsR font_awesome_css_fontawesome_css
@@ -170,13 +170,14 @@ instance Yesod App where
           -- Own CSS.
           addStylesheet $ StaticR css_basic_css
 
-          addScript $ StaticR js_jquery_js
-          addScript $ StaticR js_jquery_tablesorter_js
-          addScript $ StaticR js_tablesorter_widget_uitheme_js
-          addScript $ StaticR js_tablesorter_widget_filter_js
-          addScript $ StaticR js_tablesorter_uitheme_simple_js
-          addScript $ StaticR js_bootstrap_js
+          addScript $ AssetsR jquery_js_jquery_js
+          addScript $ AssetsR tablesorter_js_jquery_tablesorter_js
+          addScript $ AssetsR tablesorter_js_tablesorter_widget_uitheme_js
+          addScript $ AssetsR tablesorter_js_tablesorter_widget_filter_js
+          addScript $ AssetsR bootstrap_js_bootstrap_js
 
+          -- Own JS.
+          addScript $ StaticR js_tablesorter_uitheme_simple_js
           addScript $ StaticR js_tablesorter_config_js
 
           $(widgetFile "default-layout")

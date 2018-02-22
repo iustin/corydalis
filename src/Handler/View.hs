@@ -136,7 +136,7 @@ getViewR folder iname = do
   debug <- appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addScript $ StaticR js_viewer_js
-    addScript $ StaticR js_hammer_js
+    addScript $ AssetsR hammer_js_hammer_js
     setTitle . toHtml $ "Corydalis: Image " <> folder
                <> "/" <> imgName img
     $(widgetFile "view")

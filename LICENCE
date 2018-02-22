@@ -23,8 +23,8 @@ License: AGPL-3+
   LICENCE-AGPL.
 
 Files:
-  static/css/bootstrap.css
-  static/js/bootstrap.js
+  assets/bootstrap/css/bootstrap.css
+  assets/bootstrap/js/bootstrap.js
 Copyright: 2011-2016, Twitter, Inc
 License: MIT
 
@@ -32,15 +32,11 @@ Files: static/js/jquery.js
 Copyright: JS Foundation and other contributors
 License: MIT
 
-Files: static/js/jquery.metadata.js
-Copyright: 2006, John Resig, Yehuda Katz, Jörn Zaefferer, Paul McLanahan
-License: MIT or GPL
-
 Files:
-  static/js/jquery.tablesorter.js
-  static/js/tablesorter-widget-uitheme.js
-  static/js/tablesorter-widget-filter.js
-  static/css/tablesorter.theme.bootstrap.css
+  assets/tablesorter/js/jquery.tablesorter.js
+  assets/tablesorter/js/tablesorter-widget-uitheme.js
+  assets/tablesorter/js/tablesorter-widget-filter.js
+  assets/tablesorter/css/tablesorter.theme.bootstrap.css
 Copyright: 2007, Christian Bach <christian.bach@polyester.se>
 Comment: this is a fork from https://github.com/Mottie/tablesorter
 License: MIT or GPL
@@ -57,7 +53,7 @@ Comment: Font Awesome license file available as LICENSE-fontawesome
 License: MIT
 
 Files:
-  static/js/plotly.js
+  assets/plotly/js/plotly.js
 Copyright: 2015 Plotly, Inc
 License: MIT
 
