@@ -1,11 +1,5 @@
 $(document).ready(function() {
-  $("#imagelist").tablesorter({
+    $("#imagelist").tablesorter({
         sortList: #{sortColumns},
-        theme: "bootstrap",
-        headerTemplate: "{content} {icon}",
-        widgets : [ "uitheme", "filter" ],
-        widgetOptions : {
-            filter_hideFilters: false,
-        }
     });
 });

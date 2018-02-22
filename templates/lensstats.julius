@@ -28,9 +28,5 @@ $(document).ready(function() {
 
     $("#lenslist").tablesorter({
         sortList: [[2,1], [0,0], [1, 0]],
-        theme: "bootstrap",
-        headerTemplate: "{content} {icon}",
-        widgets : [ "uitheme", "filter" ],
     });
-
 });

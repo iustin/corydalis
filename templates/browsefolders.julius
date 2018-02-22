@@ -1,8 +1,5 @@
 $(document).ready(function() {
-  $("#folderlist").tablesorter({
+    $("#folderlist").tablesorter({
         sortList: [[1, 0]],
-        theme: "bootstrap",
-        headerTemplate: "{content} {icon}",
-        widgets : [ "uitheme", "filter" ],
     });
 });
