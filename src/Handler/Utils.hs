@@ -64,11 +64,26 @@ fcShortName FolderProcessed   = "processed"
 fcShortName FolderEmpty       = "empty"
 fcShortName FolderMixed       = "mixed"
 
+isShortName :: ImageStatus -> Text
+isShortName ImageOrphaned   = "orphaned"
+isShortName ImageStandalone = "standalone"
+isShortName ImageRaw        = "unprocessed"
+isShortName ImageProcessed  = "processed"
+
+isIcon :: ImageStatus -> [Text]
+isIcon ImageOrphaned   = [iconPlainFile]
+isIcon ImageStandalone = [iconProcessed]
+isIcon ImageRaw        = [iconRaw]
+isIcon ImageProcessed  = [iconRaw, iconProcessed]
+
 iconRaw :: Text
 iconRaw = "fas fa-file-image"
 
 iconProcessed :: Text
 iconProcessed = "far fa-file-image"
+
+iconPlainFile :: Text
+iconPlainFile = "far fa-file-alt"
 
 iconDone :: Text
 iconDone = "fas fa-check"
