@@ -85,8 +85,8 @@ getSearchFoldersR = do
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
   (config, params, atom, search_string, pics) <- searchContext
-  let images = filterImagesBy (imageSearchFunction atom) pics
-      thumbsize = cfgThumbnailSize config
+  images <- Map.elems <$> (lift $ searchImages params atom pics)
+  let thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching images"::Text)
     $(widgetFile "searchimages")
