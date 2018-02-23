@@ -50,6 +50,7 @@ release: clean lint doc regen-git-version
 	stack build --pedantic
 	stack install --local-bin-path dist/
 	rsync -a static assets dist/
+	rm -rf dist/static/tmp/
 
 doc:
 	mkdocs build -s
