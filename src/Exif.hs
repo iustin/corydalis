@@ -38,6 +38,7 @@ module Exif ( Exif(..)
             , unknownLens
             , lensDisplayName
             , lensShortName
+            , formatPerson
             ) where
 
 import           Control.Applicative
@@ -383,6 +384,17 @@ instance Default Transform where
 -- | Parses the (Lightroom-specific?) hierarchical keywords.
 parseHierSubject :: Text -> [Text]
 parseHierSubject = Text.splitOn "|"
+
+-- | Formats a \"Doe\/John\" name as \"John Doe\" or \"John D.\".
+formatPerson :: Bool -> Text -> Text
+formatPerson abbrev name =
+  let w = "/" `Text.splitOn` name
+  in case w of
+       [l, f] | not (Text.null l) ->
+                if abbrev
+                  then f <> " " `Text.snoc` Text.head l `Text.snoc` '.'
+                  else f <> " " <> l
+       _ -> name
 
 -- | Returns the (partial) affine matrix for the given orientation.
 affineTransform :: Orientation -> Transform

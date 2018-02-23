@@ -33,37 +33,6 @@ import           Pics
 import           Types
 
 import qualified Data.Map        as Map
-import qualified Data.Text       as Text
-
-
-atomDescription :: Atom -> Text
-atomDescription (Country  place) = "country is "  <> place
-atomDescription (Province place) = "province is " <> place
-atomDescription (City     place) = "city is "     <> place
-atomDescription (Location place) = "location is " <> place
-atomDescription (Person who) = formatPerson False who <>
-                               " is in the picture"
-atomDescription (Keyword what) = "tagged with keyword " <> what
-atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
-atomDescription (And a b) =
-  mconcat [ "("
-          , atomDescription a
-          , " and "
-          , atomDescription b
-          , ")"
-          ]
-
-atomDescription (Or a b) =
-  mconcat [ "("
-          , atomDescription a
-          , " or "
-          , atomDescription b
-          , ")"
-          ]
-atomDescription (Not a) = "(not " <> atomDescription a <> ")"
-
-atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
-atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 
 searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do

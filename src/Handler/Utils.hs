@@ -194,17 +194,6 @@ quoteMarkup :: (ToMarkup a) => a -> Markup
 quoteMarkup element = toMarkup [quote, toMarkup element, quote]
   where quote = string "'"
 
--- | Formats a \"Doe\/John\" name as \"John Doe\" or \"John D.\".
-formatPerson :: Bool -> Text -> Text
-formatPerson abbrev name =
-  let w = "/" `Text.splitOn` name
-  in case w of
-       [l, f] | not (Text.null l) ->
-                if abbrev
-                  then f <> " " `Text.snoc` Text.head l `Text.snoc` '.'
-                  else f <> " " <> l
-       _ -> name
-
 folderLocations :: PicDir -> Text
 folderLocations =
   Text.intercalate ", " . Map.keys . gExifLocations . pdExif
