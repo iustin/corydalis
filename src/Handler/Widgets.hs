@@ -43,12 +43,13 @@ searchDiv :: AtomType -> Text -> Text -> (Text -> Text) -> [(Text, Integer)] -> 
 searchDiv atom kindPlCap kind formatter items =
   $(widgetFile "searchdiv")
 
-folderCover :: Int -> UrlParams -> PicDir -> Widget
-folderCover thumbsize params folder = do
+folderCover :: Int -> UrlParams -> Atom -> PicDir -> Widget
+folderCover thumbsize params atom folder = do
   let name = pdName folder
-  case Map.lookupMin $ pdImages folder of
-    Nothing       -> toWidget [hamlet|<span .disabled>N/A|]
-    Just (_, img) -> imageBytes thumbsize params name (imgName img)
+      images = imageSearchFunction atom `filter` Map.elems (pdImages folder)
+  case images of
+    []    -> toWidget [hamlet|<span .disabled>N/A|]
+    img:_ -> imageBytes thumbsize params name (imgName img)
 
 imageBytes :: Int -> UrlParams -> Text -> Text -> Widget
 imageBytes thumbsize params folder image =
