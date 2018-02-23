@@ -81,9 +81,9 @@ extractAtomParams = do
                   _     -> Not x
         return $ a:xs
       ff xs ("all", _) =
-        return $ [All xs]
+        return [All xs]
       ff xs ("any", _) =
-        return $ [Any xs]
+        return [Any xs]
       ff xs (an, av) = do
         let v = do
               at <- parseAName an
@@ -96,18 +96,18 @@ extractAtomParams = do
     [x] -> return x
     xs  -> return $ All xs
 
-searchContext :: Handler (Config, [(Text, Text)], Atom)
+searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
   config <- getConfig
   params <- getParams
   atom <- extractAtomParams
-  return (config, params, atom)
+  let search_string = atomDescription atom
+  pics <- getPics
+  return (config, params, atom, search_string, pics)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
-  (config, params, atom) <- searchContext
-  let search_string = atomDescription atom
-  pics <- getPics
+  (config, params, atom, search_string, pics) <- searchContext
   let folders = filter (folderSearchFunction atom) . Map.elems . repoDirs $ pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
@@ -116,9 +116,7 @@ getSearchFoldersR = do
 
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
-  (config, params, atom) <- searchContext
-  let search_string = atomDescription atom
-  pics <- getPics
+  (config, params, atom, search_string, pics) <- searchContext
   let images = filterImagesBy (imageSearchFunction atom) pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do

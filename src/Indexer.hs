@@ -154,10 +154,10 @@ imageSearchFunction (Not a) =
   not . imageSearchFunction a
 
 imageSearchFunction (All as) = \img ->
-  all (flip imageSearchFunction img) as
+  all (`imageSearchFunction` img) as
 
 imageSearchFunction (Any as) = \img ->
-  any (flip imageSearchFunction img) as
+  any (`imageSearchFunction` img) as
 
 getAtoms :: AtomType -> Repository -> NameStats
 getAtoms TCountry  = gExifCountries . repoExif
