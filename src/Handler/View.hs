@@ -33,6 +33,7 @@ module Handler.View ( getViewR
                     ) where
 
 import           Data.Aeson.Text             (encodeToLazyText)
+import           Data.List                   ((!!))
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as Text
 import qualified Data.Text.Encoding          as Text (encodeUtf8)
@@ -46,6 +47,7 @@ import           Text.Read                   (readMaybe)
 import           Exif
 import           Handler.Utils
 import           Import
+import           Indexer
 import           Pics
 import           Types
 
@@ -104,40 +106,30 @@ instance ToJSON ViewInfo where
            , "last"        .= viLast
            ]
 
--- | Helper until newer containers reach LTS.
-lookupMin :: Map a b -> Maybe (a, b)
-lookupMin m = if Map.null m then Nothing else Just $ Map.findMin m
+-- | Build image map (with static sorting).
+buildImageMap :: Atom -> Repository -> Map.Map (Text, Text) Image
+buildImageMap atom =
+  foldl' (\m img ->
+             Map.insert (imgParent img, imgName img) img m
+         ) Map.empty .
+  filterImagesBy (imageSearchFunction atom)
 
--- | Helper until newer containers reach LTS.
-lookupMax :: Map a b -> Maybe (a, b)
-lookupMax m = if Map.null m then Nothing else Just $ Map.findMax m
-
-getNextImageAnyFolder :: Repository -> Text -> Text -> Bool -> Maybe Image
-getNextImageAnyFolder (repoDirs -> pics) folder iname forward = do
-  let nextElem :: (Ord a) => a -> Map a b -> Maybe (a, b)
-      nextElem  = if forward then Map.lookupGT else Map.lookupLT
-      nextFolder = flip nextElem pics
-      firstImage = if forward then lookupMin else lookupMax
-      hasImages = isJust . firstImage . pdImages
-  curFolder <- pdImages <$> folder `Map.lookup` pics
-  -- The result of any lookup is (k, v), hence the many fst and snd
-  -- calls below.
-  case iname `nextElem` curFolder of
-    Nothing -> do
-      nf <- until
-                    (maybe True (hasImages . snd))
-                    (>>= nextFolder . fst)
-                    (nextFolder folder)
-      fmap snd . firstImage . pdImages . snd $ nf
-    img -> snd <$> img
+-- | Ensure that requested image is present in the (filtered) map.
+locateCurrentImage :: Text -> Text -> Map.Map (Text, Text) Image
+                   -> Handler Image
+locateCurrentImage fname iname images =
+  case Map.lookup (fname, iname) images of
+    Just img -> return img
+    Nothing  -> notFound
 
 getViewR :: Text -> Text -> Handler Html
 getViewR folder iname = do
-  img <- getImage folder iname
+  (params, atom) <- getAtomParams
+  images <- buildImageMap atom <$> getPics
+  img <- locateCurrentImage folder iname images
   let Transform r fx fy = transformForImage img
       initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
   debug <- appShouldLogAll . appSettings <$> getYesod
-  params <- getParams
   defaultLayout $ do
     addScript $ StaticR js_viewer_js
     addScript $ AssetsR hammer_js_hammer_js
@@ -195,18 +187,18 @@ transformForImage img =
 
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
-  (pics, dir) <- getPicsAndFolder folder
-  let images = pdImages dir
-  img <- getFolderImage dir iname
+  (params, atom) <- getAtomParams
+  images <- buildImageMap atom <$> getPics
+  img <- locateCurrentImage folder iname images
   render <- getUrlRenderParams
   let -- since we have an image, it follows that min/max must exist
       -- (they might be the same), hence we can use the non-total
       -- functions findMin/findMax until newer containers package
       -- reaches LTS
-      imgFirst = snd  $ Map.findMin images
-      imgPrev  = getNextImageAnyFolder pics folder iname False
-      imgNext  = getNextImageAnyFolder pics folder iname True
-      imgLast  = snd  $ Map.findMax images
+      imgFirst = snd  $  Map.findMin images
+      imgPrev  = snd <$> Map.lookupLT (folder, iname) images
+      imgNext  = snd <$> Map.lookupGT (folder, iname) images
+      imgLast  = snd  $  Map.findMax images
       mk i = mkImage (imgParent i) (imgName i) render params
                (transformForImage i)
   return . toJSON $
@@ -218,11 +210,9 @@ getImageInfoR folder iname = do
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
   pics <- getPics
-  let nonEmptyFolders = Map.filter hasViewablePics (repoDirs pics)
-  when (Map.null nonEmptyFolders) notFound
-  fidx <- liftIO $ getStdRandom $ randomR (0, Map.size nonEmptyFolders - 1)
-  let (fname, folder) = Map.elemAt fidx nonEmptyFolders
-  let images = Map.filter (not . null . imgJpegPath) $ pdImages folder
-  iidx <- liftIO $ getStdRandom $ randomR (0, Map.size images - 1)
-  let (iname, _) = Map.elemAt iidx images
-  getImageInfoR fname iname
+  atom <- snd <$> getAtomParams
+  let images = filterImagesBy (imageSearchFunction atom) pics
+  when (null images) notFound
+  fidx <- liftIO $ getStdRandom $ randomR (0, length images - 1)
+  let image = images !! fidx
+  getImageInfoR (imgParent image) (imgName image)
