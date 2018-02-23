@@ -72,7 +72,9 @@ searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
   config <- getConfig
   params <- getParams
-  atom <- parseAtomParams params
+  atom <- case parseAtomParams params of
+            Right v  -> return v
+            Left msg ->invalidArgs [msg]
   let search_string = atomDescription atom
   pics <- getPics
   return (config, params, atom, search_string, pics)

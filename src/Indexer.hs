@@ -33,13 +33,15 @@ module Indexer ( AtomType(..)
                , parseAtomParams
                ) where
 
-import           Control.Monad (foldM)
-import qualified Data.Map      as Map
-import qualified Data.Set      as Set
-import           Data.Text     (Text)
-import qualified Data.Text     as Text
-import           Text.Read     (readMaybe)
-import           Yesod         (PathPiece (..))
+import           Control.Monad              (foldM)
+import           Control.Monad.Trans.Except
+import qualified Data.Map                   as Map
+import           Data.Semigroup             ((<>))
+import qualified Data.Set                   as Set
+import           Data.Text                  (Text)
+import qualified Data.Text                  as Text
+import           Text.Read                  (readMaybe)
+import           Yesod                      (PathPiece (..))
 
 import           Exif
 import           Pics
@@ -171,29 +173,27 @@ getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
 getAtoms TYear     = const Map.empty
 
-rpnParser :: (Monad m) => [Atom] -> (Text, Text) -> m [Atom]
+rpnParser :: [Atom] -> (Text, Text) -> Except Text [Atom]
 rpnParser (x:y:ys) ("and",_) = return $ And x y:ys
 rpnParser (x:y:ys) ("or",_) = return $ Or x y:ys
-rpnParser (x:xs) ("not", _) = do
+rpnParser (x:xs) ("not", _) =
   let a = case x of
             Not y -> y
             _     -> Not x
-  return $ a:xs
+  in return $ a:xs
 rpnParser xs ("all", _) = return [All xs]
 rpnParser xs ("any", _) = return [Any xs]
-rpnParser xs (an, av) = do
-  let v = do
-        at <- parseAName an
-        buildAtom at av
-  case v of
+rpnParser xs (an, av) =
+  let v = parseAName an >>=
+          \at -> buildAtom at av
+  in case v of
     Just v' -> return $ v':xs
-    Nothing -> fail $ "Failed to parse the atom " ++
-               Text.unpack an ++ "=" ++ Text.unpack av ++
-               " with stack " ++ show xs
+    Nothing -> throwE $ "Failed to parse the atom " <>
+               an <> "=" <> av <>
+               " with stack " <> Text.pack (show xs)
 
-parseAtomParams :: (Monad m) => [(Text, Text)] -> m Atom
-parseAtomParams params = do
-  let
+parseAtomParams :: [(Text, Text)] -> Either Text Atom
+parseAtomParams params = runExcept $ do
   atoms <- foldM rpnParser [] params
   case atoms of
     [x] -> return x
