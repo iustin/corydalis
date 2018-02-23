@@ -19,7 +19,7 @@
          <col style="width: #{thumbsize}px;">
          <thead>
            <tr>
-             <th .sorter-false .filter-false>Icon
+             <th .parser-false .sorter-false .filter-false>Icon
              <th .sorter-text>Name
              <th .sorter-text .filter-select>Status
              <th .sorter-digit>Images

@@ -2,7 +2,7 @@
               <col style="width: #{thumbsize}px;">
               <thead>
                 <tr>
-                  <th .sorter-false .filter-false>Icon
+                  <th .parser-false .sorter-false .filter-false>Icon
                   $if showParent
                     <th .filter-select>Folder
                   <th>Name
