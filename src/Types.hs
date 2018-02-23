@@ -27,6 +27,7 @@ module Types ( Config(..)
              , FolderClass(..)
              , ImageStatus(..)
              , JSDiffTime(..)
+             , UrlParams
              ) where
 
 import           Control.Applicative
@@ -169,3 +170,6 @@ instance PathPiece [FolderClass] where
   toPathPiece = Text.intercalate "," . map toPathPiece
   fromPathPiece "all" = Just [minBound..maxBound]
   fromPathPiece v     = mapM fromPathPiece $ Text.split (==',') v
+
+-- | Type alias for query (URL) params.
+type UrlParams = [(Text, Text)]
