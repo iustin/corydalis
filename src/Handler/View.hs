@@ -71,7 +71,7 @@ rotateToJSON RCenter =  0
 rotateToJSON RLeft   = -1
 rotateToJSON RRight  =  1
 
-mkImage :: Text -> Text -> (Hamlet.Render (Route App))
+mkImage :: Text -> Text -> Hamlet.Render (Route App)
         -> UrlParams -> Transform -> ImageInfo
 mkImage folder iname render params (Transform r fx fy) =
   ImageInfo (render (ImageInfoR folder iname) params)
