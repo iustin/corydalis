@@ -12,7 +12,7 @@
         <tr>
           <td>Image name
           <td>
-            <a href=@{ViewR (imgParent img) (imgName img)}>
+            <a href=@?{(ViewR (imgParent img) (imgName img), params)}>
              <span .far .fa-image .fa-lg>
              #{imgName img}
         <tr>
