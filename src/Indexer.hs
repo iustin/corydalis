@@ -114,38 +114,9 @@ buildAtom TKeyword kw = Just $ Keyword kw
 buildAtom TYear when =
   Year <$> readMaybe (Text.unpack when)
 
-folderSearchFunction :: Atom -> (PicDir -> Bool)
-folderSearchFunction (Country loc) =
-  \f -> loc `Map.member` gExifCountries (pdExif f)
-
-folderSearchFunction (Province loc) =
-  \f -> loc `Map.member` gExifProvinces (pdExif f)
-
-folderSearchFunction (City loc) =
-  \f -> loc `Map.member` gExifCities (pdExif f)
-
-folderSearchFunction (Location loc) =
-  \f -> loc `Map.member` gExifLocations (pdExif f)
-
-folderSearchFunction (Person who) =
-  \f -> who `Map.member` gExifPeople (pdExif f)
-
-folderSearchFunction (Keyword what) =
-  \f -> what `Map.member` gExifKeywords (pdExif f)
-
-folderSearchFunction (Year year) =
-  (== Just year) . pdYear
-
-folderSearchFunction (And a b) = \fld ->
-  folderSearchFunction a fld &&
-  folderSearchFunction b fld
-
-folderSearchFunction (Or a b) = \fld ->
-  folderSearchFunction a fld ||
-  folderSearchFunction b fld
-
-folderSearchFunction (Not a) =
-  not . folderSearchFunction a
+folderSearchFunction :: Atom -> PicDir -> Bool
+folderSearchFunction a =
+  any (imageSearchFunction a) . pdImages
 
 imageSearchFunction :: Atom -> (Image -> Bool)
 imageSearchFunction (Country loc) =
