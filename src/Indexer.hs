@@ -195,6 +195,8 @@ rpnParser xs (an, av) =
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params = runExcept $ do
   atoms <- foldM rpnParser [] params
-  case atoms of
-    [x] -> return x
-    xs  -> return $ All xs
+  return $ case atoms of
+    [x] ->  x
+    -- Note to self : [] must return All [], since Any [] will never
+    -- match. So just let it fall through the "other" case.
+    xs  -> All xs
