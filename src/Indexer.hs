@@ -30,14 +30,16 @@ module Indexer ( AtomType(..)
                , folderSearchFunction
                , imageSearchFunction
                , getAtoms
+               , parseAtomParams
                ) where
 
-import qualified Data.Map  as Map
-import qualified Data.Set  as Set
-import           Data.Text (Text)
-import qualified Data.Text as Text
-import           Text.Read (readMaybe)
-import           Yesod     (PathPiece (..))
+import           Control.Monad (foldM)
+import qualified Data.Map      as Map
+import qualified Data.Set      as Set
+import           Data.Text     (Text)
+import qualified Data.Text     as Text
+import           Text.Read     (readMaybe)
+import           Yesod         (PathPiece (..))
 
 import           Exif
 import           Pics
@@ -74,6 +76,7 @@ data Atom = Country  Text
           | Not Atom
           | All [Atom]
           | Any [Atom]
+          deriving (Show)
 
 atomNames :: [(AtomType, Text)]
 atomNames = map (\t -> (t, atomName t)) [minBound..maxBound]
@@ -167,3 +170,31 @@ getAtoms TLocation = gExifLocations . repoExif
 getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
 getAtoms TYear     = const Map.empty
+
+rpnParser :: (Monad m) => [Atom] -> (Text, Text) -> m [Atom]
+rpnParser (x:y:ys) ("and",_) = return $ And x y:ys
+rpnParser (x:y:ys) ("or",_) = return $ Or x y:ys
+rpnParser (x:xs) ("not", _) = do
+  let a = case x of
+            Not y -> y
+            _     -> Not x
+  return $ a:xs
+rpnParser xs ("all", _) = return [All xs]
+rpnParser xs ("any", _) = return [Any xs]
+rpnParser xs (an, av) = do
+  let v = do
+        at <- parseAName an
+        buildAtom at av
+  case v of
+    Just v' -> return $ v':xs
+    Nothing -> fail $ "Failed to parse the atom " ++
+               Text.unpack an ++ "=" ++ Text.unpack av ++
+               " with stack " ++ show xs
+
+parseAtomParams :: (Monad m) => [(Text, Text)] -> m Atom
+parseAtomParams params = do
+  let
+  atoms <- foldM rpnParser [] params
+  case atoms of
+    [x] -> return x
+    xs  -> return $ All xs

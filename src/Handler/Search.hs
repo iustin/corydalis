@@ -68,39 +68,11 @@ atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescrip
 getParams :: Handler [(Text, Text)]
 getParams = reqGetParams <$> getRequest
 
-extractAtomParams :: Handler Atom
-extractAtomParams = do
-  params <- getParams
-  let ff (x:y:ys) ("and",_) =
-        return $ And x y:ys
-      ff (x:y:ys) ("or",_) =
-        return $ Or x y:ys
-      ff (x:xs) ("not", _) = do
-        let a = case x of
-                  Not y -> y
-                  _     -> Not x
-        return $ a:xs
-      ff xs ("all", _) =
-        return [All xs]
-      ff xs ("any", _) =
-        return [Any xs]
-      ff xs (an, av) = do
-        let v = do
-              at <- parseAName an
-              buildAtom at av
-        case v of
-          Just v' -> return $ v':xs
-          Nothing -> invalidArgs ["Failed to parse atom", an, av]
-  atoms <- foldM ff [] params
-  case atoms of
-    [x] -> return x
-    xs  -> return $ All xs
-
 searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
   config <- getConfig
   params <- getParams
-  atom <- extractAtomParams
+  atom <- parseAtomParams params
   let search_string = atomDescription atom
   pics <- getPics
   return (config, params, atom, search_string, pics)
