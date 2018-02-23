@@ -72,6 +72,8 @@ data Atom = Country  Text
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
+          | All [Atom]
+          | Any [Atom]
 
 atomNames :: [(AtomType, Text)]
 atomNames = map (\t -> (t, atomName t)) [minBound..maxBound]
@@ -150,6 +152,12 @@ imageSearchFunction (Or a b) = \img ->
 
 imageSearchFunction (Not a) =
   not . imageSearchFunction a
+
+imageSearchFunction (All as) = \img ->
+  all (flip imageSearchFunction img) as
+
+imageSearchFunction (Any as) = \img ->
+  any (flip imageSearchFunction img) as
 
 getAtoms :: AtomType -> Repository -> NameStats
 getAtoms TCountry  = gExifCountries . repoExif

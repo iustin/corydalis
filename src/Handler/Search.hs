@@ -62,10 +62,13 @@ atomDescription (Or a b) =
           ]
 atomDescription (Not a) = "(not " <> atomDescription a <> ")"
 
+atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
+atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
+
 getParams :: Handler [(Text, Text)]
 getParams = reqGetParams <$> getRequest
 
-extractAtomParams :: Handler [Atom]
+extractAtomParams :: Handler Atom
 extractAtomParams = do
   params <- getParams
   let ff (x:y:ys) ("and",_) =
@@ -77,6 +80,10 @@ extractAtomParams = do
                   Not y -> y
                   _     -> Not x
         return $ a:xs
+      ff xs ("all", _) =
+        return $ [All xs]
+      ff xs ("any", _) =
+        return $ [Any xs]
       ff xs (an, av) = do
         let v = do
               at <- parseAName an
@@ -84,22 +91,24 @@ extractAtomParams = do
         case v of
           Just v' -> return $ v':xs
           Nothing -> invalidArgs ["Failed to parse atom", an, av]
-  foldM ff [] params
+  atoms <- foldM ff [] params
+  case atoms of
+    [x] -> return x
+    xs  -> return $ All xs
 
-searchContext :: Handler (Config, [(Text, Text)], [Atom])
+searchContext :: Handler (Config, [(Text, Text)], Atom)
 searchContext = do
   config <- getConfig
   params <- getParams
-  ato <- extractAtomParams
-  return (config, params, ato)
+  atom <- extractAtomParams
+  return (config, params, atom)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
-  (config, params, ato) <- searchContext
-  let flt = map folderSearchFunction ato
-      search_string = Text.intercalate " and " $ map atomDescription ato
+  (config, params, atom) <- searchContext
+  let search_string = atomDescription atom
   pics <- getPics
-  let folders = filter (\p -> all (\fn -> fn p) flt) . Map.elems . repoDirs $ pics
+  let folders = filter (folderSearchFunction atom) . Map.elems . repoDirs $ pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching folders"::Text)
@@ -107,11 +116,10 @@ getSearchFoldersR = do
 
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
-  (config, params, ato) <- searchContext
-  let flt = map imageSearchFunction ato
-      search_string = Text.intercalate " and " $ map atomDescription ato
+  (config, params, atom) <- searchContext
+  let search_string = atomDescription atom
   pics <- getPics
-  let images = filterImagesBy (\i -> all (\fn -> fn i) flt) pics
+  let images = filterImagesBy (imageSearchFunction atom) pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching folders"::Text)
