@@ -105,9 +105,6 @@ instance ToJSON ViewInfo where
            , "last"        .= viLast
            ]
 
--- | Type alias for search results. Unsorted for now.
-type SearchResults = Map.Map (Text, Text) Image
-
 -- | Build image map (with static sorting).
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =

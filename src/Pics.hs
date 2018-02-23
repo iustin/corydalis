@@ -68,6 +68,8 @@ module Pics ( PicDir(..)
             , allImageFiles
             , allRepoFiles
             , imageYear
+            , SearchResults
+            , getSearchResults
             ) where
 
 import           Control.Applicative
@@ -84,6 +86,8 @@ import           Data.Default               (Default, def)
 import           Data.Function              (on)
 import           Data.Int                   (Int64)
 import           Data.List
+import           Data.LruCache              (LruCache)
+import qualified Data.LruCache              as LRU
 import qualified Data.Map.Strict            as Map
 import           Data.Maybe
 import           Data.Semigroup
@@ -479,9 +483,27 @@ repoGlobalExif :: RepoDirs -> GroupExif
 repoGlobalExif =
   Map.foldl' (\e f -> e <> pdExif f) def
 
+-- | Type alias for search results. Unsorted for now.
+type SearchResults = Map.Map (Text, Text) Image
+
+-- | Type of the search cache.
+type SearchCache = LruCache UrlParams SearchResults
+
 {-# NOINLINE repoCache #-}
 repoCache :: MVar (Maybe Repository)
 repoCache = unsafePerformIO $ newMVar Nothing
+
+-- TODO: hardcoded cache size. Hmm...
+{-# NOINLINE searchCache #-}
+searchCache :: MVar SearchCache
+searchCache = unsafePerformIO $ newMVar (LRU.empty 10)
+
+getSearchResults :: SearchResults -> UrlParams -> IO SearchResults
+getSearchResults lazy key = modifyMVar searchCache $ \cache ->
+  return $ case LRU.lookup key cache of
+             Nothing -> force lazy `seq`
+                        (LRU.insert key lazy cache, lazy)
+             Just (v, cache')  -> (cache', v)
 
 -- | Selects the best master file between two masters.
 --
