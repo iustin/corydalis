@@ -258,7 +258,7 @@ $(document).ready(function() {
 
         msgCtx.fillText(text, 0, 0);
         if (typeof timeout === 'undefined') {
-            timeout = 2000
+            timeout = 2000;
         }
         if (timeout != 0) {
             cory.state.msgTimeId = window.setTimeout(function() {
