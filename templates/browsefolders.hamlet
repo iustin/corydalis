@@ -31,7 +31,7 @@
            $forall (n, classes) <- npairs
              <tr>
                <td>
-                 ^{folderCover thumbsize n}
+                 ^{folderCover thumbsize [] n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
                <td data-text="#{fcShortName (folderClass n)}">
                  <span title="#{fcDescription (folderClass n)}">

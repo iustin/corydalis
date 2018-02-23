@@ -43,6 +43,7 @@ getFolderR :: Text -> Handler Html
 getFolderR name = do
   config <- getConfig
   (pics, dir) <- getPicsAndFolder name
+  params <- getParams
   let allpaths = pdMainPath dir:pdSecPaths dir
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do

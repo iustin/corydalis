@@ -83,7 +83,7 @@
         <div .panel-body>
             Folder contains no images.
       $else
-        ^{imageList thumbsize False False images}
+        ^{imageList thumbsize params False False images}
 
 <div .row>
   <div .col-xs-12>

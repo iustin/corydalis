@@ -18,4 +18,4 @@
          for this filter.
 
      <div .panel .panel-default>
-       ^{imageList thumbsize True False images}
+       ^{imageList thumbsize params True False images}

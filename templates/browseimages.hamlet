@@ -15,4 +15,4 @@
          The selected filter matches #{length images} images.
 
      <div .panel .panel-default>
-       ^{imageList thumbsize True True images}
+       ^{imageList thumbsize [] True True images}

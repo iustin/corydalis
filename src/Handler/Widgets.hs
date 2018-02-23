@@ -33,6 +33,7 @@ import           Handler.Utils
 import           Import
 import           Indexer
 import           Pics
+import           Types
 
 showFile :: Pics.File -> Widget
 showFile f =
@@ -42,16 +43,16 @@ searchDiv :: AtomType -> Text -> Text -> (Text -> Text) -> [(Text, Integer)] -> 
 searchDiv atom kindPlCap kind formatter items =
   $(widgetFile "searchdiv")
 
-folderCover :: Int -> PicDir -> Widget
-folderCover thumbsize folder = do
+folderCover :: Int -> UrlParams -> PicDir -> Widget
+folderCover thumbsize params folder = do
   let name = pdName folder
   case Map.lookupMin $ pdImages folder of
     Nothing       -> toWidget [hamlet|<span .disabled>N/A|]
-    Just (_, img) -> imageBytes thumbsize name (imgName img)
+    Just (_, img) -> imageBytes thumbsize params name (imgName img)
 
-imageBytes :: Int -> Text -> Text -> Widget
-imageBytes thumbsize folder image =
-  toWidget [hamlet|<a href=@{ViewR folder image}>
+imageBytes :: Int -> UrlParams -> Text -> Text -> Widget
+imageBytes thumbsize params folder image =
+  toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
                      <img
                        src="@?{(ImageBytesR folder image, [("res", Text.pack $ show thumbsize)])}"
                        style="width: #{thumbsize}px; height: #{thumbsize}px"
@@ -63,8 +64,8 @@ generatePrevNext k m r = do
       nextRoute = uncurry r <$> Map.lookupGT k m
   $(widgetFile "prevnext")
 
-imageList :: Int -> Bool -> Bool -> [Image] -> Widget
-imageList thumbsize showParent hideType images = do
+imageList :: Int -> UrlParams -> Bool -> Bool -> [Image] -> Widget
+imageList thumbsize params showParent hideType images = do
   let exifs = map imgExif images
       cameras = countItems . map exifCamera $ exifs
       numCameras = length cameras

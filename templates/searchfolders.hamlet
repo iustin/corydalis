@@ -32,7 +32,7 @@
            $forall n <- folders
              <tr>
                <td>
-                  ^{folderCover thumbsize n}
+                  ^{folderCover thumbsize params n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
                <td>#{folderLocations n}
                <td>#{folderPeople n}
