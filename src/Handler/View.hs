@@ -46,7 +46,6 @@ import           Text.Read                   (readMaybe)
 import           Exif
 import           Handler.Utils
 import           Import
-import           Indexer
 import           Pics
 import           Types
 
@@ -114,8 +113,7 @@ locateCurrentImage fname iname images =
 
 getViewR :: Text -> Text -> Handler Html
 getViewR folder iname = do
-  (params, atom) <- getAtomParams
-  images <- buildImageMap atom <$> getPics
+  (params, _, images) <- getAtomAndSearch
   img <- locateCurrentImage folder iname images
   let Transform r fx fy = transformForImage img
       initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
@@ -184,8 +182,7 @@ randomPick images = do
 
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
-  (params, atom) <- getAtomParams
-  images <- buildImageMap atom <$> getPics
+  (params, _, images) <- getAtomAndSearch
   img <- locateCurrentImage folder iname images
   render <- getUrlRenderParams
   let -- since we have an image, it follows that min/max must exist
@@ -206,8 +203,7 @@ getImageInfoR folder iname = do
 
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
-  atom <- snd <$> getAtomParams
-  images <- buildImageMap atom <$> getPics
+  (_, _, images) <- getAtomAndSearch
   when (null images) notFound
   image <- lift $ randomPick images
   getImageInfoR (imgParent image) (imgName image)

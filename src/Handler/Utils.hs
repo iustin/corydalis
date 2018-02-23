@@ -260,3 +260,10 @@ getAtomParams = do
             Right v  -> return v
             Left msg -> invalidArgs [msg]
   return (params, atom)
+
+getAtomAndSearch :: Handler (UrlParams, Atom, SearchResults)
+getAtomAndSearch = do
+  (params, atom) <- getAtomParams
+  pics <- getPics
+  images <- lift $ searchImages params atom pics
+  return (params, atom, images)
