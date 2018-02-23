@@ -33,7 +33,6 @@ module Handler.View ( getViewR
                     ) where
 
 import           Data.Aeson.Text             (encodeToLazyText)
-import           Data.List                   ((!!))
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as Text
 import qualified Data.Text.Encoding          as Text (encodeUtf8)
@@ -187,6 +186,13 @@ transformForImage :: Image -> Transform
 transformForImage img =
   fromMaybe def (fileToView img >>= transformForFile)
 
+randomPick :: SearchResults -> IO Image
+randomPick images = do
+  idx <- getStdRandom $ randomR (0, Map.size images - 1)
+  -- This _should_ be safe, since idx in the right range. If not,
+  -- well...
+  return . snd . Map.elemAt idx $ images
+
 getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
   (params, atom) <- getAtomParams
@@ -211,10 +217,8 @@ getImageInfoR folder iname = do
 
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
-  pics <- getPics
   atom <- snd <$> getAtomParams
-  let images = filterImagesBy (imageSearchFunction atom) pics
+  images <- buildImageMap atom <$> getPics
   when (null images) notFound
-  fidx <- liftIO $ getStdRandom $ randomR (0, length images - 1)
-  let image = images !! fidx
+  image <- lift $ randomPick images
   getImageInfoR (imgParent image) (imgName image)
