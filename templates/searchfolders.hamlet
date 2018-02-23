@@ -3,7 +3,12 @@
 <div .row>
  <div .col-xs-12>
    $if null folders
-     <p .bg-warning>No folders found that match the requested search.
+     <div .panel .panel-warning>
+       <div .panel-heading>
+         Nothing found
+       <div .panel-body>
+         The filter <i>#{search_string}</i>
+         doesn't match any folders.
    $else
      <div .panel .panel-default>
        <div .panel-body>
