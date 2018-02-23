@@ -120,5 +120,5 @@ getSearchImagesR = do
   let images = filterImagesBy (imageSearchFunction atom) pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
-    setTitle . toHtml $ ("Corydalis: searching folders"::Text)
+    setTitle . toHtml $ ("Corydalis: searching images"::Text)
     $(widgetFile "searchimages")
