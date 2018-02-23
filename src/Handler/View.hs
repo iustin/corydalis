@@ -40,12 +40,14 @@ import           System.Random               (getStdRandom, randomR)
 import qualified Text.Blaze.Svg              as Svg
 import           Text.Blaze.Svg11            (Svg, docTypeSvg, text_, (!))
 import qualified Text.Blaze.Svg11.Attributes as SA
+import qualified Text.Hamlet                 as Hamlet (Render)
 import           Text.Read                   (readMaybe)
 
 import           Exif
 import           Handler.Utils
 import           Import
 import           Pics
+import           Types
 
 data ImageInfo = ImageInfo
   { iiInfoUrl   :: Text
@@ -69,11 +71,12 @@ rotateToJSON RCenter =  0
 rotateToJSON RLeft   = -1
 rotateToJSON RRight  =  1
 
-mkImage :: Text -> Text -> (Route App -> Text) -> Transform -> ImageInfo
-mkImage folder iname render (Transform r fx fy) =
-  ImageInfo (render $ ImageInfoR folder iname)
-            (render $ ImageBytesR folder iname)
-            (render $ ViewR folder iname)
+mkImage :: Text -> Text -> (Hamlet.Render (Route App))
+        -> UrlParams -> Transform -> ImageInfo
+mkImage folder iname render params (Transform r fx fy) =
+  ImageInfo (render (ImageInfoR folder iname) params)
+            (render (ImageBytesR folder iname) [])
+            (render (ViewR folder iname) params)
             iname (rotateToJSON r, fx, fy)
 
 data ViewInfo = ViewInfo
@@ -134,6 +137,7 @@ getViewR folder iname = do
   let Transform r fx fy = transformForImage img
       initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
   debug <- appShouldLogAll . appSettings <$> getYesod
+  params <- getParams
   defaultLayout $ do
     addScript $ StaticR js_viewer_js
     addScript $ AssetsR hammer_js_hammer_js
@@ -194,7 +198,7 @@ getImageInfoR folder iname = do
   (pics, dir) <- getPicsAndFolder folder
   let images = pdImages dir
   img <- getFolderImage dir iname
-  render <- getUrlRender
+  render <- getUrlRenderParams
   let -- since we have an image, it follows that min/max must exist
       -- (they might be the same), hence we can use the non-total
       -- functions findMin/findMax until newer containers package
@@ -203,12 +207,12 @@ getImageInfoR folder iname = do
       imgPrev  = getNextImageAnyFolder pics folder iname False
       imgNext  = getNextImageAnyFolder pics folder iname True
       imgLast  = snd  $ Map.findMax images
-      mk i = mkImage (imgParent i) (imgName i) render
+      mk i = mkImage (imgParent i) (imgName i) render params
                (transformForImage i)
   return . toJSON $
     ViewInfo
-      folder (render $ FolderR folder)
-      (imgName img) (render $ ImageR folder iname)
+      folder (render (FolderR folder) params)
+      (imgName img) (render (ImageR folder iname) params)
       (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)
 
 getRandomImageInfoR :: Handler Value
