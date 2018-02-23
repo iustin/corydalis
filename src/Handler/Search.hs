@@ -45,20 +45,46 @@ atomDescription (Person who) = formatPerson False who <>
                                " is in the picture"
 atomDescription (Keyword what) = "tagged with keyword " <> what
 atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
+atomDescription (And a b) =
+  mconcat [ "("
+          , atomDescription a
+          , " and "
+          , atomDescription b
+          , ")"
+          ]
+
+atomDescription (Or a b) =
+  mconcat [ "("
+          , atomDescription a
+          , " or "
+          , atomDescription b
+          , ")"
+          ]
+atomDescription (Not a) = "(not " <> atomDescription a <> ")"
 
 getParams :: Handler [(Text, Text)]
 getParams = reqGetParams <$> getRequest
 
 extractAtomParams :: Handler [Atom]
-extractAtomParams =
-  foldM (\atoms (kind, param) -> do
-            p <- lookupGetParam param
-            case p of
-              Nothing -> return atoms
-              Just v -> case buildAtom kind v of
-                          Nothing -> invalidArgs [v]
-                          Just a  -> return $ a:atoms
-        ) [] atomNames
+extractAtomParams = do
+  params <- getParams
+  let ff (x:y:ys) ("and",_) =
+        return $ And x y:ys
+      ff (x:y:ys) ("or",_) =
+        return $ Or x y:ys
+      ff (x:xs) ("not", _) = do
+        let a = case x of
+                  Not y -> y
+                  _     -> Not x
+        return $ a:xs
+      ff xs (an, av) = do
+        let v = do
+              at <- parseAName an
+              buildAtom at av
+        case v of
+          Just v' -> return $ v':xs
+          Nothing -> invalidArgs ["Failed to parse atom", an, av]
+  foldM ff [] params
 
 searchContext :: Handler (Config, [(Text, Text)], [Atom])
 searchContext = do

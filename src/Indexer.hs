@@ -24,6 +24,7 @@ module Indexer ( AtomType(..)
                , Atom(..)
                , atomNames
                , atomName
+               , parseAName
                , atomTypeDescriptions
                , buildAtom
                , folderSearchFunction
@@ -68,6 +69,9 @@ data Atom = Country  Text
           | Person   Text
           | Keyword  Text
           | Year     Integer
+          | And Atom Atom
+          | Or  Atom Atom
+          | Not Atom
 
 atomNames :: [(AtomType, Text)]
 atomNames = map (\t -> (t, atomName t)) [minBound..maxBound]
@@ -80,6 +84,16 @@ atomName TLocation = "location"
 atomName TPerson   = "person"
 atomName TKeyword  = "keyword"
 atomName TYear     = "year"
+
+parseAName :: Text -> Maybe AtomType
+parseAName "country"  = Just TCountry
+parseAName "province" = Just TProvince
+parseAName "city"     = Just TCity
+parseAName "location" = Just TLocation
+parseAName "person"   = Just TPerson
+parseAName "keyword"  = Just TKeyword
+parseAName "year"     = Just TYear
+parseAName _          = Nothing
 
 atomTypeDescriptions :: AtomType -> Text
 atomTypeDescriptions TCountry  = "countries"
@@ -122,6 +136,17 @@ folderSearchFunction (Keyword what) =
 folderSearchFunction (Year year) =
   (== Just year) . pdYear
 
+folderSearchFunction (And a b) = \fld ->
+  folderSearchFunction a fld &&
+  folderSearchFunction b fld
+
+folderSearchFunction (Or a b) = \fld ->
+  folderSearchFunction a fld ||
+  folderSearchFunction b fld
+
+folderSearchFunction (Not a) =
+  not . folderSearchFunction a
+
 imageSearchFunction :: Atom -> (Image -> Bool)
 imageSearchFunction (Country loc) =
   (== Just loc) . exifCountry . imgExif
@@ -143,6 +168,17 @@ imageSearchFunction (Keyword what) =
 
 imageSearchFunction (Year year) =
   (== Just year) . imageYear
+
+imageSearchFunction (And a b) = \img ->
+  imageSearchFunction a img &&
+  imageSearchFunction b img
+
+imageSearchFunction (Or a b) = \img ->
+  imageSearchFunction a img ||
+  imageSearchFunction b img
+
+imageSearchFunction (Not a) =
+  not . imageSearchFunction a
 
 getAtoms :: AtomType -> Repository -> NameStats
 getAtoms TCountry  = gExifCountries . repoExif

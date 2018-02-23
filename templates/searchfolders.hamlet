@@ -1,5 +1,4 @@
 <h1>Searching folders #
-  <small>#{search_string}
 
 <div .row>
  <div .col-xs-12>
@@ -8,7 +7,8 @@
    $else
      <div .panel .panel-default>
        <div .panel-body>
-         The selected filter matches #{length folders} folders.
+         The filter <i>#{search_string}</i>
+         matches #{length folders} folders.
          Go to the <a href="@?{(SearchImagesR, params)}">image list</a>
          for this filter.
 
