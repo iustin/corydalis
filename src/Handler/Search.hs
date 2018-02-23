@@ -85,7 +85,7 @@ getSearchFoldersR = do
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
   (config, params, atom, search_string, pics) <- searchContext
-  images <- Map.elems <$> (lift $ searchImages params atom pics)
+  images <- Map.elems <$> lift (searchImages params atom pics)
   let thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching images"::Text)
