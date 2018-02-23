@@ -315,6 +315,10 @@ $(document).ready(function() {
     setupHammer();
 
     $(document).keydown(function(e){
+        if (e.altKey || e.ctrlKey) {
+            return;
+        }
+        var handled = true;
         switch (e.keyCode) {
         case 70: // 'f'
             toggleFullScreen();
@@ -338,6 +342,12 @@ $(document).ready(function() {
         case 35: // end key
             switchToImage(cory.info.last);
             break;
+        default:
+            handled = false;
+            break;
+        }
+        if (handled) {
+            e.preventDefault();
         }
     });
 
