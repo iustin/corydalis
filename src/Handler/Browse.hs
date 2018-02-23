@@ -31,20 +31,23 @@ module Handler.Browse
   , getBrowseImagesR
   ) where
 
+import qualified Data.Text       as Text
+
 import           Handler.Utils
 import           Handler.Widgets
 import           Import
+import           Indexer
 import           Pics
 import           Types
-
-import qualified Data.Text       as Text
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
 getBrowseFoldersR kinds = do
   config <- getConfig
   pics <- getPics
+  (params, atom) <- getAtomParams
   let kinds_string = Text.intercalate ", " . map fcName $ kinds
-      folders = filterDirsByClass kinds pics
+      clsfolders = filterDirsByClass kinds pics
+      folders = filter (folderSearchFunction atom) clsfolders
       stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
       allpics = sum . map numPics $ folders
       -- allraws = sum . map numRawPics $ folders
