@@ -252,3 +252,11 @@ countItems =
 
 getParams :: Handler [(Text, Text)]
 getParams = reqGetParams <$> getRequest
+
+getAtomParams :: Handler (UrlParams, Atom)
+getAtomParams = do
+  params <- getParams
+  atom <- case parseAtomParams params of
+            Right v  -> return v
+            Left msg -> invalidArgs [msg]
+  return (params, atom)

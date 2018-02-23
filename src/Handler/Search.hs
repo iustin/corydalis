@@ -68,10 +68,7 @@ atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescrip
 searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
   config <- getConfig
-  params <- getParams
-  atom <- case parseAtomParams params of
-            Right v  -> return v
-            Left msg ->invalidArgs [msg]
+  (params, atom) <- getAtomParams
   let search_string = atomDescription atom
   pics <- getPics
   return (config, params, atom, search_string, pics)
