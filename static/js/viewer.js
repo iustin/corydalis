@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 $(document).ready(function() {
+    'use strict';
     var bootdiv = $("#boot");
     var booturl = bootdiv.data("bytes-url");
     var infourl = bootdiv.data("info-url");
@@ -255,7 +256,6 @@ $(document).ready(function() {
         msgCtx.textBaseline = 'top';
         msgCtx.font = 'x-large Sans';
 
-        textWidth = Math.ceil(msgCtx.measureText(text).width);
         msgCtx.fillText(text, 0, 0);
         if (typeof timeout === 'undefined') {
             timeout = 2000
