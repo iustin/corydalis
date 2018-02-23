@@ -32,11 +32,6 @@ module Handler.View ( getViewR
                     , getRandomImageInfoR
                     ) where
 
-import           Exif
-import           Handler.Utils
-import           Import
-import           Pics
-
 import           Data.Aeson.Text             (encodeToLazyText)
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as Text
@@ -46,6 +41,11 @@ import qualified Text.Blaze.Svg              as Svg
 import           Text.Blaze.Svg11            (Svg, docTypeSvg, text_, (!))
 import qualified Text.Blaze.Svg11.Attributes as SA
 import           Text.Read                   (readMaybe)
+
+import           Exif
+import           Handler.Utils
+import           Import
+import           Pics
 
 data ImageInfo = ImageInfo
   { iiInfoUrl   :: Text
