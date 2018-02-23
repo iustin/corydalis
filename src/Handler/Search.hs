@@ -65,9 +65,6 @@ atomDescription (Not a) = "(not " <> atomDescription a <> ")"
 atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 
-getParams :: Handler [(Text, Text)]
-getParams = reqGetParams <$> getRequest
-
 searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
   config <- getConfig

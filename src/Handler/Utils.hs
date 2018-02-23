@@ -249,3 +249,6 @@ countItems :: (Ord a) => [a] -> [(a, Int64)]
 countItems =
   Map.toList .
   foldl' (\m c -> Map.insertWith (+) c 1 m) Map.empty
+
+getParams :: Handler [(Text, Text)]
+getParams = reqGetParams <$> getRequest
