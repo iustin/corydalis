@@ -31,10 +31,13 @@ module Indexer ( AtomType(..)
                , imageSearchFunction
                , getAtoms
                , parseAtomParams
+               , buildImageMap
+               , searchImages
                ) where
 
 import           Control.Monad              (foldM)
 import           Control.Monad.Trans.Except
+import           Data.List                  (foldl')
 import qualified Data.Map                   as Map
 import           Data.Semigroup             ((<>))
 import qualified Data.Set                   as Set
@@ -45,6 +48,7 @@ import           Yesod                      (PathPiece (..))
 
 import           Exif
 import           Pics
+import           Types                      (UrlParams)
 
 data AtomType = TCountry
               | TProvince
@@ -200,3 +204,18 @@ parseAtomParams params = runExcept $ do
     -- Note to self : [] must return All [], since Any [] will never
     -- match. So just let it fall through the "other" case.
     xs  -> All xs
+
+-- | Build image map (with static sorting).
+buildImageMap :: Atom -> Repository -> SearchResults
+buildImageMap atom =
+  foldl' (\m img ->
+             Map.insert (imgParent img, imgName img) img m
+         ) Map.empty .
+  filterImagesBy (imageSearchFunction atom)
+
+searchImages :: UrlParams -> Atom -> Repository -> IO SearchResults
+searchImages params atom pics = do
+  -- Note: the call to buildImageMap must *not* be evaluated,
+  -- otherwise we don't gain anything from caching it.
+  let lazyimages = buildImageMap atom pics
+  getSearchResults lazyimages params

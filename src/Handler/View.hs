@@ -105,14 +105,6 @@ instance ToJSON ViewInfo where
            , "last"        .= viLast
            ]
 
--- | Build image map (with static sorting).
-buildImageMap :: Atom -> Repository -> SearchResults
-buildImageMap atom =
-  foldl' (\m img ->
-             Map.insert (imgParent img, imgName img) img m
-         ) Map.empty .
-  filterImagesBy (imageSearchFunction atom)
-
 -- | Ensure that requested image is present in the (filtered) map.
 locateCurrentImage :: Text -> Text -> SearchResults -> Handler Image
 locateCurrentImage fname iname images =
