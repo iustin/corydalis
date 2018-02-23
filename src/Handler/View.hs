@@ -106,8 +106,11 @@ instance ToJSON ViewInfo where
            , "last"        .= viLast
            ]
 
+-- | Type alias for search results. Unsorted for now.
+type SearchResults = Map.Map (Text, Text) Image
+
 -- | Build image map (with static sorting).
-buildImageMap :: Atom -> Repository -> Map.Map (Text, Text) Image
+buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
   foldl' (\m img ->
              Map.insert (imgParent img, imgName img) img m
@@ -115,8 +118,7 @@ buildImageMap atom =
   filterImagesBy (imageSearchFunction atom)
 
 -- | Ensure that requested image is present in the (filtered) map.
-locateCurrentImage :: Text -> Text -> Map.Map (Text, Text) Image
-                   -> Handler Image
+locateCurrentImage :: Text -> Text -> SearchResults -> Handler Image
 locateCurrentImage fname iname images =
   case Map.lookup (fname, iname) images of
     Just img -> return img
