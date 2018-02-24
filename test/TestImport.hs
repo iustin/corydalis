@@ -34,6 +34,7 @@ import           Database.Persist.Sql    (SqlBackend, SqlPersistM,
 import           Foundation              as X
 import           Model                   as X
 import           Test.Hspec              as X
+import           Types                   (Config)
 import           Yesod.Auth              as X
 import           Yesod.Core.Unsafe       (fakeHandlerGetLogger)
 import           Yesod.Default.Config2   (loadYamlSettings, useEnv)
@@ -44,7 +45,7 @@ import           Control.Monad.Logger    (runLoggingT)
 import           Database.Persist.Sqlite (createSqlPool, sqlDatabase,
                                           wrapConnection)
 import qualified Database.Sqlite         as Sqlite
-import           Settings                (AppSettings, appDatabaseConf)
+import           Settings                (AppSettings (..), appDatabaseConf)
 import           Yesod.Core              (messageLoggerSource)
 
 runDB :: SqlPersistM a -> YesodExample App a
@@ -57,16 +58,27 @@ runHandler handler = do
     app <- getTestYesod
     fakeHandlerGetLogger appLogger app handler
 
+loadSettings :: IO AppSettings
+loadSettings =
+  loadYamlSettings
+    ["config/test-settings.yml"]
+    []
+    useEnv
+
 withApp :: SpecWith (TestApp App) -> Spec
 withApp = before $ do
-    settings <- loadYamlSettings
-        ["config/test-settings.yml"]
-        []
-        useEnv
+    settings <- loadSettings
     foundation <- makeFoundation settings
     wipeDB foundation
     logWare <- liftIO $ makeLogWare foundation
     return (foundation, logWare)
+
+withSettings :: SpecWith AppSettings -> Spec
+withSettings = before loadSettings
+
+withConfig :: SpecWith Config -> Spec
+withConfig = before $
+  appConfig <$> loadSettings
 
 -- This function will truncate all of the tables in your database.
 -- 'withApp' calls it before each test, creating a clean environment for each
