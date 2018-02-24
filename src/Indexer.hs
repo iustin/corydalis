@@ -25,6 +25,7 @@ module Indexer ( Symbol(..)
                , Atom(..)
                , atomNames
                , atomName
+               , negAtomName
                , parseAName
                , atomTypeDescriptions
                , atomDescription
@@ -102,6 +103,9 @@ atomName TPerson   = "person"
 atomName TKeyword  = "keyword"
 atomName TYear     = "year"
 atomName TCamera   = "camera"
+
+negAtomName :: Symbol -> Text
+negAtomName atom = "no-" <> atomName atom
 
 parseAName :: Text -> Text -> Maybe (Symbol, Maybe Text)
 parseAName a v = go True a where

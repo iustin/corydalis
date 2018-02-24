@@ -13,17 +13,20 @@
        <table #itemlist .tablesorter .table .table-condensed>
          <thead>
            <tr>
-             <th>Name
+             <th .empty-min>Name
              <th .sorter-digit>Count
 
          <tbody>
            $forall (n, count) <- items
              <tr>
-               <td>
-                 <a href="@?{(SearchFoldersR,[(atomName atom, n)])}"><span class="far fa-folder-open">
-                 <a href="@?{(SearchImagesR,[(atomName atom, n)])}"><span class="far fa-images">
+               <td data-text=#{fromMaybe "" n}>
+                 <a href="@?{(SearchFoldersR,[atomAsParam atom n])}"><span class="far fa-folder-open">
+                 <a href="@?{(SearchImagesR,[atomAsParam atom n])}"><span class="far fa-images">
                  $maybe val <- n
                    #{val}
                  $nothing
-                   <i>unknown
+                   $maybe atom' <- buildAtom atom Nothing
+                     <i>#{atomDescription atom'}
+                   $nothing
+                     <i>unknown
                <td .number>#{count}

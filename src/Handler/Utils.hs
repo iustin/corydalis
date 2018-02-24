@@ -256,3 +256,7 @@ getAtomAndSearch = do
   pics <- getPics
   images <- lift $ searchImages params atom pics
   return (params, atom, images)
+
+atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
+atomAsParam s (Just t) = (atomName s, t)
+atomAsParam s Nothing  = (negAtomName s, "")
