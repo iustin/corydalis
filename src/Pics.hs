@@ -70,6 +70,8 @@ module Pics ( PicDir(..)
             , imageYear
             , SearchResults
             , getSearchResults
+            -- Test export :/
+            , mkImage
             ) where
 
 import           Control.Applicative
