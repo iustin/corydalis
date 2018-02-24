@@ -36,7 +36,7 @@ import           Indexer
 
 import qualified Data.Map      as Map
 
-getListItemsR :: AtomType -> Handler Html
+getListItemsR :: Symbol -> Handler Html
 getListItemsR atom = do
   let description = atomTypeDescriptions atom
   pics <- getPics

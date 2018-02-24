@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns      #-}
 
-module Indexer ( AtomType(..)
+module Indexer ( Symbol(..)
                , Atom(..)
                , atomNames
                , atomName
@@ -53,7 +53,7 @@ import           Exif
 import           Pics
 import           Types                      (UrlParams)
 
-data AtomType = TCountry
+data Symbol = TCountry
               | TProvince
               | TCity
               | TLocation
@@ -62,7 +62,7 @@ data AtomType = TCountry
               | TYear
                 deriving (Enum, Bounded, Show, Read, Eq)
 
-instance PathPiece AtomType where
+instance PathPiece Symbol where
   toPathPiece  = atomTypeDescriptions
   fromPathPiece "countries" = Just TCountry
   fromPathPiece "provinces" = Just TProvince
@@ -87,10 +87,10 @@ data Atom = Country  (Maybe Text)
           | Any [Atom]
           deriving (Show)
 
-atomNames :: [(AtomType, Text)]
+atomNames :: [(Symbol, Text)]
 atomNames = map (\t -> (t, atomName t)) [minBound..maxBound]
 
-atomName :: AtomType -> Text
+atomName :: Symbol -> Text
 atomName TCountry  = "country"
 atomName TProvince = "province"
 atomName TCity     = "city"
@@ -99,10 +99,10 @@ atomName TPerson   = "person"
 atomName TKeyword  = "keyword"
 atomName TYear     = "year"
 
-parseAName :: Text -> Text -> Maybe (AtomType, Maybe Text)
+parseAName :: Text -> Text -> Maybe (Symbol, Maybe Text)
 parseAName a v = go True a where
   v' x = if x then Just v else Nothing
-  go :: Bool -> Text -> Maybe (AtomType, Maybe Text)
+  go :: Bool -> Text -> Maybe (Symbol, Maybe Text)
   go p "country"  = Just (TCountry,  v' p)
   go p "province" = Just (TProvince, v' p)
   go p "city"     = Just (TCity,     v' p)
@@ -115,7 +115,7 @@ parseAName a v = go True a where
     go False suf
   go True _ = Nothing
 
-atomTypeDescriptions :: AtomType -> Text
+atomTypeDescriptions :: Symbol -> Text
 atomTypeDescriptions TCountry  = "countries"
 atomTypeDescriptions TProvince = "provinces"
 atomTypeDescriptions TCity     = "cities"
@@ -169,7 +169,7 @@ atomDescription (Not a) = "(not " <> atomDescription a <> ")"
 atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 
-buildAtom :: AtomType -> Maybe Text -> Maybe Atom
+buildAtom :: Symbol -> Maybe Text -> Maybe Atom
 buildAtom TCountry  place = Just $ Country  place
 buildAtom TProvince place = Just $ Province place
 buildAtom TCity     place = Just $ City     place
@@ -228,7 +228,7 @@ imageSearchFunction (All as) = \img ->
 imageSearchFunction (Any as) = \img ->
   any (`imageSearchFunction` img) as
 
-getAtoms :: AtomType -> Repository -> NameStats
+getAtoms :: Symbol -> Repository -> NameStats
 getAtoms TCountry  = gExifCountries . repoExif
 getAtoms TProvince = gExifProvinces . repoExif
 getAtoms TCity     = gExifCities    . repoExif

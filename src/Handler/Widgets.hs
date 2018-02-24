@@ -39,7 +39,7 @@ showFile :: Pics.File -> Widget
 showFile f =
   $(widgetFile "showfile")
 
-searchDiv :: AtomType -> Text -> Text -> (Text -> Text) -> [(Text, Integer)] -> Widget
+searchDiv :: Symbol -> Text -> Text -> (Text -> Text) -> [(Text, Integer)] -> Widget
 searchDiv atom kindPlCap kind formatter items =
   $(widgetFile "searchdiv")
 

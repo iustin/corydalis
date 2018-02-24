@@ -112,7 +112,7 @@ fcDescription FolderEmpty       = "contains no image files"
 fcDescription FolderMixed       = "contains both RAW files (processed) \
                                   \and files without RAW storage"
 
-atomIcon :: AtomType -> Text
+atomIcon :: Symbol -> Text
 atomIcon TCountry  = "fas fa-globe"
 atomIcon TProvince = "fas fa-map"
 atomIcon TCity     = "fas fa-building"
