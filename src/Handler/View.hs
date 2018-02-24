@@ -71,9 +71,9 @@ rotateToJSON RCenter =  0
 rotateToJSON RLeft   = -1
 rotateToJSON RRight  =  1
 
-mkImage :: Text -> Text -> Hamlet.Render (Route App)
-        -> UrlParams -> Transform -> ImageInfo
-mkImage folder iname render params (Transform r fx fy) =
+mkImageInfo :: Text -> Text -> Hamlet.Render (Route App)
+            -> UrlParams -> Transform -> ImageInfo
+mkImageInfo folder iname render params (Transform r fx fy) =
   ImageInfo (render (ImageInfoR folder iname) params)
             (render (ImageBytesR folder iname) [])
             (render (ViewR folder iname) params)
@@ -193,7 +193,7 @@ getImageInfoR folder iname = do
       imgPrev  = snd <$> Map.lookupLT (folder, iname) images
       imgNext  = snd <$> Map.lookupGT (folder, iname) images
       imgLast  = snd  $  Map.findMax images
-      mk i = mkImage (imgParent i) (imgName i) render params
+      mk i = mkImageInfo (imgParent i) (imgName i) render params
                (transformForImage i)
   return . toJSON $
     ViewInfo
