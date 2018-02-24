@@ -150,12 +150,12 @@ atomDescription (City     place) = describe "city"     place
 atomDescription (Location place) = describe "location" place
 atomDescription (Person who) =
   case who of
-    Nothing -> "picture has no person information"
-    Just "" -> "picture has an empty person tag"
+    Nothing -> "has no person information"
+    Just "" -> "has an empty person tag"
     Just p  -> formatPerson False p <> " is in the picture"
 atomDescription (Keyword keyword) =
   case keyword of
-    Nothing -> "picture not tagged with any keywords"
+    Nothing -> "not tagged with any keywords"
     Just "" -> "tagged with an empty keyword"
     Just k  -> "tagged with keyword " <> k <> ""
 atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
