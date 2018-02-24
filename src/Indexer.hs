@@ -263,8 +263,7 @@ rpnParser (x:xs) ("not", _) =
 rpnParser xs ("all", _) = return [allAtom xs]
 rpnParser xs ("any", _) = return [anyAtom xs]
 rpnParser xs (an, av) =
-  let v = parseAName an av >>=
-          \(at, av') -> buildAtom at av'
+  let v = parseAName an av >>= uncurry buildAtom
   in case v of
     Just v' -> return $ v':xs
     Nothing -> throwE $ "Failed to parse the atom " <>
@@ -272,7 +271,7 @@ rpnParser xs (an, av) =
                " with stack " <> Text.pack (show xs)
 
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
-parseAtomParams params = runExcept $ do
+parseAtomParams params = runExcept $
   allAtom <$> foldM rpnParser [] params
 
 -- | Build image map (with static sorting).
