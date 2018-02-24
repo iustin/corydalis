@@ -222,11 +222,7 @@ imageSearchFunction (Year year) =
   (== Just year) . imageYear
 
 imageSearchFunction (Camera camera) =
-  (\c ->
-     let c' = if c == unknown
-                then Nothing
-                else Just c
-     in c' == camera) . exifCamera . imgExif
+  (== camera) . exifCamera . imgExif
 
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&

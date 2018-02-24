@@ -289,7 +289,7 @@ data Exif = Exif
   , exifProvince    :: !(Maybe Text)
   , exifCity        :: !(Maybe Text)
   , exifLocation    :: !(Maybe Text)
-  , exifCamera      :: !Text
+  , exifCamera      :: !(Maybe Text)
   , exifSerial      :: !Text
   , exifLens        :: !LensInfo
   , exifOrientation :: !Orientation
@@ -325,7 +325,7 @@ instance Default Exif where
              , exifProvince    = Nothing
              , exifCity        = Nothing
              , exifLocation    = Nothing
-             , exifCamera      = unknown
+             , exifCamera      = Nothing
              , exifSerial      = unknown
              , exifLens        = def
              , exifOrientation = def
@@ -372,7 +372,7 @@ addExifToGroup g e =
     , gExifProvinces = foldl' count (gExifProvinces g) (exifProvince e)
     , gExifCities    = foldl' count (gExifCities    g) (exifCity     e)
     , gExifLocations = foldl' count (gExifLocations g) (exifLocation e)
-    , gExifCameras   = count (gExifCameras g) (exifCamera e)
+    , gExifCameras   = foldl' count (gExifCameras   g) (exifCamera   e)
     , gExifLenses    = count (gExifLenses  g) (liName $ exifLens e)
     }
     where count m k = Map.insertWith (+) k 1 m
@@ -453,7 +453,7 @@ exifFromRaw config RawExif{..} =
       exifProvince    = rExifProvince
       exifCity        = rExifCity
       exifLocation    = rExifLocation
-      exifCamera      = fromMaybe unknown rExifCamera
+      exifCamera      = rExifCamera
       exifLens        = fromMaybe unknownLens rExifLens
       exifSerial      = fromMaybe unknown rExifSerial
       exifOrientation = fromMaybe OrientationTopLeft rExifOrientation
@@ -486,7 +486,7 @@ promoteFileExif re se je =
       exifProvince'    = first  exifProvince
       exifCity'        = first  exifCity
       exifLocation'    = first  exifLocation
-      exifCamera'      = first' exifCamera unknown
+      exifCamera'      = first  exifCamera
       exifSerial'      = first' exifSerial unknown
       liName'          = first' (liName <$> exifLens) unknown
       liSpec'          = first' (liSpec <$> exifLens) unknown

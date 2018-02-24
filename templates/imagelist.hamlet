@@ -27,7 +27,7 @@
                         <a href=@{ImageR p (imgName img)}>#{imgName img}
                     <td>#{showExifDate img}
                     $if numCameras > 1
-                      <td>#{exifCamera e}
+                      <td>#{fromMaybe unknown (exifCamera e)}
                     $if numLenses > 1
                       <td>
                         <a href="@{LensInfoR (liName (exifLens e))}">

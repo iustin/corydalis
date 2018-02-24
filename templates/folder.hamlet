@@ -59,7 +59,7 @@
       $else
         $forall (c', cnt) <- cameras
           <tr>
-            <td>#{c'}
+            <td>#{fromMaybe unknown c'}
             <td .number>#{cnt}
 
   <div .col-xs-6 .col-md-4>

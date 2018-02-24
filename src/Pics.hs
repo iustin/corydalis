@@ -441,9 +441,7 @@ updateStatsWithPic orig img =
               _               -> ss
       ms = sSidecarSize stats
       ms' = ms + maybe 0 fileSize (imgSidecarPath img)
-      camera = case imgRawPath img of
-                 Nothing -> unknown
-                 Just f  -> maybe unknown exifCamera (fileExif f)
+      camera = fromMaybe unknown (exifCamera $ imgExif img)
       xsize = case imgRawPath img of
                Just f -> fileSize f
                Nothing -> case imgJpegPath img of

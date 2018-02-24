@@ -92,10 +92,9 @@ getLensInfoR lensname = do
                        in case (fl, aper) of
                             (Just fl', Just aper') -> Map.insertWith (+) (fl', aper') counterOne m
                             _ -> m) Map.empty images
-      cameras = foldl' (\m i -> let c = exifCamera (imgExif i)
-                                in if c == unknown
-                                   then m
-                                   else  Map.insertWith (+) c counterOne m) Map.empty images
+      cameras = foldl' (\m i -> case exifCamera (imgExif i) of
+                                  Nothing -> m
+                                  Just c  ->  Map.insertWith (+) c counterOne m) Map.empty images
       faml = Map.toList fam
       (xys, cnt) = unzip faml
       maxCnt = fromIntegral $ maybe 5 maximum $ fromNullable cnt
@@ -114,7 +113,7 @@ getLensInfoR lensname = do
                         sort .
                         foldl' (\a i -> let e = imgExif i
                                             cd = exifCreateDate e
-                                            cam = exifCamera e
+                                            cam = fromMaybe unknown $ exifCamera e
                                         in case cd of
                                              Nothing  -> a
                                              Just cd' -> (cd', cam):a) [] $ images
