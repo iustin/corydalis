@@ -505,6 +505,10 @@ getSearchResults lazy key = modifyMVar searchCache $ \cache ->
                         (LRU.insert key lazy cache, lazy)
              Just (v, cache')  -> (cache', v)
 
+flushSearchCache :: IO ()
+flushSearchCache = modifyMVar_ searchCache $ \_ ->
+  return $ LRU.empty 10
+
 -- | Selects the best master file between two masters.
 --
 -- We select in the order of extensions as defined in the
@@ -898,6 +902,10 @@ maybeUpdateCache :: Config
                  -> IO (Maybe Repository, Repository)
 maybeUpdateCache config Nothing = do
   r <- scanFilesystem config
+  -- this is tricky; we take another mvar inside an mvar, which could
+  -- lead to deadlocks if ever one reads getPics inside the cache
+  -- update.
+  flushSearchCache
   return (Just r, r)
 maybeUpdateCache _ orig@(Just r) = return (orig, r)
 
