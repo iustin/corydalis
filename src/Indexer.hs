@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Indexer ( AtomType(..)
                , Atom(..)
@@ -41,6 +42,7 @@ import           Control.Monad.Trans.Except
 import           Data.List                  (foldl')
 import qualified Data.Map                   as Map
 import           Data.Semigroup             ((<>))
+import           Data.Set                   (Set)
 import qualified Data.Set                   as Set
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
@@ -71,12 +73,12 @@ instance PathPiece AtomType where
   fromPathPiece "years"     = Just TYear
   fromPathPiece _           = Nothing
 
-data Atom = Country  Text
-          | Province Text
-          | City     Text
-          | Location Text
-          | Person   Text
-          | Keyword  Text
+data Atom = Country  (Maybe Text)
+          | Province (Maybe Text)
+          | City     (Maybe Text)
+          | Location (Maybe Text)
+          | Person   (Maybe Text)
+          | Keyword  (Maybe Text)
           | Year     Integer
           | And Atom Atom
           | Or  Atom Atom
@@ -97,15 +99,21 @@ atomName TPerson   = "person"
 atomName TKeyword  = "keyword"
 atomName TYear     = "year"
 
-parseAName :: Text -> Maybe AtomType
-parseAName "country"  = Just TCountry
-parseAName "province" = Just TProvince
-parseAName "city"     = Just TCity
-parseAName "location" = Just TLocation
-parseAName "person"   = Just TPerson
-parseAName "keyword"  = Just TKeyword
-parseAName "year"     = Just TYear
-parseAName _          = Nothing
+parseAName :: Text -> Text -> Maybe (AtomType, Maybe Text)
+parseAName a v = go True a where
+  v' x = if x then Just v else Nothing
+  go :: Bool -> Text -> Maybe (AtomType, Maybe Text)
+  go p "country"  = Just (TCountry,  v' p)
+  go p "province" = Just (TProvince, v' p)
+  go p "city"     = Just (TCity,     v' p)
+  go p "location" = Just (TLocation, v' p)
+  go p "person"   = Just (TPerson,   v' p)
+  go p "keyword"  = Just (TKeyword,  v' p)
+  go p "year"     = Just (TYear,     v' p)
+  go False _      = Nothing
+  go True (Text.stripPrefix "no-" -> Just suf) =
+    go False suf
+  go True _ = Nothing
 
 atomTypeDescriptions :: AtomType -> Text
 atomTypeDescriptions TCountry  = "countries"
@@ -116,14 +124,30 @@ atomTypeDescriptions TPerson   = "people"
 atomTypeDescriptions TKeyword  = "keywords"
 atomTypeDescriptions TYear     = "years"
 
+-- | Describe a value.
+--
+-- 'describe' will show either lack of information about subject, or
+-- tagged with empty value, or the actual value.
+describe :: Text -> Maybe Text -> Text
+describe a Nothing   = "has no " <> a <> " information"
+describe a (Just "") = a <> " is empty"
+describe a (Just v)  = a <> " is '" <> v <> "'"
+
 atomDescription :: Atom -> Text
-atomDescription (Country  place) = "country is "  <> place
-atomDescription (Province place) = "province is " <> place
-atomDescription (City     place) = "city is "     <> place
-atomDescription (Location place) = "location is " <> place
-atomDescription (Person who) = formatPerson False who <>
-                               " is in the picture"
-atomDescription (Keyword what) = "tagged with keyword " <> what
+atomDescription (Country  place) = describe "country"  place
+atomDescription (Province place) = describe "province" place
+atomDescription (City     place) = describe "city"     place
+atomDescription (Location place) = describe "location" place
+atomDescription (Person who) =
+  case who of
+    Nothing -> "picture has no person information"
+    Just "" -> "picture has an empty person tag"
+    Just p  -> formatPerson False p <> " is in the picture"
+atomDescription (Keyword keyword) =
+  case keyword of
+    Nothing -> "picture not tagged with any keywords"
+    Just "" -> "tagged with an empty keyword"
+    Just k  -> "tagged with keyword " <> k <> ""
 atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
 atomDescription (And a b) =
   mconcat [ "("
@@ -145,15 +169,21 @@ atomDescription (Not a) = "(not " <> atomDescription a <> ")"
 atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 
-buildAtom :: AtomType -> Text -> Maybe Atom
+buildAtom :: AtomType -> Maybe Text -> Maybe Atom
 buildAtom TCountry  place = Just $ Country  place
 buildAtom TProvince place = Just $ Province place
 buildAtom TCity     place = Just $ City     place
 buildAtom TLocation place = Just $ Location place
 buildAtom TPerson who = Just $ Person who
 buildAtom TKeyword kw = Just $ Keyword kw
-buildAtom TYear when =
+buildAtom TYear (Just when) =
   Year <$> readMaybe (Text.unpack when)
+buildAtom TYear Nothing = Nothing
+
+-- | Set search function for either membership or null set checking.
+setSearch :: Maybe Text -> Set Text -> Bool
+setSearch Nothing  = Set.null
+setSearch (Just v) = (v `Set.member`)
 
 folderSearchFunction :: Atom -> PicDir -> Bool
 folderSearchFunction a =
@@ -161,22 +191,22 @@ folderSearchFunction a =
 
 imageSearchFunction :: Atom -> (Image -> Bool)
 imageSearchFunction (Country loc) =
-  (== Just loc) . exifCountry . imgExif
+  (== loc) . exifCountry . imgExif
 
 imageSearchFunction (Province loc) =
-  (== Just loc) . exifProvince . imgExif
+  (== loc) . exifProvince . imgExif
 
 imageSearchFunction (City loc) =
-  (== Just loc) . exifCity . imgExif
+  (== loc) . exifCity . imgExif
 
 imageSearchFunction (Location loc) =
-  (== Just loc) . exifLocation . imgExif
+  (== loc) . exifLocation . imgExif
 
 imageSearchFunction (Person who) =
-  (who `Set.member`) . exifPeople . imgExif
+  setSearch who . exifPeople . imgExif
 
-imageSearchFunction (Keyword what) =
-  (what `Set.member`) . exifKeywords . imgExif
+imageSearchFunction (Keyword keyword) =
+  setSearch keyword . exifKeywords . imgExif
 
 imageSearchFunction (Year year) =
   (== Just year) . imageYear
@@ -218,8 +248,8 @@ rpnParser (x:xs) ("not", _) =
 rpnParser xs ("all", _) = return [All xs]
 rpnParser xs ("any", _) = return [Any xs]
 rpnParser xs (an, av) =
-  let v = parseAName an >>=
-          \at -> buildAtom at av
+  let v = parseAName an av >>=
+          \(at, av') -> buildAtom at av'
   in case v of
     Just v' -> return $ v':xs
     Nothing -> throwE $ "Failed to parse the atom " <>
