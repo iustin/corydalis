@@ -60,6 +60,7 @@ data Symbol = TCountry
               | TPerson
               | TKeyword
               | TYear
+              | TCamera
                 deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -71,6 +72,7 @@ instance PathPiece Symbol where
   fromPathPiece "people"    = Just TPerson
   fromPathPiece "keywords"  = Just TKeyword
   fromPathPiece "years"     = Just TYear
+  fromPathPiece "cameras"   = Just TCamera
   fromPathPiece _           = Nothing
 
 data Atom = Country  (Maybe Text)
@@ -80,6 +82,7 @@ data Atom = Country  (Maybe Text)
           | Person   (Maybe Text)
           | Keyword  (Maybe Text)
           | Year     Integer
+          | Camera   (Maybe Text)
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -98,6 +101,7 @@ atomName TLocation = "location"
 atomName TPerson   = "person"
 atomName TKeyword  = "keyword"
 atomName TYear     = "year"
+atomName TCamera   = "camera"
 
 parseAName :: Text -> Text -> Maybe (Symbol, Maybe Text)
 parseAName a v = go True a where
@@ -110,6 +114,7 @@ parseAName a v = go True a where
   go p "person"   = Just (TPerson,   v' p)
   go p "keyword"  = Just (TKeyword,  v' p)
   go p "year"     = Just (TYear,     v' p)
+  go p "camera"   = Just (TCamera,   v' p)
   go False _      = Nothing
   go True (Text.stripPrefix "no-" -> Just suf) =
     go False suf
@@ -123,6 +128,7 @@ atomTypeDescriptions TLocation = "locations"
 atomTypeDescriptions TPerson   = "people"
 atomTypeDescriptions TKeyword  = "keywords"
 atomTypeDescriptions TYear     = "years"
+atomTypeDescriptions TCamera   = "cameras"
 
 -- | Describe a value.
 --
@@ -149,6 +155,9 @@ atomDescription (Keyword keyword) =
     Just "" -> "tagged with an empty keyword"
     Just k  -> "tagged with keyword " <> k <> ""
 atomDescription (Year year) = "taken in the year " <> Text.pack (show year)
+atomDescription (Camera Nothing) = "has no camera information"
+atomDescription (Camera (Just "")) = "has defined by empty camera information"
+atomDescription (Camera (Just v)) = "shot with a " <> v <> " camera"
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -179,6 +188,7 @@ buildAtom TKeyword kw = Just $ Keyword kw
 buildAtom TYear (Just when) =
   Year <$> readMaybe (Text.unpack when)
 buildAtom TYear Nothing = Nothing
+buildAtom TCamera camera = Just $ Camera camera
 
 -- | Set search function for either membership or null set checking.
 setSearch :: Maybe Text -> Set Text -> Bool
@@ -211,6 +221,13 @@ imageSearchFunction (Keyword keyword) =
 imageSearchFunction (Year year) =
   (== Just year) . imageYear
 
+imageSearchFunction (Camera camera) =
+  (\c ->
+     let c' = if c == unknown
+                then Nothing
+                else Just c
+     in c' == camera) . exifCamera . imgExif
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -235,6 +252,7 @@ getAtoms TCity     = gExifCities    . repoExif
 getAtoms TLocation = gExifLocations . repoExif
 getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
+getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TYear     = const Map.empty
 
 -- | Builder for all atom.

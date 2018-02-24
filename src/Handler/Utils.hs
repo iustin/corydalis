@@ -120,7 +120,7 @@ atomIcon TLocation = "fas fa-map-signs"
 atomIcon TPerson   = "fas fa-users"
 atomIcon TKeyword  = "fas fa-tags"
 atomIcon TYear     = "fas fa-calendar"
-
+atomIcon TCamera   = "fas fa-camera"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =
