@@ -52,6 +52,11 @@ getHomeR = do
         take n .
         -- sortBy + flip (compare `on`) = sortBy + reverse
         sortBy (flip compare `on` snd) .
+        foldl' (\l (a, b) ->
+                  case a of
+                    Nothing -> l
+                    Just a' -> (a', b):l
+               ) [] .
         Map.toList .
         f $ gexif
       years = Set.toAscList all_years

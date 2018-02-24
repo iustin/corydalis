@@ -22,5 +22,8 @@
                <td>
                  <a href="@?{(SearchFoldersR,[(atomName atom, n)])}"><span class="far fa-folder-open">
                  <a href="@?{(SearchImagesR,[(atomName atom, n)])}"><span class="far fa-images">
-                 #{n}
+                 $maybe val <- n
+                   #{val}
+                 $nothing
+                   <i>unknown
                <td .number>#{count}

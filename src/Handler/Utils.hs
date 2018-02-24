@@ -196,15 +196,15 @@ quoteMarkup element = toMarkup [quote, toMarkup element, quote]
 
 folderLocations :: PicDir -> Text
 folderLocations =
-  Text.intercalate ", " . Map.keys . gExifLocations . pdExif
+  Text.intercalate ", " . (map (fromMaybe unknown)) . Map.keys . gExifLocations . pdExif
 
 folderPeople :: PicDir -> Text
 folderPeople =
-  Text.intercalate ", " . map (formatPerson True) . Map.keys . gExifPeople . pdExif
+  Text.intercalate ", " . map (formatPerson True) . catMaybes . Map.keys . gExifPeople . pdExif
 
 folderKeywords :: PicDir -> Text
 folderKeywords =
-  Text.intercalate ", " . Map.keys . gExifKeywords . pdExif
+  Text.intercalate ", " . catMaybes . Map.keys . gExifKeywords . pdExif
 
 buildTopNLenses :: Map.Map Text (LensInfo, Occurrence) -> Int -> [(Integer, FileOffset, Text, LensInfo)]
 buildTopNLenses m n =

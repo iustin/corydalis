@@ -337,7 +337,7 @@ instance Default Exif where
              , exifFL35mm      = Nothing
              }
 
-type NameStats = Map Text Integer
+type NameStats = Map (Maybe Text) Integer
 
 data GroupExif = GroupExif
   { gExifPeople    :: !NameStats
@@ -365,17 +365,20 @@ instance Default GroupExif where
 
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
-addExifToGroup g e =
-  g { gExifPeople    = foldl' count (gExifPeople    g) (exifPeople   e)
-    , gExifKeywords  = foldl' count (gExifKeywords  g) (exifKeywords e)
-    , gExifCountries = foldl' count (gExifCountries g) (exifCountry  e)
-    , gExifProvinces = foldl' count (gExifProvinces g) (exifProvince e)
-    , gExifCities    = foldl' count (gExifCities    g) (exifCity     e)
-    , gExifLocations = foldl' count (gExifLocations g) (exifLocation e)
-    , gExifCameras   = foldl' count (gExifCameras   g) (exifCamera   e)
-    , gExifLenses    = count (gExifLenses  g) (liName $ exifLens e)
+addExifToGroup g Exif{..} =
+  g { gExifPeople    = foldSet (gExifPeople    g) exifPeople
+    , gExifKeywords  = foldSet (gExifKeywords  g) exifKeywords
+    , gExifCountries = count   (gExifCountries g) exifCountry
+    , gExifProvinces = count   (gExifProvinces g) exifProvince
+    , gExifCities    = count   (gExifCities    g) exifCity
+    , gExifLocations = count   (gExifLocations g) exifLocation
+    , gExifCameras   = count   (gExifCameras   g) exifCamera
+    , gExifLenses    = count   (gExifLenses    g) (Just $ liName exifLens)
     }
     where count m k = Map.insertWith (+) k 1 m
+          foldSet m s = if Set.null s
+                          then m `count` Nothing
+                          else foldl' count m (Set.map Just s)
 
 instance Semigroup GroupExif where
   g1 <> g2 =
