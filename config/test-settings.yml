@@ -1,5 +1,7 @@
 # Static files are found in this directory
 static-dir:     "_env:STATIC_DIR:static"
+# Assets (upstream static files) are found in this directory
+assets-dir:     "_env:ASSETS_DIR:assets"
 # Listen address:
 host:           "_env:HOST:*4" # any IPv4 host
 # Listen port:

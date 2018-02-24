@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.HomeSpec (spec) where
 
-import TestImport
+import           TestImport
 
 checkLoginSuccessful :: YesodExample App ()
 checkLoginSuccessful = do
@@ -43,7 +43,8 @@ spec = withApp $ do
     it "loads the index and checks it looks right" $ do
       checkLoginSuccessful
       htmlAllContain "h1" "Corydalis"
-      htmlAnyContain "div#main" "Year view"
-      htmlAnyContain "div#main" "Locations view"
-      htmlAnyContain "div#main" "People view"
-      htmlAnyContain "div#main" "Keyword view"
+      htmlAnyContain "div#main" "Years"
+      htmlAnyContain "div#main" "Countries"
+      htmlAnyContain "div#main" "Locations"
+      htmlAnyContain "div#main" "People"
+      htmlAnyContain "div#main" "Keywords"
