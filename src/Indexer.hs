@@ -237,6 +237,21 @@ getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
 getAtoms TYear     = const Map.empty
 
+-- | Builder for all atom.
+--
+-- Builds an 'All' atom, with special casing for small values.
+allAtom :: [Atom] -> Atom
+allAtom [x]    = x       -- no sense in over-wrapping.
+allAtom [x, y] = And x y -- 'x and y' is better than 'all of [x, y]'.
+allAtom xs     = All xs  -- and normal wrapping.
+
+-- | Builder for any atom.
+-- Builds an 'Any' atom, with special casing for small values.
+anyAtom :: [Atom] -> Atom
+anyAtom [x]    = x
+anyAtom [x, y] = Or x y
+anyAtom xs     = Any xs
+
 rpnParser :: [Atom] -> (Text, Text) -> Except Text [Atom]
 rpnParser (x:y:ys) ("and",_) = return $ And x y:ys
 rpnParser (x:y:ys) ("or",_) = return $ Or x y:ys
@@ -245,8 +260,8 @@ rpnParser (x:xs) ("not", _) =
             Not y -> y
             _     -> Not x
   in return $ a:xs
-rpnParser xs ("all", _) = return [All xs]
-rpnParser xs ("any", _) = return [Any xs]
+rpnParser xs ("all", _) = return [allAtom xs]
+rpnParser xs ("any", _) = return [anyAtom xs]
 rpnParser xs (an, av) =
   let v = parseAName an av >>=
           \(at, av') -> buildAtom at av'
@@ -258,12 +273,7 @@ rpnParser xs (an, av) =
 
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params = runExcept $ do
-  atoms <- foldM rpnParser [] params
-  return $ case atoms of
-    [x] ->  x
-    -- Note to self : [] must return All [], since Any [] will never
-    -- match. So just let it fall through the "other" case.
-    xs  -> All xs
+  allAtom <$> foldM rpnParser [] params
 
 -- | Build image map (with static sorting).
 buildImageMap :: Atom -> Repository -> SearchResults
