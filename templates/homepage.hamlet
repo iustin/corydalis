@@ -29,3 +29,10 @@
 
   <div .col-xs-12 .col-md-3>
     ^{searchDiv TKeyword "Keywords" "keyword" id topKeywords}
+
+  <div .col-xs-12>
+    <form action=@{QuickSearchR} .form-inline>
+      <div .form-group>
+        <label for="entry">Quick search
+        <input type="text" .form-control #entry name="q" placeholder="Switzerland">
+      <button type="submit" .btn .btn-default>Submit

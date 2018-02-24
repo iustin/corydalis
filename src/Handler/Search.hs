@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Search ( getSearchFoldersR
                       , getSearchImagesR
+                      , getQuickSearchR
                       ) where
 
 import           Handler.Utils
@@ -59,3 +60,18 @@ getSearchImagesR = do
   defaultLayout $ do
     setTitle . toHtml $ ("Corydalis: searching images"::Text)
     $(widgetFile "searchimages")
+
+getQuickSearchR :: Handler Html
+getQuickSearchR = do
+  q <- lookupGetParam "q"
+  search <- case q of
+    Nothing -> invalidArgs ["Missing search parameter ('q')"]
+    Just "" -> invalidArgs ["Empty search parameter"]
+    Just q' -> return q'
+  let params = foldl' (\p s -> case buildAtom s (Just search) of
+                                 Nothing -> p
+                                 Just _  -> (atomName s, search):p
+                      ) [] [minBound..maxBound]
+      -- TODO: don't hardcode this
+      wrapped = ("any", ""):params
+  redirect (SearchImagesR, reverse wrapped)

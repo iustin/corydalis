@@ -23,3 +23,4 @@
 /stats/lenses LensStatsR GET
 /stats/lens/#Text LensInfoR GET
 /list/#Symbol ListItemsR GET
+/search/quick QuickSearchR GET
