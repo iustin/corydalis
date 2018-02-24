@@ -81,7 +81,10 @@ data Orientation
   | OrientationRightTop
   | OrientationRightBot
   | OrientationLeftBot
-  deriving (Show)
+  deriving (Show, Eq)
+
+instance Default Orientation where
+  def = OrientationTopLeft
 
 instance FromJSON Orientation where
   parseJSON = withScientific "ExifOrientation" $ \n ->
@@ -181,6 +184,9 @@ instance NFData LensInfo where
                      rnf liSpec `seq`
                      rnf liFL   `seq`
                      rnf liAp
+
+instance Default LensInfo where
+  def = unknownLens
 
 unknownLens :: LensInfo
 unknownLens = LensInfo unknown unknown Nothing Nothing
@@ -293,7 +299,7 @@ data Exif = Exif
   , exifAperture    :: !(Maybe Double)
   , exifFocalLength :: !(Maybe Double)
   , exifFL35mm      :: !(Maybe Double)
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 instance NFData Exif where
   rnf Exif{..} = rnf exifPeople     `seq`
@@ -311,6 +317,25 @@ instance NFData Exif where
                  rnf exifAperture   `seq`
                  rnf exifFocalLength `seq`
                  rnf exifFL35mm
+
+instance Default Exif where
+  def = Exif { exifPeople      = Set.empty
+             , exifKeywords    = Set.empty
+             , exifCountry     = Nothing
+             , exifProvince    = Nothing
+             , exifCity        = Nothing
+             , exifLocation    = Nothing
+             , exifCamera      = unknown
+             , exifSerial      = unknown
+             , exifLens        = def
+             , exifOrientation = def
+             , exifCreateDate  = Nothing
+             , exifTitle       = Nothing
+             , exifCaption     = Nothing
+             , exifAperture    = Nothing
+             , exifFocalLength = Nothing
+             , exifFL35mm      = Nothing
+             }
 
 type NameStats = Map Text Integer
 

@@ -169,7 +169,7 @@ data File = File
   , fileSize  :: !FileOffset
   , filePath  :: !Text
   , fileExif  :: !(Maybe Exif)
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 instance NFData File where
   rnf File{..} = rnf fileName   `seq`
@@ -184,10 +184,13 @@ instance NFData File where
 {-# ANN Flags ("HLint: ignore Use newtype instead of data"::String) #-}
 data Flags = Flags
   { flagsSoftMaster :: !Bool
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 instance NFData Flags where
   rnf Flags{..} = rnf flagsSoftMaster
+
+instance Default Flags where
+  def = emptyFlags
 
 emptyFlags :: Flags
 emptyFlags = Flags {
@@ -204,7 +207,7 @@ data Image = Image
     , imgExif        :: !Exif
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 instance NFData Image where
   rnf Image{..} = rnf imgName        `seq`
