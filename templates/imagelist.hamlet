@@ -4,7 +4,7 @@
                 <tr>
                   <th .parser-false .sorter-false .filter-false>Icon
                   $if showParent
-                    <th .filter-select>Folder
+                    <th .sorter-text .filter-select>Folder
                   <th>Name
                   <th .sorter-text>Capture date
                   $if numCameras > 1
