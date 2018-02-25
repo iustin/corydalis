@@ -12,7 +12,7 @@
               #{kindPlCap}
         <div .panel-body>
            $forall (p, c) <- items
-            $with searchParams <- [(atomName atom, p)]
+            $with searchParams <- [(symbolName atom, p)]
              <div .btn-group role="group">
                <a .btn .btn-default href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
                <button type="button" .btn .btn-default .dropdown-toggle data-toggle="dropdown">

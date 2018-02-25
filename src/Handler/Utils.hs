@@ -258,5 +258,5 @@ getAtomAndSearch = do
   return (params, atom, images)
 
 atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
-atomAsParam s (Just t) = (atomName s, t)
-atomAsParam s Nothing  = (negAtomName s, "")
+atomAsParam s (Just t) = (symbolName s, t)
+atomAsParam s Nothing  = (negSymbolName s, "")

@@ -23,9 +23,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Indexer ( Symbol(..)
                , Atom(..)
-               , atomNames
-               , atomName
-               , negAtomName
+               , symbolNames
+               , symbolName
+               , negSymbolName
                , parseAName
                , atomTypeDescriptions
                , atomDescription
@@ -91,21 +91,21 @@ data Atom = Country  (Maybe Text)
           | Any [Atom]
           deriving (Show)
 
-atomNames :: [(Symbol, Text)]
-atomNames = map (\t -> (t, atomName t)) [minBound..maxBound]
+symbolNames :: [(Symbol, Text)]
+symbolNames = map (\t -> (t, symbolName t)) [minBound..maxBound]
 
-atomName :: Symbol -> Text
-atomName TCountry  = "country"
-atomName TProvince = "province"
-atomName TCity     = "city"
-atomName TLocation = "location"
-atomName TPerson   = "person"
-atomName TKeyword  = "keyword"
-atomName TYear     = "year"
-atomName TCamera   = "camera"
+symbolName :: Symbol -> Text
+symbolName TCountry  = "country"
+symbolName TProvince = "province"
+symbolName TCity     = "city"
+symbolName TLocation = "location"
+symbolName TPerson   = "person"
+symbolName TKeyword  = "keyword"
+symbolName TYear     = "year"
+symbolName TCamera   = "camera"
 
-negAtomName :: Symbol -> Text
-negAtomName atom = "no-" <> atomName atom
+negSymbolName :: Symbol -> Text
+negSymbolName atom = "no-" <> symbolName atom
 
 parseAName :: Text -> Text -> Maybe (Symbol, Maybe Text)
 parseAName a v = go True a where

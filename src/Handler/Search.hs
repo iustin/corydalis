@@ -70,7 +70,7 @@ getQuickSearchR = do
     Just q' -> return q'
   let params = foldl' (\p s -> case buildAtom s (Just search) of
                                  Nothing -> p
-                                 Just _  -> (atomName s, search):p
+                                 Just _  -> (symbolName s, search):p
                       ) [] [minBound..maxBound]
       -- TODO: don't hardcode this
       wrapped = ("any", ""):params
