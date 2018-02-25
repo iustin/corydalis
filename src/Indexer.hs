@@ -79,8 +79,16 @@ instance PathPiece Symbol where
   fromPathPiece "cameras"   = Just TCamera
   fromPathPiece _           = Nothing
 
+-- TODO: Replace this with Data.CaseInsensitive from case-insensitive
+-- package, once the actual image metadata uses it too.
+newtype FuzzyText = FuzzyText { unFuzzy :: Text }
+  deriving (Show)
+
+makeFuzzy :: Text -> FuzzyText
+makeFuzzy = FuzzyText . Text.toCaseFold
+
 data StrOp = OpEqual Text
-           | OpFuzzy Text
+           | OpFuzzy FuzzyText
            | OpMissing
            deriving (Show)
 
@@ -92,9 +100,9 @@ data NumOp a where
 
 deriving instance Show a => Show (NumOp a)
 
-fuzzyMatch :: Text -> Text -> Bool
+fuzzyMatch :: FuzzyText -> Text -> Bool
 fuzzyMatch fz =
-  (Text.toCaseFold fz `Text.isInfixOf`) . Text.toCaseFold
+  (unFuzzy fz `Text.isInfixOf`) . Text.toCaseFold
 
 evalStr :: StrOp -> Maybe Text -> Bool
 evalStr (OpEqual a) = (Just a ==)
@@ -182,17 +190,18 @@ parseAtom a v = do
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
   case s of
-    TCountry  -> Just . Country  . OpFuzzy $ v
-    TProvince -> Just . Province . OpFuzzy $ v
-    TCity     -> Just . City     . OpFuzzy $ v
-    TLocation -> Just . Location . OpFuzzy $ v
-    TPerson   -> Just . Person   . OpFuzzy $ v
-    TKeyword  -> Just . Keyword  . OpFuzzy $ v
-    TCamera   -> Just . Camera   . OpFuzzy $ v
+    TCountry  -> Just . Country  . OpFuzzy $ f
+    TProvince -> Just . Province . OpFuzzy $ f
+    TCity     -> Just . City     . OpFuzzy $ f
+    TLocation -> Just . Location . OpFuzzy $ f
+    TPerson   -> Just . Person   . OpFuzzy $ f
+    TKeyword  -> Just . Keyword  . OpFuzzy $ f
+    TCamera   -> Just . Camera   . OpFuzzy $ f
     TYear     ->
       case Text.decimal v of
         Right (w', "") -> Just . Year . OpEq $ w'
         _              -> Nothing
+  where f = makeFuzzy v
 
 atomTypeDescriptions :: Symbol -> Text
 atomTypeDescriptions TCountry  = "countries"
@@ -223,7 +232,7 @@ describeEq a v = a <> " is " <> toText v <> ""
 describeStr :: Text -> StrOp -> Text
 describeStr a (OpEqual "") = a <> " is empty"
 describeStr a (OpEqual v)  = describeEq a v
-describeStr a (OpFuzzy v)  = a <> " contains " <> v
+describeStr a (OpFuzzy v)  = a <> " contains " <> unFuzzy v
 describeStr a  OpMissing   = "has no " <> a <> " information"
 
 atomDescription :: Atom -> Text
@@ -236,14 +245,14 @@ atomDescription (Person   (OpEqual who)) =
     "" -> "has an empty person tag"
     p  -> formatPerson False p <> " is in the picture"
 atomDescription (Person (OpFuzzy v)) =
-  "tagged with a person with a name containing " <> v
+  "tagged with a person with a name containing " <> unFuzzy v
 atomDescription (Person OpMissing) = "has no person information"
 atomDescription (Keyword (OpEqual keyword)) =
   case keyword of
     "" -> "tagged with an empty keyword"
     k  -> "tagged with keyword " <> k <> ""
 atomDescription (Keyword (OpFuzzy v)) =
-  "tagged with a keyword containing " <> v
+  "tagged with a keyword containing " <> unFuzzy v
 atomDescription (Keyword OpMissing) = "not tagged with any keywords"
 atomDescription (Year (OpEq year))    = "taken in the year " <> toText year
 atomDescription (Year (OpLt year))    = "taken before the year " <> toText year
@@ -253,7 +262,7 @@ atomDescription (Camera OpMissing)    = "has no camera information"
 atomDescription (Camera (OpEqual "")) = "has defined but empty camera information"
 atomDescription (Camera (OpEqual v))  = "shot with a " <> v <> " camera"
 atomDescription (Camera (OpFuzzy v))  =
-  "shot with a camera named like " <> v
+  "shot with a camera named like " <> unFuzzy v
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -371,7 +380,7 @@ rpnParser xs (an, av) =
                " with stack " <> Text.pack (show xs)
 
 parseString :: Text -> Maybe StrOp
-parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy v
+parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy (makeFuzzy v)
 parseString v                              = Just $ OpEqual v
 
 parseDecimal :: (Integral a, Ord a) => Text -> Maybe (NumOp a)
@@ -397,7 +406,7 @@ numOpToParam s  OpNa    = ("no-" <> s, "")
 
 strOpToParam :: Text -> StrOp -> (Text, Text)
 strOpToParam s (OpEqual v) = (s, v)
-strOpToParam s (OpFuzzy v) = (s, '~' `Text.cons` v)
+strOpToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
 strOpToParam s OpMissing   = ("no-" <> s, "")
 
 atomToParams :: Atom -> [(Text, Text)]
