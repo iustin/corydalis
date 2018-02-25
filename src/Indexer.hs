@@ -37,6 +37,7 @@ module Indexer ( Symbol(..)
                , parseAtomParams
                , buildImageMap
                , searchImages
+               , genQuickSearchParams
                ) where
 
 import           Control.Monad              (foldM)
@@ -177,6 +178,21 @@ parseAtom a v = do
     TKeyword  -> str >>= Just . Keyword
     TYear     -> dec >>= Just . Year
     TCamera   -> str >>= Just . Camera
+
+quickSearch :: Symbol -> Text -> Maybe Atom
+quickSearch s v =
+  case s of
+    TCountry  -> Just . Country  . OpFuzzy $ v
+    TProvince -> Just . Province . OpFuzzy $ v
+    TCity     -> Just . City     . OpFuzzy $ v
+    TLocation -> Just . Location . OpFuzzy $ v
+    TPerson   -> Just . Person   . OpFuzzy $ v
+    TKeyword  -> Just . Keyword  . OpFuzzy $ v
+    TCamera   -> Just . Camera   . OpFuzzy $ v
+    TYear     ->
+      case Text.decimal v of
+        Right (w', "") -> Just . Year . OpEq $ w'
+        _              -> Nothing
 
 atomTypeDescriptions :: Symbol -> Text
 atomTypeDescriptions TCountry  = "countries"
@@ -373,6 +389,37 @@ parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params = runExcept $
   allAtom <$> foldM rpnParser [] params
 
+numOpToParam :: (ToText a) => Text -> NumOp a -> (Text, Text)
+numOpToParam s (OpEq v) = (s, toText v)
+numOpToParam s (OpLt v) = (s, '<' `Text.cons` toText v)
+numOpToParam s (OpGt v) = (s, '>' `Text.cons` toText v)
+numOpToParam s  OpNa    = ("no-" <> s, "")
+
+strOpToParam :: Text -> StrOp -> (Text, Text)
+strOpToParam s (OpEqual v) = (s, v)
+strOpToParam s (OpFuzzy v) = (s, '~' `Text.cons` v)
+strOpToParam s OpMissing   = ("no-" <> s, "")
+
+atomToParams :: Atom -> [(Text, Text)]
+atomToParams (Country  v) = [strOpToParam (symbolName TCountry) v]
+atomToParams (Province v) = [strOpToParam (symbolName TProvince) v]
+atomToParams (City v) = [strOpToParam (symbolName TCity) v]
+atomToParams (Location v) = [strOpToParam (symbolName TLocation) v]
+atomToParams (Person v) = [strOpToParam (symbolName TPerson) v]
+atomToParams (Keyword v) = [strOpToParam (symbolName TKeyword) v]
+atomToParams (Year n) = [numOpToParam (symbolName TYear) n]
+atomToParams (Camera v) = [strOpToParam (symbolName TCamera) v]
+atomToParams (And a b) =
+  concat $ [atomToParams a, atomToParams b, [("and", "")]]
+atomToParams (Or a b) =
+  concat $ [atomToParams a, atomToParams b, [("or", "")]]
+atomToParams (Not a) =
+  concat $ [atomToParams a, [("not", "")]]
+atomToParams (All xs) =
+  reverse $ ("all", ""):concatMap atomToParams xs
+atomToParams (Any xs) =
+  reverse $ ("any", ""):concatMap atomToParams xs
+
 -- | Build image map (with static sorting).
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
@@ -387,3 +434,16 @@ searchImages params atom pics = do
   -- otherwise we don't gain anything from caching it.
   let lazyimages = buildImageMap atom pics
   getSearchResults lazyimages params
+
+-- | Generates a quick search atom.
+genQuickSearchParams :: Text -> Either Text [(Text, Text)]
+genQuickSearchParams q = runExcept $ do
+  search <- case q of
+              "" -> throwE $ "Empty search parameter"
+              _  -> return q
+  let params = foldl' (\p s -> case quickSearch s search of
+                                 Nothing -> p
+                                 Just a  -> a:p
+                      ) [] [minBound..maxBound]
+      p' = Any params
+  return $ atomToParams p'
