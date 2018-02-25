@@ -196,7 +196,7 @@ quoteMarkup element = toMarkup [quote, toMarkup element, quote]
 
 folderLocations :: PicDir -> Text
 folderLocations =
-  Text.intercalate ", " . (map (fromMaybe unknown)) . Map.keys . gExifLocations . pdExif
+  Text.intercalate ", " . map (fromMaybe unknown) . Map.keys . gExifLocations . pdExif
 
 folderPeople :: PicDir -> Text
 folderPeople =
