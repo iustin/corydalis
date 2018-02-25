@@ -47,7 +47,6 @@ import           Data.Maybe                 (isNothing)
 import           Data.Semigroup             ((<>))
 import           Data.Set                   (Set)
 import qualified Data.Set                   as Set
-import           Data.String                (IsString)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
 import qualified Data.Text.Read             as Text
@@ -79,34 +78,42 @@ instance PathPiece Symbol where
   fromPathPiece "cameras"   = Just TCamera
   fromPathPiece _           = Nothing
 
-data Op a where
-  OpEqual   :: (Eq a) => a -> Op a
-  OpFuzzy   :: Text -> Op Text
-  OpMissing :: Op a
-  OpLt      :: (Num a, Ord a) => a -> Op a
-  OpGt      :: (Num a, Ord a) => a -> Op a
+data StrOp = OpEqual Text
+           | OpFuzzy Text
+           | OpMissing
+           deriving (Show)
 
-deriving instance Show a => Show (Op a)
+data NumOp a where
+  OpEq :: (Eq a) => a -> NumOp a
+  OpNa :: NumOp a
+  OpLt :: (Num a, Ord a) => a -> NumOp a
+  OpGt :: (Num a, Ord a) => a -> NumOp a
+
+deriving instance Show a => Show (NumOp a)
 
 fuzzyMatch :: Text -> Text -> Bool
 fuzzyMatch fz =
   (Text.toCaseFold fz `Text.isInfixOf`) . Text.toCaseFold
 
-eval :: Op a -> Maybe a -> Bool
-eval (OpEqual a) = (Just a ==)
-eval (OpFuzzy a) = maybe False (fuzzyMatch a)
-eval  OpMissing  = isNothing
-eval (OpLt    a) = maybe False (< a)
-eval (OpGt    a) = maybe False (> a)
+evalStr :: StrOp -> Maybe Text -> Bool
+evalStr (OpEqual a) = (Just a ==)
+evalStr (OpFuzzy a) = maybe False (fuzzyMatch a)
+evalStr  OpMissing  = isNothing
 
-data Atom = Country  (Op Text)
-          | Province (Op Text)
-          | City     (Op Text)
-          | Location (Op Text)
-          | Person   (Op Text)
-          | Keyword  (Op Text)
-          | Year     (Op Integer)
-          | Camera   (Op Text)
+evalNum :: NumOp a -> Maybe a -> Bool
+evalNum (OpEq a) = (== Just a)
+evalNum (OpLt a) = maybe False (< a)
+evalNum (OpGt a) = maybe False (> a)
+evalNum OpNa     = isNothing
+
+data Atom = Country  StrOp
+          | Province StrOp
+          | City     StrOp
+          | Location StrOp
+          | Person   StrOp
+          | Keyword  StrOp
+          | Year     (NumOp Integer)
+          | Camera   StrOp
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -150,7 +157,7 @@ buildMissingAtom s =
     TLocation -> Location  OpMissing
     TPerson   -> Person    OpMissing
     TKeyword  -> Keyword   OpMissing
-    TYear     -> Year      OpMissing
+    TYear     -> Year      OpNa
     TCamera   -> Camera    OpMissing
 
 parseAtom :: Text -> Text -> Maybe Atom
@@ -181,30 +188,33 @@ atomTypeDescriptions TKeyword  = "keywords"
 atomTypeDescriptions TYear     = "years"
 atomTypeDescriptions TCamera   = "cameras"
 
-class (Show a, IsString a) => ToText a where
+class (Show a) => ToText a where
   toText :: a -> Text
   toText = Text.pack . show
 
 instance ToText Text where
   toText = id
 
+instance ToText Integer
+
+describeEq :: (ToText a) => Text -> a -> Text
+describeEq a v = a <> " is " <> toText v <> ""
+
 -- | Describe a value.
 --
 -- 'describe' will show either lack of information about subject, or
 -- tagged with empty value, or the actual value.
-describe :: (ToText a) => Text -> Op a -> Text
-describe a (OpEqual "") = a <> " is empty"
-describe a (OpEqual v)  = a <> " is '" <> toText v <> "'"
-describe a (OpFuzzy v)  = a <> " contains " <> v
-describe a  OpMissing   = "has no " <> a <> " information"
-describe a (OpLt v)     = a <> " is smaller than " <> toText v
-describe a (OpGt v)     = a <> " is greater than " <> toText v
+describeStr :: Text -> StrOp -> Text
+describeStr a (OpEqual "") = a <> " is empty"
+describeStr a (OpEqual v)  = describeEq a v
+describeStr a (OpFuzzy v)  = a <> " contains " <> v
+describeStr a  OpMissing   = "has no " <> a <> " information"
 
 atomDescription :: Atom -> Text
-atomDescription (Country  place) = describe "country"  place
-atomDescription (Province place) = describe "province" place
-atomDescription (City     place) = describe "city"     place
-atomDescription (Location place) = describe "location" place
+atomDescription (Country  place) = describeStr "country"  place
+atomDescription (Province place) = describeStr "province" place
+atomDescription (City     place) = describeStr "city"     place
+atomDescription (Location place) = describeStr "location" place
 atomDescription (Person   (OpEqual who)) =
   case who of
     "" -> "has an empty person tag"
@@ -219,11 +229,14 @@ atomDescription (Keyword (OpEqual keyword)) =
 atomDescription (Keyword (OpFuzzy v)) =
   "tagged with a keyword containing " <> v
 atomDescription (Keyword OpMissing) = "not tagged with any keywords"
-atomDescription (Year (OpEqual year)) = "taken in the year " <> Text.pack (show year)
-atomDescription (Camera OpMissing) = "has no camera information"
+atomDescription (Year (OpEq year))    = "taken in the year " <> toText year
+atomDescription (Year (OpLt year))    = "taken before the year " <> toText year
+atomDescription (Year (OpGt year))    = "taken after the year " <> toText year
+atomDescription (Year OpNa)           = "does not have date information"
+atomDescription (Camera OpMissing)    = "has no camera information"
 atomDescription (Camera (OpEqual "")) = "has defined but empty camera information"
-atomDescription (Camera (OpEqual v)) = "shot with a " <> v <> " camera"
-atomDescription (Camera (OpFuzzy v)) =
+atomDescription (Camera (OpEqual v))  = "shot with a " <> v <> " camera"
+atomDescription (Camera (OpFuzzy v))  =
   "shot with a camera named like " <> v
 atomDescription (And a b) =
   mconcat [ "("
@@ -246,7 +259,7 @@ atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescrip
 atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 
 -- | Set search function for either membership or null set checking.
-setSearch :: Op Text -> Set Text -> Bool
+setSearch :: StrOp -> Set Text -> Bool
 setSearch OpMissing = Set.null
 setSearch (OpEqual v) = (v `Set.member`)
 setSearch (OpFuzzy f)=
@@ -258,16 +271,16 @@ folderSearchFunction a =
 
 imageSearchFunction :: Atom -> (Image -> Bool)
 imageSearchFunction (Country loc) =
-  eval loc . exifCountry . imgExif
+  evalStr loc . exifCountry . imgExif
 
 imageSearchFunction (Province loc) =
-  eval loc . exifProvince . imgExif
+  evalStr loc . exifProvince . imgExif
 
 imageSearchFunction (City loc) =
-  eval loc . exifCity . imgExif
+  evalStr loc . exifCity . imgExif
 
 imageSearchFunction (Location loc) =
-  eval loc . exifLocation . imgExif
+  evalStr loc . exifLocation . imgExif
 
 imageSearchFunction (Person who) =
   setSearch who . exifPeople . imgExif
@@ -276,10 +289,10 @@ imageSearchFunction (Keyword keyword) =
   setSearch keyword . exifKeywords . imgExif
 
 imageSearchFunction (Year year) =
-  eval year . imageYear
+  evalNum year . imageYear
 
 imageSearchFunction (Camera camera) =
-  eval camera . exifCamera . imgExif
+  evalStr camera . exifCamera . imgExif
 
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
@@ -341,16 +354,16 @@ rpnParser xs (an, av) =
                an <> "=" <> av <>
                " with stack " <> Text.pack (show xs)
 
-parseString :: Text -> Maybe (Op Text)
+parseString :: Text -> Maybe StrOp
 parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy v
 parseString v                              = Just $ OpEqual v
 
-parseDecimal :: (Integral a, Ord a) => Text -> Maybe (Op a)
+parseDecimal :: (Integral a, Ord a) => Text -> Maybe (NumOp a)
 parseDecimal v =
   case Text.uncons v of
-    Just ('<', v') -> OpLt    <$> go v'
-    Just ('>', v') -> OpGt    <$> go v'
-    _              -> OpEqual <$> go v
+    Just ('<', v') -> OpLt <$> go v'
+    Just ('>', v') -> OpGt <$> go v'
+    _              -> OpEq <$> go v
   where go w =
           case Text.decimal w of
             Right (w',"") -> Just w'
