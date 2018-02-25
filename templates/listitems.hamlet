@@ -25,8 +25,6 @@
                  $maybe val <- n
                    #{val}
                  $nothing
-                   $maybe atom' <- buildAtom atom Nothing
+                   $with atom' <- buildMissingAtom atom
                      <i>#{atomDescription atom'}
-                   $nothing
-                     <i>unknown
                <td .number>#{count}

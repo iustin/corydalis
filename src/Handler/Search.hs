@@ -26,14 +26,15 @@ module Handler.Search ( getSearchFoldersR
                       , getQuickSearchR
                       ) where
 
+import qualified Data.Map        as Map
+import qualified Data.Text       as Text
+
 import           Handler.Utils
 import           Handler.Widgets
 import           Import
 import           Indexer
 import           Pics
 import           Types
-
-import qualified Data.Map        as Map
 
 searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
@@ -68,10 +69,10 @@ getQuickSearchR = do
     Nothing -> invalidArgs ["Missing search parameter ('q')"]
     Just "" -> invalidArgs ["Empty search parameter"]
     Just q' -> return q'
-  let params = foldl' (\p s -> case buildAtom s (Just search) of
+  let params = foldl' (\p s -> case parseAtom s search of
                                  Nothing -> p
-                                 Just _  -> (symbolName s, search):p
-                      ) [] [minBound..maxBound]
+                                 Just _  -> (s, '~' `Text.cons` search):p
+                      ) [] $ map symbolName [minBound..maxBound]
       -- TODO: don't hardcode this
       wrapped = ("any", ""):params
   redirect (SearchImagesR, reverse wrapped)
