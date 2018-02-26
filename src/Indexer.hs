@@ -42,7 +42,7 @@ module Indexer ( Symbol(..)
 
 import           Control.Monad              (foldM)
 import           Control.Monad.Trans.Except
-import           Data.List                  (foldl')
+import           Data.List                  (foldl', partition)
 import qualified Data.Map                   as Map
 import           Data.Maybe                 (isNothing)
 import           Data.Semigroup             ((<>))
@@ -445,8 +445,9 @@ searchImages params atom pics = do
   getSearchResults lazyimages params
 
 -- | Generates a quick search atom.
-genQuickSearchParams :: Text -> Either Text [(Text, Text)]
-genQuickSearchParams q = runExcept $ do
+genQuickSearchParams :: Repository -> Text ->
+                        Either Text ([Atom], Maybe [(Text, Text)])
+genQuickSearchParams pics q = runExcept $ do
   search <- case q of
               "" -> throwE $ "Empty search parameter"
               _  -> return q
@@ -454,5 +455,11 @@ genQuickSearchParams q = runExcept $ do
                                  Nothing -> p
                                  Just a  -> a:p
                       ) [] [minBound..maxBound]
-      p' = Any params
-  return $ atomToParams p'
+      (found, notfound) =
+        partition (\a -> not . null
+                         . filterImagesBy (imageSearchFunction a)
+                         $ pics) params
+      p' = if null found
+             then Nothing
+             else Just . atomToParams . anyAtom $ found
+  return (notfound, p')

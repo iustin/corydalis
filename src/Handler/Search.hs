@@ -27,6 +27,7 @@ module Handler.Search ( getSearchFoldersR
                       ) where
 
 import qualified Data.Map        as Map
+import qualified Data.Text       as Text
 
 import           Handler.Utils
 import           Handler.Widgets
@@ -68,7 +69,18 @@ getQuickSearchR = do
     Nothing -> invalidArgs ["Missing search parameter ('q')"]
     Just "" -> invalidArgs ["Empty search parameter"]
     Just q' -> return q'
-  params <- case genQuickSearchParams search of
+  pics <- getPics
+  (skipped, params) <- case genQuickSearchParams pics search of
     Left err -> invalidArgs [err]
     Right p' -> return p'
-  redirect (SearchImagesR, params)
+  case params of
+    Nothing -> defaultLayout $ do
+      setTitle . toHtml $ ("Corydalis: quick search"::Text)
+      $(widgetFile "quicksearchfail")
+    Just p -> do
+      unless (null skipped) $ do
+        setMessage . toHtml $
+          "The following filters had no results so they were skipped: " <>
+          ", " `Text.intercalate` map atomDescription skipped <> "."
+        setSession msgTypeKey msgWarning
+      redirect (SearchImagesR, p)
