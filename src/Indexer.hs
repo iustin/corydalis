@@ -424,9 +424,9 @@ atomToParams (Or a b)     =
 atomToParams (Not a)      =
   atomToParams a ++ [("not", "")]
 atomToParams (All xs)     =
-  reverse $ ("all", ""):concatMap atomToParams xs
+  concatMap atomToParams xs ++ [("all", "")]
 atomToParams (Any xs)     =
-  reverse $ ("any", ""):concatMap atomToParams xs
+  concatMap atomToParams xs ++ [("any", "")]
 
 -- | Build image map (with static sorting).
 buildImageMap :: Atom -> Repository -> SearchResults
