@@ -44,7 +44,7 @@ import           Control.Monad              (foldM)
 import           Control.Monad.Trans.Except
 import           Data.List                  (foldl', partition)
 import qualified Data.Map                   as Map
-import           Data.Maybe                 (isNothing)
+import           Data.Maybe                 (catMaybes, isNothing)
 import           Data.Semigroup             ((<>))
 import           Data.Set                   (Set)
 import qualified Data.Set                   as Set
@@ -450,10 +450,7 @@ genQuickSearchParams pics q = runExcept $ do
   search <- case q of
               "" -> throwE "Empty search parameter"
               _  -> return q
-  let params = foldl' (\p s -> case quickSearch s search of
-                                 Nothing -> p
-                                 Just a  -> a:p
-                      ) [] [minBound..maxBound]
+  let params = catMaybes . map (`quickSearch` search) $ [minBound..maxBound]
       (found, notfound) =
         partition (\a -> not . null
                          . filterImagesBy (imageSearchFunction a)
