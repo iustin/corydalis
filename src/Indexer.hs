@@ -246,14 +246,14 @@ atomDescription (Person   (OpEqual who)) =
     p  -> formatPerson False p <> " is in the picture"
 atomDescription (Person (OpFuzzy v)) =
   "tagged with a person with a name containing " <> unFuzzy v
-atomDescription (Person OpMissing) = "has no person information"
+atomDescription (Person OpMissing)   = "has no person information"
 atomDescription (Keyword (OpEqual keyword)) =
   case keyword of
     "" -> "tagged with an empty keyword"
     k  -> "tagged with keyword " <> k <> ""
 atomDescription (Keyword (OpFuzzy v)) =
   "tagged with a keyword containing " <> unFuzzy v
-atomDescription (Keyword OpMissing) = "not tagged with any keywords"
+atomDescription (Keyword OpMissing)   = "not tagged with any keywords"
 atomDescription (Year (OpEq year))    = "taken in the year " <> toText year
 atomDescription (Year (OpLt year))    = "taken before the year " <> toText year
 atomDescription (Year (OpGt year))    = "taken after the year " <> toText year
@@ -278,8 +278,7 @@ atomDescription (Or a b) =
           , atomDescription b
           , ")"
           ]
-atomDescription (Not a) = "(not " <> atomDescription a <> ")"
-
+atomDescription (Not a)  = "(not " <> atomDescription a <> ")"
 atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 
@@ -410,23 +409,23 @@ strOpToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
 strOpToParam s OpMissing   = ("no-" <> s, "")
 
 atomToParams :: Atom -> [(Text, Text)]
-atomToParams (Country  v) = [strOpToParam (symbolName TCountry) v]
+atomToParams (Country  v) = [strOpToParam (symbolName TCountry ) v]
 atomToParams (Province v) = [strOpToParam (symbolName TProvince) v]
-atomToParams (City v) = [strOpToParam (symbolName TCity) v]
+atomToParams (City     v) = [strOpToParam (symbolName TCity    ) v]
 atomToParams (Location v) = [strOpToParam (symbolName TLocation) v]
-atomToParams (Person v) = [strOpToParam (symbolName TPerson) v]
-atomToParams (Keyword v) = [strOpToParam (symbolName TKeyword) v]
-atomToParams (Year n) = [numOpToParam (symbolName TYear) n]
-atomToParams (Camera v) = [strOpToParam (symbolName TCamera) v]
-atomToParams (And a b) =
+atomToParams (Person   v) = [strOpToParam (symbolName TPerson  ) v]
+atomToParams (Keyword  v) = [strOpToParam (symbolName TKeyword ) v]
+atomToParams (Year     n) = [numOpToParam (symbolName TYear    ) n]
+atomToParams (Camera   v) = [strOpToParam (symbolName TCamera  ) v]
+atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
-atomToParams (Or a b) =
+atomToParams (Or a b)     =
   concat [atomToParams a, atomToParams b, [("or", "")]]
-atomToParams (Not a) =
+atomToParams (Not a)      =
   atomToParams a ++ [("not", "")]
-atomToParams (All xs) =
+atomToParams (All xs)     =
   reverse $ ("all", ""):concatMap atomToParams xs
-atomToParams (Any xs) =
+atomToParams (Any xs)     =
   reverse $ ("any", ""):concatMap atomToParams xs
 
 -- | Build image map (with static sorting).
