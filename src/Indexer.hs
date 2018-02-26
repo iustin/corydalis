@@ -419,11 +419,11 @@ atomToParams (Keyword v) = [strOpToParam (symbolName TKeyword) v]
 atomToParams (Year n) = [numOpToParam (symbolName TYear) n]
 atomToParams (Camera v) = [strOpToParam (symbolName TCamera) v]
 atomToParams (And a b) =
-  concat $ [atomToParams a, atomToParams b, [("and", "")]]
+  concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b) =
-  concat $ [atomToParams a, atomToParams b, [("or", "")]]
+  concat [atomToParams a, atomToParams b, [("or", "")]]
 atomToParams (Not a) =
-  concat $ [atomToParams a, [("not", "")]]
+  atomToParams a ++ [("not", "")]
 atomToParams (All xs) =
   reverse $ ("all", ""):concatMap atomToParams xs
 atomToParams (Any xs) =
@@ -449,7 +449,7 @@ genQuickSearchParams :: Repository -> Text ->
                         Either Text ([Atom], Maybe [(Text, Text)])
 genQuickSearchParams pics q = runExcept $ do
   search <- case q of
-              "" -> throwE $ "Empty search parameter"
+              "" -> throwE "Empty search parameter"
               _  -> return q
   let params = foldl' (\p s -> case quickSearch s search of
                                  Nothing -> p
