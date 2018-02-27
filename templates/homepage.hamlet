@@ -30,9 +30,16 @@
   <div .col-xs-12 .col-md-3>
     ^{searchDiv TKeyword "Keywords" "keyword" id topKeywords}
 
-  <div .col-xs-12>
-    <form action=@{QuickSearchR} .form-inline>
+<div .row>
+  $# Sigh, how to do this nicely otherwise?
+  &nbsp;
+
+<form action=@{QuickSearchR} .form-horizontal>
       <div .form-group>
-        <label for="entry">Quick search
-        <input type="text" .form-control #entry name="q" placeholder="Switzerland" autofocus>
-      <button type="submit" .btn .btn-default>Submit
+        <label for="entry" .control-label .col-sm-2>Quick search
+        <div .col-sm-8>
+          <input type="text" .form-control #entry name="q" placeholder="Switzerland 2018" autofocus>
+        <div .col-sm-2>
+          <button type="submit" .btn .btn-default>
+            <span .fas .fa-search>
+            Search
