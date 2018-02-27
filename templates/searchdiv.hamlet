@@ -10,7 +10,7 @@
             <a href="@{ListItemsR atom}">
               <span class="#{atomIcon atom} fa-fw">
               #{kindPlCap}
-        <div .panel-body>
+        <div .panel-body .hidden-xs>
            $forall (p, c) <- items
             $with searchParams <- [(symbolName atom, p)]
              <div .btn-group role="group">
