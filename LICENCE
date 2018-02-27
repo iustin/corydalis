@@ -34,9 +34,9 @@ License: MIT
 
 Files:
   assets/tablesorter/js/jquery.tablesorter.js
-  assets/tablesorter/js/tablesorter-widget-uitheme.js
-  assets/tablesorter/js/tablesorter-widget-filter.js
-  assets/tablesorter/css/tablesorter.theme.bootstrap.css
+  assets/tablesorter/js/widgets/widget-uitheme.js
+  assets/tablesorter/js/widgets/widget-filter.js
+  assets/tablesorter/css/theme.bootstrap.css
 Copyright: 2007, Christian Bach <christian.bach@polyester.se>
 Comment: this is a fork from https://github.com/Mottie/tablesorter
 License: MIT or GPL

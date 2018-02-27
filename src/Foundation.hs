@@ -160,7 +160,7 @@ instance Yesod App where
         pc <- widgetToPageContent $ do
           -- Bootstrap CSS (with tablesorter).
           addStylesheet $ AssetsR bootstrap_css_bootstrap_css
-          addStylesheet $ AssetsR tablesorter_css_tablesorter_theme_bootstrap_css
+          addStylesheet $ AssetsR tablesorter_css_theme_bootstrap_css
 
           -- Font Awesome assets.
           addStylesheet $ AssetsR font_awesome_css_fontawesome_css
@@ -172,8 +172,8 @@ instance Yesod App where
 
           addScript $ AssetsR jquery_js_jquery_js
           addScript $ AssetsR tablesorter_js_jquery_tablesorter_js
-          addScript $ AssetsR tablesorter_js_tablesorter_widget_uitheme_js
-          addScript $ AssetsR tablesorter_js_tablesorter_widget_filter_js
+          addScript $ AssetsR tablesorter_js_widgets_widget_uitheme_js
+          addScript $ AssetsR tablesorter_js_widgets_widget_filter_js
           addScript $ AssetsR bootstrap_js_bootstrap_js
 
           -- Own JS.
