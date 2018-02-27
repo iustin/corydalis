@@ -53,5 +53,5 @@ getFolderR name = do
         exifs = map imgExif images
         cameras = countItems . map exifCamera $ exifs
         lenses = countItems . map exifLens $ exifs
-    setTitle . toHtml $ "Corydalis: folder " <> name
+    setHtmlTitle $ "folder " <> name
     $(widgetFile "folder")

@@ -39,7 +39,6 @@ import           Pics
 
 import qualified Data.Map        as Map
 import qualified Data.Set        as Set
-import           Data.Text       (Text)
 import qualified Data.Text       as Text
 
 getHomeR :: Handler Html
@@ -68,5 +67,5 @@ getHomeR = do
       topPeople     = topN 10 gExifPeople
       topKeywords   = topN 10 gExifKeywords
   defaultLayout $ do
-    setTitle . toHtml $ ("Corydalis: home"::Text)
+    setHtmlTitle "home"
     $(widgetFile "homepage")

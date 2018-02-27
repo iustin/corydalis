@@ -44,6 +44,5 @@ getUntrackedR folder uname = do
              Nothing     -> notFound
              Just untrk' -> return untrk'
   defaultLayout $ do
-      setTitle . toHtml $ "Corydalis: Untracked file " <> folder
-                 <> "/" <> uname
+      setHtmlTitle $ "untracked file " <> folder <> "/" <> uname
       $(widgetFile "untracked")

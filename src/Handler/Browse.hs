@@ -60,8 +60,7 @@ getBrowseFoldersR kinds = do
                folders
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
-    setTitle . toHtml $
-      "Corydalis: browsing folders of type " <> kinds_string
+    setHtmlTitle $ "browsing folders of type " <> kinds_string
     $(widgetFile "browsefolders")
 
 getBrowseImagesR :: [ImageStatus] -> Handler TypedContent
@@ -79,7 +78,6 @@ getBrowseImagesR kinds = do
                              Just r  -> filePath r:withJpegs) [] images
   selectRep $ do
     provideRep $ defaultLayout $ do
-      setTitle . toHtml $
-        "Corydalis: showing images of type " <> kinds_string
+      setHtmlTitle $ "showing images of type " <> kinds_string
       $(widgetFile "browseimages")
     provideRep $ return $ "\n" `Text.intercalate` allpaths

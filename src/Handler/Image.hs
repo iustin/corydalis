@@ -48,6 +48,5 @@ getImageR folder iname = do
                  else "(none)"
       lens = exifLens . imgExif $ img
   defaultLayout $ do
-    setTitle . toHtml $ "Corydalis: Image " <> folder
-               <> "/" <> imgName img
+    setHtmlTitle $ "image " <> folder <> "/" <> imgName img
     $(widgetFile "image")

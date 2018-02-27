@@ -260,3 +260,6 @@ getAtomAndSearch = do
 atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
 atomAsParam s (Just t) = (symbolName s, t)
 atomAsParam s Nothing  = (negSymbolName s, "")
+
+setHtmlTitle :: MonadWidget m => Text -> m ()
+setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)

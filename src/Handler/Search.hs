@@ -50,7 +50,7 @@ getSearchFoldersR = do
   let folders = filter (folderSearchFunction atom) . Map.elems . repoDirs $ pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
-    setTitle . toHtml $ ("Corydalis: searching folders"::Text)
+    setHtmlTitle "searching folders"
     $(widgetFile "searchfolders")
 
 getSearchImagesR :: Handler Html
@@ -59,7 +59,7 @@ getSearchImagesR = do
   images <- Map.elems <$> lift (searchImages params atom pics)
   let thumbsize = cfgThumbnailSize config
   defaultLayout $ do
-    setTitle . toHtml $ ("Corydalis: searching images"::Text)
+    setHtmlTitle "searching images"
     $(widgetFile "searchimages")
 
 getQuickSearchR :: Handler Html
@@ -75,7 +75,7 @@ getQuickSearchR = do
     Right p' -> return p'
   case params of
     Nothing -> defaultLayout $ do
-      setTitle . toHtml $ ("Corydalis: quick search"::Text)
+      setHtmlTitle "quick search"
       $(widgetFile "quicksearchfail")
     Just p -> do
       unless (null skipped) $ do

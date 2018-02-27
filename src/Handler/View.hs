@@ -121,8 +121,7 @@ getViewR folder iname = do
   defaultLayout $ do
     addScript $ StaticR js_viewer_js
     addScript $ AssetsR hammer_js_hammer_js
-    setTitle . toHtml $ "Corydalis: Image " <> folder
-               <> "/" <> imgName img
+    setHtmlTitle $ "image " <> folder <> "/" <> imgName img
     $(widgetFile "view")
 
 basicSvg :: Text -> Svg

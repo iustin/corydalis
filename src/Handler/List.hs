@@ -42,5 +42,5 @@ getListItemsR atom = do
   pics <- getPics
   let items = Map.toList $ getAtoms atom pics
   defaultLayout $ do
-    setTitle . toHtml $ ("Corydalis: listing " ++ description)
+    setHtmlTitle $ "listing " <> description
     $(widgetFile "listitems")
