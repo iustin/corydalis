@@ -35,8 +35,12 @@ checkLoginSuccessful = do
 spec :: Spec
 spec = withApp $ do
     it "asserts redirect on access to home for anonymous users" $ do
-        get HomeR
-        statusIs 303
+      get HomeR
+      statusIs 303
+
+    it "checks that login page shows info message" $ do
+      get $ AuthR LoginR
+      htmlAnyContain "div#info" "Hello user!"
 
     it "asserts access to home for authenticated users"
       checkLoginSuccessful

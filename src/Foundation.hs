@@ -320,6 +320,7 @@ loginForm = renderBootstrap3 BootstrapBasicForm $ (,)
 loginWidget :: Route App -> Widget
 loginWidget loginRoute = do
   request <- getRequest
+  loginMsg <- appLoginMessage . appSettings <$> getYesod
   let mtok = reqToken request
   (formWidget, formEnctype) <- handlerToWidget $ generateFormPost loginForm
   $(whamletFile "templates/login.hamlet")

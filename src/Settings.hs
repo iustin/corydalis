@@ -67,6 +67,9 @@ data AppSettings = AppSettings
     -- ^ Get the IP address from the header when logging. Useful when sitting
     -- behind a reverse proxy.
 
+    , appLoginMessage           :: Maybe Text
+    -- ^ Extra message to show on login page.
+
     , appDetailedRequestLogging :: Bool
     -- ^ Use detailed request logging system
     , appShouldLogAll           :: Bool
@@ -100,6 +103,7 @@ instance FromJSON AppSettings where
         appHost                   <- fromString <$> o .: "host"
         appPort                   <- o .:  "port"
         appIpFromHeader           <- o .:  "ip-from-header"
+        appLoginMessage           <- o .:? "login-msg"
 
         appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
         appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev

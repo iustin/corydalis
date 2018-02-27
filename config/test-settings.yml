@@ -10,6 +10,8 @@ port:           "_env:PORT:3000"
 approot:        "_env:APPROOT:http://localhost:3000"
 # Useful when running behind a reverse proxy:
 ip-from-header: "_env:IP_FROM_HEADER:false"
+# Custom message to show on login page
+login-msg:      "Hello user!"
 
 database:
   # NOTE: By design, this setting prevents the SQLITE_DATABASE environment variable
