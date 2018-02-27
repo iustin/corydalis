@@ -245,7 +245,7 @@ atomDescription (Person   (OpEqual who)) =
     "" -> "has an empty person tag"
     p  -> formatPerson False p <> " is in the picture"
 atomDescription (Person (OpFuzzy v)) =
-  "tagged with a person with a name containing " <> unFuzzy v
+  "tagged with a person named like " <> unFuzzy v
 atomDescription (Person OpMissing)   = "has no person information"
 atomDescription (Keyword (OpEqual keyword)) =
   case keyword of
