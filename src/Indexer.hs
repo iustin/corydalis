@@ -42,9 +42,9 @@ module Indexer ( Symbol(..)
 
 import           Control.Monad              (foldM)
 import           Control.Monad.Trans.Except
-import           Data.List                  (foldl', partition)
+import           Data.List                  (foldl', nub, partition)
 import qualified Data.Map                   as Map
-import           Data.Maybe                 (catMaybes, isNothing)
+import           Data.Maybe                 (isNothing, mapMaybe)
 import           Data.Semigroup             ((<>))
 import           Data.Set                   (Set)
 import qualified Data.Set                   as Set
@@ -450,12 +450,35 @@ genQuickSearchParams pics q = runExcept $ do
   search <- case q of
               "" -> throwE "Empty search parameter"
               _  -> return q
-  let params = catMaybes . map (`quickSearch` search) $ [minBound..maxBound]
-      (found, notfound) =
-        partition (\a -> not . null
-                         . filterImagesBy (imageSearchFunction a)
-                         $ pics) params
+  let swords = nub $ Text.words search
+      findsAny a = not . null . filterImagesBy (imageSearchFunction a) $ pics
+      -- Algorithm: for each symbol, try all words (that can be
+      -- converted). Combine all words that find matches using the Any
+      -- atom, and at the end, combine all symbol findings with the
+      -- 'All' atom. This means that a search of type "2018 Spain"
+      -- finds correctly all pictures taken in Spain in the year 2018,
+      -- but a search of type "Italy England" won't find anything,
+      -- since no picture will have a location of both. It would be
+      -- possible to understand that in this case the likely meaning
+      -- is Italy *or* England, but with any complex filters it would
+      -- become a headache.
+      params = foldl' (\(pf, pm) w ->
+                         let allA = mapMaybe (`quickSearch` w)
+                                      [minBound..maxBound]
+                             -- va is all valid atoms; now split into
+                             -- found and missing.
+                             (f, m) = partition findsAny allA
+                             -- and if any are found, combine them
+                             -- using any; in case none are found, we
+                             -- can't simply ignore this word, so
+                             -- explicitly add all atoms via Any, even
+                             -- though we know this will fail.
+                         in if null f
+                            then (anyAtom allA:pf, pm)
+                            else (anyAtom f:pf, m ++ pm)
+                      ) ([], []) swords
+      (found, notfound) = params
       p' = if null found
              then Nothing
-             else Just . atomToParams . anyAtom $ found
+             else Just . atomToParams . allAtom $ found
   return (notfound, p')
