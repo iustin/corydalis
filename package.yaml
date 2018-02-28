@@ -163,6 +163,8 @@ library:
       - -Wall
       - -fwarn-tabs
       - -O2
+  - condition: flag(public-site)
+    cpp-options: -DPUBLIC_SITE
 
 # Runnable executable for our application
 executables:
@@ -223,4 +225,8 @@ flags:
   dev:
     description: Turn on development settings, like auto-reload templates.
     manual: false
+    default: false
+  public-site:
+    description: Do not require authentication for most normal handlers.
+    manual: true
     default: false

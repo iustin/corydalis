@@ -194,9 +194,20 @@ instance Yesod App where
     isAuthorized RobotsR _     = return Authorized
     isAuthorized (StaticR _) _ = return Authorized
 
-    -- All other routes require authentication, with all authenticated
-    -- users authorized.
-    isAuthorized _ _           = isAuthenticated
+    -- Reload route always requires authentication.
+    isAuthorized ReloadR _     = isAuthenticated
+    -- And any other handlers that get a "write" action.
+    isAuthorized _       True  = isAuthenticated
+
+    -- Whether all other read-only routes require authentication or
+    -- not depends on the build flag. In any case, all authenticated
+    -- users are authorized.
+    isAuthorized _       False =
+#ifdef PUBLIC_SITE
+      return Authorized
+#else
+      isAuthenticated
+#endif
 
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
