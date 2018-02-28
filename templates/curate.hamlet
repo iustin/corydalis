@@ -1,61 +1,69 @@
 <h1>Corydalis
   <small> - photo library analysis
 
-<div .row>
-  <div .col-xs-12 .col-md-3>
-    <div .panel .panel-default>
-      <div .panel-heading>Images
-      <div .panel-body>
-        The repository contains #{allpics} images and #{untracked} #
-        other untracked files, out of which:
-        <ul>
-          $if processed > 0
-            <li>#{processed} <a href=@{BrowseImagesR [ImageProcessed]}>processed images</a> backed by RAW files.
-          $if unprocessed > 0
-            <li>#{unprocessed} <a href=@{BrowseImagesR [ImageRaw]}>unprocessed</a> files (located in <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
-          $if standalone > 0
-            <li>#{standalone} <a href=@{BrowseImagesR [ImageStandalone]}>standalone JPEGs</a>
-          $if orphaned > 0
-            <li>#{orphaned} <a href=@{BrowseImagesR [ImageOrphaned]}>orphaned sidecar files</a>
-          $if untracked > 0
-            <li>#{untracked} untracked files
+$if allpics > 0
+  <div .row>
+    <div .col-xs-12 .col-md-3>
+      <div .panel .panel-default>
+        <div .panel-heading>Images
+        <div .panel-body>
+          The repository contains #{allpics} images and #{untracked} #
+          other untracked files, out of which:
+          <ul>
+            $if processed > 0
+              <li>#{processed} <a href=@{BrowseImagesR [ImageProcessed]}>processed images</a> backed by RAW files.
+            $if unprocessed > 0
+              <li>#{unprocessed} <a href=@{BrowseImagesR [ImageRaw]}>unprocessed</a> files (located in <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
+            $if standalone > 0
+              <li>#{standalone} <a href=@{BrowseImagesR [ImageStandalone]}>standalone JPEGs</a>
+            $if orphaned > 0
+              <li>#{orphaned} <a href=@{BrowseImagesR [ImageOrphaned]}>orphaned sidecar files</a>
+            $if untracked > 0
+              <li>#{untracked} untracked files
 
-  <div .col-xs-12 .col-md-4>
-    <div .panel .panel-default>
-      <div .panel-heading>Folders
-      <div .panel-body>
-        The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
-        <ul>
-          $forall (fc, count) <- fstats
-            $with fclist <- [fc]
-              <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
+    <div .col-xs-12 .col-md-4>
+      <div .panel .panel-default>
+        <div .panel-heading>Folders
+        <div .panel-body>
+          The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
+          <ul>
+            $forall (fc, count) <- fstats
+              $with fclist <- [fc]
+                <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
 
-  <div .col-xs-12 .col-md-4>
-    <div .panel .panel-default>
-      <div .panel-heading>Bytes
-      <div .panel-body>
-        The overall size of the repository is #{showBinary (rawsize + procsize)}:
-        <ul>
-          <li>#{showBinary rawsize} in raw files
-          <li>#{showBinary procsize} in output files (i.e. files that can be regenerated)
-          <li>#{showBinary standalonesize} in standalone files
-          <li>#{showBinary sidecarsize} in sidecar files
-          <li>#{showBinary untrksize} in untracked files (files of unknown type)
+    <div .col-xs-12 .col-md-4>
+      <div .panel .panel-default>
+        <div .panel-heading>Bytes
+        <div .panel-body>
+          The overall size of the repository is #{showBinary (rawsize + procsize)}:
+          <ul>
+            <li>#{showBinary rawsize} in raw files
+            <li>#{showBinary procsize} in output files (i.e. files that can be regenerated)
+            <li>#{showBinary standalonesize} in standalone files
+            <li>#{showBinary sidecarsize} in sidecar files
+            <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
-  <div .col-xs-12 .col-md-4>
-    <div .panel .panel-default>
-      <div .panel-heading>Equipment
-      <div .panel-body>
-        <ul>
-          <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>
+    <div .col-xs-12 .col-md-4>
+      <div .panel .panel-default>
+        <div .panel-heading>Equipment
+        <div .panel-body>
+          <ul>
+            <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>
 
-<div .row>
-  <div .col-xs-12 .col-md-6 .col-lg-6>
-    <div #cameraChart .graph>
-  <div .col-xs-12 .col-md-6 .col-lg-6>
-    <div #lensChart .graph>
-  <div .col-xs-12 .col-md-6 .col-lg-6>
-    <div #folderChart .graph>
+  <div .row>
+    <div .col-xs-12 .col-md-6 .col-lg-6>
+      <div #cameraChart .graph>
+    <div .col-xs-12 .col-md-6 .col-lg-6>
+      <div #lensChart .graph>
+    <div .col-xs-12 .col-md-6 .col-lg-6>
+      <div #folderChart .graph>
+
+$else
+ <div .panel .panel-warning>
+   <div .panel-heading>
+     Where are all the pictures?
+   <div .panel-body>
+     No images were found. Is the configuration correct?
 
 You can also
 <form action=@{ReloadR} method=post style="display: inline-block">
