@@ -82,7 +82,7 @@ instance PathPiece Symbol where
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
 -- package, once the actual image metadata uses it too.
 newtype FuzzyText = FuzzyText { unFuzzy :: Text }
-  deriving (Show)
+  deriving (Show, Eq)
 
 makeFuzzy :: Text -> FuzzyText
 makeFuzzy = FuzzyText . Text.toCaseFold
@@ -90,7 +90,7 @@ makeFuzzy = FuzzyText . Text.toCaseFold
 data StrOp = OpEqual Text
            | OpFuzzy FuzzyText
            | OpMissing
-           deriving (Show)
+           deriving (Show, Eq)
 
 data NumOp a where
   OpEq :: (Eq a) => a -> NumOp a
@@ -99,6 +99,7 @@ data NumOp a where
   OpGt :: (Num a, Ord a) => a -> NumOp a
 
 deriving instance Show a => Show (NumOp a)
+deriving instance Eq   a => Eq   (NumOp a)
 
 fuzzyMatch :: FuzzyText -> Text -> Bool
 fuzzyMatch fz =
@@ -128,7 +129,7 @@ data Atom = Country  StrOp
           | Not Atom
           | All [Atom]
           | Any [Atom]
-          deriving (Show)
+          deriving (Show, Eq)
 
 symbolNames :: [(Symbol, Text)]
 symbolNames = map (\t -> (t, symbolName t)) [minBound..maxBound]
@@ -347,18 +348,24 @@ getAtoms TYear     = const Map.empty
 
 -- | Builder for all atom.
 --
--- Builds an 'All' atom, with special casing for small values.
+-- Builds an 'All' atom, with special casing for small values:
+-- * no sense in over-wrapping a single value.
+-- * x and y is better (cleaner) than All [x, y].
 allAtom :: [Atom] -> Atom
-allAtom [x]    = x       -- no sense in over-wrapping.
-allAtom [x, y] = And x y -- 'x and y' is better than 'all of [x, y]'.
-allAtom xs     = All xs  -- and normal wrapping.
+allAtom = go . nub
+  where go [x]    = x
+        go [x, y] = And x y -- 'x and y' is better than 'all of [x, y]'.
+        go xs     = All xs  -- and normal wrapping.
 
 -- | Builder for any atom.
--- Builds an 'Any' atom, with special casing for small values.
+--
+-- Builds an 'Any' atom, with special casing for small values. See
+-- 'allAtom' for explanations.
 anyAtom :: [Atom] -> Atom
-anyAtom [x]    = x
-anyAtom [x, y] = Or x y
-anyAtom xs     = Any xs
+anyAtom = go . nub
+  where go [x]    = x
+        go [x, y] = Or x y
+        go xs     = Any xs
 
 rpnParser :: [Atom] -> (Text, Text) -> Except Text [Atom]
 rpnParser (x:y:ys) ("and",_) = return $ And x y:ys
