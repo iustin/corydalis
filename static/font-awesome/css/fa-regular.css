@@ -6,7 +6,7 @@
   font-family: 'Font Awesome 5 Free';
   font-style: normal;
   font-weight: 400;
-  src: url("../webfonts/fa-regular-400.woff2") format("woff2"), url("../webfonts/fa-regular-400.woff") format("woff"); }
+  src: url("/static/font-awesome/webfonts/fa-regular-400.woff2") format("woff2"), url("/static/font-awesome/webfonts/fa-regular-400.woff") format("woff"); }
 
 .far {
   font-family: 'Font Awesome 5 Free';

@@ -157,17 +157,19 @@ instance Yesod App where
         -- you to use normal widget features in default-layout.
 
         pc <- widgetToPageContent $ do
-          -- Bootstrap CSS (with tablesorter).
-          addStylesheet $ StaticR bootstrap_css_bootstrap_css
-          addStylesheet $ StaticR tablesorter_css_theme_bootstrap_css
-
-          -- Font Awesome assets.
-          addStylesheet $ StaticR font_awesome_css_fontawesome_css
-          addStylesheet $ StaticR font_awesome_css_fa_regular_css
-          addStylesheet $ StaticR font_awesome_css_fa_solid_css
-
-          -- Own CSS.
-          addStylesheet $ StaticR corydalis_css_basic_css
+          -- Combine all CSS files, in order to eliminate page
+          -- jumps/flicker on load as the various style sheets
+          -- override each other in sequence, or simply adjust UI
+          -- elements style. By having a single style-sheet, it's
+          -- guaranteed that rendering adjustment happens in a single
+          -- step (and this results for me in clean reloads).
+          $(combineStylesheets 'StaticR [ bootstrap_css_bootstrap_css
+                                        , tablesorter_css_theme_bootstrap_css
+                                        , font_awesome_css_fontawesome_css
+                                        , font_awesome_css_fa_regular_css
+                                        , font_awesome_css_fa_solid_css
+                                        , corydalis_css_basic_css
+                                        ])
 
           addScript $ StaticR jquery_js_jquery_js
           addScript $ StaticR tablesorter_js_jquery_tablesorter_js
