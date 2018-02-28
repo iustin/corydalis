@@ -47,6 +47,3 @@ $doctype 5
 
     <div .container-fluid #main role="main">
         ^{pageBody pc}
-        <br>
-        <footer>
-          Corydalis #{corydalisVersion}

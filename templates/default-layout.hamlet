@@ -4,3 +4,8 @@ $maybe msg <- mmsg
       <span aria-hidden="true">&times;
     #{msg}
 ^{widget}
+
+<br>
+<footer .footer>
+  <p .text-muted>
+    Corydalis #{corydalisVersion}
