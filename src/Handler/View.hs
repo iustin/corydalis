@@ -119,7 +119,7 @@ getViewR folder iname = do
       initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
   debug <- appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    addScript $ StaticR js_viewer_js
+    addScript $ StaticR corydalis_js_viewer_js
     addScript $ AssetsR hammer_js_hammer_js
     setHtmlTitle $ "image " <> folder <> "/" <> imgName img
     $(widgetFile "view")

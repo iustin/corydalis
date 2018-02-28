@@ -29,8 +29,8 @@ description: >
 extra-source-files:
   - assets/*/*/*
   - templates/*
-  - static/css/*
-  - static/js/*
+  - static/*/css/*
+  - static/*/js/*
   - README.md
   - docs/*.md
   - stack.yaml

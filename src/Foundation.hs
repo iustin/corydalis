@@ -168,7 +168,7 @@ instance Yesod App where
           addStylesheet $ AssetsR font_awesome_css_fa_solid_css
 
           -- Own CSS.
-          addStylesheet $ StaticR css_basic_css
+          addStylesheet $ StaticR corydalis_css_basic_css
 
           addScript $ AssetsR jquery_js_jquery_js
           addScript $ AssetsR tablesorter_js_jquery_tablesorter_js
@@ -177,8 +177,8 @@ instance Yesod App where
           addScript $ AssetsR bootstrap_js_bootstrap_js
 
           -- Own JS.
-          addScript $ StaticR js_tablesorter_uitheme_simple_js
-          addScript $ StaticR js_tablesorter_config_js
+          addScript $ StaticR corydalis_js_tablesorter_uitheme_simple_js
+          addScript $ StaticR corydalis_js_tablesorter_config_js
 
           $(widgetFile "default-layout")
         let inflist = [1..]::[Int]
