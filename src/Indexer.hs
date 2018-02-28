@@ -40,7 +40,7 @@ module Indexer ( Symbol(..)
                , genQuickSearchParams
                ) where
 
-import           Control.Monad              (foldM)
+import           Control.Monad              (foldM, when)
 import           Control.Monad.Trans.Except
 import           Data.List                  (foldl', nub, partition)
 import qualified Data.Map                   as Map
@@ -394,7 +394,9 @@ parseDecimal v =
             _             -> Nothing
 
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
-parseAtomParams params = runExcept $
+parseAtomParams params = runExcept $ do
+  when (length params > 50) $
+    throwE "Too many search parameters. Maximum allowed is 50."
   allAtom <$> foldM rpnParser [] params
 
 numOpToParam :: (ToText a) => Text -> NumOp a -> (Text, Text)
