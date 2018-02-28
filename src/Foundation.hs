@@ -56,7 +56,6 @@ import           Types                 (FolderClass (..), ImageStatus (..))
 data App = App
     { appSettings    :: AppSettings
     , appStatic      :: Static -- ^ Settings for static file serving.
-    , appAssets      :: Static -- ^ Settings for assets (upstream static files) serving.
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
@@ -159,22 +158,22 @@ instance Yesod App where
 
         pc <- widgetToPageContent $ do
           -- Bootstrap CSS (with tablesorter).
-          addStylesheet $ AssetsR bootstrap_css_bootstrap_css
-          addStylesheet $ AssetsR tablesorter_css_theme_bootstrap_css
+          addStylesheet $ StaticR bootstrap_css_bootstrap_css
+          addStylesheet $ StaticR tablesorter_css_theme_bootstrap_css
 
           -- Font Awesome assets.
-          addStylesheet $ AssetsR font_awesome_css_fontawesome_css
-          addStylesheet $ AssetsR font_awesome_css_fa_regular_css
-          addStylesheet $ AssetsR font_awesome_css_fa_solid_css
+          addStylesheet $ StaticR font_awesome_css_fontawesome_css
+          addStylesheet $ StaticR font_awesome_css_fa_regular_css
+          addStylesheet $ StaticR font_awesome_css_fa_solid_css
 
           -- Own CSS.
           addStylesheet $ StaticR corydalis_css_basic_css
 
-          addScript $ AssetsR jquery_js_jquery_js
-          addScript $ AssetsR tablesorter_js_jquery_tablesorter_js
-          addScript $ AssetsR tablesorter_js_widgets_widget_uitheme_js
-          addScript $ AssetsR tablesorter_js_widgets_widget_filter_js
-          addScript $ AssetsR bootstrap_js_bootstrap_js
+          addScript $ StaticR jquery_js_jquery_js
+          addScript $ StaticR tablesorter_js_jquery_tablesorter_js
+          addScript $ StaticR tablesorter_js_widgets_widget_uitheme_js
+          addScript $ StaticR tablesorter_js_widgets_widget_filter_js
+          addScript $ StaticR bootstrap_js_bootstrap_js
 
           -- Own JS.
           addScript $ StaticR corydalis_js_tablesorter_uitheme_simple_js
@@ -192,7 +191,6 @@ instance Yesod App where
     isAuthorized FaviconR _    = return Authorized
     isAuthorized RobotsR _     = return Authorized
     isAuthorized (StaticR _) _ = return Authorized
-    isAuthorized (AssetsR _) _ = return Authorized
 
     -- All other routes require authentication, with all authenticated
     -- users authorized.
@@ -233,7 +231,6 @@ instance Yesod App where
 -- Define breadcrumbs.
 instance YesodBreadcrumbs App where
   breadcrumb (StaticR _)    = return ("Static route" , Nothing)
-  breadcrumb (AssetsR _)    = return ("Assets route" , Nothing)
   breadcrumb FaviconR       = return ("Favicon"      , Nothing)
   breadcrumb RobotsR        = return ("Robots"       , Nothing)
   breadcrumb (AuthR _)      = return ("Auth"         , Just HomeR)

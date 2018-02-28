@@ -27,10 +27,10 @@ description: >
   See README.md for more details.
 
 extra-source-files:
-  - assets/*/*/*
   - templates/*
   - static/*/css/*
   - static/*/js/*
+  - static/*/webfonts/*
   - README.md
   - docs/*.md
   - stack.yaml

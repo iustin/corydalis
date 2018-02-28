@@ -126,7 +126,7 @@ getCurateR = do
            ]
   let html = do
         setTitle "Corydalis: curate"
-        addScript $ AssetsR plotly_js_plotly_js
+        addScript $ StaticR plotly_js_plotly_js
         $(widgetFile "curate")
   defaultLayoutJson html (return $ object [ "global" .= json
                                           , "folders" .= j2

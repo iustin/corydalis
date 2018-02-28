@@ -52,8 +52,6 @@ import           Types
 data AppSettings = AppSettings
     { appStaticDir              :: String
     -- ^ Directory from which to serve static files.
-    , appAssetsDir              :: String
-    -- ^ Directory from which to server assets (upstream static files).
     , appDatabaseConf           :: SqliteConf
     -- ^ Configuration settings for accessing the database.
     , appRoot                   :: Maybe Text
@@ -97,7 +95,6 @@ instance FromJSON AppSettings where
                 False
 #endif
         appStaticDir              <- o .:  "static-dir"
-        appAssetsDir              <- o .:  "assets-dir"
         appDatabaseConf           <- o .:  "database"
         appRoot                   <- o .:? "approot"
         appHost                   <- fromString <$> o .: "host"
