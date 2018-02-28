@@ -11,26 +11,8 @@
               <span class="#{atomIcon atom} fa-fw">
               #{kindPlCap}
         <div .panel-body .hidden-xs>
-           $forall (p, c) <- items
+           $forall (p, _) <- items
             $with searchParams <- [(symbolName atom, p)]
-             <div .btn-group role="group">
-               <a .btn .btn-default href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
-               <button type="button" .btn .btn-default .dropdown-toggle data-toggle="dropdown">
-                 <span .caret>
-               <ul .dropdown-menu role="menu">
-                <li>
-                  <a href="@?{(SearchFoldersR,searchParams)}">
-                    <span .far .fa-fw .fa-folder-open>
-                    View folders
-                <li>
-                  <a href="@?{(SearchImagesR,searchParams)}">
-                    <span .far .fa-fw .fa-images>
-                    View images
-                    <span .badge>#{c}
-                <li role="separator" .divider>
-                <li .disabled>
-                  <a href="#">
-                    <span .fas .fa-fw .fa-info>
-                    View item details
+             <a .btn .btn-default href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
 
            <a .btn .btn-default href="@{ListItemsR atom}">…
