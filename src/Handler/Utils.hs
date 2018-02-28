@@ -252,10 +252,10 @@ getAtomParams = do
 
 getAtomAndSearch :: Handler (UrlParams, Atom, SearchResults)
 getAtomAndSearch = do
-  (params, atom) <- getAtomParams
+  (_, atom) <- getAtomParams
   pics <- getPics
-  images <- lift $ searchImages params atom pics
-  return (params, atom, images)
+  images <- lift $ searchImages atom pics
+  return (atomToParams atom, atom, images)
 
 atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
 atomAsParam s (Just t) = (symbolName s, t)

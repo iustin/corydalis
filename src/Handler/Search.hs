@@ -39,10 +39,10 @@ import           Types
 searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
   config <- getConfig
-  (params, atom) <- getAtomParams
+  (_, atom) <- getAtomParams
   let search_string = atomDescription atom
   pics <- getPics
-  return (config, params, atom, search_string, pics)
+  return (config, atomToParams atom, atom, search_string, pics)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
@@ -56,7 +56,7 @@ getSearchFoldersR = do
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
   (config, params, atom, search_string, pics) <- searchContext
-  images <- Map.elems <$> lift (searchImages params atom pics)
+  images <- Map.elems <$> lift (searchImages atom pics)
   let thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setHtmlTitle "searching images"

@@ -30,6 +30,7 @@ module Indexer ( Symbol(..)
                , atomTypeDescriptions
                , atomDescription
                , parseAtom
+               , atomToParams
                , buildMissingAtom
                , folderSearchFunction
                , imageSearchFunction
@@ -55,7 +56,6 @@ import           Yesod                      (PathPiece (..))
 
 import           Exif
 import           Pics
-import           Types                      (UrlParams)
 
 data Symbol = TCountry
               | TProvince
@@ -445,12 +445,12 @@ buildImageMap atom =
          ) Map.empty .
   filterImagesBy (imageSearchFunction atom)
 
-searchImages :: UrlParams -> Atom -> Repository -> IO SearchResults
-searchImages params atom pics = do
+searchImages :: Atom -> Repository -> IO SearchResults
+searchImages atom pics = do
   -- Note: the call to buildImageMap must *not* be evaluated,
   -- otherwise we don't gain anything from caching it.
   let lazyimages = buildImageMap atom pics
-  getSearchResults lazyimages params
+  getSearchResults lazyimages (atomToParams atom)
 
 -- | Generates a quick search atom.
 genQuickSearchParams :: Repository -> Text ->
