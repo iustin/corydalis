@@ -265,7 +265,9 @@ instance FromJSON RawExif where
     hsubjs           <- o .!:? "HierarchicalSubject" .!= []
     let rExifHSubjects = map parseHierSubject hsubjs
     rExifPeople      <- o .!:? "PersonInImage" .!= []
-    rExifCountry     <- o .~:? "Country"
+    rExifCountry     <- o .~: "Country" <|>
+                        o .~: "Country-PrimaryLocationName" <|>
+                        giveUp
     rExifProvince    <- o .~: "Province-State" <|>
                         o .~: "State" <|>
                         giveUp
