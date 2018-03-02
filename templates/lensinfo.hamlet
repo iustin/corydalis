@@ -1,13 +1,13 @@
 <h1>Lens statistics
 
 <div .row>
-  <div .col-xs-12>
+  <div .col-12>
     <div #lensFlApChart .largegraph>
 
 <div .row>
- <div .col-xs-12 .col-sm-4>
-   <div .panel .panel-default>
-     <div .panel-heading>Basic information
+ <div .col-12 .col-sm-4>
+   <div .card>
+     <div .card-header>Basic information
      <table .table>
         <tr>
           <td>Lens name
@@ -22,9 +22,9 @@
           <td>Maximum aperture
           <td>#{showLensAperture $ liAp lens}
 
- <div .col-xs-12 .col-sm-4>
-   <div .panel .panel-default>
-     <div .panel-heading>Camera information
+ <div .col-12 .col-sm-4>
+   <div .card>
+     <div .card-header>Camera information
      <table .table>
         <tr>
           <td>Used on #{numCameras} cameras
@@ -49,9 +49,9 @@
                     No camera information
 
 <div .row>
- <div .col-xs-12 .col-sm-4>
-   <div .panel .panel-default>
-     <div .panel-heading>Image information
+ <div .col-12 .col-sm-4>
+   <div .card>
+     <div .card-header>Image information
      <table .table>
        <tr>
         <td>Number of images

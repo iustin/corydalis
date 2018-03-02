@@ -1,19 +1,19 @@
 <h1>Lens statistics
 
 <div .row>
-  <div .col-xs-12>
+  <div .col-12>
     <div #lensChart .largegraph>
 
 <div .row>
- <div .col-xs-12>
+ <div .col-12>
    $if null lenses
      <p .bg-warning>No lens information found.
    $else
-     <div .panel .panel-default>
-       <div .panel-body>
+     <div .card>
+       <div .card-body>
          There are #{length lenses} lenses in the database.
 
-     <div .panel .panel-default>
+     <div .card>
        <table #lenslist .tablesorter .table .table-condensed>
          <thead>
            <tr>

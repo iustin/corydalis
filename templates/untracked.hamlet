@@ -2,10 +2,10 @@
 
 <div .row>
 
-  <div .col-xs-12 .col-md-6 .col-lg-4>
-    <div .panel .panel-default>
-      <div .panel-heading>Basic information
-      <div .panel-body>
+  <div .col-12 .col-md-6 .col-lg-4>
+    <div .card>
+      <div .card-header>Basic information
+      <div .card-body>
        <ul>
          <li>File name: #{untrkName untrk}
          <li>Parent folder: <a href=@{FolderR (untrkParent untrk)}>#{untrkParent untrk}</a>
@@ -13,12 +13,12 @@
 
   $case untrkPaths untrk
     $of []
-      <div .panel .panel-danger>
-      <div .panel-body>
+      <div .card .background-danger>
+      <div .card-body>
         No backing files?!
    $of paths
      $forall p <- paths
-       <div .col-xs-12 .col-md-6 .col-lg-4>
-         <div .panel .panel-default>
-           <div .panel-heading>Backing file
+       <div .col-12 .col-md-6 .col-lg-4>
+         <div .card>
+           <div .card-header>Backing file
            ^{showFile p}

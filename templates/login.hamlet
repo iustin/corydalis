@@ -1,15 +1,15 @@
 $maybe msg <- loginMsg
   <br>
   <div .row>
-    <div .col-xs-12>
-      <div .panel .panel-default>
-        <div .panel-heading>
+    <div .col-12>
+      <div .card>
+        <div .card-header>
           Information
-        <div .panel-body #info>
+        <div .card-body #info>
           #{msg}
 
 <div .row>
- <div .col-xs-12 .col-md-4>
+ <div .col-12 .col-md-4>
    <form method=post action=@{loginRoute} enctype=#{formEnctype}>
      ^{formWidget}
      $maybe tok <- mtok

@@ -2,17 +2,17 @@
   <small>of type #{kinds_string}
 
 <div .row>
- <div .col-xs-12>
+ <div .col-12>
    $if null images
-     <div .panel .panel-warning>
-       <div .panel-heading>
+     <div .card .border-warning>
+       <div .card-header>
          Error
-       <div .panel-body>
+       <div .card-body>
          No images found that match the requested type(s).
    $else
-     <div .panel .panel-default>
-       <div .panel-body>
+     <div .card>
+       <div .card-body>
          The selected filter matches #{length images} images.
 
-     <div .panel .panel-default>
+     <div .card>
        ^{imageList thumbsize [] True True images}

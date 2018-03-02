@@ -3,10 +3,10 @@
 
 $if allpics > 0
   <div .row>
-    <div .col-xs-12 .col-md-3>
-      <div .panel .panel-default>
-        <div .panel-heading>Images
-        <div .panel-body>
+    <div .col-12 .col-md-3>
+      <div .card>
+        <div .card-header>Images
+        <div .card-body>
           The repository contains #{allpics} images and #{untracked} #
           other untracked files, out of which:
           <ul>
@@ -21,20 +21,20 @@ $if allpics > 0
             $if untracked > 0
               <li>#{untracked} untracked files
 
-    <div .col-xs-12 .col-md-4>
-      <div .panel .panel-default>
-        <div .panel-heading>Folders
-        <div .panel-body>
+    <div .col-12 .col-md-4>
+      <div .card>
+        <div .card-header>Folders
+        <div .card-body>
           The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
           <ul>
             $forall (fc, count) <- fstats
               $with fclist <- [fc]
                 <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
 
-    <div .col-xs-12 .col-md-4>
-      <div .panel .panel-default>
-        <div .panel-heading>Bytes
-        <div .panel-body>
+    <div .col-12 .col-md-4>
+      <div .card>
+        <div .card-header>Bytes
+        <div .card-body>
           The overall size of the repository is #{showBinary (rawsize + procsize)}:
           <ul>
             <li>#{showBinary rawsize} in raw files
@@ -43,29 +43,29 @@ $if allpics > 0
             <li>#{showBinary sidecarsize} in sidecar files
             <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
-    <div .col-xs-12 .col-md-4>
-      <div .panel .panel-default>
-        <div .panel-heading>Equipment
-        <div .panel-body>
+    <div .col-12 .col-md-4>
+      <div .card>
+        <div .card-header>Equipment
+        <div .card-body>
           <ul>
             <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>
 
   <div .row>
-    <div .col-xs-12 .col-md-6 .col-lg-6>
+    <div .col-12 .col-md-6 .col-lg-6>
       <div #cameraChart .graph>
-    <div .col-xs-12 .col-md-6 .col-lg-6>
+    <div .col-12 .col-md-6 .col-lg-6>
       <div #lensChart .graph>
-    <div .col-xs-12 .col-md-6 .col-lg-6>
+    <div .col-12 .col-md-6 .col-lg-6>
       <div #folderChart .graph>
 
 $else
- <div .panel .panel-warning>
-   <div .panel-heading>
+ <div .card .border-warning>
+   <div .card-header>
      Where are all the pictures?
-   <div .panel-body>
+   <div .card-body>
      No images were found. Is the configuration correct?
 
 You can also
 <form action=@{ReloadR} method=post style="display: inline-block">
-  <button .btn .btn-default .no-padding type="submit">reload
+  <button .btn .btn-light .no-padding type="submit">reload
 the cache, or view the <a href=@{SettingsR}>settings</a>.

@@ -1,8 +1,8 @@
 <h1>No results
 
-<div .panel .panel-warning>
-  <div .panel-heading>No results ☹
-  <div .panel-body>
+<div .card .border-warning>
+  <div .card-header>No results ☹
+  <div .card-body>
      No results were found. All of the following searches were attempted and failed:
      <ul>
        $forall atom <- skipped

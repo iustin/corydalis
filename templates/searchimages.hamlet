@@ -1,21 +1,21 @@
 <h1>Searching images
 
 <div .row>
- <div .col-xs-12>
+ <div .col-12>
    $if null images
-     <div .panel .panel-warning>
-       <div .panel-heading>
+     <div .card .border-warning>
+       <div .card-header>
          Nothing found
-       <div .panel-body>
+       <div .card-body>
          The filter <i>#{search_string}</i>
          doesn't match any images.
    $else
-     <div .panel .panel-default>
-       <div .panel-body>
+     <div .card>
+       <div .card-body>
          The filter <i>#{search_string}</i>
          matches #{length images} images.
          Go to the <a href="@?{(SearchFoldersR, params)}">folder list</a>
          for this filter.
 
-     <div .panel .panel-default>
+     <div .card>
        ^{imageList thumbsize params True False images}

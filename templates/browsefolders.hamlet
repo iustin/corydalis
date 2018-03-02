@@ -2,19 +2,19 @@
   <small>of type #{kinds_string}
 
 <div .row>
- <div .col-xs-12>
+ <div .col-12>
    $if null folders
      <p .bg-warning>No folders found that match the requested types.
    $else
-     <div .panel .panel-default>
-       <div .panel-body>
+     <div .card>
+       <div .card-body>
          The selected filter matches #{length folders} folders, using #
             #{showBinary $ sRawSize stats} for raw files, #
             #{showBinary $ sProcSize stats} for processed files, #
             #{showBinary $ sStandaloneSize stats} for standalone files and #
             #{showBinary $ sUntrackedSize stats} for untracked files.
 
-     <div .panel .panel-default>
+     <div .card>
        <table #folderlist .tablesorter .table .table-condensed>
          <col style="width: #{thumbsize}px;">
          <thead>

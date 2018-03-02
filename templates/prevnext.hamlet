@@ -1,15 +1,15 @@
   <div .btn-group role="group">
     $case prevRoute
       $of Just pr
-        <a href=@{pr} .btn .btn-default .btn-sm>
+        <a href=@{pr} .btn .btn-light .btn-sm>
           <span .fas .fa-caret-left .fa-lg>
       $of Nothing
-        <button .btn .btn-default .btn-sm disabled=disabled >
+        <button .btn .btn-light .btn-sm disabled=disabled >
           <span .fas .fa-caret-left .fa-lg>
     $case nextRoute
       $of Just nr
-        <a href=@{nr} .btn .btn-default .btn-sm>
+        <a href=@{nr} .btn .btn-light .btn-sm>
           <span .fas .fa-caret-right .fa-lg>
       $of Nothing
-        <button .btn .btn-default .btn-sm disabled=disabled>
+        <button .btn .btn-light .btn-sm disabled=disabled>
           <span .fas .fa-caret-right .fa-lg>

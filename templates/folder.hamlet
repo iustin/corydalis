@@ -4,10 +4,10 @@
     <small>#{name}
 
 <div .row>
-  <div .col-xs-12 .col-md-5>
-    <div .panel .panel-default>
-      <div .panel-heading>Folder storage
-      <div .panel-body>
+  <div .col-12 .col-md-5>
+    <div .card>
+      <div .card-header>Folder storage
+      <div .card-body>
         $case pdSecPaths dir
           $of []
             This folder is backed by the single directory:
@@ -21,10 +21,10 @@
                 <li>
                   <span .monolight>#{quoteMarkup $ path}
 
-  <div .col-xs-12 .col-md-3>
-    <div .panel .panel-default>
-      <div .panel-heading>Picture contents
-      <div .panel-body>
+  <div .col-12 .col-md-3>
+    <div .card>
+      <div .card-header>Picture contents
+      <div .card-body>
         <ul>
           $if numProcessedPics dir > 0
             <li>#{numProcessedPics dir} processed pictures
@@ -33,10 +33,10 @@
           $if numStandalonePics dir > 0
             <li>#{numStandalonePics dir} final files without a source raw file
 
-  <div .col-xs-12 .col-md-4>
-   <div .panel .panel-default>
-    <div .panel-heading>Folder size
-    <div .panel-body>
+  <div .col-12 .col-md-4>
+   <div .card>
+    <div .card-header>Folder size
+    <div .card-body>
       <ul>
         <li>#{showBinary $ totalStatsSize stats} total size
         $if sRawSize stats > 0
@@ -50,9 +50,9 @@
         $if sUntrackedSize stats > 0
           <li>#{showBinary $ sUntrackedSize stats} untracked files
 
-  <div .col-xs-6 .col-md-3>
-   <div .panel .panel-default>
-    <div .panel-heading>Camera(s)
+  <div .col-6 .col-md-3>
+   <div .card>
+    <div .card-header>Camera(s)
     <table .table>
       $if null cameras
         <tr>No camera information
@@ -62,9 +62,9 @@
             <td>#{fromMaybe unknown c'}
             <td .number>#{cnt}
 
-  <div .col-xs-6 .col-md-4>
-   <div .panel .panel-default>
-    <div .panel-heading>Lens information
+  <div .col-6 .col-md-4>
+   <div .card>
+    <div .card-header>Lens information
     <table .table>
       $if null lenses
         <tr>No lens information
@@ -75,22 +75,22 @@
               #{lensDisplayName c'}
             <td .number>#{cnt}
 
-<div .row>
-  <div .col-xs-12>
-    <div .panel .panel-default>
+<div .row .my-1>
+  <div .col-12>
+    <div .card>
       $if Map.null (pdImages dir)
-        <div .panel-heading>Pictures
-        <div .panel-body>
+        <div .card-header>Pictures
+        <div .card-body>
             Folder contains no images.
       $else
         ^{imageList thumbsize params False False images}
 
 <div .row>
-  <div .col-xs-12>
-    <div .panel .panel-default>
-      <div .panel-heading>Untracked files
+  <div .col-12>
+    <div .card>
+      <div .card-header>Untracked files
       $if Map.null (pdUntracked dir)
-        <div .panel-body>
+        <div .card-body>
           Folder contains no untracked files.
       $else
         <table #untracked .tablesorter .table .table-condensed>

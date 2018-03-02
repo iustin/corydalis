@@ -1,23 +1,23 @@
 <h1>Searching folders
 
 <div .row>
- <div .col-xs-12>
+ <div .col-12>
    $if null folders
-     <div .panel .panel-warning>
-       <div .panel-heading>
+     <div .card .border-warning>
+       <div .card-header>
          Nothing found
-       <div .panel-body>
+       <div .card-body>
          The filter <i>#{search_string}</i>
          doesn't match any folders.
    $else
-     <div .panel .panel-default>
-       <div .panel-body>
+     <div .card>
+       <div .card-body>
          The filter <i>#{search_string}</i>
          matches #{length folders} folders.
          Go to the <a href="@?{(SearchImagesR, params)}">image list</a>
          for this filter.
 
-     <div .panel .panel-default>
+     <div .card>
        <table #folderlist .tablesorter .table .table-condensed .vmiddle>
          <col style="width: #{thumbsize}px;">
          <thead>

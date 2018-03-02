@@ -1,15 +1,15 @@
 <h1>Listing #{description}
 
 <div .row>
- <div .col-xs-12>
+ <div .col-12>
    $if null items
      <p .bg-warning>No #{description} found in the repository.
    $else
-     <div .panel .panel-default>
-       <div .panel-body>
+     <div .card>
+       <div .card-body>
          There are #{length items} #{description}.
 
-     <div .panel .panel-default>
+     <div .card>
        <table #itemlist .tablesorter .table .table-condensed>
          <thead>
            <tr>
