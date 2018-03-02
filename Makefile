@@ -47,8 +47,8 @@ dist:
 
 # An entire clean build and install in dist.
 release: clean lint doc regen-git-version
-	stack build --pedantic
-	stack install --local-bin-path dist/
+	stack build --pedantic $(FLAGS)
+	stack install --local-bin-path dist/ $(FLAGS)
 	rsync -a static dist/
 	rm -rf dist/static/tmp/
 
