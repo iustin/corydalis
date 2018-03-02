@@ -136,7 +136,7 @@ getLensInfoR lensname = do
                   } :: GraphData Double Double Double
   let html = do
         setTitle "Corydalis: lens information"
-        addScript $ StaticR plotly_js_plotly_js
+        addPlotly
         $(widgetFile "lensinfo")
   defaultLayoutJson html (return $ object [ "lensflap"  .= [jsonl]
                                           , "ytickvals" .= tickVals
@@ -161,7 +161,7 @@ getLensStatsR = do
               ([]::[GraphData Text Int64 Int64]) top10l
   let html = do
         setTitle "Corydalis: lens statistics"
-        addScript $ StaticR plotly_js_plotly_js
+        addPlotly
         $(widgetFile "lensstats")
   defaultLayoutJson html (return $ object [ "lenses"  .= jsonl
                                           ])

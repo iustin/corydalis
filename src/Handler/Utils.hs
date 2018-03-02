@@ -261,5 +261,8 @@ atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
 atomAsParam s (Just t) = (symbolName s, t)
 atomAsParam s Nothing  = (negSymbolName s, "")
 
-setHtmlTitle :: MonadWidget m => Text -> m ()
+setHtmlTitle :: Text -> Widget
 setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)
+
+addPlotly :: Widget
+addPlotly = addScript (StaticR plotly_js_plotly_js)
