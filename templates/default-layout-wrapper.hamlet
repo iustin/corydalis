@@ -13,35 +13,27 @@ $doctype 5
     ^{pageHead pc}
 
   <body>
-    <nav .navbar .navbar-default .navbar-static-top>
-      <div .container-fluid>
-        <div .navbar-header>
-          <ol .breadcrumb .navbar-btn>
-            $forall (idx, bc) <- zip inflist parents
-              <li>
-                 <a href=@{fst bc} id="navlink#{idx}">
-                   <span id="navtext#{idx}">#{snd bc}
-            <li .active>
-              #{title}
-        <div .navbar-right>
-          <ul .nav .navbar-nav>
-            <li>
-              <a role="button" href=@{CurateR} .navbar-link .nav-link-fixup>
+    <nav .navbar .navbar-light .bg-light .navbar-expand>
+          $forall (idx, bc) <- zip inflist parents
+              <a .nav-link .nav-item href=@{fst bc} id="navlink#{idx}">
+                 <span id="navtext#{idx}">#{snd bc}
+              <span .fas .fa-caret-right>
+          <span .nav-link .nav-item .active>
+            #{title}
+        <div .navbar-nav .ml-auto>
+            <a .nav-item .nav-link href=@{CurateR}>
                 <span .fas .fa-tasks>
                 Curate
-            <li>
-              <form action=@{ReloadR} method=post .navbar-form>
+            <form action=@{ReloadR} method=post .form-inline>
                 <!-- This unused input is needed to avoid Chrome's SPDY protocol error. Sigh… -->
                 <input type="hidden" name="unused" value="unused">
-                <button .btn .btn-default type="submit" title="Reload directory information">
+                <button .btn .btn-light type="submit" title="Reload directory information">
                   <span .fas .fa-sync>
                   Reload
-            <li>
-              <a role="button" href=@{SettingsR} .navbar-link .nav-link-fixup>
+            <a .nav-item .nav-link href=@{SettingsR}>
                 <span .fas .fa-cog>
                 Settings
-            <li>
-              <a role="button" href=@{AuthR LogoutR} .navbar-link .nav-link-fixup>
+            <a .nav-item .nav-link href=@{AuthR LogoutR}>
                 <span .fas .fa-sign-out-alt>
                 Logout
 
