@@ -261,11 +261,11 @@ instance YesodBreadcrumbs App where
   breadcrumb (StaticR _)    = return ("Static route" , Nothing)
   breadcrumb FaviconR       = return ("Favicon"      , Nothing)
   breadcrumb RobotsR        = return ("Robots"       , Nothing)
-  breadcrumb (AuthR _)      = return ("Auth"         , Just HomeR)
+  breadcrumb (AuthR _)      = return ("Auth"         , Nothing)
   breadcrumb HomeR          = return ("Home"         , Nothing)
-  breadcrumb CurateR        = return ("Curate"       , Just HomeR)
-  breadcrumb ReloadR        = return ("Reload cache" , Just HomeR)
-  breadcrumb (FolderR name) = return (name, Just HomeR)
+  breadcrumb CurateR        = return ("Curate"       , Nothing)
+  breadcrumb ReloadR        = return ("Reload cache" , Nothing)
+  breadcrumb (FolderR name) = return (name, Nothing)
   breadcrumb (ImageR folder image) = return (image,
                                              Just (FolderR folder))
   breadcrumb (ViewR folder image) = return ("Viewer",
@@ -283,14 +283,14 @@ instance YesodBreadcrumbs App where
   breadcrumb (BrowseImagesR kind) =
     return ("Showing images of type " <>
             Text.intercalate ", " (map toPathPiece kind), Just CurateR)
-  breadcrumb SearchFoldersR = return ("Search folders", Just HomeR)
-  breadcrumb SearchImagesR  = return ("Search images", Just HomeR)
-  breadcrumb QuickSearchR   = return ("Quick search", Just HomeR)
-  breadcrumb SettingsR      = return ("Settings"     , Just HomeR)
+  breadcrumb SearchFoldersR = return ("Search folders", Nothing)
+  breadcrumb SearchImagesR  = return ("Search images", Nothing)
+  breadcrumb QuickSearchR   = return ("Quick search", Nothing)
+  breadcrumb SettingsR      = return ("Settings"     , Nothing)
   breadcrumb LensStatsR     = return ("Lens statistsics", Just CurateR)
   breadcrumb (LensInfoR image) = return (image, Just LensStatsR)
   breadcrumb (ListItemsR atom) =
-    return ("Listing " <> atomTypeDescriptions atom, Just HomeR)
+    return ("Listing " <> atomTypeDescriptions atom, Nothing)
 
 -- How to run database actions.
 instance YesodPersist App where

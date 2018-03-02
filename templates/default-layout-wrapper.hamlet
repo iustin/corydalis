@@ -14,12 +14,21 @@ $doctype 5
 
   <body>
     <nav .navbar .navbar-light .bg-light .navbar-expand>
-          $forall (idx, bc) <- zip inflist parents
-              <a .nav-link .nav-item href=@{fst bc} id="navlink#{idx}">
-                 <span id="navtext#{idx}">#{snd bc}
+        <ul .navbar-nav>
+          <li .nav-item>
+            <a .nav-link href=@{HomeR}>
+              <span .fas .fa-home>
+          <li .nav-item .nav-link .px-0>
               <span .fas .fa-caret-right>
-          <span .nav-link .nav-item .active>
-            #{title}
+          $forall (idx, bc) <- zip inflist parents
+            <li .nav-item>
+              <a .nav-link href=@{fst bc} id="navlink#{idx}">
+                 <span id="navtext#{idx}">#{snd bc}
+            <li .nav-item .nav-link .px-0>
+              <span .fas .fa-caret-right>
+          <li .nav-item .active>
+            <span .nav-link>
+              #{title}
         <div .navbar-nav .ml-auto>
             <a .nav-item .nav-link href=@{CurateR}>
                 <span .fas .fa-tasks>
