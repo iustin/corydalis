@@ -26,7 +26,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE ViewPatterns          #-}
 
-module Foundation where
+module Foundation
+  ( App(..)
+  , Handler
+  , Widget
+  , Route(..)
+  , resourcesApp
+  , msgTypeKey
+  , msgSuccess
+  , msgWarning
+  , unsafeHandler
+  ) where
 
 import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
 import           Import.NoFoundation
