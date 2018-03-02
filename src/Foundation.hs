@@ -43,8 +43,9 @@ import           Import.NoFoundation
 import           Text.Hamlet           (hamletFile)
 import           Text.Jasmine          (minifym)
 
--- Used only when in "auth-dummy-login" setting is enabled.
+#ifdef DEVELOPMENT
 import           Yesod.Auth.Dummy
+#endif
 
 import           Yesod.Auth.HashDB     (authHashDBWithForm)
 
@@ -324,9 +325,14 @@ instance YesodAuth App where
       where ident = credsIdent creds
 
     -- Simple HashDB auth and in test/dev dummy auth.
-    authPlugins app = authHashDBWithForm loginWidget (Just . UniqueUser):extraAuthPlugins
+    authPlugins _ = authHashDBWithForm loginWidget (Just . UniqueUser):extraAuthPlugins
         -- Enable authDummy login if enabled.
-        where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+        where extraAuthPlugins =
+#if DEVELOPMENT
+                [authDummy]
+#else
+                []
+#endif
 
     authHttpManager = getHttpManager
 

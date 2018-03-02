@@ -39,9 +39,6 @@ database:
 # development: false
 # detailed-logging: false
 # should-log-all: false
-# reload-templates: false
-# mutable-static: false
-# skip-combining: false
 
 config:
   # List of directories holding source pictures:

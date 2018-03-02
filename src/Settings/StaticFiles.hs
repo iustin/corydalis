@@ -23,19 +23,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Settings.StaticFiles where
 
-import           Settings     (appStaticDir, compileTimeAppSettings)
 import           Yesod.Static (staticFiles)
 
--- This generates easy references to files in the static directory at compile time,
--- giving you compile-time verification that referenced files exist.
--- Warning: any files added to your static directory during run-time can't be
--- accessed this way. You'll have to use their FilePath or URL to access them.
---
--- For example, to refer to @static/js/script.js@ via an identifier, you'd use:
---
---     js_script_js
---
--- If the identifier is not available, you may use:
---
---     StaticFile ["js", "script.js"] []
-staticFiles (appStaticDir compileTimeAppSettings)
+-- This uses hardcoded "static", which is the git location of the
+-- static files. At run-time, this directory can be changed via the
+-- configuration file to a different path, but that doesn't affect the
+-- static file values - they still point to the same sub-path in
+-- whatever new directory appStaticDir points to.
+staticFiles "static"
