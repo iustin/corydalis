@@ -38,7 +38,7 @@
       <div .form-group>
         <label for="entry" .control-label .col-sm-2>Quick search
         <div .col-sm-8>
-          <input type="text" .form-control #entry name="q" placeholder="Switzerland 2018" autofocus>
+          <input type="text" .form-control #entry name="q" placeholder="Switzerland 2018">
         <div .col-sm-2>
           <button type="submit" .btn .btn-default>
             <span .fas .fa-search>
