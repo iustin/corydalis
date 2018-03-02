@@ -5,7 +5,7 @@
     <div #lensFlApChart .largegraph>
 
 <div .row>
- <div .col-xs-4>
+ <div .col-xs-12 .col-sm-4>
    <div .panel .panel-default>
      <div .panel-heading>Basic information
      <table .table>
@@ -22,7 +22,7 @@
           <td>Maximum aperture
           <td>#{showLensAperture $ liAp lens}
 
- <div .col-xs-4>
+ <div .col-xs-12 .col-sm-4>
    <div .panel .panel-default>
      <div .panel-heading>Camera information
      <table .table>
@@ -49,7 +49,7 @@
                     No camera information
 
 <div .row>
- <div .col-xs-4>
+ <div .col-xs-12 .col-sm-4>
    <div .panel .panel-default>
      <div .panel-heading>Image information
      <table .table>
