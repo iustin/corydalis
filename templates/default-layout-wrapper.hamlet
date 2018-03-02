@@ -50,5 +50,5 @@ $doctype 5
                 <span .d-none .d-md-inline>
                   Logout
 
-    <div class=#{container} #main role="main">
+    <div .container-fluid #main role="main">
         ^{pageBody pc}
