@@ -20,20 +20,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-import Import
-import System.Mem
-import System.Clock
-import Pics
+import           Import
+import           Pics
+import           System.Clock
+import           System.Mem
 
 main :: IO ()
 main = do
     -- Get the settings from all relevant sources
-    settings <- loadYamlSettingsArgs
-        -- fall back to compile-time values, set to [] to require values at runtime
-        [configSettingsYmlValue]
-
-        -- allow environment variables to override
-        useEnv
+    settings <- loadYamlSettingsArgs [] useEnv
 
     let config = appConfig settings
 

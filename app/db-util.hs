@@ -114,12 +114,7 @@ main = do
     opts <- execParser (info (helper <*> parseOptions) $ progDesc "Corydalis database maintenance")
 
     -- Get the settings from all relevant sources
-    settings <- loadYamlSettings
-        [optSettingsFile opts]
-        -- fall back to compile-time values, set to [] to require values at runtime
-        [configSettingsYmlValue]
-        -- allow environment variables to override
-        useEnv
+    settings <- loadYamlSettings [optSettingsFile opts] [] useEnv
     let conn = sqlDatabase $ appDatabaseConf settings
 
     runStderrLoggingT . runSqlite conn . app . optCommand $ opts
