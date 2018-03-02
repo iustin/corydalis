@@ -93,7 +93,7 @@
         <div .card-body>
           Folder contains no untracked files.
       $else
-        <table #untracked .tablesorter .table .table-condensed>
+        <table #untracked .tablesorter .table .table-sm>
           <thead>
             <tr>
               <th >Name

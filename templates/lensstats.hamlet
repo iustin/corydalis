@@ -14,7 +14,7 @@
          There are #{length lenses} lenses in the database.
 
      <div .card>
-       <table #lenslist .tablesorter .table .table-condensed>
+       <table #lenslist .tablesorter .table .table-sm>
          <thead>
            <tr>
              <th .sorter-text>Name

@@ -10,7 +10,7 @@
          There are #{length items} #{description}.
 
      <div .card>
-       <table #itemlist .tablesorter .table .table-condensed>
+       <table #itemlist .tablesorter .table .table-sm>
          <thead>
            <tr>
              <th .empty-min>Name
