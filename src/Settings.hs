@@ -62,9 +62,10 @@ data AppSettings = AppSettings
     , appPort                   :: Int
     -- ^ Port to listen on
     , appHttps                  :: Bool
-    -- ^ Instead of listening on host/port, run instead directly on
-    -- top of stdin as a socket. This will disable built-in TLS
-    -- handling, and run a pure HTTP server on this socket,.
+    -- ^ Whether to run HTTPS or not on the configured host/port. This
+    -- is mostly available for reverse proxies, where adding TLS
+    -- doesn't much any additional security. For direct access
+    -- (without a proxy), this is always recommended.
     , appSecureSessions         :: Bool
     -- ^ Enable secure cookies, and set a Strict-Transport-Security
     -- header on the connections. When https is set, this is
