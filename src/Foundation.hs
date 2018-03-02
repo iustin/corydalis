@@ -183,15 +183,14 @@ instance Yesod App where
                                         , corydalis_css_basic_css
                                         ])
 
-          addScript $ StaticR jquery_js_jquery_js
-          addScript $ StaticR tablesorter_js_jquery_tablesorter_js
-          addScript $ StaticR tablesorter_js_widgets_widget_uitheme_js
-          addScript $ StaticR tablesorter_js_widgets_widget_filter_js
-          addScript $ StaticR bootstrap_js_bootstrap_js
-
-          -- Own JS.
-          addScript $ StaticR corydalis_js_tablesorter_uitheme_simple_js
-          addScript $ StaticR corydalis_js_tablesorter_config_js
+          $(combineScripts 'StaticR [ jquery_js_jquery_js
+                                    , tablesorter_js_jquery_tablesorter_js
+                                    , tablesorter_js_widgets_widget_uitheme_js
+                                    , tablesorter_js_widgets_widget_filter_js
+                                    , bootstrap_js_bootstrap_js
+                                    , corydalis_js_tablesorter_uitheme_simple_js
+                                    , corydalis_js_tablesorter_config_js
+                                    ])
 
           $(widgetFile "default-layout")
         let inflist = [1..]::[Int]
