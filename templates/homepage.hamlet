@@ -2,32 +2,25 @@
   <small> - library view
 
 <div .row>
-  <div .col-xs-12 .col-sm-6 .col-md-4>
-    <div .panel .panel-default>
-      <div .panel-heading>
-        <h3 .panel-title>
+ <div .card-columns>
+    <div .card>
+      <div .card-header>
           <span class="#{atomIcon TYear} fa-fw">
           Years
-      <div .panel-body>
+      <div .card-body>
          $forall year <- years
-          <a .btn .btn-default role="button" href="@?{(SearchFoldersR,[(symbolName TYear, Text.pack (show year))])}">#{year}
+          <a .btn .btn-light href="@?{(SearchFoldersR,[(symbolName TYear, Text.pack (show year))])}">#{year}
 
-  <div .col-xs-12 .col-sm-6 .col-md-5>
     ^{searchDiv TPerson "People" "person" (formatPerson True) topPeople}
 
-  <div .col-xs-12 .col-sm-6 .col-md-3>
     ^{searchDiv TKeyword "Keywords" "keyword" id topKeywords}
 
-  <div .col-xs-12 .col-sm-6 .col-md-3>
     ^{searchDiv TCountry "Countries" "country" id topCountries}
 
-  <div .col-xs-12 .col-sm-6 .col-md-3>
     ^{searchDiv TProvince "Provinces" "province" id topProvinces}
 
-  <div .col-xs-12 .col-sm-6 .col-md-3>
     ^{searchDiv TCity "Cities" "city" id topCities}
 
-  <div .col-xs-12 .col-sm-6 .col-md-3>
     ^{searchDiv TLocation "Locations" "location" id topLocations}
 
 <div .row>
