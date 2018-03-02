@@ -9,7 +9,7 @@
             <a href="@{ListItemsR atom}" .card-link>
               <span class="#{atomIcon atom} fa-fw">
               #{kindPlCap}
-        <div .card-body .hidden-xs>
+        <div .card-body>
            $forall (p, _) <- items
             $with searchParams <- [(symbolName atom, p)]
              <a .btn .btn-light href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
