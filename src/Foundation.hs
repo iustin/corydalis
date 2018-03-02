@@ -187,7 +187,7 @@ instance Yesod App where
                                     , tablesorter_js_jquery_tablesorter_js
                                     , tablesorter_js_widgets_widget_uitheme_js
                                     , tablesorter_js_widgets_widget_filter_js
-                                    , bootstrap_js_bootstrap_js
+                                    , bootstrap_js_bootstrap_bundle_js
                                     , corydalis_js_tablesorter_uitheme_simple_js
                                     , corydalis_js_tablesorter_config_js
                                     ])
