@@ -32,34 +32,6 @@ div#message {
     min-height: 600px;
 }
 
-/* Improve upon bootstrap's breadcrumb by not using a slash as
-separator, since that can appear in image names as well */
-.breadcrumb > li + li:before {
-    content: "\f0da\00a0";
-    font-family: FontAwesome;
-}
-
-/* Improve upon bootstrap's breadcrumb by removing the margin-bottom,
-since a following H1 adds its own margin-too, and shrinking
-padding-top by 1px so that it looks weel in a navbar. */
-.breadcrumb {
-    margin-bottom: 0px;
-    padding-top: 7px;
-}
-
-/* Improve upon bootstrap's navbar by removing the margin-bottom,
-since a following H1 adds its own margin-too; similar to the
-breadcrumb case. */
-.navbar {
-    margin-bottom: 0px;
-}
-
-/* Can't make nav > li > a behave properly, so let's add a fixup. This
-fixes both whitespace and alignment in collapsed mode. */
-.nav > li > a.nav-link-fixup {
-    padding-left: 5px;
-}
-
 /* Ensure that full-screen is full-screen. Works well by default on
 Gecko, but Webkit behaves differently. */
 div:-webkit-full-screen {
@@ -93,4 +65,9 @@ table.vmiddle tr td {
 
 footer {
     font-style: italic;
+}
+
+/* Bootstrap 4: point size 16px too big (for me) */
+html {
+  font-size: 14px;
 }
