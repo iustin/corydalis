@@ -8,6 +8,15 @@ static-dir:     "_env:STATIC_DIR:static"
 host:           "_env:HOST:*4" # any IPv4 host
 # Listen port:
 port:           "_env:PORT:3000"
+# Whether to enable and require HTTPS. If enabled, the server will not
+# work with plain connection on the same port, and furthermore, it
+# will enforce the secure-cookies setting.
+https:          true
+# Whether to require secure sessions. When https is true, this is
+# overriden. When https is set to false, this is still useful in case
+# of reverse proxying, by ensuring that the cookies set have the
+# secure bit and that Strict Transport Security header is set.
+secure-sessions: true
 # Canonical URL:
 approot:        "_env:APPROOT:http://localhost:3000"
 # Useful when running behind a reverse proxy:

@@ -50,8 +50,9 @@ import           Network.Wai                          (Middleware)
 import           Network.Wai.Handler.Warp             (Settings,
                                                        defaultSettings,
                                                        defaultShouldDisplayException,
-                                                       getPort, setHost,
-                                                       setOnException, setPort)
+                                                       getPort, runSettings,
+                                                       setHost, setOnException,
+                                                       setPort)
 import           Network.Wai.Handler.WarpTLS          (OnInsecure (..),
                                                        TLSSettings, onInsecure,
                                                        runTLS, tlsSettings)
@@ -209,7 +210,10 @@ appMain = do
     app <- makeApplication foundation
 
     -- Run the application with Warp
-    runTLS (appTlsSettings foundation) (warpSettings foundation) app
+    let runner = if appHttps settings
+                   then runTLS (appTlsSettings foundation)
+                   else runSettings
+    runner (warpSettings foundation) app
 
 
 --------------------------------------------------------------

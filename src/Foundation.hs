@@ -116,11 +116,10 @@ instance Yesod App where
 
     -- Store session data on the client in encrypted cookies,
     -- default session idle timeout is 120 minutes
-    makeSessionBackend _ =
-#if DEVELOPMENT
-#else
-      sslOnlySessions $
-#endif
+    makeSessionBackend app =
+      (if appSecureSessions $ appSettings app
+        then sslOnlySessions
+        else id) $
       Just <$> defaultClientSessionBackend sessionTimeout
         "config/client_session_key.aes"
 
@@ -131,12 +130,14 @@ instance Yesod App where
     --   b) Validates that incoming write requests include that token in either a header or POST parameter.
     -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
     -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
-    yesodMiddleware =
-#if DEVELOPMENT
-#else
-      sslOnlyMiddleware sessionTimeout .
-#endif
-      defaultYesodMiddleware
+    yesodMiddleware = maybeSecureSessions . defaultYesodMiddleware
+      where maybeSecureSessions handler = do
+              master <- getYesod
+              let settings = appSettings master
+              (if appSecureSessions settings  ||
+                  appHttps settings
+                 then sslOnlyMiddleware sessionTimeout
+                 else id) handler
 
     defaultLayout widget = do
         mmsg <- getMessage

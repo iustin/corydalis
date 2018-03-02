@@ -61,6 +61,15 @@ data AppSettings = AppSettings
     -- ^ Host/interface the server should bind to.
     , appPort                   :: Int
     -- ^ Port to listen on
+    , appHttps                  :: Bool
+    -- ^ Instead of listening on host/port, run instead directly on
+    -- top of stdin as a socket. This will disable built-in TLS
+    -- handling, and run a pure HTTP server on this socket,.
+    , appSecureSessions         :: Bool
+    -- ^ Enable secure cookies, and set a Strict-Transport-Security
+    -- header on the connections. When https is set, this is
+    -- overriden, and when https is unset, this can be helpful in case
+    -- of reverse proxying.
     , appIpFromHeader           :: Bool
     -- ^ Get the IP address from the header when logging. Useful when sitting
     -- behind a reverse proxy.
@@ -99,6 +108,8 @@ instance FromJSON AppSettings where
         appRoot                   <- o .:? "approot"
         appHost                   <- fromString <$> o .: "host"
         appPort                   <- o .:  "port"
+        appHttps                  <- o .:  "https"
+        appSecureSessions         <- o .:  "secure-sessions"
         appIpFromHeader           <- o .:  "ip-from-header"
         appLoginMessage           <- o .:? "login-msg"
 
@@ -108,7 +119,7 @@ instance FromJSON AppSettings where
         appMutableStatic          <- o .:? "mutable-static"   .!= defaultDev
         appSkipCombining          <- o .:? "skip-combining"   .!= defaultDev
 
-        appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= defaultDev
+        appAuthDummyLogin         <- o .:? "auth-dummy-login" .!= defaultDev
 
         appConfig                 <- o .:  "config"
 
