@@ -23,19 +23,23 @@ $doctype 5
         <div .navbar-nav .ml-auto>
             <a .nav-item .nav-link href=@{CurateR}>
                 <span .fas .fa-tasks>
-                Curate
+                <span .d-none .d-md-inline>
+                  Curate
             <form action=@{ReloadR} method=post .form-inline>
                 <!-- This unused input is needed to avoid Chrome's SPDY protocol error. Sigh… -->
                 <input type="hidden" name="unused" value="unused">
                 <button .btn .btn-light type="submit" title="Reload directory information">
                   <span .fas .fa-sync>
-                  Reload
+                  <span .d-none .d-md-inline>
+                    Reload
             <a .nav-item .nav-link href=@{SettingsR}>
                 <span .fas .fa-cog>
-                Settings
+                <span .d-none .d-md-inline>
+                  Settings
             <a .nav-item .nav-link href=@{AuthR LogoutR}>
                 <span .fas .fa-sign-out-alt>
-                Logout
+                <span .d-none .d-md-inline>
+                  Logout
 
     <div class=#{container} #main role="main">
         ^{pageBody pc}
