@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
-{-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -56,6 +55,7 @@ import           Yesod.Default.Util    (addStaticContentExternal)
 import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
                                         renderBootstrap3, withAutofocus)
 
+import qualified Data.Set              as Set
 import qualified Data.Text             as Text
 import           Indexer
 import           Types                 (FolderClass (..), ImageStatus (..))
@@ -112,7 +112,7 @@ msgDanger = "danger"
 -- | The list of valid message types (identical to Bootstrap alert
 -- classes).
 msgValidTypes :: Set Text
-msgValidTypes = [msgSuccess, msgInfo, msgWarning, msgDanger]
+msgValidTypes = Set.fromList [msgSuccess, msgInfo, msgWarning, msgDanger]
 
 sessionTimeout :: Int
 sessionTimeout = 120
