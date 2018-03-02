@@ -4,8 +4,8 @@
     <small>#{folder}/#{iname}
 
 <div .row>
-
- <div .card-columns>
+ <div .col-12>
+  <div .card-columns>
     <div .card>
       <div .card-header>Basic information
       <table .table>
@@ -63,13 +63,11 @@
          <div .card-body>
            No sidecar file
 
-<div .row>
-
-  $if (null $ imgJpegPath img)
+   $if (null $ imgJpegPath img)
       <div .card .border-warning>
         <div .card-body>
           Has no processed files
-  $else
+   $else
     $forall jpeg <- imgJpegPath img
         <div .card>
           <div .card-header>Processed output

@@ -2,7 +2,8 @@
   <small> - library view
 
 <div .row>
- <div .card-columns>
+ <div .col-12>
+  <div .card-columns>
     <div .card>
       <div .card-header>
           <span class="#{atomIcon TYear} fa-fw">
