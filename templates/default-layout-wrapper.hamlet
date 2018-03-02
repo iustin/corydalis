@@ -45,5 +45,5 @@ $doctype 5
                 <span .fas .fa-sign-out-alt>
                 Logout
 
-    <div .container-fluid #main role="main">
+    <div class=#{container} #main role="main">
         ^{pageBody pc}

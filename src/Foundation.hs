@@ -194,6 +194,10 @@ instance Yesod App where
 
           $(widgetFile "default-layout")
         let inflist = [1..]::[Int]
+        route <- getCurrentRoute
+        let container = case route of
+                          Just (ViewR _ _) -> "container-fluid"
+                          _                -> "container"::Text
         withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
 
     -- The page to be redirected to when authentication is required.
