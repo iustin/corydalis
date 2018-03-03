@@ -5,7 +5,8 @@
  <div .col-12>
   <div .card-columns>
     <div .card>
-      <div .card-header>
+      <div .card-header .py-2>
+        <span .btn .btn-light .py-1 .w-100 .text-left .disabled>
           <span class="#{atomIcon TYear} fa-fw">
           Years
       <div .card-body>

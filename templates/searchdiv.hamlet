@@ -5,8 +5,8 @@
           No pictures have a #{kind} defined!
     $else
       <div .card>
-        <div .card-header>
-            <a href="@{ListItemsR atom}" .card-link>
+        <div .card-header .py-2>
+            <a href="@{ListItemsR atom}" .btn .btn-light .py-1 .w-100 .text-left>
               <span class="#{atomIcon atom} fa-fw">
               #{kindPlCap}
         <div .card-body>
