@@ -34,7 +34,8 @@ $doctype 5
           <div .input-group>
             <input type="text" .form-control placeholder="Search" aria-label="Search" name="q" #entry>
             <div .input-group-append>
-              <span .input-group-text .fas .fa-search .align-middle>
+              <div  .input-group-text>
+                <span .fas .fa-search>
 
         <div .navbar-nav>
             <a .nav-item .nav-link href=@{CurateR}>
