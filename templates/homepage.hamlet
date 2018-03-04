@@ -31,10 +31,10 @@
 
 <form action=@{QuickSearchR} .form-horizontal>
       <div .form-group .row>
-        <label for="entry" .col-form-label .col-sm-2>Quick search
-        <div .col-sm-8>
+        <label for="entry" .col-form-label .col-sm-2 .text-right .d-none .d-sm-inline-block>Quick search
+        <div .col-12 .col-sm-8>
           <input type="text" .form-control #entry name="q" placeholder="Switzerland 2018">
-        <div .col-sm-2>
+        <div .col-sm-2 .d-none .d-sm-inline-block>
           <button type="submit" .btn .btn-light>
             <span .fas .fa-search>
             Search
