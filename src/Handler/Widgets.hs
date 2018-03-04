@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Handler.Widgets where
 
@@ -39,8 +40,8 @@ showFile :: Pics.File -> Widget
 showFile f =
   $(widgetFile "showfile")
 
-searchDiv :: Symbol -> Text -> Text -> (Text -> Text) -> [(Text, Integer)] -> Widget
-searchDiv atom kindPlCap kind formatter items =
+searchDiv :: Symbol -> Text -> Text -> (Text -> Text) -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
+searchDiv atom kindPlCap kind formatter (items, length -> rcount) =
   $(widgetFile "searchdiv")
 
 folderCover :: Int -> UrlParams -> Atom -> PicDir -> Widget

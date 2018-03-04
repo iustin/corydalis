@@ -48,7 +48,7 @@ getHomeR = do
                                 maybe s (`Set.insert` s) . pdYear
                              ) Set.empty (repoDirs pics)
       topN n f =
-        take n .
+        splitAt n .
         -- sortBy + flip (compare `on`) = sortBy + reverse
         sortBy (flip compare `on` snd) .
         foldl' (\l (a, b) ->

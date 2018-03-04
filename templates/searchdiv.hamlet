@@ -14,4 +14,6 @@
             $with searchParams <- [(symbolName atom, p)]
              <a .btn .btn-light href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
 
-           <a .btn .btn-light href="@{ListItemsR atom}">…
+           $if rcount > 0
+             <a .btn .btn-light href="@{ListItemsR atom}">
+               <i>(#{rcount} more)
