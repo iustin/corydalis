@@ -18,6 +18,8 @@ $doctype 5
           <li .nav-item>
             <a .nav-link href=@{HomeR}>
               <span .fas .fa-home>
+              <span .d-none .d-lg-inline>
+                Corydalis
           <li .nav-item .nav-link .px-0 .d-none .d-md-block>
               <span .fas .fa-caret-right>
           $forall (idx, bc) <- zip inflist parents
@@ -33,14 +35,14 @@ $doctype 5
         <form action=@{QuickSearchR} .form-inline>
           <div .input-group>
             <input type="text" .form-control placeholder="Search" aria-label="Search" name="q" #entry>
-            <div .input-group-append>
+            <div .input-group-append .d-none .d-sm-flex>
               <div  .input-group-text>
                 <span .fas .fa-search>
 
         <div .navbar-nav>
             <a .nav-item .nav-link href=@{CurateR}>
                 <span .fas .fa-tasks>
-                <span .d-none .d-md-inline>
+                <span .d-none .d-lg-inline>
                   Curate
             <form action=@{ReloadR} method=post .form-inline>
                 <!-- This unused input is needed to avoid Chrome's SPDY protocol error. Sigh… -->
@@ -49,13 +51,13 @@ $doctype 5
                   <span .fas .fa-sync>
                   <span .d-none .d-lg-inline>
                     Reload
-            <a .nav-item .nav-link href=@{SettingsR}>
+            <a .nav-item .nav-link .d-none .d-sm-inline href=@{SettingsR}>
                 <span .fas .fa-cog>
-                <span .d-none .d-md-inline>
+                <span .d-none .d-lg-inline>
                   Settings
             <a .nav-item .nav-link href=@{AuthR LogoutR}>
                 <span .fas .fa-sign-out-alt>
-                <span .d-none .d-md-inline>
+                <span .d-none .d-lg-inline>
                   Logout
 
     <div .container-fluid #main role="main">
