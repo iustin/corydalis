@@ -35,6 +35,8 @@ module Foundation
   , msgSuccess
   , msgWarning
   , unsafeHandler
+  , getConfig
+  , getPics
   ) where
 
 import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
@@ -57,8 +59,11 @@ import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
 
 import qualified Data.Set              as Set
 import qualified Data.Text             as Text
+
 import           Indexer
-import           Types                 (FolderClass (..), ImageStatus (..))
+import           Pics
+import           Types                 (Config, FolderClass (..),
+                                        ImageStatus (..))
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -358,6 +363,18 @@ isAuthenticated = do
     return $ case muid of
         Nothing -> AuthenticationRequired
         Just _  -> Authorized
+
+getConfig :: Handler Config
+getConfig = appConfig . appSettings <$> getYesod
+
+getPics :: Handler Repository
+getPics = do
+  cheapRepo <- liftIO getRepo
+  case cheapRepo of
+    Just repo -> return repo
+    Nothing -> do
+      config <- getConfig
+      liftIO $ scanAll config
 
 instance YesodAuthPersist App
 
