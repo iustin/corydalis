@@ -250,6 +250,9 @@ data RawExif = RawExif
   , rExifAperture    :: Maybe Double
   , rExifFocalLength :: Maybe Double
   , rExifFL35mm      :: Maybe Double
+  , rExifISO         :: Maybe Integer
+  , rExifSSpeedDesc  :: Maybe Text
+  , rExifSSpeedVal   :: Maybe Double
   , rExifRaw         :: Object
   } deriving (Show)
 
@@ -281,6 +284,10 @@ instance FromJSON RawExif where
     rExifAperture    <- o .!:? "Aperture"
     rExifFocalLength <- o .!:? "FocalLength"
     rExifFL35mm      <- o .!:? "FocalLengthIn35mmFormat"
+    isoval           <- o .~:? "ISO"
+    rExifISO         <- maybe (return Nothing) parseValOrList isoval
+    rExifSSpeedDesc  <- o .~:? "ShutterSpeed"
+    rExifSSpeedVal   <- o .!:? "ShutterSpeed"
     let rExifRaw      = o
     return RawExif{..}
 
@@ -301,6 +308,9 @@ data Exif = Exif
   , exifAperture    :: !(Maybe Double)
   , exifFocalLength :: !(Maybe Double)
   , exifFL35mm      :: !(Maybe Double)
+  , exifISO         :: !(Maybe Integer)
+  , exifSSpeedDesc  :: !(Maybe Text)
+  , exifSSpeedVal   :: !(Maybe Double)
   } deriving (Show, Eq)
 
 instance NFData Exif where
@@ -318,7 +328,10 @@ instance NFData Exif where
                  rnf exifCaption    `seq`
                  rnf exifAperture   `seq`
                  rnf exifFocalLength `seq`
-                 rnf exifFL35mm
+                 rnf exifFL35mm     `seq`
+                 rnf exifISO        `seq`
+                 rnf exifSSpeedDesc `seq`
+                 rnf exifSSpeedVal
 
 instance Default Exif where
   def = Exif { exifPeople      = Set.empty
@@ -337,6 +350,9 @@ instance Default Exif where
              , exifAperture    = Nothing
              , exifFocalLength = Nothing
              , exifFL35mm      = Nothing
+             , exifISO         = Nothing
+             , exifSSpeedDesc  = Nothing
+             , exifSSpeedVal   = Nothing
              }
 
 type NameStats = Map (Maybe Text) Integer
@@ -437,6 +453,17 @@ affineTransform OrientationRightTop = Transform RRight  False False
 affineTransform OrientationRightBot = Transform RRight  False True
 affineTransform OrientationLeftBot  = Transform RLeft   False False
 
+-- | Tries to parse a value as is, or as a list with single element.
+parseValOrList :: (FromJSON a) => Value -> Parser a
+parseValOrList val = parseJSON val <|> parseSingletonList val
+
+parseSingletonList :: (FromJSON a) => Value -> Parser a
+parseSingletonList val = do
+  lst <- parseJSON val
+  case lst of
+    [e] -> return e
+    _   -> fail "Not a single-element list"
+
 exifFromRaw :: Config -> RawExif -> Exif
 exifFromRaw config RawExif{..} =
   let pPeople = cfgPeoplePrefix config
@@ -468,6 +495,9 @@ exifFromRaw config RawExif{..} =
       exifAperture    = rExifAperture
       exifFocalLength = rExifFocalLength
       exifFL35mm      = rExifFL35mm
+      exifISO         = rExifISO
+      exifSSpeedDesc  = rExifSSpeedDesc
+      exifSSpeedVal   = rExifSSpeedVal
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -503,6 +533,9 @@ promoteFileExif re se je =
       exifAperture'    = first  exifAperture
       exifFocalLength' = first  exifFocalLength
       exifFL35mm'      = first  exifFL35mm
+      exifISO'         = first  exifISO
+      exifSSpeedDesc'  = first  exifSSpeedDesc
+      exifSSpeedVal'   = first  exifSSpeedVal
       -- TODO: both title and caption (and other fields) could differ
       -- between various versions. How to expose this in viewer?
       exifTitle'       = first  exifTitle
@@ -523,6 +556,9 @@ promoteFileExif re se je =
           , exifAperture    = exifAperture'
           , exifFocalLength = exifFocalLength'
           , exifFL35mm      = exifFL35mm'
+          , exifISO         = exifISO'
+          , exifSSpeedDesc  = exifSSpeedDesc'
+          , exifSSpeedVal   = exifSSpeedVal'
           }
 
 -- TODO: make this saner/ensure it's canonical path.
