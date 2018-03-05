@@ -1,0 +1,40 @@
+$with smf <- showMaybeField "?"
+  <tr>
+    <td>Location
+    <td>
+      <span title="Country">
+        ^{smf exifCountry}
+      <span .fas .fa-caret-right .mx-1>
+      <span title="Province">
+        ^{smf exifProvince}
+      <span .fas .fa-caret-right .mx-1>
+      <span title="City">
+        ^{smf exifCity}
+      <span .fas .fa-caret-right .mx-1>
+      <span title="Location">
+        ^{smf exifLocation}
+  <tr>
+    <td>People
+    <td>^{showSetField exifPeople}
+  <tr>
+    <td>Keywords
+    <td>^{showSetField exifKeywords}
+  <tr>
+    <td>Title
+    <td>^{showMaybeField "no title" exifTitle}
+  <tr>
+    <td>Caption
+    <td>^{showMaybeField "no caption" exifCaption}
+  <tr>
+    <td>Equipment
+    <td>
+      ^{smf exifCamera} + #{lensShortName exifLens}
+  <tr>
+    <td>Capture time
+    <td>^{smf createDate}
+  <tr>
+    <td>Shot info
+    <td>#{aperture} @ #{fl}
+  <tr>
+    <td>Orientation
+    <td>#{show exifOrientation}

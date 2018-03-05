@@ -7,7 +7,7 @@
  <div .col-12>
   <div .card-columns>
     <div .card>
-      <div .card-header>Basic information
+      <div .card-header>Merged image information
       <table .table>
         <tr>
           <td>Image name
@@ -32,9 +32,7 @@
         <tr>
           <td>Flags
           <td>#{flags}
-        <tr>
-          <td>Exif
-          <td>#{show $ imgExif img}
+        ^{showExif $ imgExif img}
 
     <div .card>
       <div .card-header>Equipment

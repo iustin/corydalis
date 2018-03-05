@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE ViewPatterns      #-}
@@ -27,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.Widgets where
 
 import qualified Data.Map      as Map
+import qualified Data.Set      as Set
 import qualified Data.Text     as Text
 
 import           Exif
@@ -78,3 +80,30 @@ imageList thumbsize params showParent hideType images = do
                       then [[1, 0], [2, 0]]
                       else [[1, 0]]::[[Int]]
   $(widgetFile "imagelist")
+
+showExif :: Exif -> Widget
+showExif Exif{..} = do
+  let createDate = (Text.pack . show) <$> exifCreateDate
+      fl = case (exifFocalLength, exifFL35mm) of
+             (Nothing, Nothing) -> "unknown focal length"
+             (Just fn, Nothing) -> show fn ++ "mm (unknown equiv.)"
+             (Nothing, Just ff) -> show ff ++ "mm (FF)"
+             (Just fn, Just ff) -> if fn == ff
+                                   then show fn ++ "mm (FF)"
+                                   else show fn ++ "mm (" ++ show ff ++ "mm equiv.)"
+      aperture = case exifAperture of
+                   Nothing -> "f/?"
+                   Just v  -> "f/" ++ show v
+  -- TODO: serial field, links to camera/lens?, move capture time earlier.
+  $(widgetFile "exif")
+
+showMaybeField :: Text -> Maybe Text -> Widget
+showMaybeField r Nothing   = toWidget [hamlet|<i>#{r}|]
+showMaybeField _ (Just "") = toWidget [hamlet|<i>empty|]
+showMaybeField _ (Just v)  = toWidget [hamlet|#{v}|]
+
+showSetField :: Set Text -> Widget
+showSetField (Set.null -> True) =
+  toWidget [hamlet|<i>empty|]
+showSetField v =
+  toWidget [hamlet|#{Text.intercalate ", " (Set.toList v)}|]
