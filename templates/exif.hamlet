@@ -33,8 +33,11 @@ $with smf <- showMaybeField "?"
     <td>Capture time
     <td>^{smf createDate}
   <tr>
-    <td>Shot info
-    <td>#{aperture} @ #{fl}
+    <td>Exposure info
+    <td>#{sspeed} @ #{aperture}, #{iso}
+  <tr>
+    <td>Focal length
+    <td>#{fl}
   <tr>
     <td>Orientation
     <td>#{show exifOrientation}

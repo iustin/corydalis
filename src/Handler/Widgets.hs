@@ -94,6 +94,8 @@ showExif Exif{..} = do
       aperture = case exifAperture of
                    Nothing -> "f/?"
                    Just v  -> "f/" ++ show v
+      sspeed = fromMaybe "?" exifSSpeedDesc <> "s"
+      iso = "ISO " ++ maybe "unknown" show exifISO
   -- TODO: serial field, links to camera/lens?, move capture time earlier.
   $(widgetFile "exif")
 
