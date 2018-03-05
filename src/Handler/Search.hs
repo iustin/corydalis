@@ -24,6 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.Search ( getSearchFoldersR
                       , getSearchImagesR
                       , getQuickSearchR
+                      , getSearchFoldersByYearR
+                      , getSearchFoldersNoYearR
                       ) where
 
 import qualified Data.Map        as Map
@@ -84,3 +86,11 @@ getQuickSearchR = do
           ", " `Text.intercalate` map atomDescription skipped <> "."
         setSession msgTypeKey msgWarning
       redirect (SearchImagesR, p)
+
+getSearchFoldersByYearR :: Integer -> Handler Html
+getSearchFoldersByYearR year =
+  redirect (SearchFoldersR, [(symbolName TYear, Text.pack $ show year)])
+
+getSearchFoldersNoYearR :: Handler Html
+getSearchFoldersNoYearR =
+  redirect (SearchFoldersR, [(negSymbolName TYear, "")])

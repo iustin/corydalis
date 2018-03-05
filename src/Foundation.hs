@@ -57,6 +57,7 @@ import           Yesod.Default.Util    (addStaticContentExternal)
 import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
                                         renderBootstrap3, withAutofocus)
 
+import qualified Data.Map              as Map
 import qualified Data.Set              as Set
 import qualified Data.Text             as Text
 
@@ -266,7 +267,17 @@ instance YesodBreadcrumbs App where
   breadcrumb HomeR          = return ("Home"         , Nothing)
   breadcrumb CurateR        = return ("Curate"       , Nothing)
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
-  breadcrumb (FolderR name) = return (name, Nothing)
+  breadcrumb (FolderR name) = do
+    pics <- getPics
+    let r = case Map.lookup name (repoDirs pics) of
+           Nothing  -> Nothing
+           Just dir -> Just $ case pdYear dir of
+                                Nothing -> SearchFoldersNoYearR
+                                Just y  -> SearchFoldersByYearR y
+    return (name, r)
+  breadcrumb (SearchFoldersByYearR year) = return (Text.pack $ show year, Nothing)
+  breadcrumb SearchFoldersNoYearR = return ("?", Nothing)
+
   breadcrumb (ImageR folder image) = return (image,
                                              Just (FolderR folder))
   breadcrumb (ViewR folder image) = return ("Viewer",
