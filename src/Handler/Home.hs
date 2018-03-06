@@ -66,6 +66,7 @@ getHomeR = do
       topLocations  = topN  7 gExifLocations
       topPeople     = topN 15 gExifPeople
       topKeywords   = topN 10 gExifKeywords
+  homeMessage <- appHomeMessage . appSettings <$> getYesod
   defaultLayout $ do
     setHtmlTitle "home"
     $(widgetFile "homepage")

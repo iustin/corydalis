@@ -1,6 +1,9 @@
 <h1>Corydalis
   <small> - library view
 
+$maybe msg <- homeMessage
+   #{preEscapedToMarkup msg}
+
 <div .row>
  <div .col-12>
   <div .card-columns>

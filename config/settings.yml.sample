@@ -25,6 +25,19 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # Custom message to show on login page
 #login-msg:      "Hello, *brave* user!"
 
+# Custom message to show on the home page, right below the
+# header. This could be useful for a public or demo site. NOTE: the
+# value will be used as-is, unescaped, so be careful if you use any
+# HTML tags.
+#home-msg: >
+#  <p>
+#    This is a demo site for
+#    <a href="https://github.com/iustin/corydalis" target="_blank">Corydalis</a>.
+#    Visit the github page for the source code, or you can
+#    <a href="http://corydalis.readthedocs.io/" target="_blank">read the docs</a>
+#    online.
+#  </p>
+
 # NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:PGPASS:'123'")
 # See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
 

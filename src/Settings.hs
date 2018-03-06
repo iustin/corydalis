@@ -75,6 +75,9 @@ data AppSettings = AppSettings
 
     , appLoginMessage           :: Maybe Text
     -- ^ Extra message to show on login page.
+    , appHomeMessage            :: Maybe Text
+    -- ^ Extra message to show on the main page. Useful for example
+    -- for demo or public sites.
 
     , appDetailedRequestLogging :: Bool
     -- ^ Use detailed request logging system
@@ -102,6 +105,7 @@ instance FromJSON AppSettings where
         appSecureSessions         <- o .:  "secure-sessions"
         appIpFromHeader           <- o .:  "ip-from-header"
         appLoginMessage           <- o .:? "login-msg"
+        appHomeMessage            <- o .:? "home-msg"
 
         appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
         appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
