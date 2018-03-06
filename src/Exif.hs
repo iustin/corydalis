@@ -507,39 +507,39 @@ promoteFileExif re se je =
       setmerge fn = Set.unions $ maybe Set.empty fn re:
                                maybe Set.empty fn se:
                                map fn je
-      first :: (Exif -> Maybe a) -> Maybe a
-      first fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
+      fjust :: (Exif -> Maybe a) -> Maybe a
+      fjust fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
       skipMaybes :: (Exif -> a) -> [a]
       skipMaybes fn = catMaybes [fn <$> re, fn <$> se] ++ map fn je
-      first' :: (Exif -> a) -> a -> a
-      first' fn d = case skipMaybes fn of
+      fjust' :: (Exif -> a) -> a -> a
+      fjust' fn d = case skipMaybes fn of
                       []  -> d
                       x:_ -> x
       exifPeople'      = setmerge exifPeople
       exifKeywords'    = setmerge exifKeywords `Set.difference` exifPeople'
-      exifCountry'     = first  exifCountry
-      exifProvince'    = first  exifProvince
-      exifCity'        = first  exifCity
-      exifLocation'    = first  exifLocation
-      exifCamera'      = first  exifCamera
-      exifSerial'      = first' exifSerial unknown
-      liName'          = first' (liName <$> exifLens) unknown
-      liSpec'          = first' (liSpec <$> exifLens) unknown
-      liFL'            = first (liFL   <$> exifLens)
-      liAperture'      = first (liAp   <$> exifLens)
+      exifCountry'     = fjust  exifCountry
+      exifProvince'    = fjust  exifProvince
+      exifCity'        = fjust  exifCity
+      exifLocation'    = fjust  exifLocation
+      exifCamera'      = fjust  exifCamera
+      exifSerial'      = fjust' exifSerial unknown
+      liName'          = fjust' (liName <$> exifLens) unknown
+      liSpec'          = fjust' (liSpec <$> exifLens) unknown
+      liFL'            = fjust (liFL   <$> exifLens)
+      liAperture'      = fjust (liAp   <$> exifLens)
       exifLens'        = LensInfo liName' liSpec' liFL' liAperture'
-      exifOrientation' = first' exifOrientation OrientationTopLeft
-      exifCreateDate'  = first  exifCreateDate
-      exifAperture'    = first  exifAperture
-      exifFocalLength' = first  exifFocalLength
-      exifFL35mm'      = first  exifFL35mm
-      exifISO'         = first  exifISO
-      exifSSpeedDesc'  = first  exifSSpeedDesc
-      exifSSpeedVal'   = first  exifSSpeedVal
+      exifOrientation' = fjust' exifOrientation OrientationTopLeft
+      exifCreateDate'  = fjust  exifCreateDate
+      exifAperture'    = fjust  exifAperture
+      exifFocalLength' = fjust  exifFocalLength
+      exifFL35mm'      = fjust  exifFL35mm
+      exifISO'         = fjust  exifISO
+      exifSSpeedDesc'  = fjust  exifSSpeedDesc
+      exifSSpeedVal'   = fjust  exifSSpeedVal
       -- TODO: both title and caption (and other fields) could differ
       -- between various versions. How to expose this in viewer?
-      exifTitle'       = first  exifTitle
-      exifCaption'     = first  exifCaption
+      exifTitle'       = fjust  exifTitle
+      exifCaption'     = fjust  exifCaption
   in Exif { exifPeople      = exifPeople'
           , exifKeywords    = exifKeywords'
           , exifCountry     = exifCountry'
