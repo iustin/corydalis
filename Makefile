@@ -73,7 +73,6 @@ test:
 lint:
 	@rm -f lint-report.html
 	hlint \
-	  -j \
 	  --ignore "Use first" \
 	  --ignore "Use &&&" \
 	  --report=lint-report.html -c \
