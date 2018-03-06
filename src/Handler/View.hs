@@ -166,7 +166,7 @@ fileToView img =
 
 transformForFile :: File -> Maybe Transform
 transformForFile  =
-  fmap (affineTransform . exifOrientation) . fileExif
+  either (const Nothing) (Just . affineTransform . exifOrientation) . fileExif
 
 transformForImage :: Image -> Transform
 transformForImage img =

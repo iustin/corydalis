@@ -11,8 +11,10 @@
   <tr>
     <td>Size
     <td .numeric><span class="monolight">#{showBinary $ Pics.fileSize f}
-  $maybe exif <- fileExif f
-    ^{showExif exif}
-  $nothing
-    <tr>
-      <td .text-warning>no exif information detected
+  $case fileExif f
+    $of Right exif
+      ^{showExif exif}
+    $of Left msg
+      <tr>
+        <td .text-warning>Exif error
+        <td .text-warning>#{msg}

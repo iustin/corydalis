@@ -30,6 +30,7 @@ module Exif ( Exif(..)
             , LensFocalLength(..)
             , LensAperture(..)
             , NameStats
+            , EExif
             , getExif
             , promoteFileExif
             , addExifToGroup
@@ -47,6 +48,7 @@ import           Control.Exception.Base
 import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Types       (Parser, modifyFailure)
+import           Data.Bifunctor
 import qualified Data.ByteString        as BS (ByteString, readFile)
 import           Data.Default
 import           Data.List
@@ -355,6 +357,10 @@ instance Default Exif where
              , exifSSpeedVal   = Nothing
              }
 
+-- | Type alias for either an error or the exif data (which, of
+-- course, might be fully "empty" itself.
+type EExif = Either Text Exif
+
 type NameStats = Map (Maybe Text) Integer
 
 data GroupExif = GroupExif
@@ -598,14 +604,14 @@ readExif config path = do
   return $ contents >>= decodeStrict'
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: Config -> FilePath -> [FilePath] -> IO (Map FilePath Exif)
+getExif :: Config -> FilePath -> [FilePath] -> IO (Map FilePath EExif)
 getExif config dir paths = do
   (cache1, m1) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
                             exif <- readBExif config fpath
                             case exif of
                               Nothing -> return (c, p:m)
-                              Just e  -> return (Map.insert p e c, m)
+                              Just e  -> return (Map.insert p (Right e) c, m)
                         ) (Map.empty, []) paths
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
@@ -615,7 +621,7 @@ getExif config dir paths = do
                               Just v -> do
                                 let e = exifFromRaw config v
                                 writeBExif config fpath e
-                                return (Map.insert p e c, m)
+                                return (Map.insert p (Right e) c, m)
                  ) (cache1, []) m1
   jsons <- if null m2
              then return []
@@ -629,11 +635,13 @@ getExif config dir paths = do
                -- https://github.com/yesodweb/wai/issues/351 for
                -- example.
                exifs <- (parseExifs <$> extractExifs dir m2) `catch`
-                 (\e -> putStrLn ("Error: " ++ show (e :: SomeException)) >> return Nothing)
-               return $ fromMaybe [] exifs
+                 (\e -> let e' = show (e :: SomeException)
+                            e''= Text.pack e'
+                        in putStrLn ("Error: " ++ e') >> return (Left e''))
+               return $ either (const []) id exifs
   foldM (\m r -> do
             (path, e) <- writeExifs config dir r
-            return $ Map.insert path e m
+            return $ Map.insert path (Right e) m
         ) cache2 jsons
 
 exifPath :: Config -> FilePath -> FilePath
@@ -666,8 +674,8 @@ extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle ->
   _ <- runProcess pconfig
   BS.readFile fpath
 
-parseExifs :: BS.ByteString -> Maybe [RawExif]
-parseExifs = decodeStrict'
+parseExifs :: BS.ByteString -> Either Text [RawExif]
+parseExifs = bimap Text.pack id . eitherDecodeStrict'
 
 -- | Tries to compute the date the image was taken.
 parseCreateDate :: Object -> Parser (Maybe LocalTime)

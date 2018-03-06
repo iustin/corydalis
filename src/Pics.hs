@@ -170,7 +170,7 @@ data File = File
   , fileMTime :: !POSIXTime
   , fileSize  :: !FileOffset
   , filePath  :: !Text
-  , fileExif  :: !(Maybe Exif)
+  , fileExif  :: !EExif
   } deriving (Show, Eq)
 
 instance NFData File where
@@ -268,6 +268,9 @@ imageYear img = do
       (y, _, _) = toGregorian day
   return y
 
+eitherToMaybe :: Either a b -> Maybe b
+eitherToMaybe = either (const Nothing) Just
+
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
 mkImageStatus :: Config
@@ -289,9 +292,9 @@ mkImage :: Config -> Text -> Text -> Maybe File
 mkImage config name parent raw sidecar jpegs range =
   let status = mkImageStatus config raw jpegs sidecar
       exif = promoteFileExif
-               (raw >>= fileExif)
-               (sidecar >>= fileExif)
-               (mapMaybe fileExif jpegs)
+               (raw >>= eitherToMaybe . fileExif)
+               (sidecar >>= eitherToMaybe . fileExif)
+               (mapMaybe (eitherToMaybe . fileExif) jpegs)
   in Image name parent raw sidecar jpegs range exif status
 
 data PicDir = PicDir
@@ -565,9 +568,9 @@ updateImageAfterMerge :: Config -> Image -> Image
 updateImageAfterMerge c img@Image{..} =
   let status' = mkImageStatus c imgRawPath imgJpegPath imgSidecarPath
       exif' = promoteFileExif
-                (imgRawPath >>= fileExif)
-                (imgSidecarPath >>= fileExif)
-                (mapMaybe fileExif imgJpegPath)
+                (imgRawPath >>= eitherToMaybe . fileExif)
+                (imgSidecarPath >>= eitherToMaybe . fileExif)
+                (mapMaybe (eitherToMaybe . fileExif) imgJpegPath)
   in force $ img { imgStatus = status'
                  , imgExif = exif'
                  }
@@ -791,7 +794,8 @@ loadFolder config name path isSource = do
             tf = Text.pack f
             fullPath = Text.pack $ path </> f
             exif = f `Map.lookup` lcache
-            jf = File tf ctime mtime size fullPath exif
+            exif' = maybe (Left "Internal error: exif not read") id exif
+            jf = File tf ctime mtime size fullPath exif'
             jtf = strictJust jf
             mtime = inodeMTime ii
             ctime = inodeCTime ii
