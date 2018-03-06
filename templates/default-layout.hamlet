@@ -8,4 +8,4 @@ $maybe msg <- mmsg
 <br>
 <footer .footer>
   <p .text-muted>
-    Corydalis #{corydalisVersion}
+    Corydalis #{corydalisVersion}.

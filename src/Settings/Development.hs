@@ -63,4 +63,4 @@ buildDate :: String
 buildDate = __DATE__
 
 corydalisVersion :: String
-corydalisVersion = gitVersion ++ ", built on " ++ buildDate ++ "."
+corydalisVersion = gitVersion ++ ", built on " ++ buildDate
