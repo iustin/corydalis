@@ -73,7 +73,7 @@ getHomeR = do
     $(widgetFile "homepage")
 
 getAboutR :: Handler Html
-getAboutR = do
+getAboutR =
   defaultLayout $ do
     setHtmlTitle "about"
     $(widgetFile "about")
