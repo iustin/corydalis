@@ -55,6 +55,10 @@ $doctype 5
                 <span .fas .fa-cog>
                 <span .d-none .d-lg-inline>
                   Settings
+            <a .nav-item .nav-link href=@{AboutR}>
+              <span .fas .fa-question>
+              <span .d-none .d-lg-inline>
+                About
             <a .nav-item .nav-link href=@{AuthR LogoutR}>
                 <span .fas .fa-sign-out-alt>
                 <span .d-none .d-lg-inline>

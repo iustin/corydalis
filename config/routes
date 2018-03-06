@@ -25,3 +25,4 @@
 /stats/lens/#Text LensInfoR GET
 /list/#Symbol ListItemsR GET
 /search/quick QuickSearchR GET
+/about AboutR GET

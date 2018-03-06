@@ -1,0 +1,50 @@
+<h1>About Corydalis
+
+
+<p>
+  … is a simple application to help manage offline (as in non-cloud)
+  collections of RAW and processed pictures. It doesn't replace your
+  RAW processor (e.g. Adobe Lightroom, DxO PhotoLab, Capture one,
+  Darktable, etc.) but instead acts as a companion to it, giving a
+  parallel view on all your files.
+
+<p>
+  Corydalis is also an image viewer, designed to work across and
+  understand your entire photo collection; the desktop-only viewers
+  (e.g. Geeqie) are folder-based, not collection-based. This aspect
+  aims to offer a similar experience of viewing your photos as it
+  would be if you stored them in the cloud (but many features are
+  still missing).
+
+<p>
+  You can read the documentation
+  <a href="http://corydalis.readthedocs.io/" target="_blank">online</a>.
+  Note the documentation version might not match the version of the
+  application you are using now.
+
+<h2>Source code
+
+<p>
+  You can find the source code on
+  <a href="https://github.com/iustin/corydalis" target="_blank">GitHub</a>,
+  together with the
+  <a href="https://github.com/iustin/corydalis/blob/master/LICENCE" target="_blank">licence
+  terms. My code under AGPL-3+, dependencies under various
+  licences. Copyright &copy; 2013, Iustin Pop.
+
+<p>
+  Tech stack: there are a lot of libraries used in this project! On the
+  Haskell side, too many to list, but special mentions: yesod, aeson,
+  wai, warp, persistent, and so on. On the frontend (JS/CSS) side:
+  bootstrap, jquery, tablesorter, plotly, hammerjs,
+  font-awesome. Run-time dependencies: exiftool and
+  ImageMagick. Thanks to all the upstream authors for enabling this
+  project!
+
+<p>
+
+<h2>Authors
+
+<p>
+  I (Iustin Pop) am the currently sole author. Looking forward to pull
+  requests ☺!

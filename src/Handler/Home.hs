@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Home
   ( getHomeR
+  , getAboutR
   ) where
 
 import           Exif
@@ -70,3 +71,9 @@ getHomeR = do
   defaultLayout $ do
     setHtmlTitle "home"
     $(widgetFile "homepage")
+
+getAboutR :: Handler Html
+getAboutR = do
+  defaultLayout $ do
+    setHtmlTitle "about"
+    $(widgetFile "about")

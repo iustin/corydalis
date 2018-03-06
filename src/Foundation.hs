@@ -303,6 +303,7 @@ instance YesodBreadcrumbs App where
   breadcrumb (LensInfoR image) = return (image, Just LensStatsR)
   breadcrumb (ListItemsR atom) =
     return ("Listing " <> atomTypeDescriptions atom, Nothing)
+  breadcrumb AboutR = return ("About", Nothing)
 
 -- How to run database actions.
 instance YesodPersist App where
