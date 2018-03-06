@@ -45,12 +45,12 @@ License: MIT or GPL
 Files:
   static/font-awesome/webfonts/*
 License: SIL OFL 1.1
-Comment: Font Awesome license file available as LICENSE-fontawesome
+Comment: Font Awesome license file available as LICENCE-fontawesome
 
 Files:
   static/font-awesome/css/*
 Comment: files slightly tweaked to only refer to woff/woff2 fonts
-Comment: Font Awesome license file available as LICENSE-fontawesome
+Comment: Font Awesome license file available as LICENCE-fontawesome
 License: MIT
 
 Files:
