@@ -28,6 +28,12 @@ for you. I personally prefer to manage and be able to browse my
 pictures without internet access - the entire web interface (fonts,
 CSS, etc. is served locally, without relying on CDNs).
 
+## Demo site
+
+There is a demo site at
+[demo.corydalis.io](https://demo.corydalis.io), using a few pictures
+from my own collection; you can use this to see approximately what
+Corydalis does and how does it look like.
 
 ## What it doesn't do
 

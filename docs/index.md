@@ -43,6 +43,13 @@ file, and explore the classification of folders. Note that not all
 organisation of files/folders is supported, see the
 [manual](manual.md).
 
+## Demo site
+
+There is a demo site at
+[demo.corydalis.io](https://demo.corydalis.io), using a few pictures
+from my own collection; you can use this to see approximately what
+Corydalis does and how does it look like.
+
 ## Features
 
 * file-type independent (customisable extensions for raw files,
