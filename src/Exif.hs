@@ -638,11 +638,17 @@ getExif config dir paths = do
                  (\e -> let e' = show (e :: SomeException)
                             e''= Text.pack e'
                         in putStrLn ("Error: " ++ e') >> return (Left e''))
-               return $ either (const []) id exifs
-  foldM (\m r -> do
-            (path, e) <- writeExifs config dir r
-            return $ Map.insert path (Right e) m
-        ) cache2 jsons
+               return $ case exifs of
+                          Left msg -> map (\p -> Left (p, msg)) m2
+                          Right rs -> map Right rs
+  foldM (\m er -> do
+            (path, e) <- case er of
+              Left (p, msg) -> return (p, Left msg)
+              Right r       -> do
+                (p, e) <- writeExifs config dir r
+                return (p, Right e)
+            return $ Map.insert path e m
+        ) cache2 (jsons::[Either (FilePath, Text) RawExif])
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =
