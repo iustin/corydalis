@@ -573,40 +573,37 @@ buildPath :: FilePath -> FilePath -> FilePath
 buildPath dir name = dir ++ "/" ++ name
 
 -- | Writes the (binary) exif cache for a given file.
-writeBExif :: Config -> FilePath -> Exif -> IO ()
+writeBExif :: Config -> FilePath -> EExif -> IO ()
 writeBExif config path =
   writeCacheFile config path bExifPath . Data.Store.encode
 
 -- | Tries to read the (binary) exif cache for a given file.
-readBExif :: Config -> FilePath -> IO (Maybe Exif)
+readBExif :: Config -> FilePath -> IO (Maybe EExif)
 readBExif config path = do
   contents <- readCacheFile config path bExifPath True [exifPath config path]
   case contents of
     Nothing -> return Nothing
     Just c ->
       return $ case Data.Store.decode c of
-                 Left _  -> Nothing
+                 Left  _ -> Nothing
                  Right v -> Just v
 
 -- | Writes the exif caches (raw and binary) for a given file.
-writeExifs :: Config -> FilePath -> RawExif -> IO (FilePath, Exif)
-writeExifs config dir r = do
-  let rpath = Text.unpack $ rExifSrcFile r
+writeExifs :: Config -> FilePath -> Either (FilePath, Text, Maybe Value) RawExif -> IO (FilePath, EExif)
+writeExifs config dir er = do
+  let rpath = case er of
+                Right r'        -> Text.unpack $ rExifSrcFile r'
+                Left (fp, _, _) -> fp
       fpath = buildPath dir rpath
-  writeCacheFile config fpath exifPath (Data.Aeson.encode (rExifRaw r))
-  let e = exifFromRaw config r
+      ro    = case er of
+                Right r'       -> Just . Data.Aeson.encode . rExifRaw $ r'
+                Left (_, _, v) -> Data.Aeson.encode <$> v
+      e     = case er of
+                Right r'         -> Right $ exifFromRaw config r'
+                Left (_, msg, _) -> Left msg
+  maybe (return ()) (writeCacheFile config fpath exifPath) ro
   writeBExif config fpath e
   return (rpath, e)
-
--- | Writes a 'Value' as a raw exif cache.
---
--- This corresponds to a failed 'RawExif', and allows caching even
--- failures, so we don't have to (continuously) re-try parsing the
--- source file's metadata.
-writeRawExif :: Config -> FilePath -> FilePath -> Value -> IO ()
-writeRawExif config dir rpath val = do
-  let fpath = buildPath dir rpath
-  writeCacheFile config fpath exifPath (Data.Aeson.encode val)
 
 -- | Tries to read the (raw) exif cache for a given file.
 readExif :: Config -> FilePath -> IO (Maybe (Either Text RawExif))
@@ -622,7 +619,7 @@ getExif config dir paths = do
                             exif <- readBExif config fpath
                             case exif of
                               Nothing -> return (c, p:m)
-                              Just e  -> return (Map.insert p (Right e) c, m)
+                              Just e  -> return (Map.insert p e c, m)
                         ) (Map.empty, []) paths
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
@@ -633,12 +630,8 @@ getExif config dir paths = do
                               Nothing -> return (c, p:m)
                               -- found file, but parsing might have failed.
                               Just v -> do
-                                e <- case v of
-                                  Right v' -> do
-                                    let e' = exifFromRaw config v'
-                                    writeBExif config fpath e'
-                                    return $ Right e'
-                                  Left msg -> return $ Left msg
+                                let e = second (exifFromRaw config) v
+                                writeBExif config fpath e
                                 return (Map.insert p e c, m)
                  ) (cache1, []) m1
   jsons <- if null m2
@@ -659,16 +652,8 @@ getExif config dir paths = do
                return $ case exifs of
                           Left msg -> map (\p -> Left (p, msg, Nothing)) m2
                           Right rs -> rs
-  foldM (\m fer -> do
-            (path, e) <- case fer of
-              Left (fpath, msg, v) -> do
-                case v of
-                  Just v' -> writeRawExif config dir fpath v'
-                  Nothing -> return ()
-                return (fpath, Left msg)
-              Right r  -> do
-                (p, e) <- writeExifs config dir r
-                return (p, Right e)
+  foldM (\m r -> do
+            (path, e) <- writeExifs config dir r
             return $ Map.insert path e m
         ) cache2 jsons
 
