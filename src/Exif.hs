@@ -359,8 +359,19 @@ instance Default Exif where
              }
 
 -- | Type alias for either an error or the exif data (which, of
--- course, might be fully "empty" itself.
+-- course, might be fully "empty" itself).
 type EExif = Either Text Exif
+
+-- | Data type for raw exif parse failures.
+data FailRExif = FailRExif
+  { freFilePath :: FilePath
+  , freMessage  :: Text
+  , freValue    :: Maybe Value
+  }
+
+-- | Type alias for either an error in parsing the raw exif data, or
+-- the actual data.
+type ERawExif = Either FailRExif RawExif
 
 type NameStats = Map (Maybe Text) Integer
 
@@ -589,18 +600,18 @@ readBExif config path = do
                  Right v -> Just v
 
 -- | Writes the exif caches (raw and binary) for a given file.
-writeExifs :: Config -> FilePath -> Either (FilePath, Text, Maybe Value) RawExif -> IO (FilePath, EExif)
+writeExifs :: Config -> FilePath -> ERawExif -> IO (FilePath, EExif)
 writeExifs config dir er = do
   let rpath = case er of
-                Right r'        -> Text.unpack $ rExifSrcFile r'
-                Left (fp, _, _) -> fp
+                Right r' -> Text.unpack $ rExifSrcFile r'
+                Left  f  -> freFilePath f
       fpath = buildPath dir rpath
       ro    = case er of
-                Right r'       -> Just . Data.Aeson.encode . rExifRaw $ r'
-                Left (_, _, v) -> Data.Aeson.encode <$> v
+                Right r' -> Just . Data.Aeson.encode . rExifRaw $ r'
+                Left  f  -> Data.Aeson.encode <$> freValue f
       e     = case er of
-                Right r'         -> Right $ exifFromRaw config r'
-                Left (_, msg, _) -> Left msg
+                Right r' -> Right $ exifFromRaw config r'
+                Left f   -> Left $ freMessage f
   maybe (return ()) (writeCacheFile config fpath exifPath) ro
   writeBExif config fpath e
   return (rpath, e)
@@ -650,7 +661,11 @@ getExif config dir paths = do
                             e''= Text.pack e'
                         in putStrLn ("Error: " ++ e') >> return (Left e''))
                return $ case exifs of
-                          Left msg -> map (\p -> Left (p, msg, Nothing)) m2
+                          Left msg -> map (\p ->
+                                             let freFilePath = p
+                                                 freMessage = msg
+                                                 freValue = Nothing
+                                             in Left FailRExif{..}) m2
                           Right rs -> rs
   foldM (\m r -> do
             (path, e) <- writeExifs config dir r
@@ -687,7 +702,7 @@ extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle ->
   _ <- runProcess pconfig
   BS.readFile fpath
 
-parseExifs :: BS.ByteString -> Either Text [Either (FilePath, Text, Maybe Value) RawExif]
+parseExifs :: BS.ByteString -> Either Text [ERawExif]
 parseExifs bs =
   case eitherDecodeStrict' bs of
     Left msg   -> Left $ Text.pack msg
@@ -702,13 +717,14 @@ parseError = withObject "exiftool result" $ \o -> do
 parseSrcFile :: Value -> Parser FilePath
 parseSrcFile = withObject "exiftool result" (.: "SourceFile")
 
-parseExif :: Value -> Maybe (Either (FilePath, Text, Maybe Value) RawExif)
+parseExif :: Value -> Maybe ERawExif
 parseExif val =
   case parseEither parseError val of
-    Right (fp, msg) -> Just $ Left (fp, msg, Just val)
+    Right (fp, msg) -> Just . Left $ FailRExif fp msg (Just val)
     Left _ -> case parseEither parseJSON val of
                 Left msg -> parseMaybe parseSrcFile val >>=
-                            \fp -> return $ Left (fp, Text.pack msg, Just val)
+                            \fp -> return . Left $
+                                   FailRExif fp (Text.pack msg) (Just val)
                 Right r  -> Just $ Right r
 
 -- | Tries to compute the date the image was taken.
