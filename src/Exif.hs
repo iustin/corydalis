@@ -49,6 +49,7 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Types       (Parser, modifyFailure, parseEither,
                                          parseMaybe)
+import           Data.Bifunctor
 import qualified Data.ByteString        as BS (ByteString, readFile)
 import           Data.Default
 import           Data.List
@@ -597,11 +598,21 @@ writeExifs config dir r = do
   writeBExif config fpath e
   return (rpath, e)
 
+-- | Writes a 'Value' as a raw exif cache.
+--
+-- This corresponds to a failed 'RawExif', and allows caching even
+-- failures, so we don't have to (continuously) re-try parsing the
+-- source file's metadata.
+writeRawExif :: Config -> FilePath -> FilePath -> Value -> IO ()
+writeRawExif config dir rpath val = do
+  let fpath = buildPath dir rpath
+  writeCacheFile config fpath exifPath (Data.Aeson.encode val)
+
 -- | Tries to read the (raw) exif cache for a given file.
-readExif :: Config -> FilePath -> IO (Maybe RawExif)
+readExif :: Config -> FilePath -> IO (Maybe (Either Text RawExif))
 readExif config path = do
   contents <- readCacheFile config path exifPath True []
-  return $ contents >>= decodeStrict'
+  return $ contents >>= Just . first Text.pack . eitherDecodeStrict'
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
 getExif :: Config -> FilePath -> [FilePath] -> IO (Map FilePath EExif)
@@ -618,11 +629,17 @@ getExif config dir paths = do
                             putStrLn $ "Falling back to exif read for " ++ fpath
                             exif <- readExif config fpath
                             case exif of
+                              -- failed to find file, or file stale.
                               Nothing -> return (c, p:m)
+                              -- found file, but parsing might have failed.
                               Just v -> do
-                                let e = exifFromRaw config v
-                                writeBExif config fpath e
-                                return (Map.insert p (Right e) c, m)
+                                e <- case v of
+                                  Right v' -> do
+                                    let e' = exifFromRaw config v'
+                                    writeBExif config fpath e'
+                                    return $ Right e'
+                                  Left msg -> return $ Left msg
+                                return (Map.insert p e c, m)
                  ) (cache1, []) m1
   jsons <- if null m2
              then return []
@@ -640,11 +657,15 @@ getExif config dir paths = do
                             e''= Text.pack e'
                         in putStrLn ("Error: " ++ e') >> return (Left e''))
                return $ case exifs of
-                          Left msg -> map (\p -> Left (p, msg)) m2
+                          Left msg -> map (\p -> Left (p, msg, Nothing)) m2
                           Right rs -> rs
   foldM (\m fer -> do
             (path, e) <- case fer of
-              Left (fpath, msg) -> return (fpath, Left msg)
+              Left (fpath, msg, v) -> do
+                case v of
+                  Just v' -> writeRawExif config dir fpath v'
+                  Nothing -> return ()
+                return (fpath, Left msg)
               Right r  -> do
                 (p, e) <- writeExifs config dir r
                 return (p, Right e)
@@ -681,7 +702,7 @@ extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle ->
   _ <- runProcess pconfig
   BS.readFile fpath
 
-parseExifs :: BS.ByteString -> Either Text [Either (FilePath, Text) RawExif]
+parseExifs :: BS.ByteString -> Either Text [Either (FilePath, Text, Maybe Value) RawExif]
 parseExifs bs =
   case eitherDecodeStrict' bs of
     Left msg   -> Left $ Text.pack msg
@@ -696,13 +717,13 @@ parseError = withObject "exiftool result" $ \o -> do
 parseSrcFile :: Value -> Parser FilePath
 parseSrcFile = withObject "exiftool result" (.: "SourceFile")
 
-parseExif :: Value -> Maybe (Either (FilePath, Text) RawExif)
+parseExif :: Value -> Maybe (Either (FilePath, Text, Maybe Value) RawExif)
 parseExif val =
   case parseEither parseError val of
-    Right (fp, msg) -> Just $ Left (fp, msg)
+    Right (fp, msg) -> Just $ Left (fp, msg, Just val)
     Left _ -> case parseEither parseJSON val of
                 Left msg -> parseMaybe parseSrcFile val >>=
-                            \fp -> return $ Left (fp, Text.pack msg)
+                            \fp -> return $ Left (fp, Text.pack msg, Just val)
                 Right r  -> Just $ Right r
 
 -- | Tries to compute the date the image was taken.
