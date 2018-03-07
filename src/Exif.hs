@@ -47,8 +47,8 @@ import           Control.DeepSeq
 import           Control.Exception.Base
 import           Control.Monad
 import           Data.Aeson
-import           Data.Aeson.Types       (Parser, modifyFailure)
-import           Data.Bifunctor
+import           Data.Aeson.Types       (Parser, modifyFailure, parseEither,
+                                         parseMaybe)
 import qualified Data.ByteString        as BS (ByteString, readFile)
 import           Data.Default
 import           Data.List
@@ -615,6 +615,7 @@ getExif config dir paths = do
                         ) (Map.empty, []) paths
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
+                            putStrLn $ "Falling back to exif read for " ++ fpath
                             exif <- readExif config fpath
                             case exif of
                               Nothing -> return (c, p:m)
@@ -640,15 +641,15 @@ getExif config dir paths = do
                         in putStrLn ("Error: " ++ e') >> return (Left e''))
                return $ case exifs of
                           Left msg -> map (\p -> Left (p, msg)) m2
-                          Right rs -> map Right rs
-  foldM (\m er -> do
-            (path, e) <- case er of
-              Left (p, msg) -> return (p, Left msg)
-              Right r       -> do
+                          Right rs -> rs
+  foldM (\m fer -> do
+            (path, e) <- case fer of
+              Left (fpath, msg) -> return (fpath, Left msg)
+              Right r  -> do
                 (p, e) <- writeExifs config dir r
                 return (p, Right e)
             return $ Map.insert path e m
-        ) cache2 (jsons::[Either (FilePath, Text) RawExif])
+        ) cache2 jsons
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =
@@ -680,8 +681,29 @@ extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle ->
   _ <- runProcess pconfig
   BS.readFile fpath
 
-parseExifs :: BS.ByteString -> Either Text [RawExif]
-parseExifs = bimap Text.pack id . eitherDecodeStrict'
+parseExifs :: BS.ByteString -> Either Text [Either (FilePath, Text) RawExif]
+parseExifs bs =
+  case eitherDecodeStrict' bs of
+    Left msg   -> Left $ Text.pack msg
+    Right vals -> Right $ mapMaybe parseExif vals
+
+parseError :: Value -> Parser (FilePath, Text)
+parseError = withObject "exiftool result" $ \o -> do
+  fpath <- o .: "SourceFile"
+  err <- o .~: "Error"
+  return (fpath, err)
+
+parseSrcFile :: Value -> Parser FilePath
+parseSrcFile = withObject "exiftool result" (.: "SourceFile")
+
+parseExif :: Value -> Maybe (Either (FilePath, Text) RawExif)
+parseExif val =
+  case parseEither parseError val of
+    Right (fp, msg) -> Just $ Left (fp, msg)
+    Left _ -> case parseEither parseJSON val of
+                Left msg -> parseMaybe parseSrcFile val >>=
+                            \fp -> return $ Left (fp, Text.pack msg)
+                Right r  -> Just $ Right r
 
 -- | Tries to compute the date the image was taken.
 parseCreateDate :: Object -> Parser (Maybe LocalTime)
