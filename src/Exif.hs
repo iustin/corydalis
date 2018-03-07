@@ -592,26 +592,16 @@ writeBExif config path =
 readBExif :: Config -> FilePath -> IO (Maybe EExif)
 readBExif config path = do
   contents <- readCacheFile config path bExifPath True [exifPath config path]
-  case contents of
-    Nothing -> return Nothing
-    Just c ->
-      return $ case Data.Store.decode c of
-                 Left  _ -> Nothing
-                 Right v -> Just v
+  return $ contents >>= either (const Nothing) Just . Data.Store.decode
 
 -- | Writes the exif caches (raw and binary) for a given file.
 writeExifs :: Config -> FilePath -> ERawExif -> IO (FilePath, EExif)
 writeExifs config dir er = do
-  let rpath = case er of
-                Right r' -> Text.unpack $ rExifSrcFile r'
-                Left  f  -> freFilePath f
+  let rpath = either freFilePath (Text.unpack . rExifSrcFile) er
       fpath = buildPath dir rpath
-      ro    = case er of
-                Right r' -> Just . Data.Aeson.encode . rExifRaw $ r'
-                Left  f  -> Data.Aeson.encode <$> freValue f
-      e     = case er of
-                Right r' -> Right $ exifFromRaw config r'
-                Left f   -> Left $ freMessage f
+      ro    = either (fmap Data.Aeson.encode . freValue)
+                     (Just . Data.Aeson.encode . rExifRaw) er
+      e     = bimap freMessage (exifFromRaw config) er
   maybe (return ()) (writeCacheFile config fpath exifPath) ro
   writeBExif config fpath e
   return (rpath, e)
