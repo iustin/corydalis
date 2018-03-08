@@ -42,8 +42,8 @@ showFile :: Pics.File -> Widget
 showFile f =
   $(widgetFile "showfile")
 
-searchDiv :: Symbol -> Text -> Text -> (Text -> Text) -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
-searchDiv atom kindPlCap kind formatter (items, length -> rcount) =
+searchDiv :: Symbol -> (Text -> Text) -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
+searchDiv symbol formatter (items, length -> rcount) =
   $(widgetFile "searchdiv")
 
 folderCover :: Int -> UrlParams -> Atom -> PicDir -> Widget
@@ -109,3 +109,14 @@ showSetField (Set.null -> True) =
   toWidget [hamlet|<i>empty|]
 showSetField v =
   toWidget [hamlet|#{Text.intercalate ", " (Set.toList v)}|]
+
+symbolPlCap :: Symbol -> Text
+symbolPlCap TCountry  = "Countries"
+symbolPlCap TProvince = "Provinces"
+symbolPlCap TCity     = "Cities"
+symbolPlCap TLocation = "Locations"
+symbolPlCap TPerson   = "People"
+symbolPlCap TKeyword  = "Keywords"
+symbolPlCap TProblem  = "Problems"
+symbolPlCap TYear     = "Years"
+symbolPlCap TCamera   = "Cameras"

@@ -1,19 +1,24 @@
     $if null items
-      <div .card .border-warning>
-        <div .card-header>#{kindPlCap}
+      <div .card class="#{divClassForNoAtom symbol}">
+        <div .card-header>#{symbolPlCap symbol}
         <div .card-body>
-          No pictures have a #{kind} defined!
+          $case symbol
+            $of TProblem
+              No pictures with problems
+              <span .fas .fa-check .ml-2>
+            $of k
+              No pictures have a #{symbolName k} defined ☹
     $else
-      <div .card>
+      <div .card class="#{divClassForAtom symbol}">
         <div .card-header .py-2>
-            <a href="@{ListItemsR atom}" .btn .btn-light .py-1 .w-100 .text-left>
-              <span class="#{atomIcon atom} fa-fw">
-              #{kindPlCap}
+            <a href="@{ListItemsR symbol}" .btn .btn-light .py-1 .w-100 .text-left>
+              <span class="#{atomIcon symbol} fa-fw">
+              #{symbolPlCap symbol}
         <div .card-body>
            $forall (p, _) <- items
-            $with searchParams <- [(symbolName atom, p)]
+            $with searchParams <- [(symbolName symbol, p)]
              <a .btn .btn-light href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
 
            $if rcount > 0
-             <a .btn .btn-light href="@{ListItemsR atom}">
+             <a .btn .btn-light href="@{ListItemsR symbol}">
                <i>(#{rcount} more)
