@@ -58,14 +58,15 @@ import           Exif
 import           Pics
 
 data Symbol = TCountry
-              | TProvince
-              | TCity
-              | TLocation
-              | TPerson
-              | TKeyword
-              | TYear
-              | TCamera
-                deriving (Enum, Bounded, Show, Read, Eq)
+            | TProvince
+            | TCity
+            | TLocation
+            | TPerson
+            | TKeyword
+            | TYear
+            | TCamera
+            | TProblem
+            deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
   toPathPiece  = atomTypeDescriptions
@@ -77,6 +78,7 @@ instance PathPiece Symbol where
   fromPathPiece "keywords"  = Just TKeyword
   fromPathPiece "years"     = Just TYear
   fromPathPiece "cameras"   = Just TCamera
+  fromPathPiece "problems"  = Just TProblem
   fromPathPiece _           = Nothing
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
@@ -124,6 +126,7 @@ data Atom = Country  StrOp
           | Keyword  StrOp
           | Year     (NumOp Integer)
           | Camera   StrOp
+          | Problem  StrOp
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -143,6 +146,7 @@ symbolName TPerson   = "person"
 symbolName TKeyword  = "keyword"
 symbolName TYear     = "year"
 symbolName TCamera   = "camera"
+symbolName TProblem  = "problem"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -156,6 +160,7 @@ parseSymbol "person"   = Just TPerson
 parseSymbol "keyword"  = Just TKeyword
 parseSymbol "year"     = Just TYear
 parseSymbol "camera"   = Just TCamera
+parseSymbol "problem"  = Just TProblem
 parseSymbol _          = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -169,6 +174,7 @@ buildMissingAtom s =
     TKeyword  -> Keyword   OpMissing
     TYear     -> Year      OpNa
     TCamera   -> Camera    OpMissing
+    TProblem  -> Problem   OpMissing
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -187,6 +193,7 @@ parseAtom a v = do
     TKeyword  -> str >>= Just . Keyword
     TYear     -> dec >>= Just . Year
     TCamera   -> str >>= Just . Camera
+    TProblem  -> str >>= Just . Problem
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -198,6 +205,7 @@ quickSearch s v =
     TPerson   -> Just . Person   . OpFuzzy $ f
     TKeyword  -> Just . Keyword  . OpFuzzy $ f
     TCamera   -> Just . Camera   . OpFuzzy $ f
+    TProblem  -> Just . Problem  . OpFuzzy $ f
     TYear     ->
       case Text.decimal v of
         Right (w', "") -> Just . Year . OpEq $ w'
@@ -213,6 +221,7 @@ atomTypeDescriptions TPerson   = "people"
 atomTypeDescriptions TKeyword  = "keywords"
 atomTypeDescriptions TYear     = "years"
 atomTypeDescriptions TCamera   = "cameras"
+atomTypeDescriptions TProblem  = "problems"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -264,6 +273,11 @@ atomDescription (Camera (OpEqual "")) = "has defined but empty camera informatio
 atomDescription (Camera (OpEqual v))  = "shot with a " <> v <> " camera"
 atomDescription (Camera (OpFuzzy v))  =
   "shot with a camera named like " <> unFuzzy v
+atomDescription (Problem OpMissing)    = "has no problems"
+atomDescription (Problem (OpEqual "")) = "has an empty problem description"
+atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
+atomDescription (Problem (OpFuzzy v))  =
+  "has a problem that matches " <> unFuzzy v
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -319,6 +333,9 @@ imageSearchFunction (Year year) =
 imageSearchFunction (Camera camera) =
   evalStr camera . exifCamera . imgExif
 
+imageSearchFunction (Problem who) =
+  setSearch who . imgProblems
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -345,6 +362,7 @@ getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TYear     = const Map.empty
+getAtoms TProblem  = repoProblems
 
 -- | Builder for all atom.
 --
@@ -426,6 +444,7 @@ atomToParams (Person   v) = [strOpToParam (symbolName TPerson  ) v]
 atomToParams (Keyword  v) = [strOpToParam (symbolName TKeyword ) v]
 atomToParams (Year     n) = [numOpToParam (symbolName TYear    ) n]
 atomToParams (Camera   v) = [strOpToParam (symbolName TCamera  ) v]
+atomToParams (Problem  v) = [strOpToParam (symbolName TProblem ) v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =

@@ -121,6 +121,7 @@ atomIcon TPerson   = "fas fa-users"
 atomIcon TKeyword  = "fas fa-tags"
 atomIcon TYear     = "fas fa-calendar"
 atomIcon TCamera   = "fas fa-camera"
+atomIcon TProblem  = "fas fa-bomb"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =

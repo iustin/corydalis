@@ -70,6 +70,9 @@ module Pics ( PicDir(..)
             , imageYear
             , SearchResults
             , getSearchResults
+            , imgProblems
+            , pdProblems
+            , repoProblems
             -- Test export :/
             , mkImage
             ) where
@@ -93,6 +96,8 @@ import qualified Data.LruCache              as LRU
 import qualified Data.Map.Strict            as Map
 import           Data.Maybe
 import           Data.Semigroup
+import           Data.Set                   (Set)
+import qualified Data.Set                   as Set
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
 import qualified Data.Text.Lazy             as Text (toStrict)
@@ -1116,3 +1121,25 @@ imageAtRes config img size = runExceptT $ do
     -- TODO: don't use hardcoded jpeg type!
     Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
     Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileLastTouch origFile) s
+
+imgProblems :: Image -> Set Text
+imgProblems Image{..} =
+  let files = imgRawPath:imgSidecarPath:map Just imgJpegPath
+      files' = catMaybes files
+      builder m = "exif: " <> m
+  in foldl' (\s f -> case fileExif f of
+                       Right _  -> s
+                       Left msg -> builder msg `Set.insert` s)
+     Set.empty files'
+
+pdProblems :: PicDir -> NameStats
+pdProblems =
+  foldl' (\m probs ->
+            if null probs
+              then Map.insertWith (+) Nothing 1 m
+              else foldl' (\m' e -> Map.insertWith (+) (Just e) 1 m') m probs)
+  Map.empty . map (Set.toList . imgProblems) . Map.elems . pdImages
+
+repoProblems :: Repository -> NameStats
+repoProblems =
+  Map.unionsWith (+) . map pdProblems . Map.elems . repoDirs
