@@ -136,7 +136,7 @@ getCurateR = do
                     Just a' -> (a', b):l
                ) [] .
         Map.toList
-      problems = topN 10 $ repoProblems pics
+      problems = topN 3 $ repoProblems pics
   let html = do
         setTitle "Corydalis: curate"
         addPlotly
