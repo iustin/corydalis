@@ -43,12 +43,15 @@ $if allpics > 0
             <li>#{showBinary sidecarsize} in sidecar files
             <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
-    <div .col-12 .col-md-4>
+    <div .col-12 .col-md-4 .my-3>
       <div .card>
         <div .card-header>Equipment
         <div .card-body>
           <ul>
             <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>
+
+    <div .col-12 .col-md-4 .my-3>
+      ^{searchDiv TProblem "Problems" "problem" id problems}
 
   <div .row>
     <div .col-12 .col-md-6 .col-lg-6>

@@ -30,12 +30,14 @@ module Handler.Curate
   ( getCurateR
   ) where
 
+import qualified Data.Map        as Map
+
 import           Handler.Utils
+import           Handler.Widgets
 import           Import
+import           Indexer
 import           Pics
 import           Types
-
-import qualified Data.Map      as Map
 
 data GraphData a b = GraphData
   { gdName :: Text
@@ -124,6 +126,17 @@ getCurateR = do
                  , gdText = Just textdata
                  }::GraphData Int64 Int64
            ]
+      topN n =
+        splitAt n .
+        -- sortBy + flip (compare `on`) = sortBy + reverse
+        sortBy (flip compare `on` snd) .
+        foldl' (\l (a, b) ->
+                  case a of
+                    Nothing -> l
+                    Just a' -> (a', b):l
+               ) [] .
+        Map.toList
+      problems = topN 10 $ repoProblems pics
   let html = do
         setTitle "Corydalis: curate"
         addPlotly
