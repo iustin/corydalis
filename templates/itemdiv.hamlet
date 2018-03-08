@@ -14,11 +14,23 @@
             <a href="@{ListItemsR symbol}" .btn .btn-light .py-1 .w-100 .text-left>
               <span class="#{atomIcon symbol} fa-fw">
               #{symbolPlCap symbol}
-        <div .card-body>
+        $if buttons
+         <div .card-body>
            $forall (p, _) <- items
             $with searchParams <- [(symbolName symbol, p)]
              <a .btn .btn-light href="@?{(SearchFoldersR,searchParams)}">#{formatter symbol p}
 
            $if rcount > 0
              <a .btn .btn-light href="@{ListItemsR symbol}">
+               <i>(#{rcount} more)
+        $else
+           <ul .list-group .list-group-flush>
+            $forall (p, _) <- items
+             $with searchParams <- [(symbolName symbol, p)]
+              <li .list-group-item>
+               <a .text-dark href="@?{(SearchFoldersR,searchParams)}">#{formatter symbol p}
+
+            $if rcount > 0
+             <li .list-group-item>
+              <a .text-muted href="@{ListItemsR symbol}">
                <i>(#{rcount} more)

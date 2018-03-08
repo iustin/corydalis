@@ -59,6 +59,6 @@ formatter :: Symbol -> (Text -> Text)
 formatter TPerson = formatPerson True
 formatter _       = id
 
-itemDiv :: Symbol -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
-itemDiv symbol (items, length -> rcount) =
+itemDiv :: Symbol -> Bool -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
+itemDiv symbol buttons (items, length -> rcount) =
   $(widgetFile "itemdiv")
