@@ -64,6 +64,7 @@ import           Data.Store
 import           Data.Store.TH          (makeStore)
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
+import qualified Data.Text.Read         as Text
 import           Data.Time.Format
 import           Data.Time.LocalTime
 import           Prelude
@@ -295,7 +296,9 @@ instance FromJSON RawExif where
                         o .!: "FocalLength35efl" <|>
                         giveUp
     isoval           <- o .~:? "ISO"
-    rExifISO         <- maybe (return Nothing) parseValOrList isoval
+    rExifISO         <- case isoval of
+                          Nothing -> pure Nothing
+                          Just v  -> Just <$> parseValOrList v
     rssd             <- o .~:? "ShutterSpeed"
     rExifSSpeedDesc  <- case rssd of
                           Nothing -> pure Nothing
@@ -482,8 +485,31 @@ affineTransform OrientationRightBot = Transform RRight  False True
 affineTransform OrientationLeftBot  = Transform RLeft   False False
 
 -- | Tries to parse a value as is, or as a list with single element.
-parseValOrList :: (FromJSON a) => Value -> Parser a
-parseValOrList val = parseJSON val <|> parseSingletonList val
+parseValOrList :: Value -> Parser Integer
+parseValOrList val =
+  parseJSON val <|>
+  parseSingletonList val <|>
+  parseIsoString val
+
+parseIsoString :: Value -> Parser Integer
+parseIsoString =
+  withText "ISO String" $ \t -> do
+  let w = Text.words t
+  case w of
+    [i] -> readInt i
+    -- TODO: record high iso mode.
+    [_, i] -> readInt i
+    _ -> fail $
+         "Unknown format for ISO string: '" ++
+         Text.unpack t ++ "'"
+
+readInt :: Text -> Parser Integer
+readInt t =
+  case Text.decimal t of
+    Right (i, "") -> return i
+    Right (_, _)  -> fail $ "Leftover chars while parsing '" ++
+                     Text.unpack t ++ "' as integer"
+    Left s        -> fail s
 
 parseSingletonList :: (FromJSON a) => Value -> Parser a
 parseSingletonList val = do
