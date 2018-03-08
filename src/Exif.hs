@@ -634,7 +634,6 @@ getExif config dir paths = do
                         ) (Map.empty, []) paths
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
-                            putStrLn $ "Falling back to exif read for " ++ fpath
                             exif <- readExif config fpath
                             case exif of
                               -- failed to find file, or file stale.
