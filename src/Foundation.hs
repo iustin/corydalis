@@ -270,7 +270,7 @@ instance YesodBreadcrumbs App where
   breadcrumb (FolderR name) = do
     pics <- getPics
     let r = case Map.lookup name (repoDirs pics) of
-           Nothing  -> Nothing
+           Nothing  -> Just SearchFoldersNoYearR
            Just dir -> Just $ case pdYear dir of
                                 Nothing -> SearchFoldersNoYearR
                                 Just y  -> SearchFoldersByYearR y

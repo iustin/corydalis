@@ -80,7 +80,9 @@ mkImageInfo folder iname render params (Transform r fx fy) =
             iname (rotateToJSON r, fx, fy)
 
 data ViewInfo = ViewInfo
-  { viFolder  :: Text
+  { viYear    :: Text
+  , viYearUrl :: Text
+  , viFolder  :: Text
   , viFldUrl  :: Text
   , viImage   :: Text
   , viImgUrl  :: Text
@@ -93,7 +95,9 @@ data ViewInfo = ViewInfo
 
 instance ToJSON ViewInfo where
   toJSON ViewInfo {..} =
-    object [ "folder"      .= viFolder
+    object [ "year"        .= viYear
+           , "yearurl"     .= viYearUrl
+           , "folder"      .= viFolder
            , "folderurl"   .= viFldUrl
            , "image"       .= viImage
            , "imageurl"    .= viImgUrl
@@ -183,6 +187,7 @@ getImageInfoR :: Text -> Text -> Handler Value
 getImageInfoR folder iname = do
   (params, _, images) <- getAtomAndSearch
   img <- locateCurrentImage folder iname images
+  picdir <- getFolder folder
   render <- getUrlRenderParams
   let -- since we have an image, it follows that min/max must exist
       -- (they might be the same), hence we can use the non-total
@@ -194,8 +199,12 @@ getImageInfoR folder iname = do
       imgLast  = snd  $  Map.findMax images
       mk i = mkImageInfo (imgParent i) (imgName i) render params
                (transformForImage i)
+      y = maybe "?" (Text.pack . show) $ pdYear picdir
+      yurl = case pdYear picdir of
+               Nothing -> SearchFoldersNoYearR
+               Just v  -> SearchFoldersByYearR v
   return . toJSON $
-    ViewInfo
+    ViewInfo y (render yurl [])
       folder (render (FolderR folder) params)
       (imgName img) (render (ImageR folder iname) params)
       (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)

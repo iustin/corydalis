@@ -269,10 +269,12 @@ $(document).ready(function() {
     }
 
     function updateNavbar(topinfo) {
-        $("#navlink1").attr("href", topinfo.folderurl);
-        $("#navtext1").text(topinfo.folder);
-        $("#navlink2").attr("href", topinfo.imageurl);
-        $("#navtext2").text(topinfo.image);
+        $("#navlink1").attr("href", topinfo.yearurl);
+        $("#navtext1").text(topinfo.year);
+        $("#navlink2").attr("href", topinfo.folderurl);
+        $("#navtext2").text(topinfo.folder);
+        $("#navlink3").attr("href", topinfo.imageurl);
+        $("#navtext3").text(topinfo.image);
     }
 
     function advanceImage(forward) {
