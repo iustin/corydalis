@@ -291,7 +291,9 @@ instance FromJSON RawExif where
     rExifCaption     <- o .!:? "Caption-Abstract"
     rExifAperture    <- o .!:? "Aperture"
     rExifFocalLength <- o .!:? "FocalLength"
-    rExifFL35mm      <- o .!:? "FocalLengthIn35mmFormat"
+    rExifFL35mm      <- o .!: "FocalLengthIn35mmFormat" <|>
+                        o .!: "FocalLength35efl" <|>
+                        giveUp
     isoval           <- o .~:? "ISO"
     rExifISO         <- maybe (return Nothing) parseValOrList isoval
     rssd             <- o .~:? "ShutterSpeed"
