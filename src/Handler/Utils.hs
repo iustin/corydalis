@@ -255,11 +255,3 @@ setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)
 
 addPlotly :: Widget
 addPlotly = addScript (StaticR plotly_js_plotly_js)
-
-divClassForNoAtom :: Symbol -> Text
-divClassForNoAtom TProblem = "border-info"
-divClassForNoAtom _        = "border-warning"
-
-divClassForAtom :: Symbol -> Text
-divClassForAtom TProblem = "border-warning"
-divClassForAtom _        = ""

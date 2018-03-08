@@ -30,10 +30,10 @@ module Handler.Curate
   ( getCurateR
   ) where
 
-import qualified Data.Map        as Map
+import qualified Data.Map      as Map
 
+import           Handler.Items
 import           Handler.Utils
-import           Handler.Widgets
 import           Import
 import           Indexer
 import           Pics

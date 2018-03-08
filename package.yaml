@@ -129,6 +129,7 @@ library:
     - Handler.Folder
     - Handler.Home
     - Handler.Image
+    - Handler.Items
     - Handler.Lens
     - Handler.List
     - Handler.Reload

@@ -31,16 +31,16 @@ module Handler.Home
   , getAboutR
   ) where
 
+import qualified Data.Map      as Map
+import qualified Data.Set      as Set
+import qualified Data.Text     as Text
+
 import           Exif
+import           Handler.Items
 import           Handler.Utils
-import           Handler.Widgets
 import           Import
 import           Indexer
 import           Pics
-
-import qualified Data.Map        as Map
-import qualified Data.Set        as Set
-import qualified Data.Text       as Text
 
 getHomeR :: Handler Html
 getHomeR = do
