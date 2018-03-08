@@ -48,7 +48,7 @@ import           Control.Exception.Base
 import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Types       (Parser, modifyFailure, parseEither,
-                                         parseMaybe)
+                                         parseMaybe, typeMismatch)
 import           Data.Bifunctor
 import qualified Data.ByteString        as BS (ByteString, readFile)
 import           Data.Default
@@ -235,6 +235,11 @@ lensShortName LensInfo{..} =
      then liSpec
      else liName
 
+parseSSDesc :: Value -> Parser Text
+parseSSDesc (String f) = pure f
+parseSSDesc (Number n) = pure . Text.pack . show $ n
+parseSSDesc v          = typeMismatch "string or number" v
+
 data RawExif = RawExif
   { rExifSrcFile     :: Text
   , rExifCamera      :: Maybe Text
@@ -289,7 +294,10 @@ instance FromJSON RawExif where
     rExifFL35mm      <- o .!:? "FocalLengthIn35mmFormat"
     isoval           <- o .~:? "ISO"
     rExifISO         <- maybe (return Nothing) parseValOrList isoval
-    rExifSSpeedDesc  <- o .~:? "ShutterSpeed"
+    rssd             <- o .~:? "ShutterSpeed"
+    rExifSSpeedDesc  <- case rssd of
+                          Nothing -> pure Nothing
+                          Just v  -> Just <$> parseSSDesc v
     rExifSSpeedVal   <- o .!:? "ShutterSpeed"
     let rExifRaw      = o
     return RawExif{..}
