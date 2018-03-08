@@ -31,6 +31,7 @@ module Handler.Items
   ( itemDiv
   ) where
 
+import           Exif          (formatPerson)
 import           Handler.Utils
 import           Import
 import           Indexer
@@ -54,6 +55,10 @@ divClassForAtom :: Symbol -> Text
 divClassForAtom TProblem = "border-warning"
 divClassForAtom _        = ""
 
-itemDiv :: Symbol -> (Text -> Text) -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
-itemDiv symbol formatter (items, length -> rcount) =
+formatter :: Symbol -> (Text -> Text)
+formatter TPerson = formatPerson True
+formatter _       = id
+
+itemDiv :: Symbol -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
+itemDiv symbol (items, length -> rcount) =
   $(widgetFile "itemdiv")

@@ -16,17 +16,17 @@ $maybe msg <- homeMessage
          $forall year <- years
           <a .btn .btn-light href="@?{(SearchFoldersR,[(symbolName TYear, Text.pack (show year))])}">#{year}
 
-    ^{itemDiv TPerson (formatPerson True) topPeople}
+    ^{itemDiv TPerson topPeople}
 
-    ^{itemDiv TKeyword id topKeywords}
+    ^{itemDiv TKeyword topKeywords}
 
-    ^{itemDiv TCountry id topCountries}
+    ^{itemDiv TCountry topCountries}
 
-    ^{itemDiv TProvince id topProvinces}
+    ^{itemDiv TProvince topProvinces}
 
-    ^{itemDiv TCity id topCities}
+    ^{itemDiv TCity topCities}
 
-    ^{itemDiv TLocation id topLocations}
+    ^{itemDiv TLocation topLocations}
 
 <div .row>
   $# Sigh, how to do this nicely otherwise?

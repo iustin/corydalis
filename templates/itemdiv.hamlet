@@ -17,7 +17,7 @@
         <div .card-body>
            $forall (p, _) <- items
             $with searchParams <- [(symbolName symbol, p)]
-             <a .btn .btn-light href="@?{(SearchFoldersR,searchParams)}">#{formatter p}
+             <a .btn .btn-light href="@?{(SearchFoldersR,searchParams)}">#{formatter symbol p}
 
            $if rcount > 0
              <a .btn .btn-light href="@{ListItemsR symbol}">
