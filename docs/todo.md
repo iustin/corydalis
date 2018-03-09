@@ -19,10 +19,6 @@ test that checks the main web page gets a 200 OK, but nothing else.
 - sub-image view (copies, raw file, etc.)
 - skip panoramas unless explicitly requested
 
-## Searching
-
-So many search types! not sure how to solve.
-
 ## Statistics
 
 Camera/lens database:

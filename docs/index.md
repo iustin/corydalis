@@ -8,12 +8,14 @@ giving a parallel view on all your files.
 
 Corydalis is also an image viewer, designed to work across and
 understand your entire photo collection; the desktop-only viewers
-(e.g. Geeqie) are folder-based, not collection-based.
+(e.g. Geeqie) are folder-based, not collection-based. Corydalis allow
+searching based on various criteria across the collection, and
+filtered viewing of images along the same lines.
 
 Originally, I wrote it as I'm not able to keep post-processing up with
 the amount of RAW pictures I take; additionally there is a lot of
 cruft accumulating over time. It evolved to be an image viewer as I
-needed one that both understands the entire collection, and can export
+needed one that both understands the entire collection, and can serve
 (as a web application) the pictures stored on your storage to desktop
 and mobile clients - I want the ease of viewing/browsing pictures in a
 browser, without having to upload my photos to the cloud.

@@ -19,7 +19,7 @@ Is it for you? If you need/could use:
   various web and mobile clients,
 
 Then maybe yes. Although this is very much a work in progress, and has
-very sharp edges, I use it to oversee my picture collection since
+very sharp edges, I use it to analyse my picture collection since
 ~2013 and as my main image viewer since mid-2017.
 
 On the other hand, if you never shoot RAW, or if all the pictures you

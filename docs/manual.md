@@ -7,10 +7,14 @@ there's not much to it:
   [installation guide](install.md))
 - start browsing either from the year, person, location or keyword
   view
+- or search by a combination of criteria, e.g. "Switzerland mountains
+  2017", showing all pictures from (guessed) country Switzerland, with
+  (guessed) keyword "mountains", taken in the (again guessed) year
+  2017
 - or, browse by folder type (in the "Curate library" section)
 
 Once you open a folder, click on the thumbnail of any picture to start
-browsing from it. The controls are:
+viewing from it. The controls are:
 
 - left/right (keyboard keys, or swipe for touchscreens): move backward
   (previous) and forward (next) in the list of pictures; this switches
@@ -47,7 +51,121 @@ is used for categorising folder and so on.
 Also, take a look at the `config/settings.yml.sample` file, to
 understand how some of the behaviours below can be configured.
 
-## Image types
+## Search capability
+
+Starting with version 0.3, the main navigation changed from the
+folder-based to "search/filter" based. What this means is that once a
+search has been made, the criteria are being propagated along
+folder/image viewing, so you can easily view (or list) all images
+tagged with keyword "flowers" and taken in a given year.
+
+The search is image-based; i.e. all the search atoms operate on a
+picture level, and if the filter is applied to a folder, if means
+"does this folder contain any pictures that match the criteria?".
+
+### Full search API
+
+The full search capability is not yet exposed in the UI, but is
+available by manipulating the URL directly.
+
+The search atoms are:
+
+- country
+- province
+- city
+- location
+- person
+- keyword
+- year (numeric)
+- camera
+- problem (this is what can be potentially errors; right now limited
+  to exif metadata read issues)
+
+Numeric atoms (currently only year) allow:
+
+- equal (no prefix)
+- lower than (`<` prefix)
+- greater than (`>` prefix)
+
+String atoms (all others, currently) allow:
+
+- exact match (no prefix)
+- fuzzy match (`~` prefix; does case-insensitive contains check, but
+  not globs/regexes)
+
+Both numeric and string atoms support the concept of a "missing"
+value, see later below.
+
+On top of that, arbitrarily complex combinations of atoms can be made
+by operators such as:
+
+- `and` (logical *and* of two atoms)
+- `or` (logical *or* of two atoms)
+- `all` (logical *and* of multiple atoms)
+- `any` (logical *or* of multiple atoms)
+- `not` (negates on atom)
+
+As an example of a search: *((year 2017 and keyword beach) or (year 2018
+and keyword winter)) and person xxx*.
+
+The mapping to the URL is done as follows:
+
+- an atom is declared by query parameter named as the atom, plus the
+  requested value (eventually prefixed); e.g. *country=Italy* (exact
+  match on country name), or *keyword=~mount* (fuzzy match, keyword
+  contains "mount")
+- missing (negative) atoms are the atom name prefixed with `no-`, with
+  the value being ignored; e.g. *no-country*, meaning a picture not
+  having an EXIF/IPTC country tag present
+- the parsing of multiple atoms is done via reverse polish notation,
+  i.e. multiple search atoms are pushed onto the stack, and a
+  combining operator will pop as many atoms as it is designed to
+- at the end, whatever is left on the stack is combined via an `all`
+  atom
+
+Example 1: *(country italy or country france) and year 2018* is
+represented by the query:
+`country=italy&country=france&or&year=2018&and`.
+
+Example 2: *keyword mountains and keyword not snow*:
+`keyword=mountains&keyword=snow&not&and`.
+
+Note: due to the RPN parser, the order is critical in the parameters.
+
+### Quick search
+
+The quick search interface, available from the navigation bar,
+provides a much simplified interface, with an accompanying reduction
+in capability:
+
+- the given string is split in words;
+- each word is tried as all possible atom types; if a single one
+  matches, that is used, if multiple match, they're combined with
+  `or`;
+- the tries mentioned above are fuzzy matches for string atoms, and
+  equality matches for numerical atoms
+- the matches for words are combined with `and`, thus ensuring that
+  each word will be required to match.
+
+As an example, the search *switzerland 2018* will be transformed into:
+
+    (person switzerland or country switzerland or location switzerland
+    or …) and (person 2018 or country 2018 or location 2018 or … or
+    year 2018)
+
+Assuming the usual case that *switzerland* matches only country and a
+keyword, and that 2018 is only a year, the result will be:
+
+    (country switzerland or keyword switzerland) and year 2018
+
+Further tweaks to the search parameters can be done by modifying the
+URL directly, per the previous section.
+
+## Image status
+
+The image "status" attribute is orthogonal to the search parameters,
+and is designed to help processing pictures. Just for image viewing,
+this section can be entirely ignored.
 
 Depending on what kinds of files are present for an image, it will
 categorised as follows:
