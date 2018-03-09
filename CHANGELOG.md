@@ -2,15 +2,15 @@
 
 ## v0.3.0
 
-*Unreleased*
+*Fri, 09 Mar 2018*
 
-A major release, with close to 300 commits. The information below is
-only major highlights.
+A major release, with close to 300 commits.
 
 **Important**: due to internal changes, all the cached exif metadata
 will be regenerated, so the first startup should be slower. This
 should proceed automatically, but as there is no versioning of the
-cache, it might be a good idea to remove the files manually:
+cache, it might be a good idea to remove the files manually (as
+there's no automated cleanup procedure yet):
 
 ```
 $ find /path/to/cache/dir -name '*-bexif' -delete
