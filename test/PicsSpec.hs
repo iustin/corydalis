@@ -31,7 +31,7 @@ import           Types        (Config)
 
 simpleImage :: Config -> Image
 simpleImage config =
-  let f = File "a.nef" 0 0 0 "/no-such-file/a.nef" Nothing
+  let f = File "a.nef" 0 0 0 "/no-such-file/a.nef" (Left "error")
   in mkImage config "a" "b" (Just f) Nothing [] Nothing def
 
 spec :: Spec

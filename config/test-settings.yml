@@ -12,6 +12,8 @@ approot:        "_env:APPROOT:http://localhost:3000"
 ip-from-header: "_env:IP_FROM_HEADER:false"
 # Custom message to show on login page
 login-msg:      "Hello user!"
+https:          false
+secure-sessions: false
 
 database:
   # NOTE: By design, this setting prevents the SQLITE_DATABASE environment variable
@@ -26,7 +28,7 @@ database:
 auth-dummy-login: true
 
 #detailed-logging: true
-#should-log-all: true
+should-log-all: false
 
 config:
   sourcedirs: []

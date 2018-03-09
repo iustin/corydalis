@@ -68,7 +68,7 @@ clean:
 	stack clean
 
 test:
-	stack test --coverage
+	stack test --coverage --flag corydalis:dev
 
 lint:
 	@rm -f lint-report.html
