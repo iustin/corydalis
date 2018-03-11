@@ -763,7 +763,14 @@ parseCreateDate o = do
   -- Note: Aeson does have parsing of time itself, but only support
   -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
   -- %Y:%m:%d format, so we have to parse the time manually.
-  let dto' = dto >>= parseTimeM True defaultTimeLocale "%Y:%m:%d %T%Q"
+  --
+  -- TODO: %Z accepts time zone information (without requiring it),
+  -- but since this is parsed as LocalTime, the information is
+  -- dropped. On the other hand, ZonedTime will default to UTC if
+  -- there's no time zone information, which is even worse. Find a way
+  -- to do proper parsing so that TZ info is preserved, but otherwise
+  -- local time is assumed.
+  let dto' = dto >>= parseTimeM True defaultTimeLocale "%Y:%m:%d %T%Q%Z"
   return dto'
 
 $(makeStore ''Exif)
