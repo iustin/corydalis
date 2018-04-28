@@ -113,9 +113,9 @@ disableForeignKeys :: Sqlite.Connection -> IO ()
 disableForeignKeys conn = Sqlite.prepare conn "PRAGMA foreign_keys = OFF;" >>= void . Sqlite.step
 
 getTables :: MonadIO m => ReaderT SqlBackend m [Text]
-getTables = do
-    tables <- rawSql "SELECT name FROM sqlite_master WHERE type = 'table';" []
-    return (fmap unSingle tables)
+getTables =
+    fmap unSingle <$>
+        rawSql "SELECT name FROM sqlite_master WHERE type = 'table';" []
 
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in
