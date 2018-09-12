@@ -59,7 +59,7 @@ Copyright: 2015 Plotly, Inc
 License: MIT
 
 Files:
-  static/js/hammer.js
+  static/hammer/js/hammer.js
 Copyright: 2011-2017, Jorik Tangelder (Eight Media)
 License: MIT
 
