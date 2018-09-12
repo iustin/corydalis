@@ -63,6 +63,12 @@ Files:
 Copyright: 2011-2017, Jorik Tangelder (Eight Media)
 License: MIT
 
+Files:
+  static/screenfull/js/screenfull.js
+Copyright: Sindre Sorhus
+URL: https://github.com/sindresorhus/screenfull.js/
+License: MIT
+
 License: MIT
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation files
