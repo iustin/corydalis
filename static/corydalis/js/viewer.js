@@ -204,18 +204,14 @@ $(document).ready(function() {
 
     function enterFullScreen() {
         var div = divMain[0];
-        if (div.mozRequestFullScreen)
-            div.mozRequestFullScreen();
-        if(div.webkitRequestFullScreen)
-            div.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
-        cory.state.fullscreen = true;
+        if (screenfull.enabled) {
+            screenfull.request(div);
+            cory.state.fullscreen = true;
+        }
     };
 
     function leaveFullScreen() {
-        if (document.mozCancelFullScreen)
-            document.mozCancelFullScreen();
-        if (document.webkitCancelFullScreen)
-            document.webkitCancelFullScreen();
+        screenfull.exit();
         cory.state.fullscreen = false;
     }
 
