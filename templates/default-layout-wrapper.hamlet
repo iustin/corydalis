@@ -13,7 +13,7 @@ $doctype 5
     ^{pageHead pc}
 
   <body>
-    <nav .navbar .navbar-light .bg-light .navbar-expand>
+    <nav .navbar .navbar-light .bg-light .navbar-expand #nav>
         <ul .navbar-nav .mr-auto>
           <li .nav-item>
             <a .nav-link href=@{HomeR}>

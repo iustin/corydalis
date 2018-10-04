@@ -40,6 +40,8 @@ $(document).ready(function() {
     };
 
     var divMain = $('#main');
+    var navMenu = $('#nav');
+
     var canvas = $('#imageCanvas')[0];
     var context = canvas.getContext('2d');
     var msgCanvas = $('#messageCanvas')[0];
@@ -203,16 +205,28 @@ $(document).ready(function() {
     };
 
     function enterFullScreen() {
+        cory.state.fullscreen = true;
         var div = divMain[0];
         if (screenfull.enabled) {
             screenfull.request(div);
-            cory.state.fullscreen = true;
+        } else {
+            LOG("entering fake full screen");
+            navMenu.addClass("nav-hidden");
+            divMain.addClass("fake-fullscreen");
+            resizeCanvasAndRedraw();
         }
     };
 
     function leaveFullScreen() {
-        screenfull.exit();
         cory.state.fullscreen = false;
+        if (screenfull.enabled) {
+            screenfull.exit();
+        } else {
+            LOG("exiting fake full screen");
+            navMenu.removeClass("nav-hidden");
+            divMain.removeClass("fake-fullscreen");
+            resizeCanvasAndRedraw();
+        }
     }
 
     function toggleFullScreen() {
@@ -350,8 +364,12 @@ $(document).ready(function() {
     });
 
     function computeNavBarHeight() {
-        var navbar = $("nav.navbar");
-        return navbar.outerHeight();
+        if (cory.state.fullscreen) {
+            return 0;
+        } else {
+            var navbar = $("nav.navbar");
+            return navbar.outerHeight();
+        }
     }
 
     // Based on current layout, convert the div#main to fixed

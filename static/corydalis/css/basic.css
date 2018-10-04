@@ -55,6 +55,16 @@ div:fullscreen {
     background-color: black;
 }
 
+div.fake-fullscreen {
+    width: 100% !important;
+    top: 0px !important;
+    background-color: black;
+}
+
+nav#nav.nav-hidden {
+    display: none;
+}
+
 table.vmiddle tr th {
   vertical-align: middle;
 }
