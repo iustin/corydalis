@@ -71,8 +71,8 @@ $(document).ready(function() {
         var imgW = rotation == 0 ? img.width : img.height;
         var imgH = rotation == 0 ? img.height : img.width;
         var scaleX = imgW / cW;
-        var scale_y = imgH / cH;
-        var scale = scaleX >= scale_y ? scaleX : scale_y;
+        var scaleY = imgH / cH;
+        var scale = scaleX >= scaleY ? scaleX : scaleY;
         // Note: target* must be in original coordinate system, not
         // rotated! So using img.width, not imgW. This is because from
         // the point of view of the image, it's drawn straight, not
@@ -83,7 +83,7 @@ $(document).ready(function() {
         var offY = targetH < cH ? Math.round((cH - targetH) / 2) : 0;
         LOG("pre-draw; imgW:", imgW, "imgH:", imgH,
             "cW:", cW, "cH:", cH,
-            "scale_x:", scale_x, "scale_y", scale_y,
+            "scaleX:", scaleX, "scaleY:", scaleY,
             "targetW:", targetW, "targetH", targetH);
         cory.state.lastX = offX;
         T_START("drawImage");
