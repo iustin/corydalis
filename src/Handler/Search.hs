@@ -58,7 +58,7 @@ getSearchFoldersR = do
 getSearchImagesR :: Handler Html
 getSearchImagesR = do
   (config, params, atom, search_string, pics) <- searchContext
-  images <- Map.elems <$> lift (searchImages atom pics)
+  images <- Map.elems <$> liftIO (searchImages atom pics)
   let thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setHtmlTitle "searching images"

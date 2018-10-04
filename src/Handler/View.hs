@@ -213,5 +213,5 @@ getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
   (_, _, images) <- getAtomAndSearch
   when (null images) notFound
-  image <- lift $ randomPick images
+  image <- liftIO $ randomPick images
   getImageInfoR (imgParent image) (imgName image)

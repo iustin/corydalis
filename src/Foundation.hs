@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -247,10 +248,9 @@ instance Yesod App where
 
     -- What messages should be logged. The following includes all messages when
     -- in development, and warnings and errors in production.
-    shouldLog app _source level =
+    shouldLogIO app _source level = return $
         appShouldLogAll (appSettings app)
-            || level == LevelWarn
-            || level == LevelError
+            || level >= LevelInfo
 
     makeLogger = return . appLogger
 
@@ -325,7 +325,9 @@ instance YesodAuth App where
     -- Override the above two destinations when a Referer: header is present
     redirectToReferer _ = True
 
-    authenticate creds = runDB $ do
+    authenticate :: (MonadHandler m, HandlerSite m ~ App)
+                 => Creds App -> m (AuthenticationResult App)
+    authenticate creds = liftHandler $ runDB $ do
       x <- getBy $ UniqueUser ident
       case x of
         Just (Entity uid _) -> return $ Authenticated uid
@@ -350,7 +352,7 @@ instance YesodAuth App where
                 []
 #endif
 
-    authHttpManager = getHttpManager
+    --authHttpManager = getHttpManager
 
 loginForm :: Form (Text, Text)
 loginForm = renderBootstrap3 BootstrapBasicForm $ (,)

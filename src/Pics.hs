@@ -350,12 +350,12 @@ instance Default Occurrence where
 
 instance Monoid Occurrence where
   mempty = def
-  mappend x y = Occurrence { ocFiles = ocFiles x + ocFiles y
-                           , ocFileSize = ocFileSize x + ocFileSize y
-                           , ocFolders = ocFolders x + ocFolders y
-                           }
 
-instance Semigroup Occurrence
+instance Semigroup Occurrence where
+  x <> y = Occurrence { ocFiles = ocFiles x + ocFiles y
+                      , ocFileSize = ocFileSize x + ocFileSize y
+                      , ocFolders = ocFolders x + ocFolders y
+                      }
 
 instance NFData Occurrence where
   -- All fields are strict and simple, so weak head normal form is

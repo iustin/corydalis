@@ -243,7 +243,7 @@ getAtomAndSearch :: Handler (UrlParams, Atom, SearchResults)
 getAtomAndSearch = do
   (_, atom) <- getAtomParams
   pics <- getPics
-  images <- lift $ searchImages atom pics
+  images <- liftIO $ searchImages atom pics
   return (atomToParams atom, atom, images)
 
 atomAsParam :: Symbol -> Maybe Text -> (Text, Text)

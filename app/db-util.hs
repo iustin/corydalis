@@ -17,22 +17,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE ScopedTypeVariables               #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 
-import Control.Monad.Logger
-import Database.Persist
-import Database.Persist.Sqlite
-import Import hiding (putStrLn, putStr, getLine)
-import Options.Applicative
-import Data.Semigroup ((<>))
-import Data.Text.IO
-import System.IO (hFlush, hGetEcho, hSetEcho)
-import Yesod.Auth.HashDB
+import           Control.Monad.Logger
+import           Data.Semigroup          ((<>))
+import           Data.Text.IO
+import           Database.Persist
+import           Database.Persist.Sqlite
+import           Import                  hiding (getLine, hFlush, hGetEcho,
+                                          hSetEcho, putStr, putStrLn)
+import           Options.Applicative
+import           System.IO               (hFlush, hGetEcho, hSetEcho)
+import           Yesod.Auth.HashDB
 
 data Options = Options
   { optSettingsFile :: FilePath
@@ -68,7 +69,7 @@ parseOptions = Options
                 )
   <*> parseCommand
 
-upsertUser :: (MonadBaseControl IO m, MonadIO m)
+upsertUser :: MonadIO m
            => Text -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
 upsertUser username = do
   password <- liftIO $ do
@@ -84,7 +85,7 @@ upsertUser username = do
   _ <- upsertBy (UniqueUser username) withpw [UserPassword =. userPassword withpw]
   return ()
 
-removeUser :: (MonadBaseControl IO m, MonadIO m)
+removeUser :: MonadIO m
            => Text -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
 removeUser user = do
   userId <- getBy $ UniqueUser user
@@ -93,21 +94,21 @@ removeUser user = do
     Just (Entity uId _) -> delete uId
   return ()
 
-listUsers :: (MonadBaseControl IO m, MonadIO m)
+listUsers :: MonadIO m
           => ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
 listUsers = do
   users <- selectList [] [Asc UserName]
   liftIO $ mapM_ (\(Entity _ (User name _)) -> putStrLn name
                  ) users
 
-app :: (MonadBaseControl IO m, MonadIO m)
+app :: MonadIO m
     => Command -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
 app cmd = do
   runMigration migrateAll
   case cmd of
     CmdAdd u -> upsertUser u
     CmdDel u -> removeUser u
-    CmdList -> listUsers
+    CmdList  -> listUsers
 
 main :: IO ()
 main = do
