@@ -48,6 +48,7 @@ getFolderR name = do
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     let stats = computeFolderStats dir
+        fc = folderClassFromStats stats
         rbuilder = (const .) FolderR
         images = map snd . Map.toList $ pdImages dir
         exifs = map imgExif images

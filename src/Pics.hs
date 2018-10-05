@@ -44,6 +44,7 @@ module Pics ( PicDir(..)
             , isUnprocessed
             , isStandalone
             , folderClass
+            , folderClassFromStats
             , computeFolderStats
             , computeStandaloneDirs
             , numPics

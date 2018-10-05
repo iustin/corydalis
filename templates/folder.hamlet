@@ -23,6 +23,12 @@
 
   <div .col-12 .col-md-3>
     <div .card>
+      <div .card-header>Folder type
+      <div .card-body>
+        #{fcName fc}: folder #{fcDescription fc}
+
+  <div .col-12 .col-md-3>
+    <div .card>
       <div .card-header>Picture contents
       <div .card-body>
         <ul>
