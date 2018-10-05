@@ -307,6 +307,7 @@ setSearch (OpFuzzy f)=
   Set.foldr' (\a v -> v || fuzzyMatch f a) False
 
 folderSearchFunction :: Atom -> PicDir -> Bool
+folderSearchFunction ConstTrue = const True
 folderSearchFunction a =
   any (imageSearchFunction a) . pdImages
 
