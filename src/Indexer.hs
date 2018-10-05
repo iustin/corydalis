@@ -132,6 +132,7 @@ data Atom = Country  StrOp
           | Not Atom
           | All [Atom]
           | Any [Atom]
+          | ConstTrue
           deriving (Show, Eq)
 
 symbolNames :: [(Symbol, Text)]
@@ -296,6 +297,7 @@ atomDescription (Or a b) =
 atomDescription (Not a)  = "(not " <> atomDescription a <> ")"
 atomDescription (All as) = "(all of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
 atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescription as) <> ")"
+atomDescription ConstTrue = "any and all pictures"
 
 -- | Set search function for either membership or null set checking.
 setSearch :: StrOp -> Set Text -> Bool
@@ -353,6 +355,8 @@ imageSearchFunction (All as) = \img ->
 imageSearchFunction (Any as) = \img ->
   any (`imageSearchFunction` img) as
 
+imageSearchFunction ConstTrue = const True
+
 getAtoms :: Symbol -> Repository -> NameStats
 getAtoms TCountry  = gExifCountries . repoExif
 getAtoms TProvince = gExifProvinces . repoExif
@@ -369,9 +373,11 @@ getAtoms TProblem  = repoProblems
 -- Builds an 'All' atom, with special casing for small values:
 -- * no sense in over-wrapping a single value.
 -- * x and y is better (cleaner) than All [x, y].
+-- * no child atoms means a ConstTrue atom.
 allAtom :: [Atom] -> Atom
 allAtom = go . nub
-  where go [x]    = x
+  where go []     = ConstTrue
+        go [x]    = x
         go [x, y] = And x y -- 'x and y' is better than 'all of [x, y]'.
         go xs     = All xs  -- and normal wrapping.
 
@@ -455,6 +461,7 @@ atomToParams (All xs)     =
   concatMap atomToParams xs ++ [("all", "")]
 atomToParams (Any xs)     =
   concatMap atomToParams xs ++ [("any", "")]
+atomToParams ConstTrue    = atomToParams (All [])
 
 -- | Build image map (with static sorting).
 buildImageMap :: Atom -> Repository -> SearchResults
