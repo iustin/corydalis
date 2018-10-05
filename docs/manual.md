@@ -20,8 +20,8 @@ viewing from it. The controls are:
   (previous) and forward (next) in the list of pictures; this switches
   automatically to the next folder;
 - space key: move forward (next picture);
-- `f` (key), or tap the image: go full-screen, if the browser allows
-  it;
+- `f` (key), or tap the image with two fingers: go full-screen, if the
+  browser allows it;
 - `r` (key): go to a random image in the whole library;
 - `u` (key): go back to the folder view;
 - `home`/`end` (key): go to the first, respectively last, image in the
