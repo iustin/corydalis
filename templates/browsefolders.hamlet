@@ -1,5 +1,9 @@
 <h1>Browsing folders #
-  <small>of type #{kinds_string}
+  <small>
+    of type
+    <i>#{kinds_string}
+    and with filter
+    <i>#{atomDescription atom}
 
 <div .row>
  <div .col-12>
