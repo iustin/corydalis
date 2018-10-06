@@ -205,6 +205,13 @@ emptyFlags = Flags {
   flagsSoftMaster = False
   }
 
+data MediaType = MediaPicture
+               | MediaMovie
+               deriving (Show, Eq)
+
+instance NFData MediaType where
+  rnf _ = ()
+
 data Image = Image
     { imgName        :: !Text
     , imgParent      :: !Text
@@ -213,6 +220,7 @@ data Image = Image
     , imgJpegPath    :: ![File]
     , imgRange       :: !(Maybe (Text, Text))
     , imgExif        :: !Exif
+    , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
     } deriving (Show, Eq)
@@ -224,6 +232,7 @@ instance NFData Image where
                   rnf imgSidecarPath `seq`
                   rnf imgJpegPath    `seq`
                   rnf imgRange       `seq`
+                  rnf imgType        `seq`
                   rnf imgStatus      `seq`
                   rnf imgFlags
 
@@ -301,7 +310,7 @@ mkImage config name parent raw sidecar jpegs range =
                (raw >>= eitherToMaybe . fileExif)
                (sidecar >>= eitherToMaybe . fileExif)
                (mapMaybe (eitherToMaybe . fileExif) jpegs)
-  in Image name parent raw sidecar jpegs range exif status
+  in Image name parent raw sidecar jpegs range exif MediaPicture status
 
 data PicDir = PicDir
   { pdName      :: !Text
