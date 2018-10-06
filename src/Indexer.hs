@@ -306,10 +306,16 @@ setSearch (OpEqual v) = (v `Set.member`)
 setSearch (OpFuzzy f)=
   Set.foldr' (\a v -> v || fuzzyMatch f a) False
 
+
 folderSearchFunction :: Atom -> PicDir -> Bool
 folderSearchFunction ConstTrue = const True
-folderSearchFunction a =
-  any (imageSearchFunction a) . pdImages
+folderSearchFunction a@(Year OpNa) =
+  \p -> imagesMatchAtom a (pdImages p) ||
+        isNothing (pdYear p)
+folderSearchFunction a = imagesMatchAtom a . pdImages
+
+imagesMatchAtom :: Atom -> Map.Map Text Image -> Bool
+imagesMatchAtom a = any (imageSearchFunction a)
 
 imageSearchFunction :: Atom -> (Image -> Bool)
 imageSearchFunction (Country loc) =

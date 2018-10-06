@@ -132,6 +132,25 @@ Example 2: *keyword mountains and keyword not snow*:
 
 Note: due to the RPN parser, the order is critical in the parameters.
 
+### Atom searches on images versus folders
+
+Normally, a folder search will return all folders with at least one
+image matching the search filter. However, there are two exceptions to
+this case, in order to make the search concept more logical:
+
+- an empty search filter, meaning "match all" (technically, *all* with
+  no parameters) will return also folders with no pictures; I consider
+  this the natural behaviour when wanting to list "all".
+- a search for "no year information" will return the combination of
+  the usual "folders containing pictures with no date information" and
+  folders for which we can't determined the date at all (meaning no
+  pictures with date information at all); again, I think this is more
+  natural and allows cleaning mistakes in the repository.
+
+These two exceptions show that the mapping of the atom types
+between folders and images is not an exact `1:1`. It's possible that
+more exceptions will be added in the future.
+
 ### Quick search
 
 The quick search interface, available from the navigation bar,
