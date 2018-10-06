@@ -224,7 +224,7 @@ instance NFData Image where
                   rnf imgSidecarPath `seq`
                   rnf imgJpegPath    `seq`
                   rnf imgRange       `seq`
-                  imgStatus          `seq` -- simple type
+                  rnf imgStatus      `seq`
                   rnf imgFlags
 
 -- | A file with unknown (and untracked) type.
