@@ -1047,10 +1047,10 @@ scaledImagePath config path res =
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> Text -> Maybe Text -> POSIXTime -> ImageSize -> ExceptT ImageError IO (Text, Text)
-loadCachedOrBuild config origPath srcPath mtime size = do
-  let bytesPath = fromMaybe origPath srcPath
-      res = findBestSize size (cfgAllImageSizes config)
+loadCachedOrBuild :: Config -> Text -> Text -> POSIXTime -> ImageSize
+                  -> ExceptT ImageError IO (Text, Text)
+loadCachedOrBuild config origPath bytesPath mtime size = do
+  let res = findBestSize size (cfgAllImageSizes config)
   case res of
     Nothing -> return ("image/jpeg", bytesPath)
     Just res' -> do
@@ -1070,46 +1070,6 @@ loadCachedOrBuild config origPath srcPath mtime size = do
             outFile = format ++ ":" ++ fpath
         lift $ createDirectoryIfMissing True parent
         (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[Text.unpack bytesPath], operators, [outFile]])
-        when (exitCode /= ExitSuccess) . throwE . ImageError . Text.toStrict . Text.decodeUtf8 $ err `BSL.append` out
-      return (Text.pack $ "image/" ++ format, Text.pack fpath)
-
--- | Generate a preview for a video.
---
--- This is done as follows:
---
--- * try to extract an embedded preview (e.g. Nikon, Olympus cameras
---   provides one) via exif
---
--- * if not, use ffmpeg to extract first frame
---
--- * however we generated the image, then resize it using the normal
---   resize operation.
-buildMoviePreview :: Config -> Text -> POSIXTime -> ImageSize -> ExceptT ImageError IO (Text, Text)
-buildMoviePreview config srcPath mtime size = do
-  embedded <- lift $ bestEmbedded config srcPath
-  epath <- case embedded of
-             Left msg   -> throwE $ ImageError msg
-             Right path -> return path
-  let res = findBestSize size (cfgAllImageSizes config)
-  case res of
-    Nothing -> return ("image/jpeg", epath)
-    Just res' -> do
-      let geom = show res' ++ "x" ++ show res'
-          fpath = scaledImagePath config (Text.unpack epath) res'
-          isThumb = res' <= cfgThumbnailSize config
-          format = if isThumb then "png" else "jpg"
-      stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
-      let needsGen = case stat of
-                       Left _   -> True
-                       Right st -> modificationTimeHiRes st < mtime
-      when needsGen $ do
-        let operators = if isThumb
-                          then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
-                          else ["-resize", geom]
-            (parent, _) = splitFileName fpath
-            outFile = format ++ ":" ++ fpath
-        lift $ createDirectoryIfMissing True parent
-        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[Text.unpack epath], operators, [outFile]])
         when (exitCode /= ExitSuccess) . throwE . ImageError . Text.toStrict . Text.decodeUtf8 $ err `BSL.append` out
       return (Text.pack $ "image/" ++ format, Text.pack fpath)
 
@@ -1166,6 +1126,28 @@ bestEmbedded config path =
               _  -> go c p xs
             Right _ -> return r
 
+-- | Returns a viewable version of an image.
+--
+-- For a processed file, return it directly; for a raw file, extract
+-- the embedded image, if any; etc.
+getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, Text, POSIXTime)
+getViewableVersion config img
+  | j:_ <- imgJpegPath img = return (j, filePath j, fileLastTouch j)
+  | Just r <- imgRawPath img = do
+      embedded <- lift $ bestEmbedded config (filePath r)
+      case embedded of
+        Left msg -> throwE $ ImageError msg
+        Right path -> do
+          mtime <- lift $ filePathLastTouch path
+          return (r, path, mtime)
+  | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
+      embedded <- lift $ bestEmbedded config (filePath m)
+      case embedded of
+        Left msg -> throwE $ ImageError msg
+        Right path -> do
+          mtime <- lift $ filePathLastTouch path
+          return (m, path, mtime)
+  | otherwise = throwE ImageNotViewable
 
 -- | Return the path (on the filesystem) to a specific size rendering of an image.
 --
@@ -1181,30 +1163,11 @@ bestEmbedded config path =
 -- TODO: handle and meaningfully return errors.
 imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, Text))
 imageAtRes config img size = runExceptT $ do
-  (raw, origFile) <- case imgJpegPath img of
-                       j:_ -> return (False, j)
-                       _   -> case (imgRawPath img, flagsSoftMaster (imgFlags img)) of
-                         (Just r, True)  -> return (False, r)
-                         (Just r, False) -> return (True, r)
-                         _               ->
-                           case imgMasterMov img of
-                             Just m -> do
-                               (_, mcover) <- buildMoviePreview config
-                                                (filePath m) (fileLastTouch m)
-                                                (fromJust size)
-                               return (False, m { filePath = mcover} )
-                             Nothing -> throwE ImageNotViewable
-  srcPath <- if raw
-               then do
-                 thumb <- lift $ bestEmbedded config (filePath origFile)
-                 case thumb of
-                   Left err   -> throwE $ ImageError err
-                   Right path -> return $ Just path
-               else return Nothing
+  (origFile, path, mtime) <- getViewableVersion config img
   case size of
     -- TODO: don't use hardcoded jpeg type!
-    Nothing -> return ("image/jpeg", fromMaybe (filePath origFile) srcPath)
-    Just s -> loadCachedOrBuild config (filePath origFile) srcPath (fileLastTouch origFile) s
+    Nothing -> return ("image/jpeg", path)
+    Just s  -> loadCachedOrBuild config (filePath origFile) path mtime s
 
 imgProblems :: Image -> Set Text
 imgProblems Image{..} =
