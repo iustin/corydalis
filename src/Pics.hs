@@ -272,9 +272,15 @@ data ImageError = ImageNotViewable
 -- | Represents a scaled down image size.
 newtype ImageSize = ImageSize Int
 
--- | Return the laste time a file has been touched (latest of ctime/mtime).
+-- | Return the last time a file has been touched (latest of ctime/mtime).
 fileLastTouch :: File -> POSIXTime
 fileLastTouch f = fileMTime f `max` fileCTime f
+
+-- | Retun the last time a path on disk has been touched.
+filePathLastTouch :: Text -> IO POSIXTime
+filePathLastTouch p = do
+  stat <- getSymbolicLinkStatus $ Text.unpack p
+  return $ modificationTimeHiRes stat `max` statusChangeTimeHiRes stat
 
 -- | The year of the image, as determined from Exif data.
 imageYear :: Image -> Maybe Integer
