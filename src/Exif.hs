@@ -555,16 +555,19 @@ exifFromRaw config RawExif{..} =
   in Exif{..}
 
 -- | Promotion rules for file to exif
-promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Exif
-promoteFileExif re se je =
+promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Maybe Exif -> [Exif] -> Exif
+promoteFileExif re se je mm me =
   let setmerge :: (Ord a) => (Exif -> Set a) -> Set a
       setmerge fn = Set.unions $ maybe Set.empty fn re:
                                maybe Set.empty fn se:
-                               map fn je
+                               map fn je ++
+                               maybe Set.empty fn mm:
+                               map fn me
       fjust :: (Exif -> Maybe a) -> Maybe a
-      fjust fn = msum $ [re >>= fn, se >>= fn] ++ map fn je
+      fjust fn = msum $ [re >>= fn, se >>= fn] ++ map fn je ++ [mm >>= fn] ++ map fn me
       skipMaybes :: (Exif -> a) -> [a]
-      skipMaybes fn = catMaybes [fn <$> re, fn <$> se] ++ map fn je
+      skipMaybes fn = catMaybes [fn <$> re, fn <$> se] ++ map fn je ++
+                      catMaybes [fn <$> mm] ++ map fn me
       fjust' :: (Exif -> a) -> a -> a
       fjust' fn d = case skipMaybes fn of
                       []  -> d

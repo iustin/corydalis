@@ -218,6 +218,8 @@ data Image = Image
     , imgRawPath     :: !(Maybe File)
     , imgSidecarPath :: !(Maybe File)
     , imgJpegPath    :: ![File]
+    , imgMasterMov   :: !(Maybe File)
+    , imgMovs        :: ![File]
     , imgRange       :: !(Maybe (Text, Text))
     , imgExif        :: !Exif
     , imgType        :: !MediaType
@@ -292,25 +294,32 @@ mkImageStatus :: Config
               -> Maybe File  -- ^ Raw file
               -> [File]      -- ^ Jpeg file(s)
               -> Maybe File  -- ^ Sidecar file
+              -> Bool        -- ^ Has movies
               -> ImageStatus
-mkImageStatus _ Nothing  []    Nothing   =
-  error "imageStatus - neither raw nor standalone nor orphaned"
-mkImageStatus _ Nothing  []    (Just _)  = ImageOrphaned
-mkImageStatus _ Nothing  (_:_) (Just _)  = ImageStandalone
+mkImageStatus _ Nothing  []    Nothing   False =
+  error "imageStatus - neither raw nor standalone nor orphaned nor movies"
+mkImageStatus _ Nothing  []    Nothing   True  = ImageProcessed
+mkImageStatus _ Nothing  []    (Just _)  _     = ImageOrphaned
+mkImageStatus _ Nothing  (_:_) (Just _)  _     = ImageStandalone
   --error "imageStatus - orphaned + jpeg?"
-mkImageStatus _ (Just _) []    _         = ImageRaw
-mkImageStatus _ Nothing  (_:_) _         = ImageStandalone
-mkImageStatus _ (Just _) (_:_) _         = ImageProcessed
+mkImageStatus _ (Just _) []    _         _     = ImageRaw
+mkImageStatus _ Nothing  (_:_) _         _     = ImageStandalone
+mkImageStatus _ (Just _) (_:_) _         _     = ImageProcessed
 
 mkImage :: Config -> Text -> Text -> Maybe File
-        -> Maybe File -> [File] -> Maybe (Text, Text) -> Flags -> Image
-mkImage config name parent raw sidecar jpegs range =
-  let status = mkImageStatus config raw jpegs sidecar
+        -> Maybe File -> [File]
+        -> Maybe File -> [File]
+        -> Maybe (Text, Text)
+        -> MediaType -> Flags -> Image
+mkImage config name parent raw sidecar jpegs mmov movs range mtype =
+  let status = mkImageStatus config raw jpegs sidecar (isJust mmov || not (null movs))
       exif = promoteFileExif
                (raw >>= eitherToMaybe . fileExif)
                (sidecar >>= eitherToMaybe . fileExif)
                (mapMaybe (eitherToMaybe . fileExif) jpegs)
-  in Image name parent raw sidecar jpegs range exif MediaPicture status
+               (mmov >>= eitherToMaybe . fileExif)
+               (mapMaybe (eitherToMaybe . fileExif) movs)
+  in Image name parent raw sidecar jpegs mmov movs range exif mtype status
 
 data PicDir = PicDir
   { pdName      :: !Text
@@ -582,10 +591,13 @@ selectMasterFile config x y =
 updateImageAfterMerge :: Config -> Image -> Image
 updateImageAfterMerge c img@Image{..} =
   let status' = mkImageStatus c imgRawPath imgJpegPath imgSidecarPath
+                  (isJust imgMasterMov || not (null imgMovs))
       exif' = promoteFileExif
                 (imgRawPath >>= eitherToMaybe . fileExif)
                 (imgSidecarPath >>= eitherToMaybe . fileExif)
                 (mapMaybe (eitherToMaybe . fileExif) imgJpegPath)
+                (imgMasterMov >>= eitherToMaybe . fileExif)
+                (mapMaybe (eitherToMaybe . fileExif) imgMovs)
   in force $ img { imgStatus = status'
                  , imgExif = exif'
                  }
@@ -799,6 +811,7 @@ loadFolder config name path isSource = do
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
+      move = ["4pm", "vom"]
       tname = Text.pack name
       loadImage ii  =
         let f = inodeName ii
@@ -823,7 +836,12 @@ loadFolder config name path isSource = do
                     then jtf
                     else Nothing
             is_jpeg = hasExts f' jpeg
+            is_mov = hasExts f' move
+            m_mov = if is_mov && isSource
+                      then jtf
+                      else Nothing
             jpe = [jf | is_jpeg && not isSource]
+            p_mov = [jf | is_mov && not isSource]
             snames = expandRangeFile config base
             range = case snames of
                       [] -> Nothing
@@ -833,16 +851,17 @@ loadFolder config name path isSource = do
               }
             simgs = map (\expname ->
                            mkImage config (Text.pack expname) tname
-                                   Nothing Nothing [jf] Nothing emptyFlags
+                                   Nothing Nothing [jf] Nothing [] Nothing MediaPicture emptyFlags
                         ) snames
             untrk = Untracked torig tname [jf]
             onlySidecar = isNothing nfp && null jpe && isJust sdc
-        in case (nfp, jpe, sdc) of
-             (Nothing, [], Nothing)
+            mtype = if is_mov then MediaMovie else MediaPicture
+        in case (nfp, jpe, sdc, m_mov, p_mov) of
+             (Nothing, [], Nothing, Nothing, [])
                -> LIRUntracked untrk
              -- no shadows for sidecar only files
              _ -> LIRImage img (if onlySidecar then [] else simgs)
-                    where img = force $ mkImage config tbase tname nfp sdc jpe range flags
+                    where img = force $ mkImage config tbase tname nfp sdc jpe m_mov p_mov range mtype flags
       (images, shadows, untracked) =
         foldl' (\(images', shadows', untracked') f ->
                   case loadImage f of
@@ -880,8 +899,9 @@ maybeUpdateStandaloneRange config picd img = do
   root <- Map.lookup begin (pdImages picd)
   _ <- imgRawPath root
   return $ mkImage config iname (imgParent img) (imgRawPath root)
-           (imgSidecarPath img) (imgJpegPath img) (imgRange img)
-           (imgFlags img)
+           (imgSidecarPath img) (imgJpegPath img)
+           (imgMasterMov img) (imgMovs img)
+           (imgRange img) (imgType img) (imgFlags img)
 
 resolveProcessedRanges :: Config -> PicDir -> PicDir
 resolveProcessedRanges config picd =
@@ -1047,6 +1067,46 @@ loadCachedOrBuild config origPath srcPath mtime size = do
         when (exitCode /= ExitSuccess) . throwE . ImageError . Text.toStrict . Text.decodeUtf8 $ err `BSL.append` out
       return (Text.pack $ "image/" ++ format, Text.pack fpath)
 
+-- | Generate a preview for a video.
+--
+-- This is done as follows:
+--
+-- * try to extract an embedded preview (e.g. Nikon, Olympus cameras
+--   provides one) via exif
+--
+-- * if not, use ffmpeg to extract first frame
+--
+-- * however we generated the image, then resize it using the normal
+--   resize operation.
+buildMoviePreview :: Config -> Text -> POSIXTime -> ImageSize -> ExceptT ImageError IO (Text, Text)
+buildMoviePreview config srcPath mtime size = do
+  embedded <- lift $ bestEmbedded config srcPath
+  epath <- case embedded of
+             Left msg   -> throwE $ ImageError msg
+             Right path -> return path
+  let res = findBestSize size (cfgAllImageSizes config)
+  case res of
+    Nothing -> return ("image/jpeg", epath)
+    Just res' -> do
+      let geom = show res' ++ "x" ++ show res'
+          fpath = scaledImagePath config (Text.unpack epath) res'
+          isThumb = res' <= cfgThumbnailSize config
+          format = if isThumb then "png" else "jpg"
+      stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
+      let needsGen = case stat of
+                       Left _   -> True
+                       Right st -> modificationTimeHiRes st < mtime
+      when needsGen $ do
+        let operators = if isThumb
+                          then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
+                          else ["-resize", geom]
+            (parent, _) = splitFileName fpath
+            outFile = format ++ ":" ++ fpath
+        lift $ createDirectoryIfMissing True parent
+        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[Text.unpack epath], operators, [outFile]])
+        when (exitCode /= ExitSuccess) . throwE . ImageError . Text.toStrict . Text.decodeUtf8 $ err `BSL.append` out
+      return (Text.pack $ "image/" ++ format, Text.pack fpath)
+
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]
 previewTags = ["JpgFromRaw", "PreviewImage"]
@@ -1100,6 +1160,7 @@ bestEmbedded config path =
               _  -> go c p xs
             Right _ -> return r
 
+
 -- | Return the path (on the filesystem) to a specific size rendering of an image.
 --
 -- If there was no specific size requested, return the path to an
@@ -1119,7 +1180,14 @@ imageAtRes config img size = runExceptT $ do
                        _   -> case (imgRawPath img, flagsSoftMaster (imgFlags img)) of
                          (Just r, True)  -> return (False, r)
                          (Just r, False) -> return (True, r)
-                         _               -> throwE ImageNotViewable
+                         _               ->
+                           case imgMasterMov img of
+                             Just m -> do
+                               (_, mcover) <- buildMoviePreview config
+                                                (filePath m) (fileLastTouch m)
+                                                (fromJust size)
+                               return (False, m { filePath = mcover} )
+                             Nothing -> throwE ImageNotViewable
   srcPath <- if raw
                then do
                  thumb <- lift $ bestEmbedded config (filePath origFile)
