@@ -61,12 +61,31 @@
          <div .card-body>
            No sidecar file
 
-   $if (null $ imgJpegPath img)
+    $if (null $ imgJpegPath img)
       <div .card .border-warning>
         <div .card-body>
           Has no processed files
-   $else
-    $forall jpeg <- imgJpegPath img
+    $else
+      $forall jpeg <- imgJpegPath img
         <div .card>
           <div .card-header>Processed output
           ^{showFile jpeg}
+
+    <div .card>
+      <div .card-header>Master movie file
+      $case imgMasterMov img
+        $of Just f
+          ^{showFile f}
+        $of Nothing
+         <div .card-body>
+           No Master movie component
+
+    $if (null $ imgMovs img)
+      <div .card .border-warning>
+        <div .card-body>
+          Has no processed movies
+    $else
+      $forall movie <- imgMovs img
+        <div .card>
+          <div .card-header>Processed movie
+          ^{showFile movie}
