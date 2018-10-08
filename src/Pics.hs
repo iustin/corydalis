@@ -1111,6 +1111,7 @@ extractEmbedded config path tag = do
         else
           return $ Left $ Text.toStrict $ Text.decodeUtf8 err -- partial function!
     else
+      -- TODO: mtime-based regen.
       return $ Right $ Text.pack outputPath
 
 -- | Extract the first valid thumbnail from an image.
@@ -1125,6 +1126,37 @@ bestEmbedded config path =
               [] -> return r
               _  -> go c p xs
             Right _ -> return r
+
+-- | Extracts and saves the first frame from a movie.
+extractFirstFrame :: Config -> Text -> IO (Either Text Text)
+extractFirstFrame config path = do
+  let outputPath = embeddedImagePath config (Text.unpack path)
+      (outputDir, _) = splitFileName outputPath
+      args = [
+        "-y",
+        "-i",
+        Text.unpack path,
+        "-r", "1",
+        "-frames", "1",
+        "-f", "image2",
+        outputPath
+        ]
+  exists <- fileExist outputPath
+  if not exists
+    then do
+      createDirectoryIfMissing True outputDir
+      let pconfig =
+            setStdin closed
+            . setCloseFds True
+            $ proc "ffmpeg" args
+      (exitCode, out, err) <- readProcess pconfig
+      if exitCode == ExitSuccess
+        then
+          return $ Right $ Text.pack outputPath
+        else
+          return $ Left $ Text.toStrict $ Text.decodeUtf8 err -- partial function!
+    else
+      return $ Right $ Text.pack outputPath
 
 -- | Returns a viewable version of an image.
 --
@@ -1143,7 +1175,13 @@ getViewableVersion config img
   | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
       embedded <- lift $ bestEmbedded config (filePath m)
       case embedded of
-        Left msg -> throwE $ ImageError msg
+        Left _ -> do
+          firstFrame <- lift $ extractFirstFrame config (filePath m)
+          case firstFrame of
+            Left msg' -> throwE $ ImageError msg'
+            Right path -> do
+              mtime <- lift $ filePathLastTouch path
+              return (m, path, mtime)
         Right path -> do
           mtime <- lift $ filePathLastTouch path
           return (m, path, mtime)
