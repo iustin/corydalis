@@ -44,6 +44,11 @@ Current configuration:
       $forall ext <- sort $ cfgJpegExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
+  <li>extensions considered movie files <span class="#{iconMovie}"></span> files:
+    <ul>
+      $forall ext <- sort $ cfgJpegExts config
+        <li>
+          <span .monolight>#{quoteMarkup ext}
   <li>Pre/auto-generated image sizes:
     <ul>
       $forall sz <- cfgAutoImageSizes config

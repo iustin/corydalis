@@ -85,6 +85,9 @@ iconProcessed = "far fa-file-image"
 iconPlainFile :: Text
 iconPlainFile = "far fa-file-alt"
 
+iconMovie :: Text
+iconMovie = "far fa-video"
+
 iconDone :: Text
 iconDone = "fas fa-check"
 

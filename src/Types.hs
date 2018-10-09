@@ -80,6 +80,7 @@ data Config = Config
     , cfgJpegExts        :: [FilePath]
     , cfgSidecarExts     :: [FilePath]
     , cfgOtherImgExts    :: [FilePath]
+    , cfgMovieExts       :: [FilePath]
     , cfgDirRegex        :: Regex
     , cfgRangeRegex      :: Regex
     , cfgCopyRegex       :: Regex
@@ -101,6 +102,7 @@ instance FromJSON Config where
          v .: "jpegexts"        <*>
          v .: "sidecarexts"     <*>
          v .: "otherexts"       <*>
+         v .: "movieexts"       <*>
          v .: "dirregex"        <*>
          v .: "rangeregex"      <*>
          v .: "copyregex"       <*>

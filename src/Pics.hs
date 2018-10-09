@@ -135,6 +135,9 @@ jpegExtsRev = addRevDot . cfgJpegExts
 sidecarExtsRev :: Config -> [FilePath]
 sidecarExtsRev = addRevDot . cfgSidecarExts
 
+movieExtsRev :: Config -> [FilePath]
+movieExtsRev = addRevDot . cfgMovieExts
+
 hasExts:: FilePath -> [FilePath] -> Bool
 hasExts p = any (`isPrefixOf` p)
 
@@ -817,7 +820,7 @@ loadFolder config name path isSource = do
   let rawe = rawExtsRev config
       side = sidecarExtsRev config
       jpeg = jpegExtsRev config
-      move = ["4pm", "vom"]
+      move = movieExtsRev config
       tname = Text.pack name
       loadImage ii  =
         let f = inodeName ii
