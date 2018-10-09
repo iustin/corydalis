@@ -1168,6 +1168,9 @@ extractFirstFrame config path = do
 getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, Text, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img = return (j, filePath j, fileLastTouch j)
+  | Just j <- imgRawPath img,
+    True <- flagsSoftMaster (imgFlags img) =
+      return (j, filePath j, fileLastTouch j)
   | Just r <- imgRawPath img = do
       embedded <- lift $ bestEmbedded config (filePath r)
       case embedded of
