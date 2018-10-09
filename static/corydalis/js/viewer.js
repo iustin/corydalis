@@ -35,7 +35,8 @@ $(document).ready(function() {
             img: null,
             lastX: 0,
             msgTimeId: null,
-            info: null
+            info: null,
+            movie: null
         }
     };
 
@@ -198,6 +199,7 @@ $(document).ready(function() {
         LOG("got cory");
         updateNavbar(json);
         cory.info = json;
+        cory.state.movie = cory.info.current.movie;
         cory.prev = new Image();
         requestImage(cory.prev, cory.info.prev, "prev");
         cory.next = new Image();
@@ -334,6 +336,12 @@ $(document).ready(function() {
         switch (e.keyCode) {
         case 70: // 'f'
             toggleFullScreen();
+            break;
+        case 80: // 'p'
+            if (cory.state.movie != null) {
+                LOG("Opening in separate window:", cory.state.movie);
+                window.open(cory.state.movie, "");
+            }
             break;
         case 82: // 'r'
             gotoRandomImage();

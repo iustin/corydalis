@@ -24,6 +24,10 @@ viewing from it. The controls are:
   browser allows it;
 - `r` (key): go to a random image in the whole library;
 - `u` (key): go back to the folder view;
+- `p` (key): if the current image has a movie associated, open it in
+  another browser window (which will be prevented by default in
+  current browsers), in order to have a fully native view without the
+  Corydalis controls;
 - `home`/`end` (key): go to the first, respectively last, image in the
   current folder;
 

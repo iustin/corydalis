@@ -18,6 +18,7 @@
 /search/images SearchImagesR GET
 /view/#Text/#Text ViewR GET
 /image/bytes/#Text/#Text ImageBytesR GET
+/image/movie/#Text/#Text MovieBytesR GET
 /image/info/#Text/#Text ImageInfoR GET
 /image/random RandomImageInfoR GET
 /settings SettingsR GET

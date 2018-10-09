@@ -284,6 +284,8 @@ instance YesodBreadcrumbs App where
                                              Just (ImageR folder image))
   breadcrumb (ImageBytesR _ image) = return ("Bytes of " <> image,
                                                    Nothing)
+  breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> image,
+                                              Nothing)
   breadcrumb (ImageInfoR _ image) = return ("Information for " <> image,
                                                   Nothing)
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)

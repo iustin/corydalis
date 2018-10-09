@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.View ( getViewR
                     , getImageBytesR
+                    , getMovieBytesR
                     , getImageInfoR
                     , getRandomImageInfoR
                     ) where
@@ -52,6 +53,7 @@ import           Types
 data ImageInfo = ImageInfo
   { iiInfoUrl   :: Text
   , iiBytesUrl  :: Text
+  , iiMovieUrl  :: Maybe Text
   , iiViewUrl   :: Text
   , iiName      :: Text
   , iiTransform :: (Int, Bool, Bool)
@@ -61,6 +63,7 @@ instance ToJSON ImageInfo where
   toJSON ImageInfo {..} =
     object [ "info"      .= iiInfoUrl
            , "bytes"     .= iiBytesUrl
+           , "movie"     .= iiMovieUrl
            , "view"      .= iiViewUrl
            , "name"      .= iiName
            , "transform" .= iiTransform
@@ -71,11 +74,12 @@ rotateToJSON RCenter =  0
 rotateToJSON RLeft   = -1
 rotateToJSON RRight  =  1
 
-mkImageInfo :: Text -> Text -> Hamlet.Render (Route App)
+mkImageInfo :: Text -> Text -> Bool -> Hamlet.Render (Route App)
             -> UrlParams -> Transform -> ImageInfo
-mkImageInfo folder iname render params (Transform r fx fy) =
+mkImageInfo folder iname movie render params (Transform r fx fy) =
   ImageInfo (render (ImageInfoR folder iname) params)
             (render (ImageBytesR folder iname) [])
+            (if movie then Just (render (MovieBytesR folder iname) []) else Nothing)
             (render (ViewR folder iname) params)
             iname (rotateToJSON r, fx, fy)
 
@@ -107,6 +111,13 @@ instance ToJSON ViewInfo where
            , "next"        .= viNext
            , "last"        .= viLast
            ]
+
+-- | Select best movie for an image.
+bestMovie :: Image -> Maybe File
+bestMovie img =
+  case imgMovs img of
+    m:_ -> Just m
+    _   -> imgMasterMov img
 
 -- | Ensure that requested image is present in the (filtered) map.
 locateCurrentImage :: Text -> Text -> SearchResults -> Handler Image
@@ -163,6 +174,13 @@ getImageBytesR folder iname = do
       -- TODO: don't use hardcoded jpeg type!
       sendFile (Text.encodeUtf8 ctype) (Text.unpack rpath)
 
+getMovieBytesR :: Text -> Text -> Handler ()
+getMovieBytesR folder iname = do
+  img <- getImage folder iname
+  case bestMovie img of
+    Just f -> sendFile "video/mp4" (Text.unpack $ filePath f)
+    _      -> sendResponse imageNotViewable
+
 fileToView :: Image -> Maybe File
 fileToView img =
   case imgJpegPath img of
@@ -198,8 +216,8 @@ getImageInfoR folder iname = do
       imgPrev  = snd <$> Map.lookupLT (folder, iname) images
       imgNext  = snd <$> Map.lookupGT (folder, iname) images
       imgLast  = snd  $  Map.findMax images
-      mk i = mkImageInfo (imgParent i) (imgName i) render params
-               (transformForImage i)
+      mk i = mkImageInfo (imgParent i) (imgName i) (isJust $ bestMovie i)
+               render params (transformForImage i)
       y = maybe "?" (Text.pack . show) $ pdYear picdir
       yurl = case pdYear picdir of
                Nothing -> SearchFoldersNoYearR
