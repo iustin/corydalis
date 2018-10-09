@@ -86,7 +86,7 @@ iconPlainFile :: Text
 iconPlainFile = "far fa-file-alt"
 
 iconMovie :: Text
-iconMovie = "far fa-video"
+iconMovie = "fas fa-video"
 
 iconDone :: Text
 iconDone = "fas fa-check"
