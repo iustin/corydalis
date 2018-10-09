@@ -185,8 +185,8 @@ instance Yesod App where
           $(combineStylesheets 'StaticR [ bootstrap_css_bootstrap_css
                                         , tablesorter_css_theme_bootstrap_css
                                         , font_awesome_css_fontawesome_css
-                                        , font_awesome_css_fa_regular_css
-                                        , font_awesome_css_fa_solid_css
+                                        , font_awesome_css_regular_css
+                                        , font_awesome_css_solid_css
                                         , corydalis_css_basic_css
                                         ])
 
