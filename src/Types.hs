@@ -123,8 +123,7 @@ data ImageStatus = ImageOrphaned
                    deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 instance NFData ImageStatus where
-  rnf a = case a of
-            _ -> ()
+  rnf = rwhnf
 
 -- | Custom yesod instance for ImageStatus.
 instance PathPiece ImageStatus where
