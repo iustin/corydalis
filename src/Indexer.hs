@@ -400,6 +400,24 @@ getAtoms TKeyword  = gExifKeywords  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TYear     = const Map.empty
 getAtoms TProblem  = repoProblems
+getAtoms TType     = typeStats
+
+-- | Computes type statistics
+typeStats :: Repository -> NameStats
+typeStats =
+  foldl' (\stats folder ->
+            let stats' = Map.insertWith (+) (Just unkT)
+                          (fromIntegral . Map.size . pdUntracked $ folder)
+                          stats in
+            Map.foldl' (\l img ->
+                          l `incM` (if imageHasMovies img then movT else imgT)
+                       ) stats'
+            (pdImages folder)
+         ) Map.empty . Map.elems . repoDirs
+    where incM m t = Map.insertWith (+) (Just t) 1 m
+          movT = showType TypeMovie
+          imgT = showType TypeImage
+          unkT = showType TypeUnknown
 
 -- | Builder for all atom.
 --
