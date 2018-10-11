@@ -203,16 +203,16 @@ parseAtom a v = do
       str = parseString v
       typ = parseType v
   case s of
-    TCountry  -> str >>= Just . Country
-    TProvince -> str >>= Just . Province
-    TCity     -> str >>= Just . City
-    TLocation -> str >>= Just . Location
-    TPerson   -> str >>= Just . Person
-    TKeyword  -> str >>= Just . Keyword
-    TYear     -> dec >>= Just . Year
-    TCamera   -> str >>= Just . Camera
-    TProblem  -> str >>= Just . Problem
-    TType     -> typ >>= Just . Type
+    TCountry  -> Country  <$> str
+    TProvince -> Province <$> str
+    TCity     -> City     <$> str
+    TLocation -> Location <$> str
+    TPerson   -> Person   <$> str
+    TKeyword  -> Keyword  <$> str
+    TYear     -> Year     <$> dec
+    TCamera   -> Camera   <$> str
+    TProblem  -> Problem  <$> str
+    TType     -> Type     <$> typ
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
