@@ -66,6 +66,7 @@ data Symbol = TCountry
             | TYear
             | TCamera
             | TProblem
+            | TType
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -79,6 +80,7 @@ instance PathPiece Symbol where
   fromPathPiece "years"     = Just TYear
   fromPathPiece "cameras"   = Just TCamera
   fromPathPiece "problems"  = Just TProblem
+  fromPathPiece "type"      = Just TType
   fromPathPiece _           = Nothing
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
@@ -103,6 +105,11 @@ data NumOp a where
 deriving instance Show a => Show (NumOp a)
 deriving instance Eq   a => Eq   (NumOp a)
 
+data TypeOp = TypeImage
+            | TypeMovie
+            | TypeUnknown
+            deriving (Show, Eq)
+
 fuzzyMatch :: FuzzyText -> Text -> Bool
 fuzzyMatch fz =
   (unFuzzy fz `Text.isInfixOf`) . Text.toCaseFold
@@ -118,6 +125,11 @@ evalNum (OpLt a) = maybe False (< a)
 evalNum (OpGt a) = maybe False (> a)
 evalNum OpNa     = isNothing
 
+evalType :: TypeOp -> Image -> Bool
+evalType TypeMovie   = imageHasMovies
+evalType TypeImage   = not . imageHasMovies
+evalType TypeUnknown = const False
+
 data Atom = Country  StrOp
           | Province StrOp
           | City     StrOp
@@ -127,6 +139,7 @@ data Atom = Country  StrOp
           | Year     (NumOp Integer)
           | Camera   StrOp
           | Problem  StrOp
+          | Type     TypeOp
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -148,6 +161,7 @@ symbolName TKeyword  = "keyword"
 symbolName TYear     = "year"
 symbolName TCamera   = "camera"
 symbolName TProblem  = "problem"
+symbolName TType     = "type"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -162,6 +176,7 @@ parseSymbol "keyword"  = Just TKeyword
 parseSymbol "year"     = Just TYear
 parseSymbol "camera"   = Just TCamera
 parseSymbol "problem"  = Just TProblem
+parseSymbol "type"     = Just TType
 parseSymbol _          = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -176,6 +191,7 @@ buildMissingAtom s =
     TYear     -> Year      OpNa
     TCamera   -> Camera    OpMissing
     TProblem  -> Problem   OpMissing
+    TType     -> Type      TypeUnknown
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -185,6 +201,7 @@ parseAtom a v = do
   s <- parseSymbol a
   let dec = parseDecimal v
       str = parseString v
+      typ = parseType v
   case s of
     TCountry  -> str >>= Just . Country
     TProvince -> str >>= Just . Province
@@ -195,6 +212,7 @@ parseAtom a v = do
     TYear     -> dec >>= Just . Year
     TCamera   -> str >>= Just . Camera
     TProblem  -> str >>= Just . Problem
+    TType     -> typ >>= Just . Type
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -211,6 +229,7 @@ quickSearch s v =
       case Text.decimal v of
         Right (w', "") -> Just . Year . OpEq $ w'
         _              -> Nothing
+    TType     -> Type <$> parseType v
   where f = makeFuzzy v
 
 atomTypeDescriptions :: Symbol -> Text
@@ -223,6 +242,7 @@ atomTypeDescriptions TKeyword  = "keywords"
 atomTypeDescriptions TYear     = "years"
 atomTypeDescriptions TCamera   = "cameras"
 atomTypeDescriptions TProblem  = "problems"
+atomTypeDescriptions TType     = "types"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -279,6 +299,9 @@ atomDescription (Problem (OpEqual "")) = "has an empty problem description"
 atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
 atomDescription (Problem (OpFuzzy v))  =
   "has a problem that matches " <> unFuzzy v
+atomDescription (Type TypeImage)       = "is an image"
+atomDescription (Type TypeMovie)       = "is a movie"
+atomDescription (Type TypeUnknown)     = "is of unknown type"
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -344,6 +367,8 @@ imageSearchFunction (Camera camera) =
 
 imageSearchFunction (Problem who) =
   setSearch who . imgProblems
+
+imageSearchFunction (Type t) = evalType t
 
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
@@ -431,6 +456,13 @@ parseDecimal v =
             Right (w',"") -> Just w'
             _             -> Nothing
 
+parseType :: Text -> Maybe TypeOp
+parseType v
+  | v == "movie"    = Just TypeMovie
+  | v == "image"    = Just TypeImage
+  | v == "unknown"  = Just TypeUnknown
+  | otherwise       = Nothing
+
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params = runExcept $ do
   when (length params > 50) $
@@ -448,6 +480,11 @@ strOpToParam s (OpEqual v) = (s, v)
 strOpToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
 strOpToParam s OpMissing   = ("no-" <> s, "")
 
+typeOpToParam :: Text -> TypeOp -> (Text, Text)
+typeOpToParam s TypeImage   = (s, "image")
+typeOpToParam s TypeMovie   = (s, "movie")
+typeOpToParam s TypeUnknown = (s, "unknown")
+
 atomToParams :: Atom -> [(Text, Text)]
 atomToParams (Country  v) = [strOpToParam (symbolName TCountry ) v]
 atomToParams (Province v) = [strOpToParam (symbolName TProvince) v]
@@ -458,6 +495,7 @@ atomToParams (Keyword  v) = [strOpToParam (symbolName TKeyword ) v]
 atomToParams (Year     n) = [numOpToParam (symbolName TYear    ) n]
 atomToParams (Camera   v) = [strOpToParam (symbolName TCamera  ) v]
 atomToParams (Problem  v) = [strOpToParam (symbolName TProblem ) v]
+atomToParams (Type     v) = [typeOpToParam (symbolName TType   ) v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =

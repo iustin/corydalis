@@ -68,6 +68,7 @@ module Pics ( PicDir(..)
             , imageAtRes
             , allImageFiles
             , allRepoFiles
+            , imageHasMovies
             , imageYear
             , SearchResults
             , getSearchResults
@@ -1001,6 +1002,10 @@ filterImagesBy flt =
                                   then img:l
                                   else l) pics (pdImages folder)
          ) [] . Map.elems . repoDirs
+
+imageHasMovies :: Image -> Bool
+imageHasMovies img =
+  isJust (imgMasterMov img) || (not . null . imgMovs) img
 
 allImageFiles :: Image -> [File]
 allImageFiles img =

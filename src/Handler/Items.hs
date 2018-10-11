@@ -46,6 +46,7 @@ symbolPlCap TKeyword  = "Keywords"
 symbolPlCap TProblem  = "Problems"
 symbolPlCap TYear     = "Years"
 symbolPlCap TCamera   = "Cameras"
+symbolPlCap TType     = "Types"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"
