@@ -18,6 +18,9 @@ $if allpics > 0
               <li>#{standalone} <a href=@{BrowseImagesR [ImageStandalone]}>standalone JPEGs</a>
             $if orphaned > 0
               <li>#{orphaned} <a href=@{BrowseImagesR [ImageOrphaned]}>orphaned sidecar files</a>
+            $if movies > 0
+              $# TODO: add movie listing
+              <li>#{movies} movies
             $if untracked > 0
               <li>#{untracked} untracked files
 
@@ -35,12 +38,13 @@ $if allpics > 0
       <div .card>
         <div .card-header>Bytes
         <div .card-body>
-          The overall size of the repository is #{showBinary (rawsize + procsize)}:
+          The overall size of the repository is #{showBinary totalsize}:
           <ul>
             <li>#{showBinary rawsize} in raw files
             <li>#{showBinary procsize} in output files (i.e. files that can be regenerated)
             <li>#{showBinary standalonesize} in standalone files
             <li>#{showBinary sidecarsize} in sidecar files
+            <li>#{showBinary moviesize} in movie files
             <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
     <div .col-12 .col-md-4 .my-3>

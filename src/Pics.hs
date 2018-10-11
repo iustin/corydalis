@@ -405,11 +405,13 @@ data Stats = Stats
   , sProcessed      :: !Int
   , sOrphaned       :: !Int
   , sUntracked      :: !Int
+  , sMovies         :: !Int
   , sRawSize        :: !FileOffset
   , sProcSize       :: !FileOffset
   , sStandaloneSize :: !FileOffset
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
+  , sMovieSize      :: !FileOffset
   , sByCamera       :: !(Map.Map Text Occurrence)
   , sByLens         :: !(Map.Map Text (LensInfo, Occurrence))
   } deriving Show
@@ -429,28 +431,30 @@ instance NFData RepoStats where
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
+zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
 
 -- | The total recorded size in a `Stats` structure.
 totalStatsSize :: Stats -> FileOffset
 totalStatsSize stats =
   sRawSize stats + sProcSize stats + sStandaloneSize stats +
-           sSidecarSize stats + sUntrackedSize stats
+           sSidecarSize stats + sUntrackedSize stats +
+           sMovieSize stats
 
 -- | The total file count in a a `Stats` structure.
 totalStatsCount :: Stats -> Int
 totalStatsCount stats =
   sRaw stats + sStandalone stats + sProcessed stats
          + sOrphaned stats + sUntracked stats
+         + sMovies stats
 
 sumLensData :: (Semigroup a) => (LensInfo, a) -> (LensInfo, a) -> (LensInfo, a)
 sumLensData (_, x) (li, y) = (li, x <> y)
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
-         (Stats r2 s2 p2 h2 u2 rs2 ps2 ss2 ms2 us2 sc2 sl2) =
-  Stats (r1 + r2) (s1 + s2) (p1 + p2) (h1 + h2) (u1 + u2)
-        (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (ms1 + ms2) (us1 + us2)
+sumStats (Stats r1 s1 p1 h1 u1 m1 rs1 ps1 ss1 sd1 us1 ms1 sc1 sl1)
+         (Stats r2 s2 p2 h2 u2 m2 rs2 ps2 ss2 sd2 us2 ms2 sc2 sl2 ) =
+  Stats (r1 + r2) (s1 + s2) (p1 + p2) (h1 + h2) (u1 + u2) (m1 + m2)
+        (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (sd1 + sd2) (us1 + us2) (ms1 + ms2)
         sc sl
   where sc = Map.unionWith mappend sc1 sc2
         sl = Map.unionWith sumLensData sl1 sl2
@@ -458,11 +462,13 @@ sumStats (Stats r1 s1 p1 h1 u1 rs1 ps1 ss1 ms1 us1 sc1 sl1)
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
   let status = imgStatus img
-      stats = case status of
-               ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
-               ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
-               ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
-               ImageOrphaned   -> orig { sOrphaned   = sOrphaned orig   + 1 }
+      isMovie = imageHasMovies img
+      stats = case (isMovie, status) of
+        (True, _)                -> orig { sMovies     = sMovies orig     + 1 }
+        (False, ImageRaw)        -> orig { sRaw        = sRaw orig        + 1 }
+        (False, ImageStandalone) -> orig { sStandalone = sStandalone orig + 1 }
+        (False, ImageProcessed)  -> orig { sProcessed  = sProcessed orig  + 1 }
+        (False, ImageOrphaned)   -> orig { sOrphaned   = sOrphaned orig   + 1 }
       rs = sRawSize stats
       rs' = case imgRawPath img of
               Nothing -> rs
@@ -476,8 +482,8 @@ updateStatsWithPic orig img =
       ss' = case status of
               ImageStandalone -> ss + jpeg_size
               _               -> ss
-      ms = sSidecarSize stats
-      ms' = ms + maybe 0 fileSize (imgSidecarPath img)
+      cs = sSidecarSize stats
+      cs' = cs + maybe 0 fileSize (imgSidecarPath img)
       camera = fromMaybe unknown (exifCamera $ imgExif img)
       xsize = case imgRawPath img of
                Just f -> fileSize f
@@ -486,10 +492,13 @@ updateStatsWithPic orig img =
                             _   -> 0
       lens = exifLens $ imgExif img
       occurrence = ocFromSize xsize
+      ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
+      ms' = sMovieSize orig + ms
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
-           , sSidecarSize = ms'
+           , sSidecarSize = cs'
+           , sMovieSize = ms'
            , sByCamera = Map.insertWith mappend camera occurrence (sByCamera orig)
            , sByLens = Map.insertWith sumLensData (liName lens) (lens, occurrence) (sByLens orig)
            }
@@ -703,7 +712,7 @@ folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@(Stats unproc standalone processed
-                                  orphaned _ _ _ _ _ _ _ _) =
+                                  orphaned _ _ _ _ _ _ _ _ _ _) =
   let npics = unproc + standalone + processed + orphaned
       has_pics = npics /= 0
       has_unproc = unproc /= 0

@@ -74,11 +74,12 @@ getCurateR :: Handler TypedContent
 getCurateR = do
   pics <- getPics
   let RepoStats
-        (Stats unprocessed standalone processed orphaned untracked
-             rawsize procsize standalonesize sidecarsize untrksize
+        (Stats unprocessed standalone processed orphaned untracked movies
+             rawsize procsize standalonesize sidecarsize untrksize moviesize
              bycamera bylens) fcm =
           repoStats pics
-      allpics = unprocessed + standalone + processed
+      allpics = unprocessed + standalone + processed + movies
+      totalsize = rawsize + procsize + standalonesize + sidecarsize + untrksize + moviesize
       fstats = Map.toAscList fcm
       numfolders = Map.size $ repoDirs pics
       numLenses = Map.size bylens
