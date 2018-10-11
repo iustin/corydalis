@@ -75,12 +75,13 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
 counterOne :: Int64
 counterOne = 1
 
+getByLens :: Repository -> Map Text (LensInfo, Occurrence)
+getByLens = sByLens . rsPicStats . repoStats
+
 getLensInfoR :: Text -> Handler TypedContent
 getLensInfoR lensname = do
   pics <- getPics
-  let RepoStats
-        (Stats _ _ _ _ _ _ _ _ _ _ _ bylens) _ =
-          repoStats pics
+  let bylens = getByLens pics
   lens <- case lensname `Map.lookup` bylens of
             Nothing     -> notFound
             Just (l, _) -> return l
@@ -146,9 +147,7 @@ getLensInfoR lensname = do
 getLensStatsR :: Handler TypedContent
 getLensStatsR = do
   pics <- getPics
-  let RepoStats
-        (Stats _ _ _ _ _ _ _ _ _ _ _ bylens) _ =
-          repoStats pics
+  let bylens = getByLens pics
       lenses = Map.toList bylens
       top10l = buildTopNLenses bylens 30
       jsonl = foldl' (\a (cnt, _, k, li) ->
