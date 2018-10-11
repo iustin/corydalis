@@ -81,7 +81,7 @@ instance PathPiece Symbol where
   fromPathPiece "years"     = Just TYear
   fromPathPiece "cameras"   = Just TCamera
   fromPathPiece "problems"  = Just TProblem
-  fromPathPiece "type"      = Just TType
+  fromPathPiece "types"     = Just TType
   fromPathPiece _           = Nothing
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
