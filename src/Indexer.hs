@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE GADTs              #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TupleSections      #-}
 {-# LANGUAGE ViewPatterns       #-}
 
 module Indexer ( Symbol(..)
@@ -463,6 +464,11 @@ parseType v
   | v == "unknown"  = Just TypeUnknown
   | otherwise       = Nothing
 
+showType :: TypeOp -> Text
+showType TypeMovie   = "movie"
+showType TypeImage   = "image"
+showType TypeUnknown = "unknown"
+
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params = runExcept $ do
   when (length params > 50) $
@@ -481,9 +487,7 @@ strOpToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
 strOpToParam s OpMissing   = ("no-" <> s, "")
 
 typeOpToParam :: Text -> TypeOp -> (Text, Text)
-typeOpToParam s TypeImage   = (s, "image")
-typeOpToParam s TypeMovie   = (s, "movie")
-typeOpToParam s TypeUnknown = (s, "unknown")
+typeOpToParam s = (s, ) . showType
 
 atomToParams :: Atom -> [(Text, Text)]
 atomToParams (Country  v) = [strOpToParam (symbolName TCountry ) v]
