@@ -330,7 +330,7 @@ setSearch (OpEqual v) = (v `Set.member`)
 setSearch (OpFuzzy f)=
   Set.foldr' (\a v -> v || fuzzyMatch f a) False
 
-
+-- TODO: implement searching type=unknown after untracked merging into image.
 folderSearchFunction :: Atom -> PicDir -> Bool
 folderSearchFunction ConstTrue = const True
 folderSearchFunction a@(Year OpNa) =
