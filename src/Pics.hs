@@ -103,6 +103,7 @@ import qualified Data.Set                   as Set
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
 import qualified Data.Text.Lazy             as Text (toStrict)
+import qualified Data.Text.Lazy             as TextL (append)
 import qualified Data.Text.Lazy.Encoding    as Text (decodeUtf8)
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
@@ -1171,7 +1172,10 @@ extractFirstFrame config path = do
         then
           return $ Right $ Text.pack outputPath
         else
-          return $ Left $ Text.toStrict $ Text.decodeUtf8 err -- partial function!
+          let err' = Text.decodeUtf8 err -- note partial function!
+              out' = Text.decodeUtf8 out
+              msg = out' `TextL.append` err'
+          in return . Left . Text.toStrict $ msg
     else
       return $ Right $ Text.pack outputPath
 
