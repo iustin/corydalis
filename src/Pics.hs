@@ -1256,14 +1256,14 @@ imageAtRes config img size = runExceptT $ do
 
 imgProblems :: Image -> Set Text
 imgProblems Image{..} =
-  let files = imgRawPath:imgSidecarPath:map Just imgJpegPath
-      files' = catMaybes files
+  let files = catMaybes [imgRawPath, imgSidecarPath, imgMasterMov] ++
+              imgJpegPath ++ imgMovs
       builder m = "exif: " <> m
   in foldl' (\s f -> case fileExif f of
                        Right (exifWarning -> Just msg)  -> builder msg `Set.insert` s
                        Right _  -> s
                        Left msg -> builder msg `Set.insert` s)
-     Set.empty files'
+     Set.empty files
 
 pdProblems :: PicDir -> NameStats
 pdProblems =
