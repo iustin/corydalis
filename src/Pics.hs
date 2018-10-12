@@ -483,13 +483,14 @@ sumStats (Stats r1 s1 p1 h1 u1 m1 rs1 ps1 ss1 sd1 us1 ms1 sc1 sl1)
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
   let status = imgStatus img
-      isMovie = imageHasMovies img
-      stats = case (isMovie, status) of
-        (True, _)                -> orig { sMovies     = sMovies orig     + 1 }
-        (False, ImageRaw)        -> orig { sRaw        = sRaw orig        + 1 }
-        (False, ImageStandalone) -> orig { sStandalone = sStandalone orig + 1 }
-        (False, ImageProcessed)  -> orig { sProcessed  = sProcessed orig  + 1 }
-        (False, ImageOrphaned)   -> orig { sOrphaned   = sOrphaned orig   + 1 }
+      stats = case imgType img of
+        MediaMovie   -> orig { sMovies    = sMovies orig    + 1 }
+        MediaUnknown -> orig { sUntracked = sUntracked orig + 1 }
+        MediaImage   -> case status of
+          ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
+          ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
+          ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
+          ImageOrphaned   -> orig { sOrphaned   = sOrphaned orig   + 1 }
       rs = sRawSize stats
       rs' = case imgRawPath img of
               Nothing -> rs
@@ -515,11 +516,14 @@ updateStatsWithPic orig img =
       occurrence = ocFromSize xsize
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
+      us = sum . map fileSize . imgUntracked $ img
+      us' = sUntrackedSize orig + us
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
            , sSidecarSize = cs'
            , sMovieSize = ms'
+           , sUntrackedSize = us'
            , sByCamera = Map.insertWith mappend camera occurrence (sByCamera orig)
            , sByLens = Map.insertWith sumLensData (liName lens) (lens, occurrence) (sByLens orig)
            }
