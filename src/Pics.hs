@@ -528,17 +528,9 @@ updateStatsWithPic orig img =
            , sByLens = Map.insertWith sumLensData (liName lens) (lens, occurrence) (sByLens orig)
            }
 
-updateStatsWithUntracked :: Stats -> Untracked -> Stats
-updateStatsWithUntracked orig untrk =
-  orig { sUntracked = sUntracked orig + 1
-       , sUntrackedSize = sUntrackedSize orig + size}
-    where
-      size = foldl' (\s f -> s + fileSize f) 0 (untrkPaths untrk)
-
 computeFolderStats :: PicDir -> Stats
-computeFolderStats p =
-  (Map.foldl' updateStatsWithUntracked `flip` pdUntracked p ) $
-  Map.foldl' updateStatsWithPic zeroStats (pdImages p)
+computeFolderStats =
+  Map.foldl' updateStatsWithPic zeroStats . pdImages
 
 data StrictPair a b = StrictPair !a !b
 
