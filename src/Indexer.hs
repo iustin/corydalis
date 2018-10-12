@@ -417,22 +417,21 @@ getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
 getAtoms TPath     = const Map.empty
 
--- | Computes type statistics
+-- | Media type to Type.
+mediaToType :: MediaType -> TypeOp
+mediaToType MediaImage   = TypeImage
+mediaToType MediaMovie   = TypeMovie
+mediaToType MediaUnknown = TypeUnknown
+
+-- | Computes type statistics.
 typeStats :: Repository -> NameStats
 typeStats =
-  foldl' (\stats folder ->
-            let stats' = Map.insertWith (+) (Just unkT)
-                          (fromIntegral . Map.size . pdUntracked $ folder)
-                          stats in
+  foldl' (\stats ->
             Map.foldl' (\l img ->
-                          l `incM` (if imageHasMovies img then movT else imgT)
-                       ) stats'
-            (pdImages folder)
+                          l `incM` (showType . mediaToType . imgType $ img)
+                       ) stats . pdImages
          ) Map.empty . Map.elems . repoDirs
     where incM m t = Map.insertWith (+) (Just t) 1 m
-          movT = showType TypeMovie
-          imgT = showType TypeImage
-          unkT = showType TypeUnknown
 
 -- | Builder for all atom.
 --
