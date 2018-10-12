@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Pics ( PicDir(..)
             , Image(..)
@@ -1259,6 +1260,7 @@ imgProblems Image{..} =
       files' = catMaybes files
       builder m = "exif: " <> m
   in foldl' (\s f -> case fileExif f of
+                       Right (exifWarning -> Just msg)  -> builder msg `Set.insert` s
                        Right _  -> s
                        Left msg -> builder msg `Set.insert` s)
      Set.empty files'

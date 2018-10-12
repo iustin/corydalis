@@ -264,6 +264,7 @@ data RawExif = RawExif
   , rExifSSpeedVal   :: Maybe Double
   , rExifMimeType    :: Maybe Text
   , rExifRaw         :: Object
+  , rExifWarning     :: Maybe Text
   } deriving (Show)
 
 instance FromJSON RawExif where
@@ -306,6 +307,7 @@ instance FromJSON RawExif where
                           Just v  -> Just <$> parseSSDesc v
     rExifSSpeedVal   <- o .!:? "ShutterSpeed"
     rExifMimeType    <- o .~:? "MIMEType"
+    rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
     return RawExif{..}
 
@@ -330,6 +332,7 @@ data Exif = Exif
   , exifSSpeedDesc  :: !(Maybe Text)
   , exifSSpeedVal   :: !(Maybe Double)
   , exifMimeType    :: !(Maybe Text)
+  , exifWarning     :: !(Maybe Text)
   } deriving (Show, Eq)
 
 instance NFData Exif where
@@ -351,7 +354,8 @@ instance NFData Exif where
                  rnf exifISO        `seq`
                  rnf exifSSpeedDesc `seq`
                  rnf exifSSpeedVal  `seq`
-                 rnf exifMimeType
+                 rnf exifMimeType   `seq`
+                 rnf exifWarning
 
 instance Default Exif where
   def = Exif { exifPeople      = Set.empty
@@ -374,6 +378,7 @@ instance Default Exif where
              , exifSSpeedDesc  = Nothing
              , exifSSpeedVal   = Nothing
              , exifMimeType    = Nothing
+             , exifWarning     = Nothing
              }
 
 -- | Type alias for either an error or the exif data (which, of
@@ -402,6 +407,7 @@ data GroupExif = GroupExif
   , gExifLocations :: !NameStats
   , gExifCameras   :: !NameStats
   , gExifLenses    :: !NameStats
+  -- TODO: add warnings?
   } deriving (Show)
 
 instance NFData GroupExif where
@@ -558,6 +564,7 @@ exifFromRaw config RawExif{..} =
       exifSSpeedDesc  = rExifSSpeedDesc
       exifSSpeedVal   = rExifSSpeedVal
       exifMimeType    = rExifMimeType
+      exifWarning     = rExifWarning
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -605,6 +612,9 @@ promoteFileExif re se je mm me =
       exifCaption'     = fjust  exifCaption
       -- Mime type cannot be promoted, since various component _will_ have various types.
       exifMimeType'    = Nothing
+      exifWarning'     = case catMaybes (skipMaybes exifWarning) of
+                           [] -> Nothing
+                           xs -> Just $ Text.intercalate ", " xs
   in Exif { exifPeople      = exifPeople'
           , exifKeywords    = exifKeywords'
           , exifCountry     = exifCountry'
@@ -625,6 +635,7 @@ promoteFileExif re se je mm me =
           , exifSSpeedDesc  = exifSSpeedDesc'
           , exifSSpeedVal   = exifSSpeedVal'
           , exifMimeType    = exifMimeType'
+          , exifWarning     = exifWarning'
           }
 
 -- TODO: make this saner/ensure it's canonical path.
