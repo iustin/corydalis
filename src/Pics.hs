@@ -215,8 +215,9 @@ emptyFlags = Flags {
   flagsSoftMaster = False
   }
 
-data MediaType = MediaPicture
+data MediaType = MediaImage
                | MediaMovie
+               | MediaUnknown
                deriving (Show, Eq)
 
 instance NFData MediaType where
@@ -881,11 +882,11 @@ loadFolder config name path isSource = do
               }
             simgs = map (\expname ->
                            mkImage config (Text.pack expname) tname
-                                   Nothing Nothing [jf] Nothing [] Nothing MediaPicture emptyFlags
+                                   Nothing Nothing [jf] Nothing [] Nothing MediaImage emptyFlags
                         ) snames
             untrk = Untracked torig tname [jf]
             onlySidecar = isNothing nfp && null jpe && isJust sdc
-            mtype = if is_mov then MediaMovie else MediaPicture
+            mtype = if is_mov then MediaMovie else MediaImage
         in case (nfp, jpe, sdc, m_mov, p_mov) of
              (Nothing, [], Nothing, Nothing, [])
                -> LIRUntracked untrk
