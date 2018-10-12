@@ -601,8 +601,9 @@ selectMasterFile rexts pathfn x y =
                               -- masters, let's choose in order of
                               -- priority.
                               (False, False) ->
-                                let x_ext = drop 1 . takeExtension . Text.unpack . fileName $ xf
-                                    y_ext = drop 1 . takeExtension . Text.unpack . fileName $ yf
+                                let ext_extract = drop 1 . takeExtension . Text.unpack . fileName
+                                    x_ext = ext_extract xf
+                                    y_ext = ext_extract yf
                                 in if isBetterMaster rexts x_ext y_ext
                                      then (xraw, False, [yf])
                                      else (yraw, False, [xf])
