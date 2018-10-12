@@ -1044,7 +1044,7 @@ imageHasMovies img =
 allImageFiles :: Image -> [File]
 allImageFiles Image{..} =
   catMaybes [imgRawPath, imgSidecarPath, imgMasterMov] ++
-  imgJpegPath ++ imgMovs
+  imgJpegPath ++ imgMovs ++ imgUntracked
 
 addDirFiles :: PicDir -> [File] -> [File]
 addDirFiles dir =
