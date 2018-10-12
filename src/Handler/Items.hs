@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Items
   ( itemDiv
+  , symbolPlCap
   ) where
 
 import           Exif          (formatPerson)
