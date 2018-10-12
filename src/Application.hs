@@ -80,7 +80,6 @@ import           Handler.List
 import           Handler.Reload
 import           Handler.Search
 import           Handler.Settings
-import           Handler.Untracked
 import           Handler.View
 
 -- This line actually creates our YesodDispatch instance. It is the second half

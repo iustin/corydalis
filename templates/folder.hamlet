@@ -92,24 +92,3 @@
             Folder contains no images.
       $else
         ^{imageList thumbsize params False False images}
-
-<div .row>
-  <div .col-12>
-    <div .card>
-      <div .card-header>Untracked files
-      $if Map.null (pdUntracked dir)
-        <div .card-body>
-          Folder contains no untracked files.
-      $else
-        <table #untracked .tablesorter .table .table-sm>
-          <thead>
-            <tr>
-              <th >Name
-              <th .sorter-text">Timestamp
-          <tbody>
-            $forall untrk <- pdUntracked dir
-              $with uname <- untrkName untrk
-                <tr>
-                  <td><a href=@{UntrackedR name uname}>#{uname}</a>
-                  <td>#{showFileTimestamp $ listToMaybe $ untrkPaths untrk}
-          <tfoot>

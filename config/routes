@@ -9,7 +9,6 @@
 /reload ReloadR POST
 /folder/#Text FolderR GET
 /folder/#Text/images/#Text ImageR GET
-/folder/#Text/untracked/#Text UntrackedR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET
 /browse/images/#[ImageStatus] BrowseImagesR GET
 /search/folders SearchFoldersR GET

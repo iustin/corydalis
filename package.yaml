@@ -134,7 +134,6 @@ library:
     - Handler.Reload
     - Handler.Search
     - Handler.Settings
-    - Handler.Untracked
     - Handler.Utils
     - Handler.View
     - Handler.Widgets
