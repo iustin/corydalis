@@ -74,16 +74,18 @@ available by manipulating the URL directly.
 
 The search atoms are:
 
-- country
-- province
-- city
-- location
-- person
-- keyword
+- country (string)
+- province (string)
+- city (string)
+- location (string)
+- person (set of strings)
+- keyword (set of string)
 - year (numeric)
-- camera
+- camera (string)
 - problem (this is what can be potentially errors; right now limited
   to exif metadata read issues)
+- type (set: movie, image, or unknown)
+- path (matches on the image or folder name)
 
 Numeric atoms (currently only year) allow:
 
@@ -91,11 +93,16 @@ Numeric atoms (currently only year) allow:
 - lower than (`<` prefix)
 - greater than (`>` prefix)
 
-String atoms (all others, currently) allow:
+String atoms (most others) allow:
 
 - exact match (no prefix)
 - fuzzy match (`~` prefix; does case-insensitive contains check, but
   not globs/regexes)
+
+The path atom is special; while it supports equality searches, this
+doesn't make much sense since if you know the full path you might as
+go select it directly from the image list. Also, no path doesn't make
+sense; for it the fuzzy match is the only real useful search.
 
 Both numeric and string atoms support the concept of a "missing"
 value, see later below.

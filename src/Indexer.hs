@@ -68,6 +68,7 @@ data Symbol = TCountry
             | TCamera
             | TProblem
             | TType
+            | TPath
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -141,6 +142,7 @@ data Atom = Country  StrOp
           | Camera   StrOp
           | Problem  StrOp
           | Type     TypeOp
+          | Path     StrOp
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -163,6 +165,7 @@ symbolName TYear     = "year"
 symbolName TCamera   = "camera"
 symbolName TProblem  = "problem"
 symbolName TType     = "type"
+symbolName TPath     = "path"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -178,6 +181,7 @@ parseSymbol "year"     = Just TYear
 parseSymbol "camera"   = Just TCamera
 parseSymbol "problem"  = Just TProblem
 parseSymbol "type"     = Just TType
+parseSymbol "path"     = Just TPath
 parseSymbol _          = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -193,6 +197,8 @@ buildMissingAtom s =
     TCamera   -> Camera    OpMissing
     TProblem  -> Problem   OpMissing
     TType     -> Type      TypeUnknown
+    -- FIXME: this should fail instead (using Maybe).
+    TPath     -> Path      OpMissing
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -214,6 +220,7 @@ parseAtom a v = do
     TCamera   -> Camera   <$> str
     TProblem  -> Problem  <$> str
     TType     -> Type     <$> typ
+    TPath     -> Path     <$> str
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -231,6 +238,7 @@ quickSearch s v =
         Right (w', "") -> Just . Year . OpEq $ w'
         _              -> Nothing
     TType     -> Type <$> parseType v
+    TPath     -> Just . Path . OpFuzzy $ f
   where f = makeFuzzy v
 
 atomTypeDescriptions :: Symbol -> Text
@@ -244,6 +252,7 @@ atomTypeDescriptions TYear     = "years"
 atomTypeDescriptions TCamera   = "cameras"
 atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
+atomTypeDescriptions TPath     = "paths"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -303,6 +312,7 @@ atomDescription (Problem (OpFuzzy v))  =
 atomDescription (Type TypeImage)       = "is an image"
 atomDescription (Type TypeMovie)       = "is a movie"
 atomDescription (Type TypeUnknown)     = "is of unknown type"
+atomDescription (Path s)               = describeStr "path" s
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -371,6 +381,10 @@ imageSearchFunction (Problem who) =
 
 imageSearchFunction (Type t) = evalType t
 
+imageSearchFunction (Path p) =
+  \img -> (evalStr p  . Just . imgName)   img ||
+          (evalStr p  . Just . imgParent) img
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -401,6 +415,7 @@ getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TYear     = const Map.empty
 getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
+getAtoms TPath     = const Map.empty
 
 -- | Computes type statistics
 typeStats :: Repository -> NameStats
@@ -518,6 +533,7 @@ atomToParams (Year     n) = [numOpToParam (symbolName TYear    ) n]
 atomToParams (Camera   v) = [strOpToParam (symbolName TCamera  ) v]
 atomToParams (Problem  v) = [strOpToParam (symbolName TProblem ) v]
 atomToParams (Type     v) = [typeOpToParam (symbolName TType   ) v]
+atomToParams (Path     v) = [strOpToParam (symbolName TPath    ) v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =

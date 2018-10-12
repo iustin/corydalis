@@ -47,6 +47,7 @@ symbolPlCap TProblem  = "Problems"
 symbolPlCap TYear     = "Years"
 symbolPlCap TCamera   = "Cameras"
 symbolPlCap TType     = "Types"
+symbolPlCap TPath     = "Paths"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"
