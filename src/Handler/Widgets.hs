@@ -65,7 +65,7 @@ generatePrevNext k m r = do
   $(widgetFile "prevnext")
 
 imageList :: Int -> UrlParams -> Bool -> Bool -> [Image] -> Widget
-imageList thumbsize params showParent hideType images = do
+imageList thumbsize params showParent hideStatus images = do
   let exifs = map imgExif images
       cameras = countItems . map exifCamera $ exifs
       numCameras = length cameras

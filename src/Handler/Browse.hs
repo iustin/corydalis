@@ -78,6 +78,6 @@ getBrowseImagesR kinds = do
                              Just r  -> filePath r:withJpegs) [] images
   selectRep $ do
     provideRep $ defaultLayout $ do
-      setHtmlTitle $ "showing images of type " <> kinds_string
+      setHtmlTitle $ "showing images with status " <> kinds_string
       $(widgetFile "browseimages")
     provideRep $ return $ "\n" `Text.intercalate` allpaths
