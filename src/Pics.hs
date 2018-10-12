@@ -632,12 +632,16 @@ updateImageAfterMerge c img@Image{..} =
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
   let (newraw, softmaster, extrajpeg) = selectMasterFile (cfgRawExts c) imgRawPath x y
+      -- FIxME: softmaster flag is not really per image… but seems rather per file.
+      (newmovm, _, extramovs) = selectMasterFile (cfgRawExts c) imgMasterMov x y
       x' =
         x { imgRawPath     = newraw
           , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
           , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y
                              `mplus` extrajpeg
-          , imgFlags = (imgFlags x) { flagsSoftMaster = softmaster }
+          , imgFlags       = (imgFlags x) { flagsSoftMaster = softmaster }
+          , imgMasterMov   = newmovm
+          , imgMovs        = imgMovs x `mplus` imgMovs y `mplus` extramovs
           }
   in updateImageAfterMerge c x'
 
