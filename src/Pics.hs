@@ -616,36 +616,31 @@ selectMasterFile rexts pathfn x y =
        (Nothing, Just _)   -> (yraw, ysoft, [])
        _                   -> (Nothing, False, [])
 
-updateImageAfterMerge :: Config -> Image -> Image
-updateImageAfterMerge c img@Image{..} =
-  let status' = mkImageStatus c imgRawPath imgJpegPath imgSidecarPath
-                  (isJust imgMasterMov || not (null imgMovs))
-      exif' = promoteFileExif
-                (fileExif <$> imgRawPath)
-                (fileExif <$> imgSidecarPath)
-                (map fileExif imgJpegPath)
-                (fileExif <$> imgMasterMov)
-                (map fileExif imgMovs)
-  in force $ img { imgStatus = status'
-                 , imgExif = exif'
-                 }
-
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
-  let (newraw, softmaster, extrajpeg) = selectMasterFile (cfgRawExts c) imgRawPath x y
-      -- FIxME: softmaster flag is not really per image… but seems rather per file.
-      (newmovm, _, extramovs) = selectMasterFile (cfgRawExts c) imgMasterMov x y
-      x' =
-        x { imgRawPath     = newraw
-          , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
-          , imgJpegPath    = imgJpegPath    x `mplus` imgJpegPath    y
-                             `mplus` extrajpeg
-          , imgFlags       = (imgFlags x) { flagsSoftMaster = softmaster }
-          , imgMasterMov   = newmovm
-          , imgMovs        = imgMovs x `mplus` imgMovs y `mplus` extramovs
-          , imgType        = imgType x `max` imgType y
-          }
-  in updateImageAfterMerge c x'
+  let (rawPath, softmaster, extrajpeg) = selectMasterFile (cfgRawExts c) imgRawPath x y
+      -- FIXME: softmaster flag is not really per image… but seems rather per file.
+      (masterMov, _, extramovs) = selectMasterFile (cfgRawExts c) imgMasterMov x y
+      -- FIXME: we lose here sidecar files.
+      sidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
+      jpegPath = imgJpegPath x ++ imgJpegPath y ++ extrajpeg
+      movs = imgMovs x ++ imgMovs y ++ extramovs
+      ityp = imgType x `max` imgType y
+      status = mkImageStatus c rawPath jpegPath sidecarPath (ityp == MediaMovie)
+      exif = promoteFileExif
+                (fileExif <$> rawPath) (fileExif <$> sidecarPath)
+                (map fileExif jpegPath)
+                (fileExif <$> masterMov) (map fileExif movs)
+  in force $ x { imgRawPath     = rawPath
+               , imgSidecarPath = sidecarPath
+               , imgJpegPath    = jpegPath
+               , imgFlags       = (imgFlags x) { flagsSoftMaster = softmaster }
+               , imgMasterMov   = masterMov
+               , imgMovs        = movs
+               , imgType        = ityp
+               , imgStatus      = status
+               , imgExif        = exif
+               }
 
 mergeUntracked :: Untracked -> Untracked -> Untracked
 mergeUntracked x y =
