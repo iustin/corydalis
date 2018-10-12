@@ -93,7 +93,12 @@ Numeric atoms (currently only year) allow:
 - lower than (`<` prefix)
 - greater than (`>` prefix)
 
-String atoms (most others) allow:
+Fixed set atoms (currently only type) only allow matches on one of
+their values.
+
+Set atoms implement matching by matching on any of their contents.
+
+String atoms (all others) allow:
 
 - exact match (no prefix)
 - fuzzy match (`~` prefix; does case-insensitive contains check, but
