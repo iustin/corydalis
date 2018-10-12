@@ -53,6 +53,8 @@
           <li>#{showBinary $ sStandaloneSize stats} standalone files
         $if sSidecarSize stats > 0
           <li>#{showBinary $ sSidecarSize stats} sidecar files
+        $if sMovieSize stats > 0
+          <li>#{showBinary $ sMovieSize stats} movie files
         $if sUntrackedSize stats > 0
           <li>#{showBinary $ sUntrackedSize stats} untracked files
 
