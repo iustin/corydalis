@@ -171,7 +171,6 @@ getImageBytesR folder iname = do
     Left (ImageError err) ->
       sendResponse $ imageError err
     Right (ctype, rpath) ->
-      -- TODO: don't use hardcoded jpeg type!
       sendFile (Text.encodeUtf8 ctype) (Text.unpack rpath)
 
 getMovieBytesR :: Text -> Text -> Handler ()

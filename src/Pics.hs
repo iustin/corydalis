@@ -1071,12 +1071,13 @@ scaledImagePath config path res =
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> Text -> Text -> POSIXTime -> ImageSize
+loadCachedOrBuild :: Config -> Text -> Text -> Text
+                  -> POSIXTime -> ImageSize
                   -> ExceptT ImageError IO (Text, Text)
-loadCachedOrBuild config origPath bytesPath mtime size = do
+loadCachedOrBuild config origPath bytesPath mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
-    Nothing -> return ("image/jpeg", bytesPath)
+    Nothing -> return (mime, bytesPath)
     Just res' -> do
       let geom = show res' ++ "x" ++ show res'
           fpath = scaledImagePath config (Text.unpack origPath) res'
@@ -1108,7 +1109,7 @@ minImageSize = 512
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
-extractEmbedded :: Config -> Text -> String -> IO (Either Text Text)
+extractEmbedded :: Config -> Text -> String -> IO (Either Text (Text, Text))
 extractEmbedded config path tag = do
   let outputPath = embeddedImagePath config (Text.unpack path)
       (outputDir, _) = splitFileName outputPath
@@ -1117,6 +1118,8 @@ extractEmbedded config path tag = do
         "-" ++ tag,
         Text.unpack path
         ]
+      -- FIXME: embedded images are assumed JPEGs.
+      mime = "image/jpeg"
   exists <- fileExist outputPath
   if not exists
     then do
@@ -1131,15 +1134,15 @@ extractEmbedded config path tag = do
         then do
           createDirectoryIfMissing True outputDir
           BSL.writeFile outputPath out
-          return $ Right $ Text.pack outputPath
+          return $ Right (Text.pack outputPath, mime)
         else
           return $ Left $ Text.toStrict $ Text.decodeUtf8 err -- partial function!
     else
       -- TODO: mtime-based regen.
-      return $ Right $ Text.pack outputPath
+      return $ Right (Text.pack outputPath, mime)
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> Text -> IO (Either Text Text)
+bestEmbedded :: Config -> Text -> IO (Either Text (Text, Text))
 bestEmbedded config path =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
@@ -1152,7 +1155,7 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Extracts and saves the first frame from a movie.
-extractFirstFrame :: Config -> Text -> IO (Either Text Text)
+extractFirstFrame :: Config -> Text -> IO (Either Text (Text, Text))
 extractFirstFrame config path = do
   let outputPath = embeddedImagePath config (Text.unpack path)
       (outputDir, _) = splitFileName outputPath
@@ -1165,6 +1168,8 @@ extractFirstFrame config path = do
         "-f", "image2",
         outputPath
         ]
+      -- FIXME: Extracted frames ('image2') are assumed jpeg.
+      mime = "image/jpeg"
   exists <- fileExist outputPath
   if not exists
     then do
@@ -1176,32 +1181,37 @@ extractFirstFrame config path = do
       (exitCode, out, err) <- readProcess pconfig
       if exitCode == ExitSuccess
         then
-          return $ Right $ Text.pack outputPath
+          return $ Right (Text.pack outputPath, mime)
         else
           let err' = Text.decodeUtf8 err -- note partial function!
               out' = Text.decodeUtf8 out
               msg = out' `TextL.append` err'
           in return . Left . Text.toStrict $ msg
     else
-      return $ Right $ Text.pack outputPath
+      return $ Right (Text.pack outputPath, mime)
+
+-- | Compute a presumed jpeg's mime type.
+jpegMimeType :: File -> Text
+jpegMimeType = fileMimeType "image/jpeg"
 
 -- | Returns a viewable version of an image.
 --
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc.
-getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, Text, POSIXTime)
+getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, Text, Text, POSIXTime)
 getViewableVersion config img
-  | j:_ <- imgJpegPath img = return (j, filePath j, fileLastTouch j)
+  | j:_ <- imgJpegPath img =
+      return (j, filePath j, jpegMimeType j, fileLastTouch j)
   | Just j <- imgRawPath img,
     True <- flagsSoftMaster (imgFlags img) =
-      return (j, filePath j, fileLastTouch j)
+      return (j, filePath j, jpegMimeType j, fileLastTouch j)
   | Just r <- imgRawPath img = do
       embedded <- lift $ bestEmbedded config (filePath r)
       case embedded of
         Left msg -> throwE $ ImageError msg
-        Right path -> do
+        Right (path, mime) -> do
           mtime <- lift $ filePathLastTouch path
-          return (r, path, mtime)
+          return (r, path, mime, mtime)
   | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
       embedded <- lift $ bestEmbedded config (filePath m)
       case embedded of
@@ -1209,12 +1219,12 @@ getViewableVersion config img
           firstFrame <- lift $ extractFirstFrame config (filePath m)
           case firstFrame of
             Left msg' -> throwE $ ImageError msg'
-            Right path -> do
+            Right (path, mime) -> do
               mtime <- lift $ filePathLastTouch path
-              return (m, path, mtime)
-        Right path -> do
+              return (m, path, mime, mtime)
+        Right (path, mime) -> do
           mtime <- lift $ filePathLastTouch path
-          return (m, path, mtime)
+          return (m, path, mime, mtime)
   | otherwise = throwE ImageNotViewable
 
 -- | Return the path (on the filesystem) to a specific size rendering of an image.
@@ -1231,11 +1241,10 @@ getViewableVersion config img
 -- TODO: handle and meaningfully return errors.
 imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, Text))
 imageAtRes config img size = runExceptT $ do
-  (origFile, path, mtime) <- getViewableVersion config img
+  (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of
-    -- TODO: don't use hardcoded jpeg type!
-    Nothing -> return ("image/jpeg", path)
-    Just s  -> loadCachedOrBuild config (filePath origFile) path mtime s
+    Nothing -> return (mime, path)
+    Just s  -> loadCachedOrBuild config (filePath origFile) path mime mtime s
 
 imgProblems :: Image -> Set Text
 imgProblems Image{..} =
