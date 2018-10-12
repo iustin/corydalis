@@ -235,6 +235,7 @@ data Image = Image
     , imgJpegPath    :: ![File]
     , imgMasterMov   :: !(Maybe File)
     , imgMovs        :: ![File]
+    , imgUntracked   :: ![File]
     , imgRange       :: !(Maybe (Text, Text))
     , imgExif        :: !Exif
     , imgType        :: !MediaType
@@ -324,12 +325,20 @@ mkImageStatus _ (Just _) []    _         _     = ImageRaw
 mkImageStatus _ Nothing  (_:_) _         _     = ImageStandalone
 mkImageStatus _ (Just _) (_:_) _         _     = ImageProcessed
 
-mkImage :: Config -> Text -> Text -> Maybe File
-        -> Maybe File -> [File]
-        -> Maybe File -> [File]
-        -> Maybe (Text, Text)
-        -> MediaType -> Flags -> Image
-mkImage config name parent raw sidecar jpegs mmov movs range mtype =
+mkImage :: Config
+        -> Text               -- ^ Name
+        -> Text               -- ^ Parent
+        -> Maybe File         -- ^ Raw path
+        -> Maybe File         -- ^ Sidecar path
+        -> [File]             -- ^ Jpegs
+        -> Maybe File         -- ^ Master movie
+        -> [File]             -- ^ Movies
+        -> [File]             -- ^ Untracked files
+        -> Maybe (Text, Text) -- ^ Range
+        -> MediaType          -- ^ Media type
+        -> Flags              -- ^ Flags
+        -> Image
+mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
   let status = mkImageStatus config raw jpegs sidecar (isJust mmov || not (null movs))
       exif = promoteFileExif
                (fileExif <$> raw)
@@ -337,7 +346,7 @@ mkImage config name parent raw sidecar jpegs mmov movs range mtype =
                (map fileExif jpegs)
                (fileExif <$> mmov)
                (map fileExif movs)
-  in Image name parent raw sidecar jpegs mmov movs range exif mtype status
+  in Image name parent raw sidecar jpegs mmov movs untrk range exif mtype status
 
 data PicDir = PicDir
   { pdName      :: !Text
@@ -880,7 +889,7 @@ loadFolder config name path isSource = do
               }
             simgs = map (\expname ->
                            mkImage config (Text.pack expname) tname
-                                   Nothing Nothing [jf] Nothing [] Nothing MediaImage emptyFlags
+                                   Nothing Nothing [jf] Nothing [] [] Nothing MediaImage emptyFlags
                         ) snames
             untrk = Untracked torig tname [jf]
             onlySidecar = isNothing nfp && null jpe && isJust sdc
@@ -890,7 +899,7 @@ loadFolder config name path isSource = do
                -> LIRUntracked untrk
              -- no shadows for sidecar only files
              _ -> LIRImage img (if onlySidecar then [] else simgs)
-                    where img = force $ mkImage config tbase tname nfp sdc jpe m_mov p_mov range mtype flags
+                    where img = force $ mkImage config tbase tname nfp sdc jpe m_mov p_mov [] range mtype flags
       (images, shadows, untracked) =
         foldl' (\(images', shadows', untracked') f ->
                   case loadImage f of
@@ -928,7 +937,7 @@ maybeUpdateStandaloneRange config picd img = do
   _ <- imgRawPath root
   return $ mkImage config iname (imgParent img) (imgRawPath root)
            (imgSidecarPath img) (imgJpegPath img)
-           (imgMasterMov img) (imgMovs img)
+           (imgMasterMov img) (imgMovs img) (imgUntracked img)
            (imgRange img) (imgType img) (imgFlags img)
 
 resolveProcessedRanges :: Config -> PicDir -> PicDir
