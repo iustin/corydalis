@@ -178,7 +178,9 @@ getMovieBytesR :: Text -> Text -> Handler ()
 getMovieBytesR folder iname = do
   img <- getImage folder iname
   case bestMovie img of
-    Just f -> sendFile "video/mp4" (Text.unpack $ filePath f)
+    Just f -> sendFile
+                (Text.encodeUtf8 $ fileMimeType "video/mp4" f)
+                (Text.unpack $ filePath f)
     _      -> sendResponse imageNotViewable
 
 fileToView :: Image -> Maybe File

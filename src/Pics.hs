@@ -37,6 +37,7 @@ module Pics ( PicDir(..)
             , FileOffset
             , Occurrence(..)
             , fileLastTouch
+            , fileMimeType
             , getRepo
             , scanAll
             , forceScanAll
@@ -191,6 +192,11 @@ instance NFData File where
                  fileSize       `seq` -- plain type, weak form is enough
                  rnf filePath   `seq`
                  rnf fileExif
+
+-- | Try to find a valid mime type for a file.
+fileMimeType :: Text -> File -> Text
+fileMimeType d =
+  fromMaybe d . either (const Nothing) exifMimeType . fileExif
 
 -- | Flags (on an image or a directory) showing exceptional
 -- statuses.
