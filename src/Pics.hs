@@ -708,33 +708,36 @@ folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
-folderClassFromStats stats@(Stats unproc standalone processed
-                                  orphaned _ _ _ _ _ _ _ _ _ _) =
-  let npics = unproc + standalone + processed + orphaned
-      has_pics = npics /= 0
-      has_unproc = unproc /= 0
-      has_standalone = standalone /= 0
-      all_unproc = unproc == npics
-      has_raw = unproc /= 0 || processed /= 0
-      has_orphaned = orphaned /= 0
+folderClassFromStats stats@(Stats {..}) =
+  let npics = sRaw + sStandalone + sProcessed + sOrphaned
+      has_pics       = npics /= 0
+      has_unproc     = sRaw /= 0
+      has_standalone = sStandalone /= 0
+      all_unproc     = sRaw == npics
+      has_raw        = sRaw /= 0 || sProcessed /= 0
+      has_orphaned   = sOrphaned /= 0
+      has_movies     = sMovies /= 0
       conditions = (has_pics, all_unproc, has_unproc,
-                    has_standalone, has_raw, has_orphaned)
+                    has_standalone, has_raw, has_orphaned,
+                    has_movies)
   in case conditions of
-       -- pics all_u  has_u  has_s  has_r  has_or
+       -- pics all_u  has_u  has_s  has_r  has_or has_m
        -- folder with no pics is empty
-       (False, True , False, False, False, False) -> FolderEmpty
+       (False, True , False, False, False, False, False) -> FolderEmpty
+       -- folder with just movies is Processed, otherwise we don't care about movies.
+       (False, True,  False, False, False, False, True)  -> FolderProcessed
        -- folder with all unprocessed is raw
-       (True,  True , True , False, _    , False) -> FolderRaw
+       (True,  True , True , False, _    , False, _)     -> FolderRaw
        -- folder with some unprocessed (and maybe other types) is unprocessed
-       (True,  False, True , _    , _    , _    ) -> FolderUnprocessed
+       (True,  False, True , _    , _    , _    , _)     -> FolderUnprocessed
        -- folder with no raw files is standalone
-       (True,  False, False, True , False, False) -> FolderStandalone
+       (True,  False, False, True , False, False, _)     -> FolderStandalone
        -- folder with both standalone and some raw is mixed
-       (True,  False, False, True , True , False) -> FolderMixed
+       (True,  False, False, True , True , False, _)     -> FolderMixed
        -- folder with orphaned pictures is mixed
-       (True,  False, _    , _    , _    , True ) -> FolderMixed
+       (True,  False, _    , _    , _    , True,  _ )    -> FolderMixed
        -- othewise, folder is perfect - has only processed files
-       (True,  False, False, False, True , False) -> FolderProcessed
+       (True,  False, False, False, True , False, _)     -> FolderProcessed
        _ -> error $ "Wrong computation in folderClass: stats=" ++ show stats
                     ++ ", conditions=" ++ show conditions
 
