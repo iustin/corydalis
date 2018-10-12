@@ -73,6 +73,7 @@ module Pics ( PicDir(..)
             , allRepoFiles
             , imageHasImages
             , imageHasMovies
+            , imageHasUntracked
             , imageYear
             , SearchResults
             , getSearchResults
@@ -1040,6 +1041,10 @@ imageHasImages Image{..} =
 imageHasMovies :: Image -> Bool
 imageHasMovies img =
   isJust (imgMasterMov img) || (not . null . imgMovs) img
+
+imageHasUntracked :: Image -> Bool
+imageHasUntracked =
+  not . null . imgUntracked
 
 allImageFiles :: Image -> [File]
 allImageFiles Image{..} =
