@@ -314,7 +314,7 @@ mkImageStatus :: Config
               -> Maybe File  -- ^ Raw file
               -> [File]      -- ^ Jpeg file(s)
               -> Maybe File  -- ^ Sidecar file
-              -> Bool        -- ^ Has movies
+              -> Bool        -- ^ Has movies or untracked files
               -> ImageStatus
 mkImageStatus _ Nothing  []    Nothing   False =
   error "imageStatus - neither raw nor standalone nor orphaned nor movies"
@@ -340,7 +340,8 @@ mkImage :: Config
         -> Flags              -- ^ Flags
         -> Image
 mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
-  let status = mkImageStatus config raw jpegs sidecar (isJust mmov || not (null movs))
+  let status = mkImageStatus config raw jpegs sidecar
+                 (isJust mmov || not (null movs) || not (null untrk))
       exif = promoteFileExif
                (fileExif <$> raw)
                (fileExif <$> sidecar)
@@ -636,7 +637,9 @@ mergePictures c x y =
       jpegPath = imgJpegPath x ++ imgJpegPath y ++ extrajpeg
       movs = imgMovs x ++ imgMovs y ++ extramovs
       ityp = imgType x `max` imgType y
-      status = mkImageStatus c rawPath jpegPath sidecarPath (ityp == MediaMovie)
+      untrk = imgUntracked x ++ imgUntracked y
+      status = mkImageStatus c rawPath jpegPath sidecarPath
+                 (ityp == MediaMovie || not (null untrk))
       exif = promoteFileExif
                 (fileExif <$> rawPath) (fileExif <$> sidecarPath)
                 (map fileExif jpegPath)
@@ -647,6 +650,7 @@ mergePictures c x y =
                , imgFlags       = (imgFlags x) { flagsSoftMaster = softmaster }
                , imgMasterMov   = masterMov
                , imgMovs        = movs
+               , imgUntracked   = untrk
                , imgType        = ityp
                , imgStatus      = status
                , imgExif        = exif
