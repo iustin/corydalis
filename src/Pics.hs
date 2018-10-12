@@ -175,7 +175,6 @@ expandRangeFile cfg name =
                                     _ -> []
     _ -> []
 
-
 data File = File
   { fileName  :: !Text
   , fileCTime :: !POSIXTime
@@ -666,8 +665,6 @@ mergeFolders c x y =
                                      _  -> (y, x)
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
 
-
-
 numRawPics :: PicDir -> Int
 numRawPics = numPicsOfType (isJust . imgRawPath)
 
@@ -910,7 +907,6 @@ loadFolder config name path isSource = do
       exif = buildGroupExif images
   return $!! PicDir tname (Text.pack path) [] images shadows untracked year exif
 
-
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
   let images' =
@@ -943,7 +939,6 @@ resolveProcessedRanges config picd =
                        Just img' -> Map.insert (imgName img') img' accimgs)
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
-
 
 scanFilesystem :: Config -> IO Repository
 scanFilesystem config = do
