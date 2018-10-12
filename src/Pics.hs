@@ -353,15 +353,14 @@ mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
   in Image name parent raw sidecar jpegs mmov movs untrk range exif mtype status
 
 data PicDir = PicDir
-  { pdName      :: !Text
-  , pdMainPath  :: !Text
-  , pdSecPaths  :: ![Text]
-  , pdImages    :: !(Map.Map Text Image)
-  , pdShadows   :: !(Map.Map Text Image)
-  , pdUntracked :: !(Map.Map Text Untracked)
-  , pdYear      :: !(Maybe Integer)  -- ^ The approximate year of the
-                                     -- earliest picture.
-  , pdExif      :: !GroupExif
+  { pdName     :: !Text
+  , pdMainPath :: !Text
+  , pdSecPaths :: ![Text]
+  , pdImages   :: !(Map.Map Text Image)
+  , pdShadows  :: !(Map.Map Text Image)
+  , pdYear     :: !(Maybe Integer)  -- ^ The approximate year of the
+                                    -- earliest picture.
+  , pdExif     :: !GroupExif
   } deriving (Show)
 
 instance NFData PicDir where
@@ -370,7 +369,6 @@ instance NFData PicDir where
                    rnf pdSecPaths `seq`
                    rnf pdImages   `seq`
                    rnf pdShadows  `seq`
-                   rnf pdUntracked `seq`
                    rnf pdYear      `seq`
                    rnf pdExif
 
@@ -653,18 +651,12 @@ mergePictures c x y =
                , imgExif        = exif
                }
 
-mergeUntracked :: Untracked -> Untracked -> Untracked
-mergeUntracked x y =
-  x { untrkPaths = untrkPaths x ++ untrkPaths y }
-
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
 mergeFolders c x y =
   force $
   x { pdMainPath = pdMainPath bestMainPath
     , pdSecPaths = pdSecPaths x ++ pdMainPath otherMainPath:pdSecPaths y
     , pdImages = newimages
-    , pdUntracked =
-        Map.unionWith mergeUntracked (pdUntracked x) (pdUntracked y)
     , pdYear = min <$> pdYear x <*> pdYear y <|>
                pdYear x <|>
                pdYear y
@@ -828,13 +820,8 @@ addImgs config = foldl' (addImg config)
 addImg :: Config -> Map.Map Text Image -> Image -> Map.Map Text Image
 addImg config m i = Map.insertWith (mergePictures config) (imgName i) i m
 
--- | Inserts a new other-type files into the others map.
-addUntracked :: Untracked -> Map.Map Text Untracked -> Map.Map Text Untracked
-addUntracked u = Map.insertWith mergeUntracked (untrkName u) u
-
 -- | Result of loadImage.
 data LoadImageRes = LIRImage !Image ![Image]  -- ^ A single image with potential shadows.
-                  | LIRUntracked !Untracked   -- ^ An untracked file.
 
 buildGroupExif :: Map.Map Text Image -> GroupExif
 buildGroupExif =
@@ -901,22 +888,19 @@ loadFolder config name path isSource = do
               _                                   -> []
             img = force $ mkImage config tbase tname nfp sdc jpe m_mov p_mov untrk range mtype flags
         in LIRImage img (if onlySidecar then [] else simgs)
-      (images, shadows, untracked) =
-        foldl' (\(images', shadows', untracked') f ->
+      (images, shadows) =
+        foldl' (\(images', shadows') f ->
                   case loadImage f of
                     LIRImage img newss -> (addImg config images' img,
-                                           addImgs config shadows' newss,
-                                           untracked')
-                    LIRUntracked untrk -> (images', shadows',
-                                           addUntracked untrk untracked')
-               ) (Map.empty, Map.empty, Map.empty) contents
+                                           addImgs config shadows' newss)
+               ) (Map.empty, Map.empty) contents
   let year = Map.foldl' (\a img ->
                            (min <$> a <*> imageYear img) <|>
                            a <|>
                            imageYear img
                         ) Nothing images
       exif = buildGroupExif images
-  return $!! PicDir tname (Text.pack path) [] images shadows untracked year exif
+  return $!! PicDir tname (Text.pack path) [] images shadows year exif
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
@@ -1049,7 +1033,6 @@ allImageFiles Image{..} =
 
 addDirFiles :: PicDir -> [File] -> [File]
 addDirFiles dir =
-  flip (Map.foldl' (\fs untrk -> untrkPaths untrk ++ fs)) (pdUntracked dir) .
   flip (Map.foldl' (\fs img -> allImageFiles img ++ fs)) (pdImages dir)
 
 allRepoFiles :: Repository -> [File]
