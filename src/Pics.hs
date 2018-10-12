@@ -1030,11 +1030,9 @@ imageHasMovies img =
   isJust (imgMasterMov img) || (not . null . imgMovs) img
 
 allImageFiles :: Image -> [File]
-allImageFiles img =
-  concat [ maybeToList $ imgRawPath img
-         , maybeToList $ imgSidecarPath img
-         , imgJpegPath img
-         ]
+allImageFiles Image{..} =
+  catMaybes [imgRawPath, imgSidecarPath, imgMasterMov] ++
+  imgJpegPath ++ imgMovs
 
 addDirFiles :: PicDir -> [File] -> [File]
 addDirFiles dir =
@@ -1255,9 +1253,8 @@ imageAtRes config img size = runExceptT $ do
     Just s  -> loadCachedOrBuild config (filePath origFile) path mime mtime s
 
 imgProblems :: Image -> Set Text
-imgProblems Image{..} =
-  let files = catMaybes [imgRawPath, imgSidecarPath, imgMasterMov] ++
-              imgJpegPath ++ imgMovs
+imgProblems img =
+  let files = allImageFiles img
       builder m = "exif: " <> m
   in foldl' (\s f -> case fileExif f of
                        Right (exifWarning -> Just msg)  -> builder msg `Set.insert` s
