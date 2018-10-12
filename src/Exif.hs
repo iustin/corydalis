@@ -262,6 +262,7 @@ data RawExif = RawExif
   , rExifISO         :: Maybe Integer
   , rExifSSpeedDesc  :: Maybe Text
   , rExifSSpeedVal   :: Maybe Double
+  , rExifMimeType    :: Maybe Text
   , rExifRaw         :: Object
   } deriving (Show)
 
@@ -304,6 +305,7 @@ instance FromJSON RawExif where
                           Nothing -> pure Nothing
                           Just v  -> Just <$> parseSSDesc v
     rExifSSpeedVal   <- o .!:? "ShutterSpeed"
+    rExifMimeType    <- o .~:? "MIMEType"
     let rExifRaw      = o
     return RawExif{..}
 
@@ -327,6 +329,7 @@ data Exif = Exif
   , exifISO         :: !(Maybe Integer)
   , exifSSpeedDesc  :: !(Maybe Text)
   , exifSSpeedVal   :: !(Maybe Double)
+  , exifMimeType    :: !(Maybe Text)
   } deriving (Show, Eq)
 
 instance NFData Exif where
@@ -347,7 +350,8 @@ instance NFData Exif where
                  rnf exifFL35mm     `seq`
                  rnf exifISO        `seq`
                  rnf exifSSpeedDesc `seq`
-                 rnf exifSSpeedVal
+                 rnf exifSSpeedVal  `seq`
+                 rnf exifMimeType
 
 instance Default Exif where
   def = Exif { exifPeople      = Set.empty
@@ -369,6 +373,7 @@ instance Default Exif where
              , exifISO         = Nothing
              , exifSSpeedDesc  = Nothing
              , exifSSpeedVal   = Nothing
+             , exifMimeType    = Nothing
              }
 
 -- | Type alias for either an error or the exif data (which, of
@@ -552,6 +557,7 @@ exifFromRaw config RawExif{..} =
       exifISO         = rExifISO
       exifSSpeedDesc  = rExifSSpeedDesc
       exifSSpeedVal   = rExifSSpeedVal
+      exifMimeType    = rExifMimeType
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -597,6 +603,8 @@ promoteFileExif re se je mm me =
       -- between various versions. How to expose this in viewer?
       exifTitle'       = fjust  exifTitle
       exifCaption'     = fjust  exifCaption
+      -- Mime type cannot be promoted, since various component _will_ have various types.
+      exifMimeType'    = Nothing
   in Exif { exifPeople      = exifPeople'
           , exifKeywords    = exifKeywords'
           , exifCountry     = exifCountry'
@@ -616,6 +624,7 @@ promoteFileExif re se je mm me =
           , exifISO         = exifISO'
           , exifSSpeedDesc  = exifSSpeedDesc'
           , exifSSpeedVal   = exifSSpeedVal'
+          , exifMimeType    = exifMimeType'
           }
 
 -- TODO: make this saner/ensure it's canonical path.

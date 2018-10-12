@@ -41,3 +41,6 @@ $with smf <- showMaybeField "?"
   <tr>
     <td>Orientation
     <td>#{show exifOrientation}
+  <tr>
+    <td>MIME type
+    <td>^{showMaybeField "unknown" exifMimeType}
