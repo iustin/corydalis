@@ -183,7 +183,7 @@ data File = File
   , fileMTime :: !POSIXTime
   , fileSize  :: !FileOffset
   , filePath  :: !Text
-  , fileExif  :: !EExif
+  , fileExif  :: !Exif
   } deriving (Show, Eq)
 
 instance NFData File where
@@ -196,8 +196,7 @@ instance NFData File where
 
 -- | Try to find a valid mime type for a file.
 fileMimeType :: Text -> File -> Text
-fileMimeType d =
-  fromMaybe d . either (const Nothing) exifMimeType . fileExif
+fileMimeType d = fromMaybe d . exifMimeType . fileExif
 
 -- | Flags (on an image or a directory) showing exceptional
 -- statuses.
@@ -303,9 +302,6 @@ imageYear img = do
       (y, _, _) = toGregorian day
   return y
 
-eitherToMaybe :: Either a b -> Maybe b
-eitherToMaybe = either (const Nothing) Just
-
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
 mkImageStatus :: Config
@@ -332,11 +328,11 @@ mkImage :: Config -> Text -> Text -> Maybe File
 mkImage config name parent raw sidecar jpegs mmov movs range mtype =
   let status = mkImageStatus config raw jpegs sidecar (isJust mmov || not (null movs))
       exif = promoteFileExif
-               (raw >>= eitherToMaybe . fileExif)
-               (sidecar >>= eitherToMaybe . fileExif)
-               (mapMaybe (eitherToMaybe . fileExif) jpegs)
-               (mmov >>= eitherToMaybe . fileExif)
-               (mapMaybe (eitherToMaybe . fileExif) movs)
+               (fileExif <$> raw)
+               (fileExif <$> sidecar)
+               (map fileExif jpegs)
+               (fileExif <$> mmov)
+               (map fileExif movs)
   in Image name parent raw sidecar jpegs mmov movs range exif mtype status
 
 data PicDir = PicDir
@@ -621,11 +617,11 @@ updateImageAfterMerge c img@Image{..} =
   let status' = mkImageStatus c imgRawPath imgJpegPath imgSidecarPath
                   (isJust imgMasterMov || not (null imgMovs))
       exif' = promoteFileExif
-                (imgRawPath >>= eitherToMaybe . fileExif)
-                (imgSidecarPath >>= eitherToMaybe . fileExif)
-                (mapMaybe (eitherToMaybe . fileExif) imgJpegPath)
-                (imgMasterMov >>= eitherToMaybe . fileExif)
-                (mapMaybe (eitherToMaybe . fileExif) imgMovs)
+                (fileExif <$> imgRawPath)
+                (fileExif <$> imgSidecarPath)
+                (map fileExif imgJpegPath)
+                (fileExif <$> imgMasterMov)
+                (map fileExif imgMovs)
   in force $ img { imgStatus = status'
                  , imgExif = exif'
                  }
@@ -845,6 +841,7 @@ loadFolder config name path isSource = do
       jpeg = jpegExtsRev config
       move = movieExtsRev config
       tname = Text.pack name
+      ewarn txt = def { exifWarning = Just txt }
       loadImage ii  =
         let f = inodeName ii
             base = dropCopySuffix config $ dropExtensions f
@@ -853,9 +850,11 @@ loadFolder config name path isSource = do
             f' = reverse f
             tf = Text.pack f
             fullPath = Text.pack $ path </> f
-            exif = f `Map.lookup` lcache
-            exif' = fromMaybe (Left "Internal error: exif not read") exif
-            jf = File tf ctime mtime size fullPath exif'
+            exif = case f `Map.lookup` lcache of
+                     Nothing         -> ewarn "Internal error: exif not read"
+                     Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
+                     Just (Right e)  -> e
+            jf = File tf ctime mtime size fullPath exif
             jtf = strictJust jf
             mtime = inodeMTime ii
             ctime = inodeCTime ii
@@ -1256,11 +1255,10 @@ imgProblems :: Image -> Set Text
 imgProblems img =
   let files = allImageFiles img
       builder m = "exif: " <> m
-  in foldl' (\s f -> case fileExif f of
-                       Right (exifWarning -> Just msg)  -> builder msg `Set.insert` s
-                       Right _  -> s
-                       Left msg -> builder msg `Set.insert` s)
-     Set.empty files
+  in foldl' (\s f -> case exifWarning (fileExif f) of
+                       Just msg -> builder msg `Set.insert` s
+                       _        -> s
+            ) Set.empty files
 
 pdProblems :: PicDir -> NameStats
 pdProblems =

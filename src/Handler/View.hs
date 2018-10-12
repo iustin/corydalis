@@ -188,13 +188,12 @@ fileToView img =
     f:_ -> Just f
     []  -> imgRawPath img
 
-transformForFile :: File -> Maybe Transform
-transformForFile  =
-  either (const Nothing) (Just . affineTransform . exifOrientation) . fileExif
+transformForFile :: File -> Transform
+transformForFile  = affineTransform . exifOrientation . fileExif
 
 transformForImage :: Image -> Transform
-transformForImage img =
-  fromMaybe def (fileToView img >>= transformForFile)
+transformForImage =
+  maybe def transformForFile . fileToView
 
 randomPick :: SearchResults -> IO Image
 randomPick images = do
