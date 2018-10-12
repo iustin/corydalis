@@ -66,6 +66,7 @@ data Symbol = TCountry
             | TKeyword
             | TYear
             | TCamera
+            | TLens
             | TProblem
             | TType
             | TPath
@@ -81,6 +82,7 @@ instance PathPiece Symbol where
   fromPathPiece "keywords"  = Just TKeyword
   fromPathPiece "years"     = Just TYear
   fromPathPiece "cameras"   = Just TCamera
+  fromPathPiece "lenses"    = Just TLens
   fromPathPiece "problems"  = Just TProblem
   fromPathPiece "types"     = Just TType
   fromPathPiece _           = Nothing
@@ -140,6 +142,7 @@ data Atom = Country  StrOp
           | Keyword  StrOp
           | Year     (NumOp Integer)
           | Camera   StrOp
+          | Lens     StrOp
           | Problem  StrOp
           | Type     TypeOp
           | Path     StrOp
@@ -163,6 +166,7 @@ symbolName TPerson   = "person"
 symbolName TKeyword  = "keyword"
 symbolName TYear     = "year"
 symbolName TCamera   = "camera"
+symbolName TLens     = "lens"
 symbolName TProblem  = "problem"
 symbolName TType     = "type"
 symbolName TPath     = "path"
@@ -179,6 +183,7 @@ parseSymbol "person"   = Just TPerson
 parseSymbol "keyword"  = Just TKeyword
 parseSymbol "year"     = Just TYear
 parseSymbol "camera"   = Just TCamera
+parseSymbol "lens"     = Just TLens
 parseSymbol "problem"  = Just TProblem
 parseSymbol "type"     = Just TType
 parseSymbol "path"     = Just TPath
@@ -195,6 +200,7 @@ buildMissingAtom s =
     TKeyword  -> Keyword   OpMissing
     TYear     -> Year      OpNa
     TCamera   -> Camera    OpMissing
+    TLens     -> Lens      OpMissing
     TProblem  -> Problem   OpMissing
     TType     -> Type      TypeUnknown
     -- FIXME: this should fail instead (using Maybe).
@@ -218,6 +224,7 @@ parseAtom a v = do
     TKeyword  -> Keyword  <$> str
     TYear     -> Year     <$> dec
     TCamera   -> Camera   <$> str
+    TLens     -> Lens     <$> str
     TProblem  -> Problem  <$> str
     TType     -> Type     <$> typ
     TPath     -> Path     <$> str
@@ -232,6 +239,7 @@ quickSearch s v =
     TPerson   -> Just . Person   . OpFuzzy $ f
     TKeyword  -> Just . Keyword  . OpFuzzy $ f
     TCamera   -> Just . Camera   . OpFuzzy $ f
+    TLens     -> Just . Lens     . OpFuzzy $ f
     TProblem  -> Just . Problem  . OpFuzzy $ f
     TYear     ->
       case Text.decimal v of
@@ -250,6 +258,7 @@ atomTypeDescriptions TPerson   = "people"
 atomTypeDescriptions TKeyword  = "keywords"
 atomTypeDescriptions TYear     = "years"
 atomTypeDescriptions TCamera   = "cameras"
+atomTypeDescriptions TLens     = "lenses"
 atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
 atomTypeDescriptions TPath     = "paths"
@@ -304,6 +313,11 @@ atomDescription (Camera (OpEqual "")) = "has defined but empty camera informatio
 atomDescription (Camera (OpEqual v))  = "shot with a " <> v <> " camera"
 atomDescription (Camera (OpFuzzy v))  =
   "shot with a camera named like " <> unFuzzy v
+atomDescription (Lens OpMissing)      = "has no lens information"
+atomDescription (Lens (OpEqual ""))   = "has defined but empty lens information"
+atomDescription (Lens (OpEqual v))    = "shot with a " <> v <> " lens"
+atomDescription (Lens (OpFuzzy v))    =
+  "shot with a lens named like " <> unFuzzy v
 atomDescription (Problem OpMissing)    = "has no problems"
 atomDescription (Problem (OpEqual "")) = "has an empty problem description"
 atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
@@ -376,6 +390,11 @@ imageSearchFunction (Year year) =
 imageSearchFunction (Camera camera) =
   evalStr camera . exifCamera . imgExif
 
+imageSearchFunction (Lens lens) =
+  \img ->
+    (evalStr lens . Just . liName . exifLens . imgExif) img ||
+    (evalStr lens . Just . liSpec . exifLens . imgExif) img
+
 imageSearchFunction (Problem who) =
   setSearch who . imgProblems
 
@@ -412,6 +431,7 @@ getAtoms TLocation = gExifLocations . repoExif
 getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
+getAtoms TLens     = gExifLenses    . repoExif
 getAtoms TYear     = yearStats
 getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
@@ -539,6 +559,7 @@ atomToParams (Person   v) = [strOpToParam (symbolName TPerson  ) v]
 atomToParams (Keyword  v) = [strOpToParam (symbolName TKeyword ) v]
 atomToParams (Year     n) = [numOpToParam (symbolName TYear    ) n]
 atomToParams (Camera   v) = [strOpToParam (symbolName TCamera  ) v]
+atomToParams (Lens     v) = [strOpToParam (symbolName TLens    ) v]
 atomToParams (Problem  v) = [strOpToParam (symbolName TProblem ) v]
 atomToParams (Type     v) = [typeOpToParam (symbolName TType   ) v]
 atomToParams (Path     v) = [strOpToParam (symbolName TPath    ) v]

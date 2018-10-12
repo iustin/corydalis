@@ -47,6 +47,7 @@ symbolPlCap TKeyword  = "Keywords"
 symbolPlCap TProblem  = "Problems"
 symbolPlCap TYear     = "Years"
 symbolPlCap TCamera   = "Cameras"
+symbolPlCap TLens     = "Lenses"
 symbolPlCap TType     = "Types"
 symbolPlCap TPath     = "Paths"
 
