@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Pics ( PicDir(..)
             , Image(..)
             , ImageError(..)
+            , MediaType(..)
             , Untracked(..)
             , File(..)
             , Flags(..)
@@ -214,10 +215,14 @@ emptyFlags = Flags {
   flagsSoftMaster = False
   }
 
-data MediaType = MediaImage
+-- | Media type for an image.
+--
+-- Note the order of constructors matter, as we rely on the Ord
+-- instance for promotion.
+data MediaType = MediaUnknown
+               | MediaImage
                | MediaMovie
-               | MediaUnknown
-               deriving (Show, Eq)
+               deriving (Show, Eq, Ord)
 
 instance NFData MediaType where
   rnf _ = ()
@@ -638,6 +643,7 @@ mergePictures c x y =
           , imgFlags       = (imgFlags x) { flagsSoftMaster = softmaster }
           , imgMasterMov   = newmovm
           , imgMovs        = imgMovs x `mplus` imgMovs y `mplus` extramovs
+          , imgType        = imgType x `max` imgType y
           }
   in updateImageAfterMerge c x'
 

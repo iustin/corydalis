@@ -27,6 +27,9 @@
              to
              <a href=@{ImageR (imgParent img) end}>#{end}
         <tr>
+          <td>Type
+          <td>#{show $ imgType img}
+        <tr>
           <td>Status
           <td>#{show $ imgStatus img}
         <tr>

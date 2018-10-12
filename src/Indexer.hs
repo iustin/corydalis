@@ -128,9 +128,9 @@ evalNum (OpGt a) = maybe False (> a)
 evalNum OpNa     = isNothing
 
 evalType :: TypeOp -> Image -> Bool
-evalType TypeMovie   = imageHasMovies
-evalType TypeImage   = not . imageHasMovies
-evalType TypeUnknown = const False
+evalType TypeMovie   = (== MediaMovie) . imgType
+evalType TypeImage   = (== MediaImage) . imgType
+evalType TypeUnknown = (== MediaUnknown) . imgType
 
 data Atom = Country  StrOp
           | Province StrOp
