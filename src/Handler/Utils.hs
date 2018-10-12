@@ -126,6 +126,7 @@ atomIcon TYear     = "fas fa-calendar"
 atomIcon TCamera   = "fas fa-camera"
 atomIcon TProblem  = "fas fa-bomb"
 atomIcon TType     = "fas fa-file"
+atomIcon TPath     = "fas fs-folder"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =
