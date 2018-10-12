@@ -46,52 +46,60 @@
             <a href=@{LensInfoR (liName lens)}>
               #{lensDisplayName lens}
 
-    <div .card>
-      <div .card-header>RAW file
-      $case imgRawPath img
-       $of Just f
-         ^{showFile f}
-       $of Nothing
-        <div .card-body>
-          No RAW component
+    $if imageHasImages img
+      <div .card>
+        <div .card-header>RAW file
+        $case imgRawPath img
+         $of Just f
+           ^{showFile f}
+         $of Nothing
+          <div .card-body>
+            No RAW component
 
-    <div .card>
-      <div .card-header>Sidecar file
-      $case imgSidecarPath img
-       $of Just f
-        ^{showFile f}
-       $of Nothing
-         <div .card-body>
-           No sidecar file
-
-    $if (null $ imgJpegPath img)
-      <div .card .border-warning>
-        <div .card-body>
-          Has no processed files
-    $else
-      $forall jpeg <- imgJpegPath img
-        <div .card>
-          <div .card-header>Processed output
-          ^{showFile jpeg}
-
-    <div .card>
-      <div .card-header>Master movie file
-      $case imgMasterMov img
-        $of Just f
+      <div .card>
+        <div .card-header>Sidecar file
+        $case imgSidecarPath img
+         $of Just f
           ^{showFile f}
-        $of Nothing
-         <div .card-body>
-           No Master movie component
+         $of Nothing
+           <div .card-body>
+             No sidecar file
 
-    $if (null $ imgMovs img)
-      <div .card .border-warning>
-        <div .card-body>
-          Has no processed movies
+      $if (null $ imgJpegPath img)
+        <div .card .border-warning>
+          <div .card-body>
+            Has no processed files
+      $else
+        $forall jpeg <- imgJpegPath img
+          <div .card>
+            <div .card-header>Processed output
+            ^{showFile jpeg}
     $else
-      $forall movie <- imgMovs img
-        <div .card>
-          <div .card-header>Processed movie
-          ^{showFile movie}
+      <div .card>
+        <div .card-body>Has no image components
+
+    $if imageHasMovies img
+      <div .card>
+        <div .card-header>Master movie file
+        $case imgMasterMov img
+          $of Just f
+            ^{showFile f}
+          $of Nothing
+           <div .card-body>
+             No Master movie component
+
+      $if (null $ imgMovs img)
+        <div .card .border-warning>
+          <div .card-body>
+            Has no processed movies
+      $else
+        $forall movie <- imgMovs img
+          <div .card>
+            <div .card-header>Processed movie
+            ^{showFile movie}
+    $else
+      <div .card>
+        <div .card-body>Has no movie components
 
     $if (null $ imgUntracked img)
       <div .card>

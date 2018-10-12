@@ -70,6 +70,7 @@ module Pics ( PicDir(..)
             , imageAtRes
             , allImageFiles
             , allRepoFiles
+            , imageHasImages
             , imageHasMovies
             , imageYear
             , SearchResults
@@ -1028,6 +1029,10 @@ filterImagesBy flt =
                                   then img:l
                                   else l) pics (pdImages folder)
          ) [] . Map.elems . repoDirs
+
+imageHasImages :: Image -> Bool
+imageHasImages Image{..} =
+  isJust imgRawPath || isJust imgSidecarPath || not (null imgJpegPath)
 
 imageHasMovies :: Image -> Bool
 imageHasMovies img =
