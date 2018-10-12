@@ -28,6 +28,15 @@ $maybe msg <- homeMessage
 
     ^{itemDiv TLocation True topLocations}
 
+    <div .card>
+      <div .card-header .py-2>
+        Other views
+      <div .card-body>
+        $forall t <- [TCamera, TType, TProblem]
+            <a href="@{ListItemsR t}" .btn .btn-light .py-1 .text-left>
+              <span class="#{atomIcon t} fa-fw">
+              #{symbolPlCap t}
+
 <div .row>
   $# Sigh, how to do this nicely otherwise?
   &nbsp;
