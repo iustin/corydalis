@@ -412,7 +412,7 @@ getAtoms TLocation = gExifLocations . repoExif
 getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
-getAtoms TYear     = const Map.empty
+getAtoms TYear     = yearStats
 getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
 getAtoms TPath     = const Map.empty
@@ -432,6 +432,15 @@ typeStats =
                        ) stats . pdImages
          ) Map.empty . Map.elems . repoDirs
     where incM m t = Map.insertWith (+) (Just t) 1 m
+
+-- | Computes year statistics.
+yearStats :: Repository -> NameStats
+yearStats =
+  foldl' (\stats folder ->
+            Map.insertWith (+)
+              ((Text.pack . show) <$> pdYear folder)
+              1 stats
+         ) Map.empty . Map.elems . repoDirs
 
 -- | Builder for all atom.
 --
