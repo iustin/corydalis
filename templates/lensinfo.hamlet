@@ -55,7 +55,12 @@
      <table .table>
        <tr>
         <td>Number of images
-        <td .number>#{length images}
+        $if length images > 0
+          <td .number>
+            <a href="@?{(SearchImagesR,[atomAsParam TLens (Just lensname)])}">
+              #{length images}
+        $else
+          <td .number>#{length images}
        $maybe ((dmin, cmin), (dmax, cmax)) <-  imgTopBot
            <tr>
              <td>Earliest image

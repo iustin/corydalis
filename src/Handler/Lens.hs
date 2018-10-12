@@ -34,6 +34,7 @@ module Handler.Lens
 import           Exif
 import           Handler.Utils
 import           Import
+import           Indexer
 import           Pics
 
 import qualified Data.Map      as Map
