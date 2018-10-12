@@ -152,7 +152,7 @@ data FolderClass = FolderEmpty
                    deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
 instance NFData FolderClass where
-  rnf _ = ()
+  rnf = rwhnf
 
 -- | Custom yesod instance for FolderClass. This really could use some TH.
 instance PathPiece FolderClass where
