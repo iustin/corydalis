@@ -600,9 +600,12 @@ promoteFileExif re se je mm me =
       exifSerial'      = fjust' exifSerial unknown
       liName'          = fno_u (liName <$> exifLens) unknown
       liSpec'          = fno_u (liSpec <$> exifLens) unknown
+      liName''         = if "Unknown" `Text.isPrefixOf` liName' && liSpec' /= unknown
+                         then liSpec'
+                         else liName'
       liFL'            = fjust (liFL   <$> exifLens)
       liAperture'      = fjust (liAp   <$> exifLens)
-      exifLens'        = LensInfo liName' liSpec' liFL' liAperture'
+      exifLens'        = LensInfo liName'' liSpec' liFL' liAperture'
       exifOrientation' = fjust' exifOrientation OrientationTopLeft
       exifCreateDate'  = fjust  exifCreateDate
       exifAperture'    = fjust  exifAperture
