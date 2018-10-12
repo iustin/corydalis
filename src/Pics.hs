@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE MultiWayIf        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
@@ -638,8 +639,7 @@ mergePictures c x y =
       movs = imgMovs x ++ imgMovs y ++ extramovs
       ityp = imgType x `max` imgType y
       untrk = imgUntracked x ++ imgUntracked y
-      status = mkImageStatus c rawPath jpegPath sidecarPath
-                 (ityp == MediaMovie || not (null untrk))
+      status = mkImageStatus c rawPath jpegPath sidecarPath (ityp /= MediaImage)
       exif = promoteFileExif
                 (fileExif <$> rawPath) (fileExif <$> sidecarPath)
                 (map fileExif jpegPath)
@@ -858,7 +858,6 @@ loadFolder config name path isSource = do
         let f = inodeName ii
             base = dropCopySuffix config $ dropExtensions f
             tbase = Text.pack base
-            torig = Text.pack f
             f' = reverse f
             tf = Text.pack f
             fullPath = Text.pack $ path </> f
@@ -896,15 +895,15 @@ loadFolder config name path isSource = do
                            mkImage config (Text.pack expname) tname
                                    Nothing Nothing [jf] Nothing [] [] Nothing MediaImage emptyFlags
                         ) snames
-            untrk = Untracked torig tname [jf]
             onlySidecar = isNothing nfp && null jpe && isJust sdc
-            mtype = if is_mov then MediaMovie else MediaImage
-        in case (nfp, jpe, sdc, m_mov, p_mov) of
-             (Nothing, [], Nothing, Nothing, [])
-               -> LIRUntracked untrk
-             -- no shadows for sidecar only files
-             _ -> LIRImage img (if onlySidecar then [] else simgs)
-                    where img = force $ mkImage config tbase tname nfp sdc jpe m_mov p_mov [] range mtype flags
+            mtype = if | is_mov     -> MediaMovie
+                       | null untrk -> MediaImage
+                       | otherwise  -> MediaUnknown
+            untrk = case (nfp, jpe, sdc, m_mov, p_mov) of
+              (Nothing, [], Nothing, Nothing, []) -> [jf]
+              _                                   -> []
+            img = force $ mkImage config tbase tname nfp sdc jpe m_mov p_mov untrk range mtype flags
+        in LIRImage img (if onlySidecar then [] else simgs)
       (images, shadows, untracked) =
         foldl' (\(images', shadows', untracked') f ->
                   case loadImage f of
