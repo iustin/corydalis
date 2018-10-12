@@ -92,3 +92,13 @@
         <div .card>
           <div .card-header>Processed movie
           ^{showFile movie}
+
+    $if (null $ imgUntracked img)
+      <div .card>
+        <div .card-body>
+          Has no untracked components
+    $else
+      $forall untrk <- imgUntracked img
+        <div .card>
+          <div .card-header>Untracked file
+          ^{showFile untrk}
