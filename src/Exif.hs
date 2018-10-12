@@ -581,8 +581,13 @@ promoteFileExif re se je mm me =
       skipMaybes :: (Exif -> a) -> [a]
       skipMaybes fn = catMaybes [fn <$> re, fn <$> se] ++ map fn je ++
                       catMaybes [fn <$> mm] ++ map fn me
+      skipUnknown = filter (/= unknown)
       fjust' :: (Exif -> a) -> a -> a
       fjust' fn d = case skipMaybes fn of
+                      []  -> d
+                      x:_ -> x
+      fno_u :: (Exif -> Text) -> Text -> Text
+      fno_u fn d = case skipUnknown (skipMaybes fn) of
                       []  -> d
                       x:_ -> x
       exifPeople'      = setmerge exifPeople
@@ -593,8 +598,8 @@ promoteFileExif re se je mm me =
       exifLocation'    = fjust  exifLocation
       exifCamera'      = fjust  exifCamera
       exifSerial'      = fjust' exifSerial unknown
-      liName'          = fjust' (liName <$> exifLens) unknown
-      liSpec'          = fjust' (liSpec <$> exifLens) unknown
+      liName'          = fno_u (liName <$> exifLens) unknown
+      liSpec'          = fno_u (liSpec <$> exifLens) unknown
       liFL'            = fjust (liFL   <$> exifLens)
       liAperture'      = fjust (liAp   <$> exifLens)
       exifLens'        = LensInfo liName' liSpec' liFL' liAperture'
