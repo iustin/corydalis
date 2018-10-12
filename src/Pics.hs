@@ -1112,6 +1112,7 @@ minImageSize = 512
 extractEmbedded :: Config -> Text -> String -> IO (Either Text (Text, Text))
 extractEmbedded config path tag = do
   let outputPath = embeddedImagePath config (Text.unpack path)
+      outputPathT = Text.pack outputPath
       (outputDir, _) = splitFileName outputPath
       args = [
         "-b",
@@ -1134,12 +1135,12 @@ extractEmbedded config path tag = do
         then do
           createDirectoryIfMissing True outputDir
           BSL.writeFile outputPath out
-          return $ Right (Text.pack outputPath, mime)
+          return $ Right (outputPathT, mime)
         else
           return $ Left $ Text.toStrict $ Text.decodeUtf8 err -- partial function!
     else
       -- TODO: mtime-based regen.
-      return $ Right (Text.pack outputPath, mime)
+      return $ Right (outputPathT, mime)
 
 -- | Extract the first valid thumbnail from an image.
 bestEmbedded :: Config -> Text -> IO (Either Text (Text, Text))
@@ -1158,6 +1159,7 @@ bestEmbedded config path =
 extractFirstFrame :: Config -> Text -> IO (Either Text (Text, Text))
 extractFirstFrame config path = do
   let outputPath = embeddedImagePath config (Text.unpack path)
+      outputPathT = Text.pack outputPath
       (outputDir, _) = splitFileName outputPath
       args = [
         "-y",
@@ -1181,14 +1183,14 @@ extractFirstFrame config path = do
       (exitCode, out, err) <- readProcess pconfig
       if exitCode == ExitSuccess
         then
-          return $ Right (Text.pack outputPath, mime)
+          return $ Right (outputPathT, mime)
         else
           let err' = Text.decodeUtf8 err -- note partial function!
               out' = Text.decodeUtf8 out
               msg = out' `TextL.append` err'
           in return . Left . Text.toStrict $ msg
     else
-      return $ Right (Text.pack outputPath, mime)
+      return $ Right (outputPathT, mime)
 
 -- | Compute a presumed jpeg's mime type.
 jpegMimeType :: File -> Text
