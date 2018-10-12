@@ -78,7 +78,7 @@ imageList thumbsize params showParent hideType images = do
   $(widgetFile "imagelist")
 
 showExif :: Exif -> Widget
-showExif Exif{..} =  do
+showExif Exif{..} = do
   let createDate = Text.pack . show <$> exifCreateDate
       fl = case (exifFocalLength, exifFL35mm) of
              (Nothing, Nothing) -> "unknown focal length"
