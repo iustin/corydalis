@@ -26,7 +26,6 @@ module Pics ( PicDir(..)
             , Image(..)
             , ImageError(..)
             , MediaType(..)
-            , Untracked(..)
             , File(..)
             , Flags(..)
             , Repository
@@ -256,18 +255,6 @@ instance NFData Image where
                   rnf imgType        `seq`
                   rnf imgStatus      `seq`
                   rnf imgFlags
-
--- | A file with unknown (and untracked) type.
-data Untracked = Untracked
-  { untrkName   :: !Text
-  , untrkParent :: !Text
-  , untrkPaths  :: ![File]
-  } deriving (Show)
-
-instance NFData Untracked where
-  rnf Untracked{..} = rnf untrkName   `seq`
-                      rnf untrkParent `seq`
-                      rnf untrkPaths
 
 data InodeInfo = InodeInfo
   { inodeName  :: !FilePath
