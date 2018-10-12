@@ -1108,6 +1108,12 @@ previewTags = ["JpgFromRaw", "PreviewImage"]
 minImageSize :: Int64
 minImageSize = 512
 
+-- | Ensure parent path for path exists.
+ensureParent :: FilePath -> IO ()
+ensureParent path = do
+  let (dir, _) = splitFileName path
+  createDirectoryIfMissing True dir
+
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
@@ -1115,7 +1121,6 @@ extractEmbedded :: Config -> Text -> String -> IO (Either Text (Text, Text))
 extractEmbedded config path tag = do
   let outputPath = embeddedImagePath config (Text.unpack path)
       outputPathT = Text.pack outputPath
-      (outputDir, _) = splitFileName outputPath
       args = [
         "-b",
         "-" ++ tag,
@@ -1135,7 +1140,7 @@ extractEmbedded config path tag = do
       (exitCode, out, err) <- readProcess pconfig
       if exitCode == ExitSuccess && BSL.length out >= minImageSize
         then do
-          createDirectoryIfMissing True outputDir
+          ensureParent outputPath
           BSL.writeFile outputPath out
           return $ Right (outputPathT, mime)
         else
@@ -1162,7 +1167,6 @@ extractFirstFrame :: Config -> Text -> IO (Either Text (Text, Text))
 extractFirstFrame config path = do
   let outputPath = embeddedImagePath config (Text.unpack path)
       outputPathT = Text.pack outputPath
-      (outputDir, _) = splitFileName outputPath
       args = [
         "-y",
         "-i",
@@ -1177,7 +1181,7 @@ extractFirstFrame config path = do
   exists <- fileExist outputPath
   if not exists
     then do
-      createDirectoryIfMissing True outputDir
+      ensureParent outputPath
       let pconfig =
             setStdin closed
             . setCloseFds True
