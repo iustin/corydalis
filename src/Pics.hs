@@ -586,13 +586,14 @@ isBetterMaster (_:es) a b = isBetterMaster es a b
 -- jpeg. It can also be there are two of what we consider real master
 -- files, in which case use the config order to select between
 -- these. Usually one is really a derivation of the other.
-selectMasterFile :: Config -> Image -> Image -> (Maybe File, Bool, [File])
-selectMasterFile config x y =
+selectMasterFile :: [FilePath] -> (Image -> Maybe File)
+                 -> Image -> Image
+                 -> (Maybe File, Bool, [File])
+selectMasterFile rexts pathfn x y =
   let xsoft = flagsSoftMaster $ imgFlags x
       ysoft = flagsSoftMaster $ imgFlags y
-      xraw = imgRawPath x
-      yraw = imgRawPath y
-      rexts = cfgRawExts config
+      xraw = pathfn x
+      yraw = pathfn y
   in case (xraw, yraw) of
        (Just xf, Just yf)  -> case (xsoft, ysoft) of
                               -- Easy cases: only one is a real master.
@@ -630,7 +631,7 @@ updateImageAfterMerge c img@Image{..} =
 
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
-  let (newraw, softmaster, extrajpeg) = selectMasterFile c x y
+  let (newraw, softmaster, extrajpeg) = selectMasterFile (cfgRawExts c) imgRawPath x y
       x' =
         x { imgRawPath     = newraw
           , imgSidecarPath = imgSidecarPath x `mplus` imgSidecarPath y
