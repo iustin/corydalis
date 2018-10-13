@@ -12,6 +12,16 @@
         <tr>
           <td>Camera name
           <td>#{cameraname}
+        <tr>
+          <td>Shutter count
+          $maybe (scMin, scMax) <- ciShutterCount (ocData camera)
+            <td .number>#{scMin} - #{scMax}
+          $nothing
+            <td><i>unknown</i>
+        $maybe kr <- keepR
+          <tr>
+            <td>Keeper rate
+            <td .number>#{kr}
 
  <div .col-12 .col-sm-4>
    <div .card>

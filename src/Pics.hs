@@ -37,6 +37,7 @@ module Pics ( PicDir(..)
             , ImageSize(..)
             , FileOffset
             , Occurrence(..)
+            , CameraInfo(..)
             , fileLastTouch
             , fileMimeType
             , getRepo
@@ -405,6 +406,27 @@ ocFromSize size d =
              , ocData = d
              }
 
+data CameraInfo = CameraInfo
+  { ciName         :: !Text
+  , ciShutterCount :: !(Maybe (Integer, Integer))
+  } deriving (Eq, Show, Ord)
+
+instance NFData CameraInfo where
+  rnf CameraInfo{..} = rnf ciName `seq`
+                       rnf ciShutterCount
+
+instance Semigroup CameraInfo where
+  x <> y = x { ciShutterCount = newsc }
+   where newsc =
+           case (ciShutterCount x, ciShutterCount y) of
+             (a, Nothing) -> a
+             (Nothing, a) -> a
+             (Just (xmin, xmax), Just (ymin, ymax)) ->
+               Just (xmin `min` ymin, xmax `max` ymax)
+
+instance Default CameraInfo where
+  def = CameraInfo unknown Nothing
+
 -- | Data type holding per-folder picture statistics.
 data Stats = Stats
   { sRaw            :: !Int
@@ -419,7 +441,7 @@ data Stats = Stats
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
   , sMovieSize      :: !FileOffset
-  , sByCamera       :: !(Map.Map Text (Occurrence ()))
+  , sByCamera       :: !(Map.Map Text (Occurrence CameraInfo))
   , sByLens         :: !(Map.Map Text (Occurrence LensInfo))
   } deriving Show
 
@@ -489,15 +511,17 @@ updateStatsWithPic orig img =
               _               -> ss
       cs = sSidecarSize stats
       cs' = cs + maybe 0 fileSize (imgSidecarPath img)
-      camera = fromMaybe unknown (exifCamera $ imgExif img)
+      exif = imgExif img
+      camera = fromMaybe unknown (exifCamera exif)
       xsize = case imgRawPath img of
                Just f -> fileSize f
                Nothing -> case imgJpegPath img of
                             x:_ -> fileSize x
                             _   -> 0
-      lens = exifLens $ imgExif img
+      lens = exifLens exif
       lensOcc = ocFromSize xsize lens
-      cameraOcc = ocFromSize xsize ()
+      shutterCount = (\x -> (x, x)) <$> exifShutterCount exif
+      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount)
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
@@ -508,7 +532,7 @@ updateStatsWithPic orig img =
            , sSidecarSize = cs'
            , sMovieSize = ms'
            , sUntrackedSize = us'
-           , sByCamera = Map.insertWith mappend camera cameraOcc (sByCamera orig)
+           , sByCamera = Map.insertWith (<>) camera cameraOcc (sByCamera orig)
            , sByLens = Map.insertWith (<>) (liName lens) lensOcc(sByLens orig)
            }
 

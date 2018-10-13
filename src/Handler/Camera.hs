@@ -39,6 +39,7 @@ import           Pics
 
 import qualified Data.Map      as Map
 import qualified Data.Set      as Set
+import           Text.Printf
 
 data GraphData a b c = GraphData
   { gdName  :: Text
@@ -76,8 +77,20 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
 counterOne :: Int64
 counterOne = 1
 
-getByCamera :: Repository -> Map Text (Occurrence ())
+getByCamera :: Repository -> Map Text (Occurrence CameraInfo)
 getByCamera = sByCamera . rsPicStats . repoStats
+
+keeperRate :: Occurrence CameraInfo -> Maybe Double
+keeperRate Occurrence{..} =
+  case ciShutterCount ocData of
+    Nothing -> Nothing
+    Just (scMin, scMax) ->
+      let numImgs = fromIntegral ocFiles
+          delta = fromIntegral $ scMax - scMin + 1
+      in Just $ numImgs / delta
+
+formatKeeperRate :: Double -> String
+formatKeeperRate = printf "%.01f%%" . (* 100)
 
 getCameraInfoR :: Text -> Handler TypedContent
 getCameraInfoR cameraname = do
@@ -120,6 +133,7 @@ getCameraInfoR cameraname = do
                                              Nothing  -> a
                                              Just cd' -> (cd', lens):a) [] $ images
                   in maybe Nothing (\nn -> Just (head nn, last nn)) $ fromNullable cds
+      keepR = formatKeeperRate <$> keeperRate camera
   let jsonl = def { gdName = ""
                   , gdType = "scatter"
                   , gdMode = Just "markers"
@@ -148,12 +162,11 @@ getCameraInfoR cameraname = do
 getCameraStatsR :: Handler TypedContent
 getCameraStatsR = do
   pics <- getPics
-  let bycamera = Map.mapWithKey (\k v -> Occurrence (ocFiles v) (ocFileSize v)
-                                         (ocFolders v) k) $ getByCamera pics
+  let bycamera = getByCamera pics
       cameras = Map.toList bycamera
-      top10 = buildTopNItems unknown bycamera 30
+      top10 = buildTopNItems def bycamera 30
       jsonl = foldl' (\a (cnt, _, k, cam) ->
-                        def { gdName = cam
+                        def { gdName = ciName cam
                             , gdType = "bar"
                             , gdMode = Just "markers"
                             , gdX = Just [k]

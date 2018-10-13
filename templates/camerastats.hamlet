@@ -20,9 +20,13 @@
              <th .sorter-text>Name
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
+             <th .sorter-percent>Keeper rate
          <tbody>
            $forall (name, oc) <- cameras
              <tr>
                <td><a href=@{CameraInfoR name}>#{name}</a>
                <td .number>#{ocFiles oc}
                <td .number>#{ocFolders oc}
+               <td .number>
+                 $maybe kr <- keeperRate oc
+                   #{formatKeeperRate kr}
