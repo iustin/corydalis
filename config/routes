@@ -23,6 +23,8 @@
 /settings SettingsR GET
 /stats/lenses LensStatsR GET
 /stats/lens/#Text LensInfoR GET
+/stats/cameras CameraStatsR GET
+/stats/camera/#Text CameraInfoR GET
 /list/#Symbol ListItemsR GET
 /search/quick QuickSearchR GET
 /about AboutR GET

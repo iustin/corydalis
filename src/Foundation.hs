@@ -295,13 +295,15 @@ instance YesodBreadcrumbs App where
   breadcrumb (BrowseImagesR kind) =
     return ("Showing images of type " <>
             Text.intercalate ", " (map toPathPiece kind), Just CurateR)
-  breadcrumb SearchFoldersR = return ("Search folders", Nothing)
-  breadcrumb SearchImagesR  = return ("Search images", Nothing)
-  breadcrumb QuickSearchR   = return ("Quick search", Nothing)
-  breadcrumb SettingsR      = return ("Settings"     , Nothing)
-  breadcrumb LensStatsR     = return ("Lens statistsics", Just CurateR)
-  breadcrumb (LensInfoR image) = return (image, Just LensStatsR)
-  breadcrumb (ListItemsR atom) =
+  breadcrumb SearchFoldersR      = return ("Search folders",     Nothing)
+  breadcrumb SearchImagesR       = return ("Search images",      Nothing)
+  breadcrumb QuickSearchR        = return ("Quick search",       Nothing)
+  breadcrumb SettingsR           = return ("Settings",           Nothing)
+  breadcrumb LensStatsR          = return ("Lens statistsics",   Just CurateR)
+  breadcrumb CameraStatsR        = return ("Camera statistsics", Just CurateR)
+  breadcrumb (LensInfoR image)   = return (image,                Just LensStatsR)
+  breadcrumb (CameraInfoR image) = return (image,                Just CameraStatsR)
+  breadcrumb (ListItemsR atom)   =
     return ("Listing " <> atomTypeDescriptions atom, Nothing)
   breadcrumb AboutR = return ("About", Nothing)
 

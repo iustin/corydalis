@@ -1,0 +1,33 @@
+$(document).ready(function() {
+
+    function onDataReceived(series) {
+
+        var cameraLayout = {
+            xaxis: {
+                title: 'Focal length'
+            },
+            yaxis: {
+                title: 'Aperture',
+                tickprefix: 'f/',
+                tickvals: series.ytickvals,
+                ticktext: series.yticktext,
+                type: 'log',
+            },
+            hovermode: 'closest',
+        }
+        var config = {
+            showLink: false,
+            sendData: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+        }
+        Plotly.newPlot('cameraFlApChart', series.cameraflap, cameraLayout, config);
+    }
+
+    $.ajax({
+        url: "@{CameraInfoR cameraname}",
+        type: "GET",
+        dataType: "json",
+        success: onDataReceived
+    });
+});

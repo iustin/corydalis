@@ -1,0 +1,67 @@
+<h1>Camera statistics
+
+<div .row>
+  <div .col-12>
+    <div #cameraFlApChart .largegraph>
+
+<div .row>
+ <div .col-12 .col-sm-4>
+   <div .card>
+     <div .card-header>Basic information
+     <table .table>
+        <tr>
+          <td>Camera name
+          <td>#{cameraname}
+
+ <div .col-12 .col-sm-4>
+   <div .card>
+     <div .card-header>Camera information
+     <table .table>
+        <tr>
+          <td>Used with #{numLenses} lenses
+        $if numLenses == 1
+           <tr>
+             <td>Lens
+             <td>#{fst $ Map.findMin lenses}
+        $else
+           <tr>
+              <td>Most used lens
+              <td>
+                $maybe (cnt, c) <- topLens
+                    #{c} (#{cnt} images)
+                $nothing
+                    No lens information
+           <tr>
+              <td>Least used lens
+              <td>
+                $maybe (cnt, c) <- botLens
+                    #{c} (#{cnt} images)
+                $nothing
+                    No lens information
+
+<div .row>
+ <div .col-12 .col-sm-4>
+   <div .card>
+     <div .card-header>Image information
+     <table .table>
+       <tr>
+        <td>Number of images
+        $if length images > 0
+          <td .number>
+            <a href="@?{(SearchImagesR,[atomAsParam TCamera (Just cameraname)])}">
+              #{length images}
+        $else
+          <td .number>#{length images}
+       $maybe ((dmin, cmin), (dmax, cmax)) <-  imgTopBot
+           <tr>
+             <td>Earliest image
+             <td>#{show dmin}
+               $if numLenses > 1
+                 \ (#{cmin})
+           <tr>
+             <td>Latest image
+             <td>#{show dmax}
+               $if numLenses > 1
+                 \ (#{cmax})
+       $nothing
+           <tr>No available image date information

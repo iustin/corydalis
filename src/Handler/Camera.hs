@@ -26,9 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-module Handler.Lens
-  ( getLensInfoR
-  , getLensStatsR
+module Handler.Camera
+  ( getCameraInfoR
+  , getCameraStatsR
   ) where
 
 import           Exif
@@ -76,17 +76,17 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
 counterOne :: Int64
 counterOne = 1
 
-getByLens :: Repository -> Map Text (LensInfo, Occurrence)
-getByLens = sByLens . rsPicStats . repoStats
+getByCamera :: Repository -> Map Text Occurrence
+getByCamera = sByCamera . rsPicStats . repoStats
 
-getLensInfoR :: Text -> Handler TypedContent
-getLensInfoR lensname = do
+getCameraInfoR :: Text -> Handler TypedContent
+getCameraInfoR cameraname = do
   pics <- getPics
-  let bylens = getByLens pics
-  lens <- case lensname `Map.lookup` bylens of
-            Nothing     -> notFound
-            Just (l, _) -> return l
-  let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensname) pics
+  let bycamera = getByCamera pics
+  camera <- case cameraname `Map.lookup` bycamera of
+              Nothing -> notFound
+              Just c  -> return c
+  let images = filterImagesBy (\i -> (exifCamera . imgExif) i == (Just cameraname)) pics
       fam = foldl' (\m i ->
                        let e = imgExif i
                            fl = exifFocalLength e
@@ -94,9 +94,9 @@ getLensInfoR lensname = do
                        in case (fl, aper) of
                             (Just fl', Just aper') -> Map.insertWith (+) (fl', aper') counterOne m
                             _ -> m) Map.empty images
-      cameras = foldl' (\m i -> case exifCamera (imgExif i) of
-                                  Nothing -> m
-                                  Just c  ->  Map.insertWith (+) c counterOne m) Map.empty images
+      lenses = foldl' (\m i -> Map.insertWith (+)
+                               (liName . exifLens . imgExif $ i)
+                               counterOne m) Map.empty images
       faml = Map.toList fam
       (xys, cnt) = unzip faml
       maxCnt = fromIntegral $ maybe 5 maximum $ fromNullable cnt
@@ -106,19 +106,19 @@ getLensInfoR lensname = do
       tickText = map show allapertures
       hoverFmt ((fl', ap'), cnt') =
         show fl'++"mm @ f/" ++ show ap' ++ ": " ++ show cnt' ++ " images"
-      cameraCounts =
-        sort . map (\(a, b) -> (b, a)) . Map.toList $ cameras
-      topCamera = listToMaybe $ reverse cameraCounts
-      botCamera = listToMaybe cameraCounts
-      numCameras = Map.size cameras
+      lensCounts =
+        sort . map (\(a, b) -> (b, a)) . Map.toList $ lenses
+      topLens = listToMaybe $ reverse lensCounts
+      botLens = listToMaybe lensCounts
+      numLenses = Map.size lenses
       imgTopBot = let cds =
                         sort .
                         foldl' (\a i -> let e = imgExif i
                                             cd = exifCreateDate e
-                                            cam = fromMaybe unknown $ exifCamera e
+                                            lens = liName $ exifLens e
                                         in case cd of
                                              Nothing  -> a
-                                             Just cd' -> (cd', cam):a) [] $ images
+                                             Just cd' -> (cd', lens):a) [] $ images
                   in maybe Nothing (\nn -> Just (head nn, last nn)) $ fromNullable cds
   let jsonl = def { gdName = ""
                   , gdType = "scatter"
@@ -137,31 +137,31 @@ getLensInfoR lensname = do
                               ]
                   } :: GraphData Double Double Double
   let html = do
-        setTitle "Corydalis: lens information"
+        setTitle "Corydalis: camera information"
         addPlotly
-        $(widgetFile "lensinfo")
-  defaultLayoutJson html (return $ object [ "lensflap"  .= [jsonl]
+        $(widgetFile "camerainfo")
+  defaultLayoutJson html (return $ object [ "cameraflap"  .= [jsonl]
                                           , "ytickvals" .= tickVals
                                           , "yticktext" .= tickText
                                           ])
 
-getLensStatsR :: Handler TypedContent
-getLensStatsR = do
+getCameraStatsR :: Handler TypedContent
+getCameraStatsR = do
   pics <- getPics
-  let bylens = getByLens pics
-      lenses = Map.toList bylens
-      top10l = buildTopNItems unknownLens bylens 30
-      jsonl = foldl' (\a (cnt, _, k, li) ->
-                        def { gdName = lensShortName li
+  let bycamera = Map.mapWithKey (\k v -> (k, v)) $ getByCamera pics
+      cameras = Map.toList bycamera
+      top10 = buildTopNItems unknown bycamera 30
+      jsonl = foldl' (\a (cnt, _, k, cam) ->
+                        def { gdName = cam
                             , gdType = "bar"
                             , gdMode = Just "markers"
                             , gdX = Just [k]
                             , gdY = Just [fromIntegral cnt]
                             }:a)
-              ([]::[GraphData Text Int64 Int64]) top10l
+              ([]::[GraphData Text Int64 Int64]) top10
   let html = do
-        setTitle "Corydalis: lens statistics"
+        setTitle "Corydalis: camera statistics"
         addPlotly
-        $(widgetFile "lensstats")
-  defaultLayoutJson html (return $ object [ "lenses"  .= jsonl
+        $(widgetFile "camerastats")
+  defaultLayoutJson html (return $ object [ "cameras"  .= jsonl
                                           ])

@@ -1,0 +1,32 @@
+$(document).ready(function() {
+
+    function onDataReceived(series) {
+
+        var cameraLayout = {
+            yaxis: {
+                type: 'log',
+                exponentformat: 'SI',
+                rangemode: 'nonnegative',
+                title: 'File count'
+            },
+        }
+        var config = {
+            showLink: false,
+            sendData: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+        }
+        Plotly.newPlot('cameraChart', series.cameras, cameraLayout, config);
+    }
+
+    $.ajax({
+        url: "@{CameraStatsR}",
+        type: "GET",
+        dataType: "json",
+        success: onDataReceived
+    });
+
+    $("#cameralist").tablesorter({
+        sortList: [[2,1], [0,0], [1, 0]],
+    });
+});

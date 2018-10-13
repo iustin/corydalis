@@ -32,6 +32,7 @@ module Handler.Curate
 
 import qualified Data.Map      as Map
 
+import           Exif          (unknownLens)
 import           Handler.Items
 import           Handler.Utils
 import           Import
@@ -83,6 +84,7 @@ getCurateR = do
       fstats = Map.toAscList fcm
       numfolders = Map.size $ repoDirs pics
       numLenses = Map.size bylens
+      numCameras = Map.size bycamera
       all_fc = [minBound..maxBound]
       buildTop10 m n = let allItems = sortBy (flip compare) $
                              Map.foldlWithKey' (\a k (Occurrence cnt sz _) ->
@@ -104,7 +106,7 @@ getCurateR = do
                            , gdY = [fromIntegral sz]
                            }:a)
                ([]::[GraphData Int64 Int64]) top10c
-      top10l = buildTopNLenses bylens 12
+      top10l = buildTopNItems unknownLens bylens 12
       jsonl = foldl' (\a (cnt, _, k, _) ->
                         def { gdName = k
                             , gdType = "bar"

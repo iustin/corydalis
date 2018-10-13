@@ -1,0 +1,28 @@
+<h1>Camera statistics
+
+<div .row>
+  <div .col-12>
+    <div #cameraChart .largegraph>
+
+<div .row>
+ <div .col-12>
+   $if null cameras
+     <p .bg-warning>No camera information found.
+   $else
+     <div .card>
+       <div .card-body>
+         There are #{length cameras} cameras in the database.
+
+     <div .card>
+       <table #cameralist .tablesorter .table .table-sm>
+         <thead>
+           <tr>
+             <th .sorter-text>Name
+             <th .sorter-digit>Image count
+             <th .sorter-digit>Folder count
+         <tbody>
+           $forall (name, (_, oc)) <- cameras
+             <tr>
+               <td><a href=@{CameraInfoR name}>#{name}</a>
+               <td .number>#{ocFiles oc}
+               <td .number>#{ocFolders oc}

@@ -123,6 +123,7 @@ library:
     - Exif
     - Foundation
     - Handler.Browse
+    - Handler.Camera
     - Handler.Common
     - Handler.Curate
     - Handler.Folder

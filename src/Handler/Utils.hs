@@ -201,8 +201,9 @@ folderKeywords :: PicDir -> Text
 folderKeywords =
   Text.intercalate ", " . catMaybes . Map.keys . gExifKeywords . pdExif
 
-buildTopNLenses :: Map.Map Text (LensInfo, Occurrence) -> Int -> [(Integer, FileOffset, Text, LensInfo)]
-buildTopNLenses m n =
+buildTopNItems :: (Ord a)
+               => a -> Map.Map Text (a, Occurrence) -> Int -> [(Integer, FileOffset, Text, a)]
+buildTopNItems d m n =
   let allItems = sortBy (flip compare) $
                  Map.foldlWithKey' (\a k (li, Occurrence cnt sz _) ->
                                        (cnt, sz, k, li):a) [] m
@@ -211,7 +212,7 @@ buildTopNLenses m n =
                          r  = drop (n-1) allItems
                          (rc, rs) = foldl' (\(c, s) (cnt, sz, _, _) ->
                                                (c+cnt, s+sz)) (0, 0) r
-                     in (rc, rs, "Others", unknownLens): t10
+                     in (rc, rs, "Others", d): t10
               else allItems
   in top10
 
