@@ -99,7 +99,7 @@ getCameraInfoR cameraname = do
   camera <- case cameraname `Map.lookup` bycamera of
               Nothing -> notFound
               Just c  -> return c
-  let images = filterImagesBy (\i -> (exifCamera . imgExif) i == (Just cameraname)) pics
+  let images = filterImagesBy (\i -> (exifCamera . imgExif) i == Just cameraname) pics
       fam = foldl' (\m i ->
                        let e = imgExif i
                            fl = exifFocalLength e
