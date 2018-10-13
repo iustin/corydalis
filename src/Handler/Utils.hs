@@ -32,7 +32,6 @@ import           Types
 
 import qualified Data.Map              as Map
 import           Data.Prefix.Units
-import qualified Data.Set              as Set
 import qualified Data.Text             as Text
 import           Data.Time
 import           Data.Time.Clock.POSIX
@@ -318,9 +317,7 @@ buildLensApFL images =
       (xys, cnt) = unzip faml
       maxCnt = fromIntegral $ maybe 5 maximum $ fromNullable cnt
       (x, y) = unzip xys
-      allapertures = Set.toAscList $ Set.fromList y
-      tickVals = allapertures
-      tickText = map show allapertures
+      allApertures = sort y
       hoverFmt ((fl', ap'), cnt') =
         show fl'++"mm @ f/" ++ show ap' ++ ": " ++ show cnt' ++ " images"
       jsonl = def { gdName = ""
@@ -340,6 +337,6 @@ buildLensApFL images =
                               ]
                   } :: GraphData Double Double Double
   in object [ "lensflap"  .= [jsonl]
-            , "ytickvals" .= tickVals
-            , "yticktext" .= tickText
+            , "ytickvals" .= allApertures
+            , "yticktext" .= map show allApertures
             ]
