@@ -709,7 +709,7 @@ folderClass :: PicDir -> FolderClass
 folderClass = folderClassFromStats . computeFolderStats
 
 folderClassFromStats :: Stats -> FolderClass
-folderClassFromStats stats@(Stats {..}) =
+folderClassFromStats stats@Stats {..} =
   let npics = sRaw + sStandalone + sProcessed + sOrphaned
       has_pics       = npics /= 0
       has_unproc     = sRaw /= 0

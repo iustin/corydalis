@@ -458,7 +458,7 @@ yearStats :: Repository -> NameStats
 yearStats =
   foldl' (\stats folder ->
             Map.insertWith (+)
-              ((Text.pack . show) <$> pdYear folder)
+              (Text.pack . show <$> pdYear folder)
               1 stats
          ) Map.empty . Map.elems . repoDirs
 
