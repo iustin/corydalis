@@ -76,7 +76,7 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
 counterOne :: Int64
 counterOne = 1
 
-getByLens :: Repository -> Map Text (LensInfo, Occurrence)
+getByLens :: Repository -> Map Text (Occurrence LensInfo)
 getByLens = sByLens . rsPicStats . repoStats
 
 getLensInfoR :: Text -> Handler TypedContent
@@ -84,8 +84,8 @@ getLensInfoR lensname = do
   pics <- getPics
   let bylens = getByLens pics
   lens <- case lensname `Map.lookup` bylens of
-            Nothing     -> notFound
-            Just (l, _) -> return l
+            Nothing  -> notFound
+            Just occ -> return $ ocData occ
   let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensname) pics
       fam = foldl' (\m i ->
                        let e = imgExif i

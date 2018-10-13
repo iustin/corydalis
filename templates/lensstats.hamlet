@@ -22,9 +22,9 @@
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
          <tbody>
-           $forall (name, (li, oc)) <- lenses
+           $forall (name, oc) <- lenses
              <tr>
                <td><a href=@{LensInfoR name}>#{name}</a>
-               <td>#{liSpec li}
+               <td>#{liSpec $ ocData oc}
                <td .number>#{ocFiles oc}
                <td .number>#{ocFolders oc}

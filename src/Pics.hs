@@ -374,34 +374,35 @@ instance NFData Repository where
 
 type FolderClassStats = Map.Map FolderClass Int
 
-data Occurrence = Occurrence
+data Occurrence a = Occurrence
   { ocFiles    :: !Integer
   , ocFileSize :: !FileOffset
   , ocFolders  :: !Integer
+  , ocData     :: !a
   } deriving (Show)
 
-instance Default Occurrence where
-  def = Occurrence 0 0 0
+instance Default a => Default (Occurrence a) where
+  def = Occurrence 0 0 0 def
 
-instance Monoid Occurrence where
+instance (Semigroup a, Default a) => Monoid (Occurrence a) where
   mempty = def
 
-instance Semigroup Occurrence where
+instance Semigroup a => Semigroup (Occurrence a) where
   x <> y = Occurrence { ocFiles = ocFiles x + ocFiles y
                       , ocFileSize = ocFileSize x + ocFileSize y
                       , ocFolders = ocFolders x + ocFolders y
+                      , ocData = ocData x <> ocData y
                       }
 
-instance NFData Occurrence where
-  -- All fields are strict and simple, so weak head normal form is
-  -- enough.
-  rnf = rwhnf
+instance NFData a => NFData (Occurrence a) where
+  rnf occ = rwhnf occ `seq` rnf (ocData occ)
 
-ocFromSize :: FileOffset -> Occurrence
-ocFromSize size =
+ocFromSize :: FileOffset -> a -> Occurrence a
+ocFromSize size d =
   Occurrence { ocFiles = 1
              , ocFileSize = size
              , ocFolders = 0
+             , ocData = d
              }
 
 -- | Data type holding per-folder picture statistics.
@@ -418,8 +419,8 @@ data Stats = Stats
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
   , sMovieSize      :: !FileOffset
-  , sByCamera       :: !(Map.Map Text Occurrence)
-  , sByLens         :: !(Map.Map Text (LensInfo, Occurrence))
+  , sByCamera       :: !(Map.Map Text (Occurrence ()))
+  , sByLens         :: !(Map.Map Text (Occurrence LensInfo))
   } deriving Show
 
 instance NFData Stats where
@@ -453,9 +454,6 @@ totalStatsCount stats =
          + sOrphaned stats + sUntracked stats
          + sMovies stats
 
-sumLensData :: (Semigroup a) => (LensInfo, a) -> (LensInfo, a) -> (LensInfo, a)
-sumLensData (_, x) (li, y) = (li, x <> y)
-
 sumStats :: Stats -> Stats -> Stats
 sumStats (Stats r1 s1 p1 h1 u1 m1 rs1 ps1 ss1 sd1 us1 ms1 sc1 sl1)
          (Stats r2 s2 p2 h2 u2 m2 rs2 ps2 ss2 sd2 us2 ms2 sc2 sl2 ) =
@@ -463,7 +461,7 @@ sumStats (Stats r1 s1 p1 h1 u1 m1 rs1 ps1 ss1 sd1 us1 ms1 sc1 sl1)
         (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (sd1 + sd2) (us1 + us2) (ms1 + ms2)
         sc sl
   where sc = Map.unionWith mappend sc1 sc2
-        sl = Map.unionWith sumLensData sl1 sl2
+        sl = Map.unionWith (<>) sl1 sl2
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
@@ -498,7 +496,8 @@ updateStatsWithPic orig img =
                             x:_ -> fileSize x
                             _   -> 0
       lens = exifLens $ imgExif img
-      occurrence = ocFromSize xsize
+      lensOcc = ocFromSize xsize lens
+      cameraOcc = ocFromSize xsize ()
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
@@ -509,8 +508,8 @@ updateStatsWithPic orig img =
            , sSidecarSize = cs'
            , sMovieSize = ms'
            , sUntrackedSize = us'
-           , sByCamera = Map.insertWith mappend camera occurrence (sByCamera orig)
-           , sByLens = Map.insertWith sumLensData (liName lens) (lens, occurrence) (sByLens orig)
+           , sByCamera = Map.insertWith mappend camera cameraOcc (sByCamera orig)
+           , sByLens = Map.insertWith (<>) (liName lens) lensOcc(sByLens orig)
            }
 
 computeFolderStats :: PicDir -> Stats

@@ -181,6 +181,10 @@ data LensInfo = LensInfo
   , liAp   :: !(Maybe LensAperture)
   } deriving (Show, Eq, Ord)
 
+-- FIXME: should we error out instead?
+instance Semigroup LensInfo where
+  x <> _ = x
+
 $(makeStore ''LensInfo)
 
 instance NFData LensInfo where

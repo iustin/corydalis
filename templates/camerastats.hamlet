@@ -21,7 +21,7 @@
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
          <tbody>
-           $forall (name, (_, oc)) <- cameras
+           $forall (name, oc) <- cameras
              <tr>
                <td><a href=@{CameraInfoR name}>#{name}</a>
                <td .number>#{ocFiles oc}

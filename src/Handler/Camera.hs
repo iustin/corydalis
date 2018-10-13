@@ -76,7 +76,7 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
 counterOne :: Int64
 counterOne = 1
 
-getByCamera :: Repository -> Map Text Occurrence
+getByCamera :: Repository -> Map Text (Occurrence ())
 getByCamera = sByCamera . rsPicStats . repoStats
 
 getCameraInfoR :: Text -> Handler TypedContent
@@ -148,7 +148,8 @@ getCameraInfoR cameraname = do
 getCameraStatsR :: Handler TypedContent
 getCameraStatsR = do
   pics <- getPics
-  let bycamera = Map.mapWithKey (\k v -> (k, v)) $ getByCamera pics
+  let bycamera = Map.mapWithKey (\k v -> Occurrence (ocFiles v) (ocFileSize v)
+                                         (ocFolders v) k) $ getByCamera pics
       cameras = Map.toList bycamera
       top10 = buildTopNItems unknown bycamera 30
       jsonl = foldl' (\a (cnt, _, k, cam) ->
