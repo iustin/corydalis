@@ -242,29 +242,30 @@ parseSSDesc (Number n) = pure . Text.pack . show $ n
 parseSSDesc v          = typeMismatch "string or number" v
 
 data RawExif = RawExif
-  { rExifSrcFile     :: Text
-  , rExifCamera      :: Maybe Text
-  , rExifSerial      :: Maybe Text
-  , rExifLens        :: Maybe LensInfo
-  , rExifOrientation :: Maybe Orientation
-  , rExifHSubjects   :: [[Text]]
-  , rExifPeople      :: [Text]
-  , rExifCountry     :: Maybe Text
-  , rExifProvince    :: Maybe Text
-  , rExifCity        :: Maybe Text
-  , rExifLocation    :: Maybe Text
-  , rExifCreateDate  :: Maybe LocalTime
-  , rExifTitle       :: Maybe Text
-  , rExifCaption     :: Maybe Text
-  , rExifAperture    :: Maybe Double
-  , rExifFocalLength :: Maybe Double
-  , rExifFL35mm      :: Maybe Double
-  , rExifISO         :: Maybe Integer
-  , rExifSSpeedDesc  :: Maybe Text
-  , rExifSSpeedVal   :: Maybe Double
-  , rExifMimeType    :: Maybe Text
-  , rExifRaw         :: Object
-  , rExifWarning     :: Maybe Text
+  { rExifSrcFile      :: Text
+  , rExifCamera       :: Maybe Text
+  , rExifSerial       :: Maybe Text
+  , rExifLens         :: Maybe LensInfo
+  , rExifOrientation  :: Maybe Orientation
+  , rExifHSubjects    :: [[Text]]
+  , rExifPeople       :: [Text]
+  , rExifCountry      :: Maybe Text
+  , rExifProvince     :: Maybe Text
+  , rExifCity         :: Maybe Text
+  , rExifLocation     :: Maybe Text
+  , rExifCreateDate   :: Maybe LocalTime
+  , rExifTitle        :: Maybe Text
+  , rExifCaption      :: Maybe Text
+  , rExifAperture     :: Maybe Double
+  , rExifFocalLength  :: Maybe Double
+  , rExifFL35mm       :: Maybe Double
+  , rExifISO          :: Maybe Integer
+  , rExifSSpeedDesc   :: Maybe Text
+  , rExifSSpeedVal    :: Maybe Double
+  , rExifShutterCount :: Maybe Integer
+  , rExifMimeType     :: Maybe Text
+  , rExifRaw          :: Object
+  , rExifWarning      :: Maybe Text
   } deriving (Show)
 
 instance FromJSON RawExif where
@@ -306,79 +307,83 @@ instance FromJSON RawExif where
                           Nothing -> pure Nothing
                           Just v  -> Just <$> parseSSDesc v
     rExifSSpeedVal   <- o .!:? "ShutterSpeed"
+    rExifShutterCount <- o .~:? "ShutterCount"
     rExifMimeType    <- o .~:? "MIMEType"
     rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
     return RawExif{..}
 
 data Exif = Exif
-  { exifPeople      :: !(Set Text)
-  , exifKeywords    :: !(Set Text)
-  , exifCountry     :: !(Maybe Text)
-  , exifProvince    :: !(Maybe Text)
-  , exifCity        :: !(Maybe Text)
-  , exifLocation    :: !(Maybe Text)
-  , exifCamera      :: !(Maybe Text)
-  , exifSerial      :: !Text
-  , exifLens        :: !LensInfo
-  , exifOrientation :: !Orientation
-  , exifCreateDate  :: !(Maybe LocalTime)
-  , exifTitle       :: !(Maybe Text)
-  , exifCaption     :: !(Maybe Text)
-  , exifAperture    :: !(Maybe Double)
-  , exifFocalLength :: !(Maybe Double)
-  , exifFL35mm      :: !(Maybe Double)
-  , exifISO         :: !(Maybe Integer)
-  , exifSSpeedDesc  :: !(Maybe Text)
-  , exifSSpeedVal   :: !(Maybe Double)
-  , exifMimeType    :: !(Maybe Text)
-  , exifWarning     :: !(Maybe Text)
+  { exifPeople       :: !(Set Text)
+  , exifKeywords     :: !(Set Text)
+  , exifCountry      :: !(Maybe Text)
+  , exifProvince     :: !(Maybe Text)
+  , exifCity         :: !(Maybe Text)
+  , exifLocation     :: !(Maybe Text)
+  , exifCamera       :: !(Maybe Text)
+  , exifSerial       :: !Text
+  , exifLens         :: !LensInfo
+  , exifOrientation  :: !Orientation
+  , exifCreateDate   :: !(Maybe LocalTime)
+  , exifTitle        :: !(Maybe Text)
+  , exifCaption      :: !(Maybe Text)
+  , exifAperture     :: !(Maybe Double)
+  , exifFocalLength  :: !(Maybe Double)
+  , exifFL35mm       :: !(Maybe Double)
+  , exifISO          :: !(Maybe Integer)
+  , exifSSpeedDesc   :: !(Maybe Text)
+  , exifSSpeedVal    :: !(Maybe Double)
+  , exifShutterCount :: !(Maybe Integer)
+  , exifMimeType     :: !(Maybe Text)
+  , exifWarning      :: !(Maybe Text)
   } deriving (Show, Eq)
 
 instance NFData Exif where
-  rnf Exif{..} = rnf exifPeople     `seq`
-                 rnf exifKeywords   `seq`
-                 rnf exifCountry    `seq`
-                 rnf exifProvince   `seq`
-                 rnf exifCity       `seq`
-                 rnf exifLocation   `seq`
-                 rnf exifCamera     `seq`
-                 rnf exifSerial     `seq`
-                 rnf exifLens       `seq`
-                 rnf exifCreateDate `seq`
-                 rnf exifTitle      `seq`
-                 rnf exifCaption    `seq`
-                 rnf exifAperture   `seq`
-                 rnf exifFocalLength `seq`
-                 rnf exifFL35mm     `seq`
-                 rnf exifISO        `seq`
-                 rnf exifSSpeedDesc `seq`
-                 rnf exifSSpeedVal  `seq`
-                 rnf exifMimeType   `seq`
+  rnf Exif{..} = rnf exifPeople       `seq`
+                 rnf exifKeywords     `seq`
+                 rnf exifCountry      `seq`
+                 rnf exifProvince     `seq`
+                 rnf exifCity         `seq`
+                 rnf exifLocation     `seq`
+                 rnf exifCamera       `seq`
+                 rnf exifSerial       `seq`
+                 rnf exifLens         `seq`
+                 rnf exifCreateDate   `seq`
+                 rnf exifTitle        `seq`
+                 rnf exifCaption      `seq`
+                 rnf exifAperture     `seq`
+                 rnf exifFocalLength  `seq`
+                 rnf exifFL35mm       `seq`
+                 rnf exifISO          `seq`
+                 rnf exifSSpeedDesc   `seq`
+                 rnf exifSSpeedVal    `seq`
+                 rnf exifShutterCount `seq`
+                 rnf exifMimeType     `seq`
                  rnf exifWarning
 
 instance Default Exif where
-  def = Exif { exifPeople      = Set.empty
-             , exifKeywords    = Set.empty
-             , exifCountry     = Nothing
-             , exifProvince    = Nothing
-             , exifCity        = Nothing
-             , exifLocation    = Nothing
-             , exifCamera      = Nothing
-             , exifSerial      = unknown
-             , exifLens        = def
-             , exifOrientation = def
-             , exifCreateDate  = Nothing
-             , exifTitle       = Nothing
-             , exifCaption     = Nothing
-             , exifAperture    = Nothing
-             , exifFocalLength = Nothing
-             , exifFL35mm      = Nothing
-             , exifISO         = Nothing
-             , exifSSpeedDesc  = Nothing
-             , exifSSpeedVal   = Nothing
-             , exifMimeType    = Nothing
-             , exifWarning     = Nothing
+  def = Exif { exifPeople       = Set.empty
+             , exifKeywords     = Set.empty
+             , exifCountry      = Nothing
+             , exifProvince     = Nothing
+             , exifCity         = Nothing
+             , exifLocation     = Nothing
+             , exifCamera       = Nothing
+             , exifSerial       = unknown
+             , exifLens         = def
+             , exifOrientation  = def
+             , exifCreateDate   = Nothing
+             , exifTitle        = Nothing
+             , exifCaption      = Nothing
+             , exifAperture     = Nothing
+             , exifFocalLength  = Nothing
+             , exifFL35mm       = Nothing
+             , exifISO          = Nothing
+             , exifSSpeedDesc   = Nothing
+             , exifSSpeedVal    = Nothing
+             , exifShutterCount = Nothing
+             , exifMimeType     = Nothing
+             , exifWarning      = Nothing
              }
 
 -- | Type alias for either an error or the exif data (which, of
@@ -546,25 +551,26 @@ exifFromRaw config RawExif{..} =
                                     x:_ | x /= pPeople ->
                                           (dropPeople . dropIgnored) ks ++ e
                                     _ -> e) [] rExifHSubjects
-      exifCountry     = rExifCountry
-      exifProvince    = rExifProvince
-      exifCity        = rExifCity
-      exifLocation    = rExifLocation
-      exifCamera      = rExifCamera
-      exifLens        = fromMaybe unknownLens rExifLens
-      exifSerial      = fromMaybe unknown rExifSerial
-      exifOrientation = fromMaybe OrientationTopLeft rExifOrientation
-      exifCreateDate  = rExifCreateDate
-      exifTitle       = rExifTitle
-      exifCaption     = rExifCaption
-      exifAperture    = rExifAperture
-      exifFocalLength = rExifFocalLength
-      exifFL35mm      = rExifFL35mm
-      exifISO         = rExifISO
-      exifSSpeedDesc  = rExifSSpeedDesc
-      exifSSpeedVal   = rExifSSpeedVal
-      exifMimeType    = rExifMimeType
-      exifWarning     = rExifWarning
+      exifCountry      = rExifCountry
+      exifProvince     = rExifProvince
+      exifCity         = rExifCity
+      exifLocation     = rExifLocation
+      exifCamera       = rExifCamera
+      exifLens         = fromMaybe unknownLens rExifLens
+      exifSerial       = fromMaybe unknown rExifSerial
+      exifOrientation  = fromMaybe OrientationTopLeft rExifOrientation
+      exifCreateDate   = rExifCreateDate
+      exifTitle        = rExifTitle
+      exifCaption      = rExifCaption
+      exifAperture     = rExifAperture
+      exifFocalLength  = rExifFocalLength
+      exifFL35mm       = rExifFL35mm
+      exifISO          = rExifISO
+      exifSSpeedDesc   = rExifSSpeedDesc
+      exifSSpeedVal    = rExifSSpeedVal
+      exifShutterCount = rExifShutterCount
+      exifMimeType     = rExifMimeType
+      exifWarning      = rExifWarning
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -590,60 +596,62 @@ promoteFileExif re se je mm me =
       fno_u fn d = case skipUnknown (skipMaybes fn) of
                       []  -> d
                       x:_ -> x
-      exifPeople'      = setmerge exifPeople
-      exifKeywords'    = setmerge exifKeywords `Set.difference` exifPeople'
-      exifCountry'     = fjust  exifCountry
-      exifProvince'    = fjust  exifProvince
-      exifCity'        = fjust  exifCity
-      exifLocation'    = fjust  exifLocation
-      exifCamera'      = fjust  exifCamera
-      exifSerial'      = fjust' exifSerial unknown
-      liName'          = fno_u (liName <$> exifLens) unknown
-      liSpec'          = fno_u (liSpec <$> exifLens) unknown
-      liName''         = if "Unknown" `Text.isPrefixOf` liName' && liSpec' /= unknown
-                         then liSpec'
-                         else liName'
-      liFL'            = fjust (liFL   <$> exifLens)
-      liAperture'      = fjust (liAp   <$> exifLens)
-      exifLens'        = LensInfo liName'' liSpec' liFL' liAperture'
-      exifOrientation' = fjust' exifOrientation OrientationTopLeft
-      exifCreateDate'  = fjust  exifCreateDate
-      exifAperture'    = fjust  exifAperture
-      exifFocalLength' = fjust  exifFocalLength
-      exifFL35mm'      = fjust  exifFL35mm
-      exifISO'         = fjust  exifISO
-      exifSSpeedDesc'  = fjust  exifSSpeedDesc
-      exifSSpeedVal'   = fjust  exifSSpeedVal
+      exifPeople'       = setmerge exifPeople
+      exifKeywords'     = setmerge exifKeywords `Set.difference` exifPeople'
+      exifCountry'      = fjust  exifCountry
+      exifProvince'     = fjust  exifProvince
+      exifCity'         = fjust  exifCity
+      exifLocation'     = fjust  exifLocation
+      exifCamera'       = fjust  exifCamera
+      exifSerial'       = fjust' exifSerial unknown
+      liName'           = fno_u (liName <$> exifLens) unknown
+      liSpec'           = fno_u (liSpec <$> exifLens) unknown
+      liName''          = if "Unknown" `Text.isPrefixOf` liName' && liSpec' /= unknown
+                          then liSpec'
+                          else liName'
+      liFL'             = fjust (liFL   <$> exifLens)
+      liAperture'       = fjust (liAp   <$> exifLens)
+      exifLens'         = LensInfo liName'' liSpec' liFL' liAperture'
+      exifOrientation'  = fjust' exifOrientation OrientationTopLeft
+      exifCreateDate'   = fjust  exifCreateDate
+      exifAperture'     = fjust  exifAperture
+      exifFocalLength'  = fjust  exifFocalLength
+      exifFL35mm'       = fjust  exifFL35mm
+      exifISO'          = fjust  exifISO
+      exifSSpeedDesc'   = fjust  exifSSpeedDesc
+      exifSSpeedVal'    = fjust  exifSSpeedVal
+      exifShutterCount' = fjust exifShutterCount
       -- TODO: both title and caption (and other fields) could differ
       -- between various versions. How to expose this in viewer?
-      exifTitle'       = fjust  exifTitle
-      exifCaption'     = fjust  exifCaption
+      exifTitle'        = fjust  exifTitle
+      exifCaption'      = fjust  exifCaption
       -- Mime type cannot be promoted, since various component _will_ have various types.
-      exifMimeType'    = Nothing
-      exifWarning'     = case catMaybes (skipMaybes exifWarning) of
-                           [] -> Nothing
-                           xs -> Just $ Text.intercalate ", " xs
-  in Exif { exifPeople      = exifPeople'
-          , exifKeywords    = exifKeywords'
-          , exifCountry     = exifCountry'
-          , exifProvince    = exifProvince'
-          , exifCity        = exifCity'
-          , exifLocation    = exifLocation'
-          , exifCamera      = exifCamera'
-          , exifSerial      = exifSerial'
-          , exifLens        = exifLens'
-          , exifOrientation = exifOrientation'
-          , exifCreateDate  = exifCreateDate'
-          , exifTitle       = exifTitle'
-          , exifCaption     = exifCaption'
-          , exifAperture    = exifAperture'
-          , exifFocalLength = exifFocalLength'
-          , exifFL35mm      = exifFL35mm'
-          , exifISO         = exifISO'
-          , exifSSpeedDesc  = exifSSpeedDesc'
-          , exifSSpeedVal   = exifSSpeedVal'
-          , exifMimeType    = exifMimeType'
-          , exifWarning     = exifWarning'
+      exifMimeType'     = Nothing
+      exifWarning'      = case catMaybes (skipMaybes exifWarning) of
+                            [] -> Nothing
+                            xs -> Just $ Text.intercalate ", " xs
+  in Exif { exifPeople       = exifPeople'
+          , exifKeywords     = exifKeywords'
+          , exifCountry      = exifCountry'
+          , exifProvince     = exifProvince'
+          , exifCity         = exifCity'
+          , exifLocation     = exifLocation'
+          , exifCamera       = exifCamera'
+          , exifSerial       = exifSerial'
+          , exifLens         = exifLens'
+          , exifOrientation  = exifOrientation'
+          , exifCreateDate   = exifCreateDate'
+          , exifTitle        = exifTitle'
+          , exifCaption      = exifCaption'
+          , exifAperture     = exifAperture'
+          , exifFocalLength  = exifFocalLength'
+          , exifFL35mm       = exifFL35mm'
+          , exifISO          = exifISO'
+          , exifSSpeedDesc   = exifSSpeedDesc'
+          , exifSSpeedVal    = exifSSpeedVal'
+          , exifShutterCount = exifShutterCount'
+          , exifMimeType     = exifMimeType'
+          , exifWarning      = exifWarning'
           }
 
 -- TODO: make this saner/ensure it's canonical path.

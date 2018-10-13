@@ -35,6 +35,9 @@ $with smf <- showMaybeField "?"
     <td>Focal length
     <td>#{fl}
   <tr>
+    <td>Shutter count
+    <td>^{showMaybeField "unknown" shutterCount}
+  <tr>
     <td>Orientation
     <td>#{show exifOrientation}
   <tr>
