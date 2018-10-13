@@ -38,43 +38,6 @@ import           Indexer
 import           Pics
 
 import qualified Data.Map      as Map
-import qualified Data.Set      as Set
-
-data GraphData a b c = GraphData
-  { gdName  :: Text
-  , gdType  :: Text
-  , gdX     :: Maybe [a]
-  , gdY     :: Maybe [b]
-  , gdZ     :: Maybe [c]
-  , gdText  :: Maybe [Text]
-  , gdMode  :: Maybe Text
-  , gdExtra :: [(Text, Value)]
-  }
-
-instance Default (GraphData a b c) where
-  def = GraphData { gdName = ""
-                  , gdType = "scatter"
-                  , gdX = Nothing
-                  , gdY = Nothing
-                  , gdZ = Nothing
-                  , gdText = Nothing
-                  , gdMode = Nothing
-                  , gdExtra = []
-                  }
-
-instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
-  toJSON GraphData {..} =
-    object $ [ "name"  .= gdName
-             , "type"  .= gdType
-             , "x"     .= gdX
-             , "y"     .= gdY
-             , "z"     .= gdZ
-             , "text"  .= gdText
-             , "mode"  .= gdMode
-             ] ++ map (uncurry (.=)) gdExtra
-
-counterOne :: Int64
-counterOne = 1
 
 getByLens :: Repository -> Map Text (Occurrence LensInfo)
 getByLens = sByLens . rsPicStats . repoStats
@@ -87,25 +50,9 @@ getLensInfoR lensname = do
             Nothing  -> notFound
             Just occ -> return $ ocData occ
   let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensname) pics
-      fam = foldl' (\m i ->
-                       let e = imgExif i
-                           fl = exifFocalLength e
-                           aper = exifAperture e
-                       in case (fl, aper) of
-                            (Just fl', Just aper') -> Map.insertWith (+) (fl', aper') counterOne m
-                            _ -> m) Map.empty images
       cameras = foldl' (\m i -> case exifCamera (imgExif i) of
                                   Nothing -> m
                                   Just c  ->  Map.insertWith (+) c counterOne m) Map.empty images
-      faml = Map.toList fam
-      (xys, cnt) = unzip faml
-      maxCnt = fromIntegral $ maybe 5 maximum $ fromNullable cnt
-      (x, y) = unzip xys
-      allapertures = Set.toAscList $ Set.fromList y
-      tickVals = allapertures
-      tickText = map show allapertures
-      hoverFmt ((fl', ap'), cnt') =
-        show fl'++"mm @ f/" ++ show ap' ++ ": " ++ show cnt' ++ " images"
       cameraCounts =
         sort . map (\(a, b) -> (b, a)) . Map.toList $ cameras
       topCamera = listToMaybe $ reverse cameraCounts
@@ -120,30 +67,12 @@ getLensInfoR lensname = do
                                              Nothing  -> a
                                              Just cd' -> (cd', cam):a) [] $ images
                   in maybe Nothing (\nn -> Just (head nn, last nn)) $ fromNullable cds
-  let jsonl = def { gdName = ""
-                  , gdType = "scatter"
-                  , gdMode = Just "markers"
-                  , gdX = Just x
-                  , gdY = Just y
-                  , gdExtra = [ ("colorscale", "YIGnBu")
-                              , ("reversescale", Bool True)
-                              , ("marker", object [ "size" .= (toJSON cnt::Value)
-                                                  , "sizemin" .= toJSON (4::Int)
-                                                  , "sizemode" .= String "area"
-                                                  , "sizeref" .= toJSON (2.0 * maxCnt / (90 ** 2)::Double)
-                                                  ])
-                              , ("text", toJSON $ map hoverFmt faml)
-                              , ("hoverinfo", "text")
-                              ]
-                  } :: GraphData Double Double Double
-  let html = do
+      obj = buildLensApFL images
+      html = do
         setTitle "Corydalis: lens information"
         addPlotly
         $(widgetFile "lensinfo")
-  defaultLayoutJson html (return $ object [ "lensflap"  .= [jsonl]
-                                          , "ytickvals" .= tickVals
-                                          , "yticktext" .= tickText
-                                          ])
+  defaultLayoutJson html (return obj)
 
 getLensStatsR :: Handler TypedContent
 getLensStatsR = do

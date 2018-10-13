@@ -2,7 +2,7 @@
 
 <div .row>
   <div .col-12>
-    <div #cameraFlApChart .largegraph>
+    <div #lensFlApChart .largegraph>
 
 <div .row>
  <div .col-12 .col-sm-4>

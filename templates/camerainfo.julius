@@ -21,7 +21,7 @@ $(document).ready(function() {
             displaylogo: false,
             modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
         }
-        Plotly.newPlot('cameraFlApChart', series.cameraflap, cameraLayout, config);
+        Plotly.newPlot('lensFlApChart', series.lensflap, cameraLayout, config);
     }
 
     $.ajax({
