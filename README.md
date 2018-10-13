@@ -6,17 +6,18 @@ processor (e.g. Adobe Lightroom, DxO PhotoLab, Capture one, Darktable,
 etc.) but instead acts as a companion to it, giving a parallel view on
 all your files.
 
-Corydalis is also an image viewer, designed to work across and
-understand your entire photo collection; the desktop-only viewers
+Corydalis is also an image and movie viewer, designed to work across
+and understand your entire photo collection; the desktop-only viewers
 (e.g. Geeqie) are folder-based, not collection-based. This aspect aims
-to offer a similar experience of viewing your photos as it would be if
-you stored them in the cloud (but many features are still missing).
+to offer a similar experience of viewing your photos and movies as it
+would be if you stored them in the cloud (but many features are still
+missing).
 
 Is it for you? If you need/could use:
 
 * help in understanding a large collection of pictures, or
-* an image viewer for browsing the pictures stored on your NAS from
-  various web and mobile clients,
+* an image/movie viewer for browsing the pictures stored on your NAS
+  from various web and mobile clients,
 
 Then maybe yes. Although this is very much a work in progress, and has
 very sharp edges, I use it to analyse my picture collection since

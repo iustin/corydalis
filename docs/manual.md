@@ -82,6 +82,7 @@ The search atoms are:
 - keyword (set of string)
 - year (numeric)
 - camera (string)
+- lens (string)
 - problem (this is what can be potentially errors; right now limited
   to exif metadata read issues)
 - type (set: movie, image, or unknown)

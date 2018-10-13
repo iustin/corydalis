@@ -33,12 +33,12 @@
   licences. Copyright &copy; 2013, Iustin Pop.
 
 <p>
-  Tech stack: there are a lot of libraries used in this project! On the
-  Haskell side, too many to list, but special mentions: yesod, aeson,
-  wai, warp, persistent, and so on. On the frontend (JS/CSS) side:
-  bootstrap, jquery, tablesorter, plotly, hammerjs,
-  font-awesome. Run-time dependencies: exiftool and
-  ImageMagick. Thanks to all the upstream authors for enabling this
+  Tech stack: there are a lot of libraries used in this project! On
+  the Haskell side, too many to list, but special mentions: yesod,
+  aeson, wai, warp, persistent, and so on. On the frontend (JS/CSS)
+  side: bootstrap, jquery, tablesorter, plotly, hammerjs,
+  font-awesome. Run-time dependencies: exiftool, ImageMagick and
+  ffmpeg. Thanks to all the upstream authors for enabling this
   project!
 
 <p>

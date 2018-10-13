@@ -10,9 +10,11 @@ simplest way is to use the
 It uses [ImageMagick](https://www.imagemagick.org/) to generate the
 correctly-sized images for the client and
 [ExifTool](https://www.sno.phy.queensu.ca/~phil/exiftool/) to extract
-the EXIF/IPTC/XMP information from the source pictures. It also uses
-sqlite (via Haskell bindings), so you might need to have devel
-libraries for it.
+the EXIF/IPTC/XMP information from the source pictures, and
+[ffmpeg](https://www.ffmpeg.org/) to extract movie information.
+
+It also uses sqlite (via Haskell bindings), so you might need to have
+devel libraries for it.
 
 Because of the way the image viewer works with clients (sending
 appropriately-sized images, instead of relying on in-client scaling),
