@@ -315,15 +315,27 @@ $(document).ready(function() {
         location.href = cory.info.folderurl;
     }
 
+    function launchMovie() {
+        if (cory.state.movie != null) {
+            LOG("Opening in separate window:", cory.state.movie);
+            window.open(cory.state.movie, "");
+        }
+    }
+
     function setupHammer() {
         var mc = new Hammer.Manager(canvas, {});
         mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
-        mc.add( new Hammer.Tap({pointers: 2}));
+        var singleTap = new Hammer.Tap({event: "singletap"});
+        var doubleTap = new Hammer.Tap({event: "doubletap", pointers: 2});
+        mc.add([singleTap, doubleTap]);
+        doubleTap.recognizeWith(singleTap);
+        singleTap.requireFailure(doubleTap);
         mc.on("swiperight", function(ev) {advanceImage(false);});
         mc.on("swipeleft", function(ev) {advanceImage(true);});
         //mc.on("swipedown", function(ev) {toggleFullScreen();});
         //mc.on("swipeup", function(ev) {gotoRandomImage();});
-        mc.on("tap", function(ev) {toggleFullScreen();});
+        mc.on("doubletap", function(ev) {toggleFullScreen();});
+        mc.on("singletap", function(ev) {launchMovie();});
     }
 
     setupHammer();
@@ -338,10 +350,7 @@ $(document).ready(function() {
             toggleFullScreen();
             break;
         case 80: // 'p'
-            if (cory.state.movie != null) {
-                LOG("Opening in separate window:", cory.state.movie);
-                window.open(cory.state.movie, "");
-            }
+            launchMovie();
             break;
         case 82: // 'r'
             gotoRandomImage();
