@@ -40,35 +40,35 @@ import           Indexer
 import           Pics
 import           Types
 
-data GraphData a b = GraphData
-  { gdName :: Text
-  , gdType :: Text
-  , gdX    :: [a]
-  , gdY    :: [b]
-  , gdText :: Maybe [Text]
+data XGraphData a b = XGraphData
+  { xgdName :: Text
+  , xgdType :: Text
+  , xgdX    :: [a]
+  , xgdY    :: [b]
+  , xgdText :: Maybe [Text]
 --  , gdYAxis :: Maybe Text
-  , gdMode :: Maybe Text
+  , xgdMode :: Maybe Text
   }
 
-instance Default (GraphData a b) where
-  def = GraphData { gdName = ""
-                  , gdType = "scatter"
-                  , gdX = []
-                  , gdY = []
-                  , gdText = Nothing
-                  , gdMode = Nothing
+instance Default (XGraphData a b) where
+  def = XGraphData { xgdName = ""
+                   , xgdType = "scatter"
+                   , xgdX = []
+                   , xgdY = []
+                   , xgdText = Nothing
+                   , xgdMode = Nothing
                   }
 
-instance (ToJSON a, ToJSON b) => ToJSON (GraphData a b) where
-  toJSON GraphData {..} =
-    object [ "name"  .= gdName
-           , "type"  .= gdType
-           , "x"     .= gdX
-           , "y"     .= gdY
-           , "text"  .= gdText
+instance (ToJSON a, ToJSON b) => ToJSON (XGraphData a b) where
+  toJSON XGraphData {..} =
+    object [ "name"  .= xgdName
+           , "type"  .= xgdType
+           , "x"     .= xgdX
+           , "y"     .= xgdY
+           , "text"  .= xgdText
            --, "yaxis" .= gdYAxis
-           , "mode"  .= gdMode
-           , "marker" .= object [ "size" .= map (const (15::Int)) gdX]
+           , "mode"  .= xgdMode
+           , "marker" .= object [ "size" .= map (const (15::Int)) xgdX]
            ]
 
 getCurateR :: Handler TypedContent
@@ -99,35 +99,35 @@ getCurateR = do
                        in top10
       top10c = buildTop10 bycamera 10
       json = foldl' (\a (cnt, sz, k) ->
-                       def { gdName = k
-                           , gdType = "scatter"
-                           , gdMode = Just "markers"
-                           , gdX = [fromIntegral cnt]
-                           , gdY = [fromIntegral sz]
+                       def { xgdName = k
+                           , xgdType = "scatter"
+                           , xgdMode = Just "markers"
+                           , xgdX = [fromIntegral cnt]
+                           , xgdY = [fromIntegral sz]
                            }:a)
-               ([]::[GraphData Int64 Int64]) top10c
+               ([]::[XGraphData Int64 Int64]) top10c
       top10l = buildTopNItems unknownLens bylens 12
       jsonl = foldl' (\a (cnt, _, k, _) ->
-                        def { gdName = k
-                            , gdType = "bar"
-                            , gdMode = Just "markers"
-                            , gdX = [k]
-                            , gdY = [fromIntegral cnt]
+                        def { xgdName = k
+                            , xgdType = "bar"
+                            , xgdMode = Just "markers"
+                            , xgdX = [k]
+                            , xgdY = [fromIntegral cnt]
                             }:a)
-              ([]::[GraphData Text Int64]) top10l
+              ([]::[XGraphData Text Int64]) top10l
       perFolderStats = Map.foldl'
                        (\l f -> let stats = computeFolderStats f
                                 in (fromIntegral $ totalStatsSize stats,
                                     fromIntegral $ totalStatsCount stats,
                                     pdName f):l) [] (repoDirs pics)
       (xdata, ydata, textdata) = unzip3 perFolderStats
-      j2 = [ def { gdName = "Folders"
-                 , gdType = "scatter"
-                 , gdMode = Just "markers"
-                 , gdX = xdata
-                 , gdY = ydata
-                 , gdText = Just textdata
-                 }::GraphData Int64 Int64
+      j2 = [ def { xgdName = "Folders"
+                 , xgdType = "scatter"
+                 , xgdMode = Just "markers"
+                 , xgdX = xdata
+                 , xgdY = ydata
+                 , xgdText = Just textdata
+                 }::XGraphData Int64 Int64
            ]
       topN n =
         splitAt n .
