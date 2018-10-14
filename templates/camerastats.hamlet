@@ -34,8 +34,8 @@
                  $maybe kr <- keeperRate oc
                    #{formatKeeperRate kr}
                $maybe (bDate, eDate) <- ciDateRange $ ocData oc
-                 <td>#{show bDate}
-                 <td>#{show eDate}
+                 <td .date>#{showLocalDate bDate}
+                 <td .date>#{showLocalDate eDate}
                  $# FIXME: when time 1.9, this becomes much easier…
                  $with age <- diffDays (localDay eDate) (localDay bDate) + 1
                    <td data-text="#{show age}">#{formatDate age}

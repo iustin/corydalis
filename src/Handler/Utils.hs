@@ -140,6 +140,10 @@ showLocalTime ts =
     where pico = take 4 $ formatTime defaultTimeLocale "%q" ts
           ft = formatTime defaultTimeLocale "%F %T." ts
 
+showLocalDate :: LocalTime -> Text
+showLocalDate=
+  Text.pack . formatTime defaultTimeLocale "%F"
+
 showExifDate :: Image -> Text
 showExifDate (imgExif -> e) =
   case exifCreateDate e of

@@ -2,6 +2,10 @@ td.number {
     text-align: right
 }
 
+td.date {
+    text-align: right
+}
+
 .mono {
     font-family: monospace;
 }
