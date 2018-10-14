@@ -252,7 +252,7 @@ parseStrOrNum v          = typeMismatch "string or number" v
 
 data RawExif = RawExif
   { rExifSrcFile      :: Text
-  , rExifCamera       :: Maybe Text
+  , rExifModel        :: Maybe Text
   , rExifSerial       :: Maybe Text
   , rExifLens         :: Maybe LensInfo
   , rExifOrientation  :: Maybe Orientation
@@ -281,10 +281,13 @@ instance FromJSON RawExif where
   parseJSON = withObject "RawExif" $ \o -> do
     let giveUp        = pure Nothing
     rExifSrcFile     <- o .: "SourceFile"
-    rExifCamera      <- o .!:? "Model"
+    rExifModel       <- o .!:? "Model"
+    cameraSerial     <- o .~:? "SerialNumber"
+    rExifSerial      <- case cameraSerial of
+                          Nothing -> pure Nothing
+                          Just v  -> Just <$> parseStrOrNum v
     rExifLens        <- (Just <$> lensInfoFromObject o) <|>
                         giveUp
-    rExifSerial      <- o .!:? "Serial"
     rExifOrientation <- o .!:? "Orientation"
     hsubjs           <- o .!:? "HierarchicalSubject" .!= []
     let rExifHSubjects = map parseHierSubject hsubjs
@@ -330,7 +333,8 @@ data Exif = Exif
   , exifCity         :: !(Maybe Text)
   , exifLocation     :: !(Maybe Text)
   , exifCamera       :: !(Maybe Text)
-  , exifSerial       :: !Text
+  , exifModel        :: !(Maybe Text)
+  , exifSerial       :: !(Maybe Text)
   , exifLens         :: !LensInfo
   , exifOrientation  :: !Orientation
   , exifCreateDate   :: !(Maybe LocalTime)
@@ -355,6 +359,7 @@ instance NFData Exif where
                  rnf exifCity         `seq`
                  rnf exifLocation     `seq`
                  rnf exifCamera       `seq`
+                 rnf exifModel        `seq`
                  rnf exifSerial       `seq`
                  rnf exifLens         `seq`
                  rnf exifCreateDate   `seq`
@@ -378,7 +383,8 @@ instance Default Exif where
              , exifCity         = Nothing
              , exifLocation     = Nothing
              , exifCamera       = Nothing
-             , exifSerial       = unknown
+             , exifModel        = Nothing
+             , exifSerial       = Nothing
              , exifLens         = def
              , exifOrientation  = def
              , exifCreateDate   = Nothing
@@ -564,9 +570,15 @@ exifFromRaw config RawExif{..} =
       exifProvince     = rExifProvince
       exifCity         = rExifCity
       exifLocation     = rExifLocation
-      exifCamera       = rExifCamera
+      exifCamera       = maybe rExifModel
+                         (\s ->
+                             Just $ case rExifModel of
+                                      Nothing  -> "#" `Text.append` s
+                                      Just txt -> Text.concat [txt, " (#", s, ")"]
+                         ) rExifSerial
+      exifModel        = rExifModel
+      exifSerial       = rExifSerial
       exifLens         = fromMaybe unknownLens rExifLens
-      exifSerial       = fromMaybe unknown rExifSerial
       exifOrientation  = fromMaybe OrientationTopLeft rExifOrientation
       exifCreateDate   = rExifCreateDate
       exifTitle        = rExifTitle
@@ -612,7 +624,8 @@ promoteFileExif re se je mm me =
       exifCity'         = fjust  exifCity
       exifLocation'     = fjust  exifLocation
       exifCamera'       = fjust  exifCamera
-      exifSerial'       = fjust' exifSerial unknown
+      exifModel'        = fjust  exifModel
+      exifSerial'       = fjust  exifSerial
       liName'           = fno_u (liName <$> exifLens) unknown
       liSpec'           = fno_u (liSpec <$> exifLens) unknown
       liName''          = if "Unknown" `Text.isPrefixOf` liName' && liSpec' /= unknown
@@ -646,6 +659,7 @@ promoteFileExif re se je mm me =
           , exifCity         = exifCity'
           , exifLocation     = exifLocation'
           , exifCamera       = exifCamera'
+          , exifModel        = exifModel'
           , exifSerial       = exifSerial'
           , exifLens         = exifLens'
           , exifOrientation  = exifOrientation'
