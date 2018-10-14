@@ -21,6 +21,9 @@
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
              <th .sorter-percent>Keeper rate
+             <th>First picture
+             <th>Last picture
+             <th>Working age
          <tbody>
            $forall (name, oc) <- cameras
              <tr>
@@ -30,3 +33,13 @@
                <td .number>
                  $maybe kr <- keeperRate oc
                    #{formatKeeperRate kr}
+               $maybe (bDate, eDate) <- ciDateRange $ ocData oc
+                 <td>#{show bDate}
+                 <td>#{show eDate}
+                 $# FIXME: when time 1.9, this becomes much easier…
+                 $with age <- diffDays (localDay eDate) (localDay bDate) + 1
+                   <td data-text="#{show age}">#{formatDate age}
+               $nothing
+                 <td>
+                 <td>
+                 <td>

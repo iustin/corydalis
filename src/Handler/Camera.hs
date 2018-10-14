@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiWayIf            #-}
 {-# LANGUAGE NoCPP                 #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -37,7 +38,9 @@ import           Import
 import           Indexer
 import           Pics
 
-import qualified Data.Map      as Map
+import qualified Data.Map            as Map
+import           Data.Time.Calendar
+import           Data.Time.LocalTime
 import           Text.Printf
 
 getByCamera :: Repository -> Map Text (Occurrence CameraInfo)
@@ -54,6 +57,22 @@ keeperRate Occurrence{..} =
 
 formatKeeperRate :: Double -> String
 formatKeeperRate = printf "%.01f%%" . (* 100)
+
+formatDate :: Integer -> String
+formatDate d =
+  let (years, d1) = d `quotRem` 365
+      (months, d2) = d1 `quotRem` 30
+      (weeks, days) = d2 `quotRem` 7
+      pl :: Integer -> String
+      pl n = if n > 1 then "s" else ""
+      fpl :: Integer -> String -> Maybe String
+      fpl n t = if n > 0 then Just (printf "%d %s%s" n t (pl n)) else Nothing
+      elems = [ fpl years "year"
+              , fpl months "month"
+              , fpl weeks "week"
+              , fpl days "day"
+              ]
+  in intercalate " and " $ take 2 $ catMaybes elems
 
 getCameraInfoR :: Text -> Handler TypedContent
 getCameraInfoR cameraname = do

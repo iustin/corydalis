@@ -409,23 +409,32 @@ ocFromSize size d =
 data CameraInfo = CameraInfo
   { ciName         :: !Text
   , ciShutterCount :: !(Maybe (Integer, Integer))
+  , ciDateRange    :: !(Maybe (LocalTime, LocalTime))
   } deriving (Eq, Show, Ord)
 
 instance NFData CameraInfo where
   rnf CameraInfo{..} = rnf ciName `seq`
-                       rnf ciShutterCount
+                       rnf ciShutterCount `seq`
+                       rnf ciDateRange
+
+-- | Min-max merge of two pairs.
+minMaxPairMerge :: (Ord a) => (a, a) -> (a, a) -> (a, a)
+minMaxPairMerge (xmin, xmax) (ymin, ymax) =
+  (xmin `min` ymin, xmax `max` ymax)
+
+-- | Merge two Maybe values using a custom function.
+mergeMM :: Maybe a -> Maybe a -> (a -> a -> a) -> Maybe a
+mergeMM Nothing x _          = x
+mergeMM x Nothing _          = x
+mergeMM (Just x) (Just y) fn = Just $ fn x y
 
 instance Semigroup CameraInfo where
-  x <> y = x { ciShutterCount = newsc }
-   where newsc =
-           case (ciShutterCount x, ciShutterCount y) of
-             (a, Nothing) -> a
-             (Nothing, a) -> a
-             (Just (xmin, xmax), Just (ymin, ymax)) ->
-               Just (xmin `min` ymin, xmax `max` ymax)
+  x <> y = x { ciShutterCount = mergeMM (ciShutterCount x) (ciShutterCount y) minMaxPairMerge
+             , ciDateRange = mergeMM (ciDateRange x) (ciDateRange y) minMaxPairMerge
+             }
 
 instance Default CameraInfo where
-  def = CameraInfo unknown Nothing
+  def = CameraInfo unknown Nothing Nothing
 
 -- | Data type holding per-folder picture statistics.
 data Stats = Stats
@@ -520,8 +529,10 @@ updateStatsWithPic orig img =
                             _   -> 0
       lens = exifLens exif
       lensOcc = ocFromSize xsize lens
-      shutterCount = (\x -> (x, x)) <$> exifShutterCount exif
-      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount)
+      doubleUp = \x -> (x, x)
+      shutterCount = doubleUp <$> exifShutterCount exif
+      captureDate = doubleUp <$> exifCreateDate exif
+      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount captureDate)
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
