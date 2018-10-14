@@ -240,10 +240,15 @@ lensShortName LensInfo{..} =
      then liSpec
      else liName
 
-parseSSDesc :: Value -> Parser Text
-parseSSDesc (String f) = pure f
-parseSSDesc (Number n) = pure . Text.pack . show $ n
-parseSSDesc v          = typeMismatch "string or number" v
+parseStrOrNum :: Value -> Parser Text
+parseStrOrNum (String f) = pure f
+parseStrOrNum (Number n) =
+  -- try to parse the number as int as much as possible
+  maybe (showfn n) showfn ((toBoundedInteger n)::Maybe Int)
+  where
+    showfn :: (Show a) => a -> Parser Text
+    showfn = pure . Text.pack . show
+parseStrOrNum v          = typeMismatch "string or number" v
 
 data RawExif = RawExif
   { rExifSrcFile      :: Text
@@ -309,7 +314,7 @@ instance FromJSON RawExif where
     rssd             <- o .~:? "ShutterSpeed"
     rExifSSpeedDesc  <- case rssd of
                           Nothing -> pure Nothing
-                          Just v  -> Just <$> parseSSDesc v
+                          Just v  -> Just <$> parseStrOrNum v
     rExifSSpeedVal   <- o .!:? "ShutterSpeed"
     rExifShutterCount <- o .~:? "ShutterCount"
     rExifMimeType    <- o .~:? "MIMEType"
