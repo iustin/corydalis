@@ -529,7 +529,7 @@ updateStatsWithPic orig img =
                             _   -> 0
       lens = exifLens exif
       lensOcc = ocFromSize xsize lens
-      doubleUp = \x -> (x, x)
+      doubleUp x = (x, x)
       shutterCount = doubleUp <$> exifShutterCount exif
       captureDate = doubleUp <$> exifCreateDate exif
       cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount captureDate)

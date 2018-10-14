@@ -244,7 +244,7 @@ parseStrOrNum :: Value -> Parser Text
 parseStrOrNum (String f) = pure f
 parseStrOrNum (Number n) =
   -- try to parse the number as int as much as possible
-  maybe (showfn n) showfn ((toBoundedInteger n)::Maybe Int)
+  maybe (showfn n) showfn (toBoundedInteger n::Maybe Int)
   where
     showfn :: (Show a) => a -> Parser Text
     showfn = pure . Text.pack . show
