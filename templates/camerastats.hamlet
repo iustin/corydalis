@@ -20,6 +20,7 @@
              <th .sorter-text>Name
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
+             <th .sorter-digit>Shutter count
              <th .sorter-percent>Keeper rate
              <th>First picture
              <th>Last picture
@@ -30,6 +31,9 @@
                <td><a href=@{CameraInfoR name}>#{name}</a>
                <td .number>#{ocFiles oc}
                <td .number>#{ocFolders oc}
+               <td .number>
+                 $maybe (_, shutterCount) <- ciShutterCount $ ocData oc
+                   #{show shutterCount}
                <td .number>
                  $maybe kr <- keeperRate oc
                    #{formatKeeperRate kr}
