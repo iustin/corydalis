@@ -15,12 +15,17 @@ $(document).ready(function() {
             }
         }
         var lensLayout = {
+            xaxis: {
+                showticklabels: true,
+                automargin: true,
+            },
             yaxis: {
                 type: 'log',
                 exponentformat: 'SI',
                 rangemode: 'nonnegative',
                 title: 'File count'
             },
+            showlegend: false,
         }
         var folderLayout = {
             xaxis: {
