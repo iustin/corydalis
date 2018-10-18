@@ -12,7 +12,8 @@ $(document).ready(function() {
                 exponentformat: 'SI',
                 rangemode: 'nonnegative',
                 title: 'Size'
-            }
+            },
+            title: 'Camera file/size stats',
         }
         var lensLayout = {
             xaxis: {
@@ -26,6 +27,7 @@ $(document).ready(function() {
                 title: 'File count'
             },
             showlegend: false,
+            title: 'Lens image count',
         }
         var folderLayout = {
             xaxis: {
@@ -38,7 +40,8 @@ $(document).ready(function() {
                 type: 'log',
                 rangemode: 'nonnegative',
                 title: 'File count'
-            }
+            },
+            title: 'Folder file/size stats',
         }
         var config = {
             showLink: false,
