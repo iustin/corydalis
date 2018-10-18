@@ -9,6 +9,9 @@ $(document).ready(function() {
                 rangemode: 'nonnegative',
                 title: 'File count'
             },
+            xaxis: {
+                automargin: true,
+            },
         }
         var config = {
             showLink: false,
