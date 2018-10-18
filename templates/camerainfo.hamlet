@@ -58,7 +58,7 @@
         <td>Number of images
         $if length images > 0
           <td .number>
-            <a href="@?{(SearchImagesR,[atomAsParam TCamera (Just cameraname)])}">
+            <a href="@?{(SearchImagesR,[atomAsParam TCamera cameraExif])}">
               #{length images}
         $else
           <td .number>#{length images}

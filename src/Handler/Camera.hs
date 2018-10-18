@@ -81,7 +81,10 @@ getCameraInfoR cameraname = do
   camera <- case cameraname `Map.lookup` bycamera of
               Nothing -> notFound
               Just c  -> return c
-  let images = filterImagesBy (\i -> (exifCamera . imgExif) i == Just cameraname) pics
+  let cameraExif = if cameraname == unknown
+                   then Nothing
+                   else Just cameraname
+      images = filterImagesBy (\i -> (exifCamera . imgExif) i == cameraExif) pics
       lenses = foldl' (\m i -> Map.insertWith (+)
                                (liName . exifLens . imgExif $ i)
                                counterOne m) Map.empty images
