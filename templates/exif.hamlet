@@ -43,6 +43,4 @@ $with smf <- showMaybeField "?"
   <tr>
     <td>MIME type
     <td>^{showMaybeField "unknown" exifMimeType}
-  <tr>
-    <td>Warnings
-    <td>^{showMaybeField "none" exifWarning}
+  ^{showListWithHeader "Warnings" (Set.toList exifWarning)}

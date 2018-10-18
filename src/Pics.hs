@@ -862,7 +862,7 @@ loadFolder config name path isSource = do
       jpeg = jpegExtsRev config
       move = movieExtsRev config
       tname = Text.pack name
-      ewarn txt = def { exifWarning = Just txt }
+      ewarn txt = def { exifWarning = Set.singleton txt }
       loadImage ii  =
         let f = inodeName ii
             base = dropCopySuffix config $ dropExtensions f
@@ -1278,13 +1278,8 @@ imageAtRes config img size = runExceptT $ do
     Just s  -> loadCachedOrBuild config (filePath origFile) path mime mtime s
 
 imgProblems :: Image -> Set Text
-imgProblems img =
-  let files = allImageFiles img
-      builder m = "exif: " <> m
-  in foldl' (\s f -> case exifWarning (fileExif f) of
-                       Just msg -> builder msg `Set.insert` s
-                       _        -> s
-            ) Set.empty files
+imgProblems =
+  Set.map ("exif: " <>) . exifWarning . imgExif
 
 pdProblems :: PicDir -> NameStats
 pdProblems =

@@ -106,3 +106,20 @@ showSetField (Set.null -> True) =
   toWidget [hamlet|<i>empty|]
 showSetField v =
   toWidget [hamlet|#{Text.intercalate ", " (Set.toList v)}|]
+
+showListWithHeader :: Text -> [Text] -> Widget
+showListWithHeader txt [] =
+  toWidget [hamlet|
+                  <tr>
+                    <td>#{txt}
+                    <td><i>none
+           |]
+showListWithHeader txt (x:xs) =
+  toWidget [hamlet|
+                  <tr>
+                    <td colspan=#{length xs}>#{txt}
+                    <td>#{x}
+                  $forall w <- xs
+                    <tr>
+                      <td>#{w}
+            |]

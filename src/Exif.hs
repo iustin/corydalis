@@ -348,7 +348,7 @@ data Exif = Exif
   , exifSSpeedVal    :: !(Maybe Double)
   , exifShutterCount :: !(Maybe Integer)
   , exifMimeType     :: !(Maybe Text)
-  , exifWarning      :: !(Maybe Text)
+  , exifWarning      :: !(Set Text)
   } deriving (Show, Eq)
 
 instance NFData Exif where
@@ -398,7 +398,7 @@ instance Default Exif where
              , exifSSpeedVal    = Nothing
              , exifShutterCount = Nothing
              , exifMimeType     = Nothing
-             , exifWarning      = Nothing
+             , exifWarning      = Set.empty
              }
 
 -- | Type alias for either an error or the exif data (which, of
@@ -591,7 +591,7 @@ exifFromRaw config RawExif{..} =
       exifSSpeedVal    = rExifSSpeedVal
       exifShutterCount = rExifShutterCount
       exifMimeType     = rExifMimeType
-      exifWarning      = rExifWarning
+      exifWarning      = maybe Set.empty Set.singleton rExifWarning
   in Exif{..}
 
 -- | Promotion rules for file to exif
@@ -649,9 +649,7 @@ promoteFileExif re se je mm me =
       exifCaption'      = fjust  exifCaption
       -- Mime type cannot be promoted, since various component _will_ have various types.
       exifMimeType'     = Nothing
-      exifWarning'      = case catMaybes (skipMaybes exifWarning) of
-                            [] -> Nothing
-                            xs -> Just $ Text.intercalate ", " xs
+      exifWarning'      = setmerge exifWarning
   in Exif { exifPeople       = exifPeople'
           , exifKeywords     = exifKeywords'
           , exifCountry      = exifCountry'
