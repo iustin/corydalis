@@ -31,6 +31,8 @@ module Handler.Curate
   ) where
 
 import qualified Data.Map      as Map
+import qualified Data.Set      as Set
+import qualified Data.Text     as Text
 
 import           Exif          (unknownLens)
 import           Handler.Items
@@ -71,6 +73,27 @@ instance (ToJSON a, ToJSON b) => ToJSON (XGraphData a b) where
            , "marker" .= object [ "size" .= map (const (15::Int)) xgdX]
            ]
 
+-- | Holds words that should be filtered out from the lens graph.
+--
+-- All vendors are going overboard… this is not helpful for the
+-- graph. Full text remains available in lens list.
+hideLensWords :: Set Text
+hideLensWords = Set.fromList
+  [ "AF-S"
+  , "VR"
+  , "M.Zuiko"
+  , "Digital"
+  , "AF"
+  , "ED"
+  , "DG"
+  , "Asph."
+  , "Power"
+  , "OIS"
+  , "Pro"
+  , "IS"
+  , "FL"
+  ]
+
 getCurateR :: Handler TypedContent
 getCurateR = do
   pics <- getPics
@@ -107,6 +130,10 @@ getCurateR = do
                            }:a)
                ([]::[XGraphData Int64 Int64]) top10c
       top10l = buildTopNItems unknownLens bylens 12
+      top10l' = map (\(a,b,text,d) ->
+                       let w = Text.words text
+                           w' = filter (not . (`Set.member` hideLensWords)) w
+                       in (a, b, Text.unwords w', d)) top10l
       jsonl = foldl' (\a (cnt, _, k, _) ->
                         def { xgdName = k
                             , xgdType = "bar"
@@ -114,7 +141,7 @@ getCurateR = do
                             , xgdX = [k]
                             , xgdY = [fromIntegral cnt]
                             }:a)
-              ([]::[XGraphData Text Int64]) top10l
+              ([]::[XGraphData Text Int64]) top10l'
       perFolderStats = Map.foldl'
                        (\l f -> let stats = computeFolderStats f
                                 in (fromIntegral $ totalStatsSize stats,
