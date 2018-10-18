@@ -76,6 +76,12 @@ import           Compat.Orphans         ()
 import           Settings.Development
 import           Types
 
+-- | Shutter counts this high are unlikely, but they do appear in
+-- corrupted/wrong exif data.
+tooHighShutterCount :: Integer
+tooHighShutterCount = 10000000  -- TODO: use NumericUnderscores when
+                                -- available…
+
 data Orientation
   = OrientationTopLeft
   | OrientationTopRight
@@ -589,9 +595,14 @@ exifFromRaw config RawExif{..} =
       exifISO          = rExifISO
       exifSSpeedDesc   = rExifSSpeedDesc
       exifSSpeedVal    = rExifSSpeedVal
-      exifShutterCount = rExifShutterCount
       exifMimeType     = rExifMimeType
-      exifWarning      = maybe Set.empty Set.singleton rExifWarning
+      (exifShutterCount, scErr) =
+        case rExifShutterCount of
+          Nothing -> (Nothing, Set.empty)
+          Just v -> if v > tooHighShutterCount
+                    then (Nothing, Set.singleton $ " Unlikely shutter count: " <> Text.pack (show v))
+                    else (Just v, Set.empty)
+      exifWarning      = maybe scErr (flip Set.insert scErr) rExifWarning
   in Exif{..}
 
 -- | Promotion rules for file to exif
