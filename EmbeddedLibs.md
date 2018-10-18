@@ -6,6 +6,6 @@ Current list of embedded libraries:
 - jquery
 - font-awesome
 - hammer
-- plotly
+- plotly (cartesian), v1.41.3, updated 2018-10-19
 - screenfull
 - tablesorter
