@@ -602,7 +602,7 @@ exifFromRaw config RawExif{..} =
           Just v -> if v > tooHighShutterCount
                     then (Nothing, Set.singleton $ " Unlikely shutter count: " <> Text.pack (show v))
                     else (Just v, Set.empty)
-      exifWarning      = maybe scErr (flip Set.insert scErr) rExifWarning
+      exifWarning      = maybe scErr (`Set.insert` scErr) rExifWarning
   in Exif{..}
 
 -- | Promotion rules for file to exif
