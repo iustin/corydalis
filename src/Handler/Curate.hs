@@ -34,7 +34,7 @@ import qualified Data.Map      as Map
 import qualified Data.Set      as Set
 import qualified Data.Text     as Text
 
-import           Exif          (unknownLens)
+import           Exif          (lensShortName, liName, liSpec, unknownLens)
 import           Handler.Items
 import           Handler.Utils
 import           Import
@@ -129,13 +129,14 @@ getCurateR = do
                            , xgdY = [fromIntegral sz]
                            }:a)
                ([]::[XGraphData Int64 Int64]) top10c
-      top10l = buildTopNItems unknownLens bylens 12
+      top10l = buildTopNItems (unknownLens { liName = "others", liSpec = "others" })
+                 bylens 12
       top10l' = map (\(a,b,text,d) ->
                        let w = Text.words text
                            w' = filter (not . (`Set.member` hideLensWords)) w
                        in (a, b, Text.unwords w', d)) top10l
-      jsonl = foldl' (\a (cnt, _, k, _) ->
-                        def { xgdName = k
+      jsonl = foldl' (\a (cnt, _, k, li) ->
+                        def { xgdName = lensShortName li
                             , xgdType = "bar"
                             , xgdMode = Just "markers"
                             , xgdX = [k]

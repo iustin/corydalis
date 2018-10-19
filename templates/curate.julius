@@ -24,9 +24,9 @@ $(document).ready(function() {
                 type: 'log',
                 exponentformat: 'SI',
                 rangemode: 'nonnegative',
-                title: 'File count'
+                title: 'File count',
             },
-            showlegend: false,
+            showlegend: true,
             title: 'Lens image count',
         }
         var folderLayout = {
