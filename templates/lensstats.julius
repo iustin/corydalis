@@ -39,7 +39,7 @@ $(document).ready(function() {
             displaylogo: false,
             modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
         }
-        Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
+        Plotly.newPlot('lensChart', series.imagecount, lensLayout, config);
         Plotly.newPlot('trendsChart', series.trends, trendsLayout, config);
     }
 

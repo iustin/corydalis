@@ -350,3 +350,36 @@ buildLensApFL images =
             , "ytickvals" .= allApertures
             , "yticktext" .= map show allApertures
             ]
+
+buildCamLensStats :: Ord a
+                  => a -> Int -> Int -> (a -> Text) -> (a -> Text)
+                  -> Map Text (Occurrence a) -> Value
+buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
+  let top1 = buildTopNItems others stats n1
+      top2 = buildTopNItems others stats n2
+      jsonl = foldl' (\a (cnt, _, k, li, _) ->
+                        def { gdName = nameFn1 li
+                            , gdType = "bar"
+                            , gdMode = Just "markers"
+                            , gdX = Just [k]
+                            , gdY = Just [fromIntegral cnt]
+                            }:a)
+              ([]::[GraphData Text Int64 Int64]) top1
+      jsont = foldl' (\a (_, _, _, li, tr) ->
+                        let (d, c) = unzip $ Map.assocs tr
+                            d' = map (\(y, m) -> show y ++ "-" ++ show m) d
+                            c' = map fromIntegral c
+                        in
+                        def { gdName = nameFn2 li
+                            , gdType = "scatter"
+                            , gdMode = Just "lines+markers"
+                            , gdX = Just d'
+                            , gdY = Just c'
+                            , gdExtra = [ ("connectgaps", toJSON False)
+                                        , ("stackgroup", toJSON ("one"::String))
+                                        ]
+                            }:a)
+              ([]::[GraphData String Int64 Int64]) top2
+  in object [ "imagecount" .= jsonl
+            , "trends"     .= jsont
+            ]
