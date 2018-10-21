@@ -49,10 +49,14 @@ instance WritableContent BSL.ByteString where
   writeContents = BSL.writeFile
 
 class ReadableContent a where
-  readContents :: FilePath -> IO a
+  readContents :: FilePath -> IO (Maybe a)
 
 instance ReadableContent BS.ByteString where
-  readContents = BS.readFile
+  readContents p = (Just <$> BS.readFile p) `catchIOError`
+                   (\e -> if isDoesNotExistError e ||
+                             isPermissionError e
+                          then return Nothing
+                          else ioError e)
 
 writeCacheFile :: (WritableContent a) =>
                   Config
@@ -100,4 +104,4 @@ readCacheFile config path fn validate extras = do
            else return False
   if stale
     then return Nothing
-    else Just `fmap` readContents rpath
+    else readContents rpath
