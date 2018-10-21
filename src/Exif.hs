@@ -580,6 +580,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                         (\v' -> if p v'
                                 then loggerN (e v')
                                 else return $ Just v')
+      checkNull f = evalV (Text.null) (const $ "Empty " <> f <> " information")
   let pPeople = cfgPeoplePrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored = filter (not . (pIgnore `Text.isPrefixOf`))
@@ -595,23 +596,15 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                                     x:_ | x /= pPeople ->
                                           (dropPeople . dropIgnored) ks ++ e
                                     _ -> e) [] rExifHSubjects
-      exifCountry      = rExifCountry
-      exifProvince     = rExifProvince
-      exifCity         = rExifCity
-      exifLocation     = rExifLocation
       exifCamera       = maybe rExifModel
                          (\s ->
                              Just $ case rExifModel of
                                       Nothing  -> "#" `Text.append` s
                                       Just txt -> Text.concat [txt, " (#", s, ")"]
                          ) rExifSerial
-      exifModel        = rExifModel
-      exifSerial       = rExifSerial
       exifLens         = fromMaybe unknownLens rExifLens
       exifOrientation  = fromMaybe OrientationTopLeft rExifOrientation
       exifCreateDate   = rExifCreateDate
-      exifTitle        = rExifTitle
-      exifCaption      = rExifCaption
       exifAperture     = rExifAperture
       exifFocalLength  = rExifFocalLength
       exifFL35mm       = rExifFL35mm
@@ -619,6 +612,14 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
       exifSSpeedDesc   = rExifSSpeedDesc
       exifSSpeedVal    = rExifSSpeedVal
       exifMimeType     = rExifMimeType
+  exifModel        <- checkNull "model" rExifModel
+  exifSerial       <- checkNull "serial" rExifSerial
+  exifTitle        <- checkNull "title" rExifTitle
+  exifCaption      <- checkNull "caption" rExifCaption
+  exifCountry      <- checkNull "country" rExifCountry
+  exifProvince     <- checkNull "province" rExifProvince
+  exifCity         <- checkNull "city" rExifCity
+  exifLocation     <- checkNull "location" rExifLocation
   exifShutterCount <- evalV (> tooHighShutterCount)
                       (\v -> "Unlikely shutter count: " <> Text.pack (show v))
                       rExifShutterCount
