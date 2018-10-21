@@ -17,6 +17,21 @@ $(document).ready(function() {
             yaxis: {
                 title: 'Images',
             },
+            updatemenus: [{
+                y: 1,
+                yanchor: 'bottom',
+                x: 0,
+                xanchor: 'left',
+                buttons: [{
+                    method: 'restyle',
+                    args: ['stackgroup', 'one'],
+                    label: 'stacked'
+                }, {
+                    method: 'restyle',
+                    args: ['stackgroup', null],
+                    label: 'line'
+                }]
+            }]
         }
         var config = {
             showLink: false,

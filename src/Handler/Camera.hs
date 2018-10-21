@@ -139,7 +139,9 @@ getCameraStatsR = do
                             , gdMode = Just "lines+markers"
                             , gdX = Just d'
                             , gdY = Just c'
-                            , gdExtra = [("connectgaps", toJSON False)]
+                            , gdExtra = [ ("connectgaps", toJSON False)
+                                        , ("stackgroup", toJSON ("one"::String))
+                                        ]
                             }:a)
               ([]::[GraphData String Int64 Int64]) top10
   let html = do
