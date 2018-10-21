@@ -29,6 +29,7 @@ module Exif ( Exif(..)
             , LensInfo(..)
             , LensFocalLength(..)
             , LensAperture(..)
+            , LensType(..)
             , NameStats
             , EExif
             , getExif
@@ -39,6 +40,7 @@ module Exif ( Exif(..)
             , unknownLens
             , lensDisplayName
             , lensShortName
+            , lensType
             , formatPerson
             ) where
 
@@ -204,6 +206,20 @@ instance Default LensInfo where
 
 unknownLens :: LensInfo
 unknownLens = LensInfo unknown unknown Nothing Nothing
+
+data LensType = LensPrime
+              | LensConstantApertureZoom
+              | LensVariableApertureZoom
+              | LensUnknown
+
+lensType :: LensInfo -> LensType
+lensType LensInfo{..} =
+  case (liFL, liAp) of
+    (Nothing, _)                                 -> LensUnknown
+    (_, Nothing)                                 -> LensUnknown
+    (Just (Prime {}), _)                         -> LensPrime
+    (Just (Zoom {}), Just (FixedAperture {}))    -> LensConstantApertureZoom
+    (Just (Zoom {}), Just (VariableAperture {})) -> LensVariableApertureZoom
 
 lensInfoFromObject :: Object -> Parser LensInfo
 lensInfoFromObject o = do

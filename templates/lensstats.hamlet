@@ -19,12 +19,23 @@
            <tr>
              <th .sorter-text>Name
              <th .sorter-text>Short name
+             <th .sorter-text .filter-select>Type
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
          <tbody>
            $forall (name, oc) <- lenses
-             <tr>
-               <td><a href=@{LensInfoR name}>#{name}</a>
-               <td>#{liSpec $ ocData oc}
-               <td .number>#{ocFiles oc}
-               <td .number>#{ocFolders oc}
+             $with lens <- ocData oc
+               <tr>
+                 <td><a href=@{LensInfoR name}>#{name}</a>
+                 <td>#{liSpec $ ocData oc}
+                 $case lensType lens
+                   $of LensUnknown
+                     <td data-text=unknown>Unknown
+                   $of LensPrime
+                     <td data-text=prime>Prime lens
+                   $of LensConstantApertureZoom
+                     <td data-text=constant-zoom>Constant-aperture zoom
+                   $of LensVariableApertureZoom
+                     <td data-text=variable-zoom>Variable-aperture zoom
+                 <td .number>#{ocFiles oc}
+                 <td .number>#{ocFolders oc}
