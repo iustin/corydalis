@@ -30,19 +30,21 @@ import           Indexer
 import           Pics
 import           Types
 
-import qualified Data.Map              as Map
+import qualified Data.Map                   as Map
 import           Data.Prefix.Units
-import qualified Data.Text             as Text
+import qualified Data.Text                  as Text
+import qualified Data.Text.Lazy             as TL
 import           Data.Time
 import           Data.Time.Clock.POSIX
-import           Text.Blaze            (Markup, ToMarkup, string, toMarkup)
-import           Text.Printf
+import           Formatting                 (format, (%))
+import qualified Formatting.ShortFormatters as F
+import           Text.Blaze                 (Markup, ToMarkup, string, toMarkup)
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
-formatPercent :: Double -> Maybe String
+formatPercent :: Double -> Maybe TL.Text
 formatPercent v | isNaN v = Nothing
-                | otherwise = Just $ printf "%.02f" v
+                | otherwise = Just $ format (F.f 2) v
 
 showBinary :: (Integral a) => a -> String
 showBinary = (++ "B") . showValue FormatBinary . convert
@@ -221,19 +223,21 @@ buildTopNItems d m n =
               else allItems
   in top10
 
-showLensAperture :: Maybe LensAperture -> String
+showLensAperture :: Maybe LensAperture -> TL.Text
 showLensAperture Nothing = "?"
-showLensAperture (Just (FixedAperture x)) =
-  printf "f/%.01f (%.03f)" x x
+showLensAperture (Just (FixedAperture f)) =
+  format ("f/" % F.f 1 % " (" <> F.f 3 % ")") f
 showLensAperture (Just (VariableAperture min' max')) =
-  printf "f/%.01f-%.01f (%.03f-%.03f)" min' max' min' max'
+  format ("f/" % F.f 1 % "-" % F.f 1 % " (" % F.f 3 % "-" % F.f 3 % ")")
+    min' max' min' max'
 
-showLensFL :: Maybe LensFocalLength -> String
+showLensFL :: Maybe LensFocalLength -> TL.Text
 showLensFL Nothing = "?"
 showLensFL (Just (Prime fl)) =
-  printf "%.0fmm (%.03f)" fl fl
+  format (F.f 0 % "mm (" <> F.f 3 % ")") fl
 showLensFL (Just (Zoom min' max')) =
-  printf "%.0f-%.0fmm (%.03f-%.03f)" min' max' min' max'
+  format (F.f 0 % "-" % F.f 0 % "mm (" % F.f 3 % "-" % F.f 3 % ")")
+    min' max' min' max'
 
 countItems :: (Ord a) => [a] -> [(a, Int64)]
 countItems =

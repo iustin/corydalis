@@ -73,6 +73,7 @@ dependencies:
   - file-embed
   - filepath
   - foreign-store
+  - formatting
   - hjsmin
   - http-conduit
   - lrucaching

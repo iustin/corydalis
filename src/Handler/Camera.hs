@@ -39,9 +39,10 @@ import           Indexer
 import           Pics
 
 import qualified Data.Map            as Map
+import qualified Data.Text.Lazy      as LT
 import           Data.Time.Calendar
 import           Data.Time.LocalTime
-import           Text.Printf
+import           Formatting
 
 getByCamera :: Repository -> Map Text (Occurrence CameraInfo)
 getByCamera = sByCamera . rsPicStats . repoStats
@@ -55,24 +56,26 @@ keeperRate Occurrence{..} =
           delta = fromIntegral $ scMax - scMin + 1
       in Just $ numImgs / delta
 
-formatKeeperRate :: Double -> String
-formatKeeperRate = printf "%.01f%%" . (* 100)
+formatKeeperRate :: Double -> LT.Text
+formatKeeperRate = format (fixed 2 % "%") . (* 100)
 
-formatDate :: Integer -> String
+formatDate :: Integer -> LT.Text
 formatDate d =
   let (years, d1) = d `quotRem` 365
       (months, d2) = d1 `quotRem` 30
       (weeks, days) = d2 `quotRem` 7
-      pl :: Integer -> String
+      pl :: Integer -> LT.Text
       pl n = if n > 1 then "s" else ""
-      fpl :: Integer -> String -> Maybe String
-      fpl n t = if n > 0 then Just (printf "%d %s%s" n t (pl n)) else Nothing
+      fpl :: Integer -> LT.Text -> Maybe LT.Text
+      fpl n t = if n > 0
+                then Just (format (int % " " % text % text) n t (pl n))
+                else Nothing
       elems = [ fpl years "year"
               , fpl months "month"
               , fpl weeks "week"
               , fpl days "day"
               ]
-  in intercalate " and " $ take 2 $ catMaybes elems
+  in LT.intercalate " and " $ take 2 $ catMaybes elems
 
 getCameraInfoR :: Text -> Handler TypedContent
 getCameraInfoR cameraname = do
