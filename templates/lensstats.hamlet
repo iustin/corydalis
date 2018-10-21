@@ -22,6 +22,7 @@
              <th .sorter-text .filter-select>Type
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
+             <th .sorter-digit>Months used
          <tbody>
            $forall (name, oc) <- lenses
              $with lens <- ocData oc
@@ -39,3 +40,4 @@
                      <td data-text=variable-zoom>Variable-aperture zoom
                  <td .number>#{ocFiles oc}
                  <td .number>#{ocFolders oc}
+                 <td .number>#{Map.size $ ocTrends oc}

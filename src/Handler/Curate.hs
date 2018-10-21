@@ -110,7 +110,7 @@ getCurateR = do
       numCameras = Map.size bycamera
       all_fc = [minBound..maxBound]
       buildTop10 m n = let allItems = sortBy (flip compare) $
-                             Map.foldlWithKey' (\a k (Occurrence cnt sz _ _) ->
+                             Map.foldlWithKey' (\a k (Occurrence cnt sz _ _ _) ->
                                                   (cnt, sz, k):a) [] m
                            top10 = if length allItems > n
                                      then let t10 = reverse $ take (n-1) allItems
@@ -131,11 +131,11 @@ getCurateR = do
                ([]::[XGraphData Int64 Int64]) top10c
       top10l = buildTopNItems (unknownLens { liName = "others", liSpec = "others" })
                  bylens 12
-      top10l' = map (\(a,b,text,d) ->
+      top10l' = map (\(a,b,text,d, t) ->
                        let w = Text.words text
                            w' = filter (not . (`Set.member` hideLensWords)) w
-                       in (a, b, Text.unwords w', d)) top10l
-      jsonl = foldl' (\a (cnt, _, k, li) ->
+                       in (a, b, Text.unwords w', d, t)) top10l
+      jsonl = foldl' (\a (cnt, _, k, li, _) ->
                         def { xgdName = lensShortName li
                             , xgdType = "bar"
                             , xgdMode = Just "markers"

@@ -209,17 +209,19 @@ folderKeywords =
   Text.intercalate ", " . catMaybes . Map.keys . gExifKeywords . pdExif
 
 buildTopNItems :: (Ord a)
-               => a -> Map.Map Text (Occurrence a) -> Int -> [(Integer, FileOffset, Text, a)]
+               => a -> Map.Map Text (Occurrence a) -> Int -> [(Integer, FileOffset, Text, a, Trends)]
 buildTopNItems d m n =
   let allItems = sortBy (flip compare) $
-                 Map.foldlWithKey' (\a k (Occurrence cnt sz _ li) ->
-                                       (cnt, sz, k, li):a) [] m
+                 Map.foldlWithKey' (\a k (Occurrence cnt sz _ li tr) ->
+                                       (cnt, sz, k, li, tr):a) [] m
       top10 = if length allItems > n
                 then let t10 = reverse $ take (n-1) allItems
                          r  = drop (n-1) allItems
-                         (rc, rs) = foldl' (\(c, s) (cnt, sz, _, _) ->
-                                               (c+cnt, s+sz)) (0, 0) r
-                     in (rc, rs, "Others", d): t10
+                         (rc, rs, tr) =
+                           foldl' (\(c, s, t) (cnt, sz, _, _, tr') ->
+                                      (c+cnt, s+sz, Map.unionWith (+) t tr'))
+                             (0, 0, Map.empty) r
+                     in (rc, rs, "Others", d, tr): t10
               else allItems
   in top10
 

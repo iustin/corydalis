@@ -37,6 +37,7 @@ module Pics ( PicDir(..)
             , ImageSize(..)
             , FileOffset
             , Occurrence(..)
+            , Trends
             , CameraInfo(..)
             , fileLastTouch
             , fileMimeType
@@ -299,6 +300,16 @@ imageYear img = do
       (y, _, _) = toGregorian day
   return y
 
+-- | The year of the image, as determined from Exif data.
+imageYearMonth :: Image -> Maybe (Int, Int)
+imageYearMonth img = do
+  let exif = imgExif img
+  date <- exifCreateDate exif
+  let day = localDay date
+      (y, m, _) = toGregorian day
+  -- Let's hope the year/month stay sane here.
+  return (fromIntegral y, fromIntegral m)
+
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
 mkImageStatus :: Config
@@ -376,15 +387,22 @@ instance NFData Repository where
 
 type FolderClassStats = Map FolderClass Int
 
+-- | Type alias for the trends keys.
+type TrendsKey = (Int, Int)
+
+-- | Type alias for per-month statistics.
+type Trends = Map TrendsKey Integer
+
 data Occurrence a = Occurrence
   { ocFiles    :: !Integer
   , ocFileSize :: !FileOffset
   , ocFolders  :: !Integer
   , ocData     :: !a
+  , ocTrends   :: !Trends
   } deriving (Show)
 
 instance Default a => Default (Occurrence a) where
-  def = Occurrence 0 0 0 def
+  def = Occurrence 0 0 0 def Map.empty
 
 instance (Semigroup a, Default a) => Monoid (Occurrence a) where
   mempty = def
@@ -394,17 +412,19 @@ instance Semigroup a => Semigroup (Occurrence a) where
                       , ocFileSize = ocFileSize x + ocFileSize y
                       , ocFolders = ocFolders x + ocFolders y
                       , ocData = ocData x <> ocData y
+                      , ocTrends = Map.unionWith (+) (ocTrends x) (ocTrends y)
                       }
 
 instance NFData a => NFData (Occurrence a) where
   rnf occ = rwhnf occ `seq` rnf (ocData occ)
 
-ocFromSize :: FileOffset -> a -> Occurrence a
-ocFromSize size d =
+ocFromSize :: FileOffset -> a -> Maybe TrendsKey -> Occurrence a
+ocFromSize size d tk =
   Occurrence { ocFiles = 1
              , ocFileSize = size
              , ocFolders = 0
              , ocData = d
+             , ocTrends = maybe Map.empty (`Map.singleton` 1) tk
              }
 
 data CameraInfo = CameraInfo
@@ -522,6 +542,7 @@ updateStatsWithPic orig img =
       cs = sSidecarSize stats
       cs' = cs + maybe 0 fileSize (imgSidecarPath img)
       exif = imgExif img
+      ymdate = imageYearMonth img
       camera = fromMaybe unknown (exifCamera exif)
       xsize = case imgRawPath img of
                Just f -> fileSize f
@@ -529,11 +550,11 @@ updateStatsWithPic orig img =
                             x:_ -> fileSize x
                             _   -> 0
       lens = exifLens exif
-      lensOcc = ocFromSize xsize lens
+      lensOcc = ocFromSize xsize lens ymdate
       doubleUp x = (x, x)
       shutterCount = doubleUp <$> exifShutterCount exif
       captureDate = doubleUp <$> exifCreateDate exif
-      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount captureDate)
+      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount captureDate) ymdate
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
