@@ -79,7 +79,8 @@ getLensStatsR = do
   pics <- getPics
   let bylens = getByLens pics
       lenses = Map.toList bylens
-      top10l = buildTopNItems unknownLens bylens 30
+      top10l = buildTopNItems unknownLens bylens 10
+      top30l = buildTopNItems unknownLens bylens 30
       jsonl = foldl' (\a (cnt, _, k, li, _) ->
                         def { gdName = lensShortName li
                             , gdType = "bar"
@@ -87,10 +88,23 @@ getLensStatsR = do
                             , gdX = Just [k]
                             , gdY = Just [fromIntegral cnt]
                             }:a)
-              ([]::[GraphData Text Int64 Int64]) top10l
+              ([]::[GraphData Text Int64 Int64]) top30l
+      jsont = foldl' (\a (_, _, _, li, tr) ->
+                        let (d, c) = unzip $ Map.assocs tr
+                            d' = map (\(y, m) -> show y ++ "-" ++ show m) d
+                            c' = map fromIntegral c
+                        in
+                        def { gdName = liName li
+                            , gdType = "scatter"
+                            , gdMode = Just "lines+markers"
+                            , gdX = Just d'
+                            , gdY = Just c'
+                            }:a)
+              ([]::[GraphData String Int64 Int64]) top10l
   let html = do
         setTitle "Corydalis: lens statistics"
         addPlotly
         $(widgetFile "lensstats")
   defaultLayoutJson html (return $ object [ "lenses"  .= jsonl
+                                          , "trends"  .= jsont
                                           ])

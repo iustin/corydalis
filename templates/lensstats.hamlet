@@ -5,6 +5,10 @@
     <div #lensChart .largegraph>
 
 <div .row>
+  <div .col-12>
+    <div #trendsChart .largegraph>
+
+<div .row>
  <div .col-12>
    $if null lenses
      <p .bg-warning>No lens information found.
