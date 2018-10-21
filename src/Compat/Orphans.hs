@@ -27,11 +27,14 @@ import           Data.Store          ()
 import           Data.Store.TH       (makeStore)
 
 import           Control.DeepSeq
+import           Data.Time.Clock
 import           Data.Time.LocalTime
 import           System.Posix.Types
 
 $(makeStore ''TimeOfDay)
 $(makeStore ''LocalTime)
+$(makeStore ''NominalDiffTime)
+$(makeStore ''COff)
 
 instance NFData COff where
   rnf (COff x) = rnf x

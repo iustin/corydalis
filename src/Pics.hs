@@ -17,10 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE MultiWayIf        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE MultiWayIf          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Pics ( PicDir(..)
             , Image(..)
@@ -107,6 +109,8 @@ import           Data.Maybe
 import           Data.Semigroup
 import           Data.Set                   (Set)
 import qualified Data.Set                   as Set
+import qualified Data.Store
+import           Data.Store.TH
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
 import qualified Data.Text.Lazy             as Text (toStrict)
@@ -130,6 +134,7 @@ import qualified Text.Regex.TDFA            as TDFA
 import           Cache
 import           Compat.Orphans             ()
 import           Exif
+import           Settings.Development
 import           Types
 
 addRevDot :: [FilePath] -> [FilePath]
@@ -997,6 +1002,7 @@ scanFilesystem config = do
                           , repoStats = stats
                           , repoExif  = rexif
                           }
+  writeRepoCache config repo''
   _ <- forkIO $ forceBuildThumbCaches config repo''
   return $!! repo''
 
@@ -1007,22 +1013,44 @@ forceBuildThumbCaches config repo = do
                     (cfgAutoImageSizes config)
   mapM_ builder images
 
+repoCacheFile :: String
+repoCacheFile = "repo"
+
+repoCachePath :: Config -> FilePath -> FilePath
+repoCachePath config path = cachedBasename config path ("cache" ++ devSuffix)
+
+writeRepoCache :: Config -> Repository -> IO ()
+writeRepoCache config repo =
+  writeCacheFile config repoCacheFile repoCachePath (Data.Store.encode repo)
+
+readRepoCache :: Config -> IO (Maybe Repository)
+readRepoCache config = do
+  contents <- readCacheFile config repoCacheFile repoCachePath False []
+  return $ contents >>= either (const Nothing) Just . Data.Store.decode
+
 maybeUpdateCache :: Config
+                 -> Bool
                  -> Maybe Repository
                  -> IO (Maybe Repository, Repository)
-maybeUpdateCache config Nothing = do
-  r <- scanFilesystem config
+maybeUpdateCache config skipCache Nothing = do
+  let readCache = if skipCache
+                  then return Nothing
+                  else readRepoCache config
+  cachedRepo <- readCache
+  r <- case cachedRepo of
+         Nothing    -> scanFilesystem config
+         Just cache -> return cache
   -- this is tricky; we take another mvar inside an mvar, which could
   -- lead to deadlocks if ever one reads getPics inside the cache
   -- update.
   flushSearchCache
   return (Just r, r)
-maybeUpdateCache _ orig@(Just r) = return (orig, r)
+maybeUpdateCache _ _ orig@(Just r) = return (orig, r)
 
 forceUpdateCache :: Config
                  -> Maybe Repository
                  -> IO (Maybe Repository, Repository)
-forceUpdateCache config _ = maybeUpdateCache config Nothing
+forceUpdateCache config _ = maybeUpdateCache config True Nothing
 
 -- | Tries to cheaply return the repository.
 --
@@ -1035,7 +1063,7 @@ getRepo = readMVar repoCache
 
 scanAll :: Config -> IO Repository
 scanAll config =
-  modifyMVar repoCache (maybeUpdateCache config)
+  modifyMVar repoCache (maybeUpdateCache config False)
 
 forceScanAll :: Config -> IO Repository
 forceScanAll config = modifyMVar repoCache (forceUpdateCache config)
@@ -1314,3 +1342,14 @@ pdProblems =
 repoProblems :: Repository -> NameStats
 repoProblems =
   Map.unionsWith (+) . map pdProblems . Map.elems . repoDirs
+
+$(makeStore ''CameraInfo)
+$(makeStore ''Occurrence)
+$(makeStore ''File)
+$(makeStore ''MediaType)
+$(makeStore ''Flags)
+$(makeStore ''Image)
+$(makeStore ''Stats)
+$(makeStore ''RepoStats)
+$(makeStore ''PicDir)
+$(makeStore ''Repository)

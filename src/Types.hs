@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Types ( Config(..)
              , Regex
@@ -35,6 +36,8 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
 import           Data.List           (nub, sort)
+import           Data.Store          ()
+import           Data.Store.TH       (makeStore)
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
 import           Data.Time.Clock
@@ -125,6 +128,8 @@ data ImageStatus = ImageOrphaned
 instance NFData ImageStatus where
   rnf = rwhnf
 
+$(makeStore ''ImageStatus)
+
 -- | Custom yesod instance for ImageStatus.
 instance PathPiece ImageStatus where
   toPathPiece ImageOrphaned   = "orphaned"
@@ -153,6 +158,8 @@ data FolderClass = FolderEmpty
 
 instance NFData FolderClass where
   rnf = rwhnf
+
+$(makeStore ''FolderClass)
 
 -- | Custom yesod instance for FolderClass. This really could use some TH.
 instance PathPiece FolderClass where

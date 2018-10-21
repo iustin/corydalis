@@ -861,3 +861,4 @@ parseCreateDate o = do
   return dto'
 
 $(makeStore ''Exif)
+$(makeStore ''GroupExif)
