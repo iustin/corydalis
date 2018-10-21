@@ -7,10 +7,15 @@ $(document).ready(function() {
                 type: 'log',
                 exponentformat: 'SI',
                 rangemode: 'nonnegative',
-                title: 'File count'
+                title: 'Images'
             },
             xaxis: {
                 automargin: true,
+            },
+        }
+        var trendsLayout = {
+            yaxis: {
+                title: 'Images',
             },
         }
         var config = {
@@ -20,6 +25,7 @@ $(document).ready(function() {
             modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
         }
         Plotly.newPlot('cameraChart', series.cameras, cameraLayout, config);
+        Plotly.newPlot('trendsChart', series.trends, trendsLayout, config);
     }
 
     $.ajax({

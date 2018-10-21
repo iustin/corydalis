@@ -118,7 +118,8 @@ getCameraStatsR = do
   pics <- getPics
   let bycamera = getByCamera pics
       cameras = Map.toList bycamera
-      top10 = buildTopNItems def bycamera 30
+      top10 = buildTopNItems def bycamera 10
+      top30 = buildTopNItems def bycamera 30
       jsonl = foldl' (\a (cnt, _, k, cam, _) ->
                         def { gdName = ciName cam
                             , gdType = "bar"
@@ -126,10 +127,24 @@ getCameraStatsR = do
                             , gdX = Just [k]
                             , gdY = Just [fromIntegral cnt]
                             }:a)
-              ([]::[GraphData Text Int64 Int64]) top10
+              ([]::[GraphData Text Int64 Int64]) top30
+      jsont = foldl' (\a (_, _, _, cam, tr) ->
+                        let (d, c) = unzip $ Map.assocs tr
+                            d' = map (\(y, m) -> show y ++ "-" ++ show m) d
+                            c' = map fromIntegral c
+                        in
+                        def { gdName = ciName cam
+                            , gdType = "scatter"
+                            , gdMode = Just "lines+markers"
+                            , gdX = Just d'
+                            , gdY = Just c'
+                            , gdExtra = [("connectgaps", toJSON False)]
+                            }:a)
+              ([]::[GraphData String Int64 Int64]) top10
   let html = do
         setTitle "Corydalis: camera statistics"
         addPlotly
         $(widgetFile "camerastats")
   defaultLayoutJson html (return $ object [ "cameras"  .= jsonl
+                                          , "trends"   .= jsont
                                           ])

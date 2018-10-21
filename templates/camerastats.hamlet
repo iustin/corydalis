@@ -5,6 +5,10 @@
     <div #cameraChart .largegraph>
 
 <div .row>
+  <div .col-12>
+    <div #trendsChart .largegraph>
+
+<div .row>
  <div .col-12>
    $if null cameras
      <p .bg-warning>No camera information found.
