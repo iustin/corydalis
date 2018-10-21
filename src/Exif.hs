@@ -218,11 +218,11 @@ data LensType = LensPrime
 lensType :: LensInfo -> LensType
 lensType LensInfo{..} =
   case (liFL, liAp) of
-    (Nothing, _)                                 -> LensUnknown
-    (_, Nothing)                                 -> LensUnknown
-    (Just (Prime {}), _)                         -> LensPrime
-    (Just (Zoom {}), Just (FixedAperture {}))    -> LensConstantApertureZoom
-    (Just (Zoom {}), Just (VariableAperture {})) -> LensVariableApertureZoom
+    (Nothing, _)                             -> LensUnknown
+    (_, Nothing)                             -> LensUnknown
+    (Just Prime {}, _)                       -> LensPrime
+    (Just Zoom {}, Just FixedAperture {})    -> LensConstantApertureZoom
+    (Just Zoom {}, Just VariableAperture {}) -> LensVariableApertureZoom
 
 lensInfoFromObject :: Object -> Parser LensInfo
 lensInfoFromObject o = do
@@ -560,7 +560,7 @@ parseIsoString =
     [i]    -> readInt i
     -- TODO: record high iso mode.
     [_, i] -> readInt i
-    _      -> maybe fmsg (readInt) $ ", 0, 0" `Text.stripSuffix` t
+    _      -> maybe fmsg readInt $ ", 0, 0" `Text.stripSuffix` t
 
 readInt :: Text -> Parser Integer
 readInt t =
@@ -585,7 +585,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                         (\v' -> if p v'
                                 then loggerN (e v')
                                 else return $ Just v')
-      checkNull f = evalV (Text.null) (const $ "Empty " <> f <> " information")
+      checkNull f = evalV Text.null (const $ "Empty " <> f <> " information")
       pPeople = cfgPeoplePrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored = filter (not . (pIgnore `Text.isPrefixOf`))
