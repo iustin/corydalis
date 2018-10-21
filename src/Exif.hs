@@ -48,25 +48,26 @@ import           Control.Applicative
 import           Control.DeepSeq
 import           Control.Exception.Base
 import           Control.Monad
+import           Control.Monad.Trans.State
 import           Data.Aeson
-import           Data.Aeson.Types       (Parser, modifyFailure, parseEither,
-                                         parseMaybe, typeMismatch)
+import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
+                                            parseMaybe, typeMismatch)
 import           Data.Bifunctor
-import qualified Data.ByteString        as BS (ByteString, readFile)
+import qualified Data.ByteString           as BS (ByteString, readFile)
 import           Data.Default
 import           Data.List
-import           Data.Map.Strict        (Map)
-import qualified Data.Map.Strict        as Map
+import           Data.Map.Strict           (Map)
+import qualified Data.Map.Strict           as Map
 import           Data.Maybe
-import           Data.Scientific        (toBoundedInteger)
+import           Data.Scientific           (toBoundedInteger)
 import           Data.Semigroup
-import           Data.Set               (Set)
-import qualified Data.Set               as Set
+import           Data.Set                  (Set)
+import qualified Data.Set                  as Set
 import           Data.Store
-import           Data.Store.TH          (makeStore)
-import           Data.Text              (Text)
-import qualified Data.Text              as Text
-import qualified Data.Text.Read         as Text
+import           Data.Store.TH             (makeStore)
+import           Data.Text                 (Text)
+import qualified Data.Text                 as Text
+import qualified Data.Text.Read            as Text
 import           Data.Time.Format
 import           Data.Time.LocalTime
 import           Prelude
@@ -74,7 +75,7 @@ import           System.IO.Temp
 import           System.Process.Typed
 
 import           Cache
-import           Compat.Orphans         ()
+import           Compat.Orphans            ()
 import           Settings.Development
 import           Types
 
@@ -572,7 +573,13 @@ parseSingletonList val = do
     _   -> fail "Not a single-element list"
 
 exifFromRaw :: Config -> RawExif -> Exif
-exifFromRaw config RawExif{..} =
+exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
+  let logger s = modify (s `Set.insert`)
+      loggerN s = logger s >> return Nothing
+      evalV p e = maybe (return Nothing)
+                        (\v' -> if p v'
+                                then loggerN (e v')
+                                else return $ Just v')
   let pPeople = cfgPeoplePrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored = filter (not . (pIgnore `Text.isPrefixOf`))
@@ -612,14 +619,12 @@ exifFromRaw config RawExif{..} =
       exifSSpeedDesc   = rExifSSpeedDesc
       exifSSpeedVal    = rExifSSpeedVal
       exifMimeType     = rExifMimeType
-      (exifShutterCount, scErr) =
-        case rExifShutterCount of
-          Nothing -> (Nothing, Set.empty)
-          Just v -> if v > tooHighShutterCount
-                    then (Nothing, Set.singleton $ " Unlikely shutter count: " <> Text.pack (show v))
-                    else (Just v, Set.empty)
-      exifWarning      = maybe scErr (`Set.insert` scErr) rExifWarning
-  in Exif{..}
+  exifShutterCount <- evalV (> tooHighShutterCount)
+                      (\v -> "Unlikely shutter count: " <> Text.pack (show v))
+                      rExifShutterCount
+  errs <- get
+  let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
+  return Exif{..}
 
 -- | Promotion rules for file to exif
 promoteFileExif :: Maybe Exif -> Maybe Exif -> [Exif] -> Maybe Exif -> [Exif] -> Exif
