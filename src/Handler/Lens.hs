@@ -79,8 +79,9 @@ getLensStatsR = do
   pics <- getPics
   let bylens = getByLens pics
       lenses = Map.toList bylens
-      top10l = buildTopNItems unknownLens bylens 10
-      top30l = buildTopNItems unknownLens bylens 30
+      others = unknownLens { liName = "others" }
+      top10l = buildTopNItems others bylens 10
+      top30l = buildTopNItems others bylens 30
       jsonl = foldl' (\a (cnt, _, k, li, _) ->
                         def { gdName = lensShortName li
                             , gdType = "bar"

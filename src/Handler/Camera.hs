@@ -118,8 +118,9 @@ getCameraStatsR = do
   pics <- getPics
   let bycamera = getByCamera pics
       cameras = Map.toList bycamera
-      top10 = buildTopNItems def bycamera 10
-      top30 = buildTopNItems def bycamera 30
+      others = def { ciName = "others" }
+      top10 = buildTopNItems others bycamera 10
+      top30 = buildTopNItems others bycamera 30
       jsonl = foldl' (\a (cnt, _, k, cam, _) ->
                         def { gdName = ciName cam
                             , gdType = "bar"
