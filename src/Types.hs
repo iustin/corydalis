@@ -35,8 +35,9 @@ import           Control.Applicative
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
+import           Data.Function       (on)
 import           Data.List           (nub, sort)
-import           Data.Store          ()
+import           Data.Store
 import           Data.Store.TH       (makeStore)
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
@@ -53,6 +54,9 @@ data Regex = Regex
 instance Show Regex where
   show = show . reString
 
+instance Eq Regex where
+  (==) = (==) `on` reString
+
 instance FromJSON Regex where
   parseJSON (String txt) =
     let str = Text.unpack txt
@@ -60,6 +64,17 @@ instance FromJSON Regex where
          Nothing -> mzero
          Just r  -> return $ Regex str r
   parseJSON _ = mzero
+
+instance Store Regex where
+  size = case (size::Size String) of
+           ConstSize n -> ConstSize n -- Unlikely :)
+           VarSize f   -> VarSize (f . reString)
+  poke = poke . reString
+  peek = do
+    s <- peek
+    case TDFA.makeRegexM s of
+      Nothing -> fail "Can't build regex even though it was serialized"
+      Just r  -> return $ Regex s r
 
 -- | Wrapper over NominalDiffTime so that we can add our FromJSON
 -- instance without orphan instances warning (sigh).
@@ -89,7 +104,7 @@ data Config = Config
     , cfgCopyRegex       :: Regex
     , cfgPeoplePrefix    :: Text
     , cfgIgnorePrefix    :: Text
-    } deriving (Show)
+    } deriving (Eq, Show)
 
 instance FromJSON Config where
   parseJSON (Object v) =
@@ -185,3 +200,5 @@ instance PathPiece [FolderClass] where
 
 -- | Type alias for query (URL) params.
 type UrlParams = [(Text, Text)]
+
+$(makeStore ''Config)

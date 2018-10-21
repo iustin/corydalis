@@ -1021,12 +1021,17 @@ repoCachePath config path = cachedBasename config path ("cache" ++ devSuffix)
 
 writeRepoCache :: Config -> Repository -> IO ()
 writeRepoCache config repo =
-  writeCacheFile config repoCacheFile repoCachePath (Data.Store.encode repo)
+  writeCacheFile config repoCacheFile repoCachePath (Data.Store.encode (config, repo))
 
 readRepoCache :: Config -> IO (Maybe Repository)
 readRepoCache config = do
   contents <- readCacheFile config repoCacheFile repoCachePath False []
-  return $ contents >>= either (const Nothing) Just . Data.Store.decode
+  let decoded = contents >>= either (const Nothing) Just . Data.Store.decode
+  return $ case decoded of
+    Nothing -> Nothing
+    Just (c, repo) -> if c == config
+                      then Just repo
+                      else Nothing
 
 maybeUpdateCache :: Config
                  -> Bool
