@@ -50,32 +50,34 @@ import           Control.Exception.Base
 import           Control.Monad
 import           Control.Monad.Trans.State
 import           Data.Aeson
-import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
-                                            parseMaybe, typeMismatch)
+import           Data.Aeson.Types           (Parser, modifyFailure, parseEither,
+                                             parseMaybe, typeMismatch)
 import           Data.Bifunctor
-import qualified Data.ByteString           as BS (ByteString, readFile)
+import qualified Data.ByteString            as BS (ByteString, readFile)
 import           Data.Default
 import           Data.List
-import           Data.Map.Strict           (Map)
-import qualified Data.Map.Strict           as Map
+import           Data.Map.Strict            (Map)
+import qualified Data.Map.Strict            as Map
 import           Data.Maybe
-import           Data.Scientific           (toBoundedInteger)
+import           Data.Scientific            (toBoundedInteger)
 import           Data.Semigroup
-import           Data.Set                  (Set)
-import qualified Data.Set                  as Set
+import           Data.Set                   (Set)
+import qualified Data.Set                   as Set
 import           Data.Store
-import           Data.Store.TH             (makeStore)
-import           Data.Text                 (Text)
-import qualified Data.Text                 as Text
-import qualified Data.Text.Read            as Text
+import           Data.Store.TH              (makeStore)
+import           Data.Text                  (Text)
+import qualified Data.Text                  as Text
+import qualified Data.Text.Read             as Text
 import           Data.Time.Format
 import           Data.Time.LocalTime
+import           Formatting                 (sformat, (%))
+import qualified Formatting.ShortFormatters as F
 import           Prelude
 import           System.IO.Temp
 import           System.Process.Typed
 
 import           Cache
-import           Compat.Orphans            ()
+import           Compat.Orphans             ()
 import           Settings.Development
 import           Types
 
@@ -581,7 +583,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                                 then loggerN (e v')
                                 else return $ Just v')
       checkNull f = evalV (Text.null) (const $ "Empty " <> f <> " information")
-  let pPeople = cfgPeoplePrefix config
+      pPeople = cfgPeoplePrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored = filter (not . (pIgnore `Text.isPrefixOf`))
       subjPeople      = foldl' (\e ks ->
@@ -621,7 +623,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   exifCity         <- checkNull "city" rExifCity
   exifLocation     <- checkNull "location" rExifLocation
   exifShutterCount <- evalV (> tooHighShutterCount)
-                      (\v -> "Unlikely shutter count: " <> Text.pack (show v))
+                      (sformat ("Unlikely shutter count: " % F.d))
                       rExifShutterCount
   errs <- get
   let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
