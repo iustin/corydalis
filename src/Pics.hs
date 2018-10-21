@@ -100,6 +100,7 @@ import           Data.Int                   (Int64)
 import           Data.List
 import           Data.LruCache              (LruCache)
 import qualified Data.LruCache              as LRU
+import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict            as Map
 import           Data.Maybe
 import           Data.Semigroup
@@ -344,8 +345,8 @@ data PicDir = PicDir
   { pdName     :: !Text
   , pdMainPath :: !Text
   , pdSecPaths :: ![Text]
-  , pdImages   :: !(Map.Map Text Image)
-  , pdShadows  :: !(Map.Map Text Image)
+  , pdImages   :: !(Map Text Image)
+  , pdShadows  :: !(Map Text Image)
   , pdYear     :: !(Maybe Integer)  -- ^ The approximate year of the
                                     -- earliest picture.
   , pdExif     :: !GroupExif
@@ -360,7 +361,7 @@ instance NFData PicDir where
                    rnf pdYear      `seq`
                    rnf pdExif
 
-type RepoDirs = Map.Map Text PicDir
+type RepoDirs = Map Text PicDir
 
 data Repository = Repository
   { repoDirs  :: !RepoDirs
@@ -373,7 +374,7 @@ instance NFData Repository where
                        rnf repoStats `seq`
                        rnf repoExif
 
-type FolderClassStats = Map.Map FolderClass Int
+type FolderClassStats = Map FolderClass Int
 
 data Occurrence a = Occurrence
   { ocFiles    :: !Integer
@@ -450,8 +451,8 @@ data Stats = Stats
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
   , sMovieSize      :: !FileOffset
-  , sByCamera       :: !(Map.Map Text (Occurrence CameraInfo))
-  , sByLens         :: !(Map.Map Text (Occurrence LensInfo))
+  , sByCamera       :: !(Map Text (Occurrence CameraInfo))
+  , sByLens         :: !(Map Text (Occurrence LensInfo))
   } deriving Show
 
 instance NFData Stats where
@@ -569,7 +570,7 @@ repoGlobalExif =
   Map.foldl' (\e f -> e <> pdExif f) def
 
 -- | Type alias for search results. Unsorted for now.
-type SearchResults = Map.Map (Text, Text) Image
+type SearchResults = Map (Text, Text) Image
 
 -- | Type of the search cache.
 type SearchCache = LruCache UrlParams SearchResults
@@ -839,16 +840,16 @@ recursiveScanPath config base prepender = do
 strictJust :: a -> Maybe a
 strictJust !a = Just a
 
-addImgs :: Config -> Map.Map Text Image -> [Image] -> Map.Map Text Image
+addImgs :: Config -> Map Text Image -> [Image] -> Map Text Image
 addImgs config = foldl' (addImg config)
 
-addImg :: Config -> Map.Map Text Image -> Image -> Map.Map Text Image
+addImg :: Config -> Map Text Image -> Image -> Map Text Image
 addImg config m i = Map.insertWith (mergePictures config) (imgName i) i m
 
 -- | Result of loadImage.
 data LoadImageRes = LIRImage !Image ![Image]  -- ^ A single image with potential shadows.
 
-buildGroupExif :: Map.Map Text Image -> GroupExif
+buildGroupExif :: Map Text Image -> GroupExif
 buildGroupExif =
   Map.foldl' (\e img -> addExifToGroup e (imgExif img)) def
 
