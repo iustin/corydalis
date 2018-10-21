@@ -47,7 +47,7 @@ import qualified Text.Regex.TDFA     as TDFA
 import           Yesod
 
 data Regex = Regex
-    { reString :: String
+    { reString :: Text
     , reRegex  :: TDFA.Regex
     }
 
@@ -62,17 +62,17 @@ instance FromJSON Regex where
     let str = Text.unpack txt
     in case TDFA.makeRegexM str of
          Nothing -> mzero
-         Just r  -> return $ Regex str r
+         Just r  -> return $ Regex txt r
   parseJSON _ = mzero
 
 instance Store Regex where
-  size = case (size::Size String) of
+  size = case (size::Size Text) of
            ConstSize n -> ConstSize n -- Unlikely :)
            VarSize f   -> VarSize (f . reString)
   poke = poke . reString
   peek = do
     s <- peek
-    case TDFA.makeRegexM s of
+    case TDFA.makeRegexM (Text.unpack s) of
       Nothing -> fail "Can't build regex even though it was serialized"
       Just r  -> return $ Regex s r
 
