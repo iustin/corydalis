@@ -114,8 +114,7 @@ import qualified Data.Store
 import           Data.Store.TH
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
-import qualified Data.Text.Lazy             as Text (toStrict)
-import qualified Data.Text.Lazy             as TextL (append)
+import qualified Data.Text.Lazy             as TextL
 import qualified Data.Text.Lazy.Encoding    as Text (decodeUtf8)
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
@@ -1184,7 +1183,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
             outFile = format ++ ":" ++ fpath
         lift $ createDirectoryIfMissing True parent
         (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[Text.unpack bytesPath], operators, [outFile]])
-        when (exitCode /= ExitSuccess) . throwE . ImageError . Text.toStrict . Text.decodeUtf8 $ err `BSL.append` out
+        when (exitCode /= ExitSuccess) . throwE . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
       return (Text.pack $ "image/" ++ format, Text.pack fpath)
 
 -- | Ordered list of tags that represent embedded images.
@@ -1231,7 +1230,7 @@ extractEmbedded config path tag = do
           BSL.writeFile outputPath out
           return $ Right (outputPathT, mime)
         else
-          return $ Left $ Text.toStrict $ Text.decodeUtf8 err -- partial function!
+          return $ Left $ TextL.toStrict $ Text.decodeUtf8 err -- partial function!
     else
       -- TODO: mtime-based regen.
       return $ Right (outputPathT, mime)
@@ -1281,7 +1280,7 @@ extractFirstFrame config path = do
           let err' = Text.decodeUtf8 err -- note partial function!
               out' = Text.decodeUtf8 out
               msg = out' `TextL.append` err'
-          in return . Left . Text.toStrict $ msg
+          in return . Left . TextL.toStrict $ msg
     else
       return $ Right (outputPathT, mime)
 
