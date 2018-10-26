@@ -172,7 +172,7 @@ getImageBytesR folder iname = do
     Left (ImageError err) ->
       sendResponse $ imageError err
     Right (ctype, rpath) ->
-      sendFile (Text.encodeUtf8 ctype) (TextL.unpack rpath)
+      sendFile (Text.encodeUtf8 ctype) rpath
 
 getMovieBytesR :: Text -> Text -> Handler ()
 getMovieBytesR folder iname = do

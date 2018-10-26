@@ -295,9 +295,9 @@ fileLastTouch :: File -> POSIXTime
 fileLastTouch f = fileMTime f `max` fileCTime f
 
 -- | Retun the last time a path on disk has been touched.
-filePathLastTouch :: LazyText -> IO POSIXTime
+filePathLastTouch :: FilePath -> IO POSIXTime
 filePathLastTouch p = do
-  stat <- getSymbolicLinkStatus $ TextL.unpack p
+  stat <- getSymbolicLinkStatus p
   return $ modificationTimeHiRes stat `max` statusChangeTimeHiRes stat
 
 -- | The year of the image, as determined from Exif data.
@@ -1155,16 +1155,16 @@ scaledImagePath config path res =
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> LazyText -> LazyText -> Text
+loadCachedOrBuild :: Config -> FilePath -> FilePath -> Text
                   -> POSIXTime -> ImageSize
-                  -> ExceptT ImageError IO (Text, LazyText)
+                  -> ExceptT ImageError IO (Text, FilePath)
 loadCachedOrBuild config origPath bytesPath mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
     Nothing -> return (mime, bytesPath)
     Just res' -> do
       let geom = show res' ++ "x" ++ show res'
-          fpath = scaledImagePath config (TextL.unpack origPath) res'
+          fpath = scaledImagePath config origPath res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
       stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
@@ -1178,9 +1178,9 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
             (parent, _) = splitFileName fpath
             outFile = format ++ ":" ++ fpath
         lift $ createDirectoryIfMissing True parent
-        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[TextL.unpack bytesPath], operators, [outFile]])
+        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])
         when (exitCode /= ExitSuccess) . throwE . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
-      return (Text.pack $ "image/" ++ format, TextL.pack fpath)
+      return (Text.pack $ "image/" ++ format, fpath)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]
@@ -1199,11 +1199,10 @@ ensureParent path = do
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
-extractEmbedded :: Config -> LazyText -> String -> IO (Either Text (LazyText, Text))
+extractEmbedded :: Config -> LazyText -> String -> IO (Either Text (FilePath, Text))
 extractEmbedded config path tag = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
-      outputPathT = TextL.pack outputPath
       args = [
         "-b",
         "-" ++ tag,
@@ -1211,6 +1210,7 @@ extractEmbedded config path tag = do
         ]
       -- FIXME: embedded images are assumed JPEGs.
       mime = "image/jpeg"
+      goodRet = Right (outputPath, mime)
   exists <- fileExist outputPath
   if not exists
     then do
@@ -1225,15 +1225,15 @@ extractEmbedded config path tag = do
         then do
           ensureParent outputPath
           BSL.writeFile outputPath out
-          return $ Right (outputPathT, mime)
+          return goodRet
         else
           return $ Left $ TextL.toStrict $ Text.decodeUtf8 err -- partial function!
     else
       -- TODO: mtime-based regen.
-      return $ Right (outputPathT, mime)
+      return goodRet
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> LazyText -> IO (Either Text (LazyText, Text))
+bestEmbedded :: Config -> LazyText -> IO (Either Text (FilePath, Text))
 bestEmbedded config path =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
@@ -1246,11 +1246,10 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Extracts and saves the first frame from a movie.
-extractFirstFrame :: Config -> LazyText -> IO (Either Text (LazyText, Text))
+extractFirstFrame :: Config -> LazyText -> IO (Either Text (FilePath, Text))
 extractFirstFrame config path = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
-      outputPathT = TextL.pack outputPath
       args = [
         "-y",
         "-i",
@@ -1262,6 +1261,7 @@ extractFirstFrame config path = do
         ]
       -- FIXME: Extracted frames ('image2') are assumed jpeg.
       mime = "image/jpeg"
+      goodRet = Right (outputPath, mime)
   exists <- fileExist outputPath
   if not exists
     then do
@@ -1273,14 +1273,14 @@ extractFirstFrame config path = do
       (exitCode, out, err) <- readProcess pconfig
       if exitCode == ExitSuccess
         then
-          return $ Right (outputPathT, mime)
+          return goodRet
         else
           let err' = Text.decodeUtf8 err -- note partial function!
               out' = Text.decodeUtf8 out
               msg = out' `TextL.append` err'
           in return . Left . TextL.toStrict $ msg
     else
-      return $ Right (outputPathT, mime)
+      return goodRet
 
 -- | Compute a presumed jpeg's mime type.
 jpegMimeType :: File -> Text
@@ -1290,13 +1290,13 @@ jpegMimeType = fileMimeType "image/jpeg"
 --
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc.
-getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, LazyText, Text, POSIXTime)
+getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, FilePath, Text, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img =
-      return (j, filePath j, jpegMimeType j, fileLastTouch j)
+      return (j, TextL.unpack (filePath j), jpegMimeType j, fileLastTouch j)
   | Just j <- imgRawPath img,
     True <- flagsSoftMaster (imgFlags img) =
-      return (j, filePath j, jpegMimeType j, fileLastTouch j)
+      return (j, TextL.unpack (filePath j), jpegMimeType j, fileLastTouch j)
   | Just r <- imgRawPath img = do
       embedded <- lift $ bestEmbedded config (filePath r)
       case embedded of
@@ -1331,12 +1331,12 @@ getViewableVersion config img
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, LazyText))
+imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, FilePath))
 imageAtRes config img size = runExceptT $ do
   (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of
     Nothing -> return (mime, path)
-    Just s  -> loadCachedOrBuild config (filePath origFile) path mime mtime s
+    Just s  -> loadCachedOrBuild config (TextL.unpack $ filePath origFile) path mime mtime s
 
 imgProblems :: Image -> Set Text
 imgProblems =
