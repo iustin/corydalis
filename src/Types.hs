@@ -29,6 +29,7 @@ module Types ( Config(..)
              , ImageStatus(..)
              , JSDiffTime(..)
              , UrlParams
+             , pathSep
              ) where
 
 import           Control.Applicative
@@ -43,6 +44,7 @@ import           Data.Text           (Text)
 import qualified Data.Text           as Text
 import           Data.Time.Clock
 import           Prelude
+import           System.FilePath     (pathSeparator)
 import qualified Text.Regex.TDFA     as TDFA
 import           Yesod
 
@@ -85,6 +87,10 @@ instance FromJSON JSDiffTime where
   parseJSON (Number num) =
     return . JSDiffTime . fromRational . toRational $ num
   parseJSON _ = mzero
+
+-- | Helper for text version of 'pathSeparator'.
+pathSep :: Text
+pathSep = Text.singleton pathSeparator
 
 data Config = Config
     { cfgSourceDirs      :: [FilePath]

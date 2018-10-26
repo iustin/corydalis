@@ -203,10 +203,6 @@ instance NFData File where
                  rnf fileDir    `seq`
                  rnf fileExif
 
--- | Helper for text version of 'pathSeparator'.
-pathSep :: Text
-pathSep = Text.singleton pathSeparator
-
 -- | The full path for a file.
 filePath :: File -> TextL.Text
 filePath File{..} = TextL.fromChunks [fileDir, pathSep, fileName]
