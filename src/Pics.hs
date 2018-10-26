@@ -29,6 +29,7 @@ module Pics ( PicDir(..)
             , ImageError(..)
             , MediaType(..)
             , File(..)
+            , filePath
             , Flags(..)
             , Repository
             , Exif(..)
@@ -191,7 +192,7 @@ data File = File
   , fileCTime :: !POSIXTime
   , fileMTime :: !POSIXTime
   , fileSize  :: !FileOffset
-  , filePath  :: !Text
+  , fileDir   :: !Text
   , fileExif  :: !Exif
   } deriving (Show, Eq)
 
@@ -200,8 +201,16 @@ instance NFData File where
                  rnf fileCTime  `seq`
                  rnf fileMTime  `seq`
                  fileSize       `seq` -- plain type, weak form is enough
-                 rnf filePath   `seq`
+                 rnf fileDir    `seq`
                  rnf fileExif
+
+-- | Helper for text version of 'pathSeparator'.
+pathSep :: Text
+pathSep = Text.singleton pathSeparator
+
+-- | The full path for a file.
+filePath :: File -> Text
+filePath File{..} = fileDir <> pathSep <> fileName
 
 -- | Try to find a valid mime type for a file.
 fileMimeType :: Text -> File -> Text
@@ -890,18 +899,18 @@ loadFolder config name path isSource = do
       move = movieExtsRev config
       tname = Text.pack name
       ewarn txt = def { exifWarning = Set.singleton txt }
+      dirpath = Text.pack path
       loadImage ii  =
         let f = inodeName ii
             base = dropCopySuffix config $ dropExtensions f
             tbase = Text.pack base
             f' = reverse f
             tf = Text.pack f
-            fullPath = Text.pack $ path </> f
             exif = case f `Map.lookup` lcache of
                      Nothing         -> ewarn "Internal error: exif not read"
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
                      Just (Right e)  -> e
-            jf = File tf ctime mtime size fullPath exif
+            jf = File tf ctime mtime size dirpath exif
             jtf = strictJust jf
             mtime = inodeMTime ii
             ctime = inodeCTime ii
@@ -952,7 +961,7 @@ loadFolder config name path isSource = do
                            imageYear img
                         ) Nothing images
       exif = buildGroupExif images
-  return $!! PicDir tname (Text.pack path) [] images shadows year exif
+  return $!! PicDir tname dirpath [] images shadows year exif
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
