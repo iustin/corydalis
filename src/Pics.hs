@@ -28,6 +28,7 @@ module Pics ( PicDir(..)
             , Image(..)
             , ImageError(..)
             , MediaType(..)
+            , MimeType
             , File(..)
             , filePath
             , Flags(..)
@@ -185,6 +186,9 @@ expandRangeFile cfg name =
                                       [base ++ expand (show i) | i <- [b..e]]
                                     _ -> []
     _ -> []
+
+-- Readability alias.
+type MimeType = Text
 
 data File = File
   { fileName  :: !Text
@@ -1155,9 +1159,9 @@ scaledImagePath config path res =
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> FilePath -> FilePath -> Text
+loadCachedOrBuild :: Config -> FilePath -> FilePath -> MimeType
                   -> POSIXTime -> ImageSize
-                  -> ExceptT ImageError IO (Text, FilePath)
+                  -> ExceptT ImageError IO (MimeType, FilePath)
 loadCachedOrBuild config origPath bytesPath mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
@@ -1199,7 +1203,7 @@ ensureParent path = do
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
-extractEmbedded :: Config -> LazyText -> String -> IO (Either Text (FilePath, Text))
+extractEmbedded :: Config -> LazyText -> String -> IO (Either Text (FilePath, MimeType))
 extractEmbedded config path tag = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
@@ -1233,7 +1237,7 @@ extractEmbedded config path tag = do
       return goodRet
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> LazyText -> IO (Either Text (FilePath, Text))
+bestEmbedded :: Config -> LazyText -> IO (Either Text (FilePath, MimeType))
 bestEmbedded config path =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
@@ -1246,7 +1250,7 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Extracts and saves the first frame from a movie.
-extractFirstFrame :: Config -> LazyText -> IO (Either Text (FilePath, Text))
+extractFirstFrame :: Config -> LazyText -> IO (Either Text (FilePath, MimeType))
 extractFirstFrame config path = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
@@ -1283,14 +1287,14 @@ extractFirstFrame config path = do
       return goodRet
 
 -- | Compute a presumed jpeg's mime type.
-jpegMimeType :: File -> Text
+jpegMimeType :: File -> MimeType
 jpegMimeType = fileMimeType "image/jpeg"
 
 -- | Returns a viewable version of an image.
 --
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc.
-getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, FilePath, Text, POSIXTime)
+getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, FilePath, MimeType, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img =
       return (j, TextL.unpack (filePath j), jpegMimeType j, fileLastTouch j)
@@ -1331,7 +1335,7 @@ getViewableVersion config img
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, FilePath))
+imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (MimeType, FilePath))
 imageAtRes config img size = runExceptT $ do
   (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of
