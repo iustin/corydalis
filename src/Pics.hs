@@ -204,7 +204,7 @@ instance NFData File where
                  rnf fileExif
 
 -- | The full path for a file.
-filePath :: File -> TextL.Text
+filePath :: File -> LazyText
 filePath File{..} = TextL.fromChunks [fileDir, pathSep, fileName]
 
 -- | Try to find a valid mime type for a file.
@@ -295,7 +295,7 @@ fileLastTouch :: File -> POSIXTime
 fileLastTouch f = fileMTime f `max` fileCTime f
 
 -- | Retun the last time a path on disk has been touched.
-filePathLastTouch :: TextL.Text -> IO POSIXTime
+filePathLastTouch :: LazyText -> IO POSIXTime
 filePathLastTouch p = do
   stat <- getSymbolicLinkStatus $ TextL.unpack p
   return $ modificationTimeHiRes stat `max` statusChangeTimeHiRes stat
@@ -1155,9 +1155,9 @@ scaledImagePath config path res =
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> TextL.Text -> TextL.Text -> Text
+loadCachedOrBuild :: Config -> LazyText -> LazyText -> Text
                   -> POSIXTime -> ImageSize
-                  -> ExceptT ImageError IO (Text, TextL.Text)
+                  -> ExceptT ImageError IO (Text, LazyText)
 loadCachedOrBuild config origPath bytesPath mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
@@ -1199,7 +1199,7 @@ ensureParent path = do
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
-extractEmbedded :: Config -> TextL.Text -> String -> IO (Either Text (TextL.Text, Text))
+extractEmbedded :: Config -> LazyText -> String -> IO (Either Text (LazyText, Text))
 extractEmbedded config path tag = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
@@ -1233,7 +1233,7 @@ extractEmbedded config path tag = do
       return $ Right (outputPathT, mime)
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> TextL.Text -> IO (Either Text (TextL.Text, Text))
+bestEmbedded :: Config -> LazyText -> IO (Either Text (LazyText, Text))
 bestEmbedded config path =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
@@ -1246,7 +1246,7 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Extracts and saves the first frame from a movie.
-extractFirstFrame :: Config -> TextL.Text -> IO (Either Text (TextL.Text, Text))
+extractFirstFrame :: Config -> LazyText -> IO (Either Text (LazyText, Text))
 extractFirstFrame config path = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
@@ -1290,7 +1290,7 @@ jpegMimeType = fileMimeType "image/jpeg"
 --
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc.
-getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, TextL.Text, Text, POSIXTime)
+getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, LazyText, Text, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img =
       return (j, filePath j, jpegMimeType j, fileLastTouch j)
@@ -1331,7 +1331,7 @@ getViewableVersion config img
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, TextL.Text))
+imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, LazyText))
 imageAtRes config img size = runExceptT $ do
   (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of

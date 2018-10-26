@@ -30,6 +30,7 @@ module Types ( Config(..)
              , JSDiffTime(..)
              , UrlParams
              , pathSep
+             , LazyText
              ) where
 
 import           Control.Applicative
@@ -42,6 +43,7 @@ import           Data.Store
 import           Data.Store.TH       (makeStore)
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
+import qualified Data.Text.Lazy      as TextL
 import           Data.Time.Clock
 import           Prelude
 import           System.FilePath     (pathSeparator)
@@ -91,6 +93,9 @@ instance FromJSON JSDiffTime where
 -- | Helper for text version of 'pathSeparator'.
 pathSep :: Text
 pathSep = Text.singleton pathSeparator
+
+-- | Type alias for readabiliy.
+type LazyText = TextL.Text
 
 data Config = Config
     { cfgSourceDirs      :: [FilePath]
