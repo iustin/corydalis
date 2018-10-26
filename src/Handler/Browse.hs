@@ -32,6 +32,7 @@ module Handler.Browse
   ) where
 
 import qualified Data.Text       as Text
+import qualified Data.Text.Lazy  as TextL
 
 import           Handler.Utils
 import           Handler.Widgets
@@ -80,4 +81,4 @@ getBrowseImagesR kinds = do
     provideRep $ defaultLayout $ do
       setHtmlTitle $ "showing images with status " <> kinds_string
       $(widgetFile "browseimages")
-    provideRep $ return $ "\n" `Text.intercalate` allpaths
+    provideRep $ return $ "\n" `TextL.intercalate` allpaths

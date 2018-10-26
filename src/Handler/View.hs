@@ -37,6 +37,7 @@ import           Data.Aeson.Text             (encodeToLazyText)
 import qualified Data.Map                    as Map
 import qualified Data.Text                   as Text
 import qualified Data.Text.Encoding          as Text (encodeUtf8)
+import qualified Data.Text.Lazy              as TextL
 import           System.Random               (getStdRandom, randomR)
 import qualified Text.Blaze.Svg              as Svg
 import           Text.Blaze.Svg11            (Svg, docTypeSvg, text_, (!))
@@ -171,7 +172,7 @@ getImageBytesR folder iname = do
     Left (ImageError err) ->
       sendResponse $ imageError err
     Right (ctype, rpath) ->
-      sendFile (Text.encodeUtf8 ctype) (Text.unpack rpath)
+      sendFile (Text.encodeUtf8 ctype) (TextL.unpack rpath)
 
 getMovieBytesR :: Text -> Text -> Handler ()
 getMovieBytesR folder iname = do
@@ -179,7 +180,7 @@ getMovieBytesR folder iname = do
   case bestMovie img of
     Just f -> sendFile
                 (Text.encodeUtf8 $ fileMimeType "video/mp4" f)
-                (Text.unpack $ filePath f)
+                (TextL.unpack $ filePath f)
     _      -> sendResponse imageNotViewable
 
 fileToView :: Image -> Maybe File

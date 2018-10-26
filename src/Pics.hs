@@ -208,8 +208,8 @@ pathSep :: Text
 pathSep = Text.singleton pathSeparator
 
 -- | The full path for a file.
-filePath :: File -> Text
-filePath File{..} = fileDir <> pathSep <> fileName
+filePath :: File -> TextL.Text
+filePath File{..} = TextL.fromChunks [fileDir, pathSep, fileName]
 
 -- | Try to find a valid mime type for a file.
 fileMimeType :: Text -> File -> Text
@@ -299,9 +299,9 @@ fileLastTouch :: File -> POSIXTime
 fileLastTouch f = fileMTime f `max` fileCTime f
 
 -- | Retun the last time a path on disk has been touched.
-filePathLastTouch :: Text -> IO POSIXTime
+filePathLastTouch :: TextL.Text -> IO POSIXTime
 filePathLastTouch p = do
-  stat <- getSymbolicLinkStatus $ Text.unpack p
+  stat <- getSymbolicLinkStatus $ TextL.unpack p
   return $ modificationTimeHiRes stat `max` statusChangeTimeHiRes stat
 
 -- | The year of the image, as determined from Exif data.
@@ -1159,16 +1159,16 @@ scaledImagePath config path res =
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
 -- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> Text -> Text -> Text
+loadCachedOrBuild :: Config -> TextL.Text -> TextL.Text -> Text
                   -> POSIXTime -> ImageSize
-                  -> ExceptT ImageError IO (Text, Text)
+                  -> ExceptT ImageError IO (Text, TextL.Text)
 loadCachedOrBuild config origPath bytesPath mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
     Nothing -> return (mime, bytesPath)
     Just res' -> do
       let geom = show res' ++ "x" ++ show res'
-          fpath = scaledImagePath config (Text.unpack origPath) res'
+          fpath = scaledImagePath config (TextL.unpack origPath) res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
       stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
@@ -1182,9 +1182,9 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
             (parent, _) = splitFileName fpath
             outFile = format ++ ":" ++ fpath
         lift $ createDirectoryIfMissing True parent
-        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[Text.unpack bytesPath], operators, [outFile]])
+        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[TextL.unpack bytesPath], operators, [outFile]])
         when (exitCode /= ExitSuccess) . throwE . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
-      return (Text.pack $ "image/" ++ format, Text.pack fpath)
+      return (Text.pack $ "image/" ++ format, TextL.pack fpath)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]
@@ -1203,14 +1203,15 @@ ensureParent path = do
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
-extractEmbedded :: Config -> Text -> String -> IO (Either Text (Text, Text))
+extractEmbedded :: Config -> TextL.Text -> String -> IO (Either Text (TextL.Text, Text))
 extractEmbedded config path tag = do
-  let outputPath = embeddedImagePath config (Text.unpack path)
-      outputPathT = Text.pack outputPath
+  let pathS = TextL.unpack path
+      outputPath = embeddedImagePath config pathS
+      outputPathT = TextL.pack outputPath
       args = [
         "-b",
         "-" ++ tag,
-        Text.unpack path
+        pathS
         ]
       -- FIXME: embedded images are assumed JPEGs.
       mime = "image/jpeg"
@@ -1236,7 +1237,7 @@ extractEmbedded config path tag = do
       return $ Right (outputPathT, mime)
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> Text -> IO (Either Text (Text, Text))
+bestEmbedded :: Config -> TextL.Text -> IO (Either Text (TextL.Text, Text))
 bestEmbedded config path =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
@@ -1249,14 +1250,15 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Extracts and saves the first frame from a movie.
-extractFirstFrame :: Config -> Text -> IO (Either Text (Text, Text))
+extractFirstFrame :: Config -> TextL.Text -> IO (Either Text (TextL.Text, Text))
 extractFirstFrame config path = do
-  let outputPath = embeddedImagePath config (Text.unpack path)
-      outputPathT = Text.pack outputPath
+  let pathS = TextL.unpack path
+      outputPath = embeddedImagePath config pathS
+      outputPathT = TextL.pack outputPath
       args = [
         "-y",
         "-i",
-        Text.unpack path,
+        pathS,
         "-r", "1",
         "-frames", "1",
         "-f", "image2",
@@ -1292,7 +1294,7 @@ jpegMimeType = fileMimeType "image/jpeg"
 --
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc.
-getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, Text, Text, POSIXTime)
+getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, TextL.Text, Text, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img =
       return (j, filePath j, jpegMimeType j, fileLastTouch j)
@@ -1333,7 +1335,7 @@ getViewableVersion config img
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, Text))
+imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Text, TextL.Text))
 imageAtRes config img size = runExceptT $ do
   (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of
