@@ -1203,7 +1203,7 @@ ensureParent path = do
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
-extractEmbedded :: Config -> LazyText -> String -> IO (Either Text (FilePath, MimeType))
+extractEmbedded :: Config -> LazyText -> String -> IO (Either Text (MimeType, FilePath))
 extractEmbedded config path tag = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
@@ -1214,7 +1214,7 @@ extractEmbedded config path tag = do
         ]
       -- FIXME: embedded images are assumed JPEGs.
       mime = "image/jpeg"
-      goodRet = Right (outputPath, mime)
+      goodRet = Right (mime, outputPath)
   exists <- fileExist outputPath
   if not exists
     then do
@@ -1237,7 +1237,7 @@ extractEmbedded config path tag = do
       return goodRet
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> LazyText -> IO (Either Text (FilePath, MimeType))
+bestEmbedded :: Config -> LazyText -> IO (Either Text (MimeType, FilePath))
 bestEmbedded config path =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
@@ -1250,7 +1250,7 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Extracts and saves the first frame from a movie.
-extractFirstFrame :: Config -> LazyText -> IO (Either Text (FilePath, MimeType))
+extractFirstFrame :: Config -> LazyText -> IO (Either Text (MimeType, FilePath))
 extractFirstFrame config path = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
@@ -1265,7 +1265,7 @@ extractFirstFrame config path = do
         ]
       -- FIXME: Extracted frames ('image2') are assumed jpeg.
       mime = "image/jpeg"
-      goodRet = Right (outputPath, mime)
+      goodRet = Right (mime, outputPath)
   exists <- fileExist outputPath
   if not exists
     then do
@@ -1305,7 +1305,7 @@ getViewableVersion config img
       embedded <- lift $ bestEmbedded config (filePath r)
       case embedded of
         Left msg -> throwE $ ImageError msg
-        Right (path, mime) -> do
+        Right (mime, path) -> do
           mtime <- lift $ filePathLastTouch path
           return (r, path, mime, mtime)
   | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
@@ -1315,10 +1315,10 @@ getViewableVersion config img
           firstFrame <- lift $ extractFirstFrame config (filePath m)
           case firstFrame of
             Left msg' -> throwE $ ImageError msg'
-            Right (path, mime) -> do
+            Right (mime, path) -> do
               mtime <- lift $ filePathLastTouch path
               return (m, path, mime, mtime)
-        Right (path, mime) -> do
+        Right (mime, path) -> do
           mtime <- lift $ filePathLastTouch path
           return (m, path, mime, mtime)
   | otherwise = throwE ImageNotViewable
