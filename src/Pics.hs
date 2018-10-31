@@ -138,24 +138,6 @@ import           Exif
 import           Settings.Development
 import           Types
 
-addRevDot :: [FilePath] -> [FilePath]
-addRevDot = map (reverse . ('.':))
-
-rawExtsRev :: Config -> [FilePath]
-rawExtsRev = addRevDot . cfgRawExts
-
-jpegExtsRev :: Config -> [FilePath]
-jpegExtsRev = addRevDot . cfgJpegExts
-
-sidecarExtsRev :: Config -> [FilePath]
-sidecarExtsRev = addRevDot . cfgSidecarExts
-
-movieExtsRev :: Config -> [FilePath]
-movieExtsRev = addRevDot . cfgMovieExts
-
-hasExts:: FilePath -> [FilePath] -> Bool
-hasExts p = any (`isPrefixOf` p)
-
 blacklistedDirs :: Config -> [String]
 blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
 
@@ -889,17 +871,20 @@ loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
 loadFolder config name path isSource = do
   contents <- recursiveScanPath config path id
   lcache <- getExif config path $ map inodeName contents
-  let rawe = rawExtsRev config
-      side = sidecarExtsRev config
-      jpeg = jpegExtsRev config
-      move = movieExtsRev config
+  let rawe = cfgRawExtsSet config
+      side = cfgSidecarExts config
+      jpeg = cfgJpegExts config
+      move = cfgMovieExts config
       tname = Text.pack name
       ewarn txt = def { exifWarning = Set.singleton txt }
       dirpath = Text.pack path
       loadImage ii  =
         let file_name = inodeName ii
-            base_name = dropCopySuffix config $ dropExtensions file_name
-            file_rev = reverse file_name
+            (base_full, ext') = splitExtension file_name
+            ext = Text.pack $ case ext' of
+              '.':v -> v
+              _     -> ext'
+            base_name = dropCopySuffix config base_full
             exif = case file_name `Map.lookup` lcache of
                      Nothing         -> ewarn "Internal error: exif not read"
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
@@ -915,15 +900,15 @@ loadFolder config name path isSource = do
             just_file = strictJust file_obj
             isSoftMaster = is_jpeg && isSource
             raw_file =
-              if hasExts file_rev rawe || isSoftMaster
+              if ext `Set.member` rawe || isSoftMaster
               then just_file
               else Nothing
             sidecar_file =
-              if hasExts file_rev side
+              if ext `Set.member` side
               then just_file
               else Nothing
-            is_jpeg = hasExts file_rev jpeg
-            is_mov = hasExts file_rev move
+            is_jpeg = ext `Set.member` jpeg
+            is_mov = ext `Set.member` move
             m_mov = if is_mov && isSource
                       then just_file
                       else Nothing

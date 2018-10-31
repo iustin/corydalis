@@ -39,6 +39,8 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Function       (on)
 import           Data.List           (nub, sort)
+import           Data.Set            (Set)
+import qualified Data.Set            as Set
 import           Data.Store
 import           Data.Store.TH       (makeStore)
 import           Data.Text           (Text)
@@ -106,10 +108,11 @@ data Config = Config
     , cfgAutoImageSizes  :: [Int]
     , cfgAllImageSizes   :: [Int]
     , cfgRawExts         :: [FilePath]
-    , cfgJpegExts        :: [FilePath]
-    , cfgSidecarExts     :: [FilePath]
+    , cfgRawExtsSet      :: Set Text
+    , cfgJpegExts        :: Set Text
+    , cfgSidecarExts     :: Set Text
     , cfgOtherImgExts    :: [FilePath]
-    , cfgMovieExts       :: [FilePath]
+    , cfgMovieExts       :: Set Text
     , cfgDirRegex        :: Regex
     , cfgRangeRegex      :: Regex
     , cfgCopyRegex       :: Regex
@@ -127,7 +130,8 @@ instance FromJSON Config where
          thumbsize              <*>
          autosizes              <*>
          allsizes'              <*>
-         v .: "rawexts"         <*>
+         rawexts                <*>
+         rawextsset             <*>
          v .: "jpegexts"        <*>
          v .: "sidecarexts"     <*>
          v .: "otherexts"       <*>
@@ -142,6 +146,8 @@ instance FromJSON Config where
           demandsizes = v .: "demandimgsizes"
           allsizes = (++) <$> autosizes <*> demandsizes
           allsizes' = sort . nub <$> allsizes
+          rawexts = v .: "rawexts"
+          rawextsset = Set.fromList . map Text.pack <$> rawexts
 
   parseJSON _ = mzero
 

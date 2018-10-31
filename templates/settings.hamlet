@@ -36,17 +36,17 @@ Current configuration:
           <span .monolight>#{quoteMarkup ext}
   <li>extensions considered <span class="#{iconPlainFile}"></span> sidecar files:
     <ul>
-      $forall ext <- sort $ cfgSidecarExts config
+      $forall ext <- Set.toAscList $ cfgSidecarExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
   <li>extensions considered jpeg <span class="#{iconProcessed}"></span> files:
     <ul>
-      $forall ext <- sort $ cfgJpegExts config
+      $forall ext <- Set.toAscList $ cfgJpegExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
   <li>extensions considered movie <span class="#{iconMovie}"></span> files:
     <ul>
-      $forall ext <- sort $ cfgJpegExts config
+      $forall ext <- Set.toAscList $ cfgJpegExts config
         <li>
           <span .monolight>#{quoteMarkup ext}
   <li>Pre/auto-generated image sizes:

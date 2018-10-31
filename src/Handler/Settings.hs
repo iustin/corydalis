@@ -34,6 +34,8 @@ import           Handler.Utils
 import           Import
 import           Types
 
+import qualified Data.Set      as Set
+
 getSettingsR :: Handler Html
 getSettingsR = do
   config <- getConfig
