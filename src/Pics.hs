@@ -880,9 +880,6 @@ addImgs config = foldl' (addImg config)
 addImg :: Config -> Map Text Image -> Image -> Map Text Image
 addImg config m i = Map.insertWith (mergePictures config) (imgName i) i m
 
--- | Result of loadImage.
-data LoadImageRes = LIRImage !Image ![Image]  -- ^ A single image with potential shadows.
-
 buildGroupExif :: Map Text Image -> GroupExif
 buildGroupExif =
   Map.foldl' (\e img -> addExifToGroup e (imgExif img)) def
@@ -954,12 +951,11 @@ loadFolder config name path isSource = do
               mkImage config (Text.pack base_name) tname
               raw_file sidecar_file jpeg_file m_mov p_mov
               untrk range mtype flags
-        in LIRImage img (if onlySidecar then [] else simgs)
+        in (img, if onlySidecar then [] else simgs)
       (images, shadows) =
         foldl' (\(images', shadows') f ->
-                  case loadImage f of
-                    LIRImage img newss -> (addImg config images' img,
-                                           addImgs config shadows' newss)
+                  let (img, newss) = loadImage f
+                  in (addImg config images' img, addImgs config shadows' newss)
                ) (Map.empty, Map.empty) contents
   let year = Map.foldl' (\a img ->
                            (min <$> a <*> imageYear img) <|>
