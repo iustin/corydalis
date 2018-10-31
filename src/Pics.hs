@@ -880,17 +880,18 @@ loadFolder config name path isSource = do
       dirpath = Text.pack path
       loadImage ii  =
         let file_name = inodeName ii
+            file_text = Text.pack file_name
             (base_full, ext') = splitExtension file_name
             ext = Text.pack $ case ext' of
               '.':v -> v
               _     -> ext'
             base_name = dropCopySuffix config base_full
-            exif = case file_name `Map.lookup` lcache of
+            exif = case file_text `Map.lookup` lcache of
                      Nothing         -> ewarn "Internal error: exif not read"
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
                      Just (Right e)  -> e
             file_obj =
-              File { fileName  = Text.pack file_name
+              File { fileName  = file_text
                    , fileCTime = inodeCTime ii
                    , fileMTime = inodeMTime ii
                    , fileSize  = inodeSize ii
