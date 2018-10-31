@@ -900,35 +900,39 @@ loadFolder config name path isSource = do
       ewarn txt = def { exifWarning = Set.singleton txt }
       dirpath = Text.pack path
       loadImage ii  =
-        let f = inodeName ii
-            base = dropCopySuffix config $ dropExtensions f
-            tbase = Text.pack base
-            f' = reverse f
-            tf = Text.pack f
-            exif = case f `Map.lookup` lcache of
+        let file_name = inodeName ii
+            base_name = dropCopySuffix config $ dropExtensions file_name
+            file_rev = reverse file_name
+            exif = case file_name `Map.lookup` lcache of
                      Nothing         -> ewarn "Internal error: exif not read"
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
                      Just (Right e)  -> e
-            jf = File tf ctime mtime size dirpath exif
-            jtf = strictJust jf
-            mtime = inodeMTime ii
-            ctime = inodeCTime ii
-            size = inodeSize ii
+            file_obj =
+              File { fileName  = Text.pack file_name
+                   , fileCTime = inodeCTime ii
+                   , fileMTime = inodeMTime ii
+                   , fileSize  = inodeSize ii
+                   , fileDir   = dirpath
+                   , fileExif  = exif
+                   }
+            just_file = strictJust file_obj
             isSoftMaster = is_jpeg && isSource
-            nfp = if hasExts f' rawe || isSoftMaster
-                    then jtf
-                    else Nothing
-            sdc = if hasExts f' side
-                    then jtf
-                    else Nothing
-            is_jpeg = hasExts f' jpeg
-            is_mov = hasExts f' move
+            raw_file =
+              if hasExts file_rev rawe || isSoftMaster
+              then just_file
+              else Nothing
+            sidecar_file =
+              if hasExts file_rev side
+              then just_file
+              else Nothing
+            is_jpeg = hasExts file_rev jpeg
+            is_mov = hasExts file_rev move
             m_mov = if is_mov && isSource
-                      then jtf
+                      then just_file
                       else Nothing
-            jpe = [jf | is_jpeg && not isSource]
-            p_mov = [jf | is_mov && not isSource]
-            snames = expandRangeFile config base
+            jpeg_file = [file_obj | is_jpeg && not isSource]
+            p_mov = [file_obj | is_mov && not isSource]
+            snames = expandRangeFile config base_name
             range = case snames of
                       [] -> Nothing
                       _  -> Just (Text.pack $ head snames, Text.pack $ last snames)
@@ -937,16 +941,19 @@ loadFolder config name path isSource = do
               }
             simgs = map (\expname ->
                            mkImage config (Text.pack expname) tname
-                                   Nothing Nothing [jf] Nothing [] [] Nothing MediaImage emptyFlags
+                                   Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
                         ) snames
-            onlySidecar = isNothing nfp && null jpe && isJust sdc
+            onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
             mtype = if | is_mov     -> MediaMovie
                        | null untrk -> MediaImage
                        | otherwise  -> MediaUnknown
-            untrk = case (nfp, jpe, sdc, m_mov, p_mov) of
-              (Nothing, [], Nothing, Nothing, []) -> [jf]
+            untrk = case (raw_file, jpeg_file, sidecar_file, m_mov, p_mov) of
+              (Nothing, [], Nothing, Nothing, []) -> [file_obj]
               _                                   -> []
-            img = force $ mkImage config tbase tname nfp sdc jpe m_mov p_mov untrk range mtype flags
+            img = force $
+              mkImage config (Text.pack base_name) tname
+              raw_file sidecar_file jpeg_file m_mov p_mov
+              untrk range mtype flags
         in LIRImage img (if onlySidecar then [] else simgs)
       (images, shadows) =
         foldl' (\(images', shadows') f ->
