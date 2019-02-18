@@ -346,6 +346,7 @@ $(document).ready(function() {
         }
         var handled = true;
         switch (e.keyCode) {
+        case 40: // up arrow
         case 70: // 'f'
             toggleFullScreen();
             break;
