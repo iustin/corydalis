@@ -58,10 +58,10 @@ imageBytes thumbsize params folder image =
                        style="width: #{thumbsize}px; height: #{thumbsize}px"
                        >|]
 
-generatePrevNext :: (Ord k) => k -> Map k v -> (k -> v -> Route App) -> Widget
+generatePrevNext :: (Ord k) => k -> Set k -> (k -> Route App) -> Widget
 generatePrevNext k m r = do
-  let prevRoute = uncurry r <$> Map.lookupLT k m
-      nextRoute = uncurry r <$> Map.lookupGT k m
+  let prevRoute = r <$> Set.lookupLT k m
+      nextRoute = r <$> Set.lookupGT k m
   $(widgetFile "prevnext")
 
 imageList :: Int -> UrlParams -> Bool -> Bool -> [Image] -> Widget

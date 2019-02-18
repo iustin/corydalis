@@ -363,7 +363,7 @@ data PicDir = PicDir
   , pdMainPath :: !Text
   , pdSecPaths :: ![Text]
   , pdImages   :: !(Map Text Image)
-  , pdTimeSort :: !(Map ImageTimeKey Image)
+  , pdTimeSort :: !(Set ImageTimeKey)
   , pdShadows  :: !(Map Text Image)
   , pdYear     :: !(Maybe Integer)  -- ^ The approximate year of the
                                     -- earliest picture.
@@ -879,8 +879,8 @@ buildGroupExif :: Map Text Image -> GroupExif
 buildGroupExif =
   Map.foldl' (\e img -> addExifToGroup e (imgExif img)) def
 
-buildTimeSort :: Map Text Image -> Map ImageTimeKey Image
-buildTimeSort = Map.fromList . map (\i -> (imageTimeKey i, i)) . Map.elems
+buildTimeSort :: Map Text Image -> Set ImageTimeKey
+buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir

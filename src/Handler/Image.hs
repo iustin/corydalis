@@ -43,7 +43,6 @@ getImageR folder iname = do
   params <- getParams
   let images = pdTimeSort dir
       tkey = imageTimeKey img
-      rbuilder ik io = ImageR (imgParent io) (snd ik)
       flags = if flagsSoftMaster (imgFlags img)
                  then "soft master"::Text
                  else "(none)"

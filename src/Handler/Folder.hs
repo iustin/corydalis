@@ -49,7 +49,6 @@ getFolderR name = do
   defaultLayout $ do
     let stats = computeFolderStats dir
         fc = folderClassFromStats stats
-        rbuilder = (const .) FolderR
         images = map snd . Map.toList $ pdImages dir
         exifs = map imgExif images
         cameras = countItems . map exifCamera $ exifs
