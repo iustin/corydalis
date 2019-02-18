@@ -73,8 +73,8 @@ imageList thumbsize params showParent hideStatus images = do
       numLenses = length lenses
       sortColumns = toJSON $
                     if showParent
-                      then [[1, 0], [2, 0]]
-                      else [[1, 0]]::[[Int]]
+                      then [[1, 0], [3, 0], [2, 0]]
+                      else [[2, 0], [1, 0]]::[[Int]]
   $(widgetFile "imagelist")
 
 showExif :: Exif -> Widget
