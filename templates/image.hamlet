@@ -1,5 +1,5 @@
 <h1>
-  ^{generatePrevNext iname images rbuilder}
+  ^{generatePrevNext tkey images rbuilder}
   Image #
     <small>#{folder}/#{iname}
 

@@ -363,6 +363,7 @@ data PicDir = PicDir
   , pdMainPath :: !Text
   , pdSecPaths :: ![Text]
   , pdImages   :: !(Map Text Image)
+  , pdTimeSort :: !(Map ImageTimeKey Image)
   , pdShadows  :: !(Map Text Image)
   , pdYear     :: !(Maybe Integer)  -- ^ The approximate year of the
                                     -- earliest picture.
@@ -707,6 +708,7 @@ mergeFolders c x y =
   x { pdMainPath = pdMainPath bestMainPath
     , pdSecPaths = pdSecPaths x ++ pdMainPath otherMainPath:pdSecPaths y
     , pdImages = newimages
+    , pdTimeSort = buildTimeSort newimages
     , pdYear = min <$> pdYear x <*> pdYear y <|>
                pdYear x <|>
                pdYear y
@@ -877,6 +879,9 @@ buildGroupExif :: Map Text Image -> GroupExif
 buildGroupExif =
   Map.foldl' (\e img -> addExifToGroup e (imgExif img)) def
 
+buildTimeSort :: Map Text Image -> Map ImageTimeKey Image
+buildTimeSort = Map.fromList . map (\i -> (imageTimeKey i, i)) . Map.elems
+
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
 loadFolder config name path isSource = do
@@ -960,7 +965,8 @@ loadFolder config name path isSource = do
                            imageYear img
                         ) Nothing images
       exif = buildGroupExif images
-  return $!! PicDir tname dirpath [] images shadows year exif
+      timesort = buildTimeSort images
+  return $!! PicDir tname dirpath [] images timesort shadows year exif
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
