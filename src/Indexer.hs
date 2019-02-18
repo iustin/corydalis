@@ -579,7 +579,7 @@ atomToParams ConstTrue    = atomToParams (All [])
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
   foldl' (\m img ->
-             Map.insert (imgParent img, imgName img) img m
+             Map.insert (imgParent img, imageTimeKey img) img m
          ) Map.empty .
   filterImagesBy (imageSearchFunction atom)
 

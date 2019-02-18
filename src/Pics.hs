@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Pics ( PicDir(..)
             , Image(..)
+            , ImageTimeKey
             , ImageError(..)
             , MediaType(..)
             , MimeType
@@ -80,6 +81,8 @@ module Pics ( PicDir(..)
             , imageHasMovies
             , imageHasUntracked
             , imageYear
+            , imageDate
+            , imageTimeKey
             , SearchResults
             , getSearchResults
             , imgProblems
@@ -304,6 +307,14 @@ imageYearMonth img = do
       (y, m, _) = toGregorian day
   -- Let's hope the year/month stay sane here.
   return (fromIntegral y, fromIntegral m)
+
+imageDate :: Image -> Maybe LocalTime
+imageDate = exifCreateDate . imgExif
+
+type ImageTimeKey = (Maybe LocalTime, Text)
+
+imageTimeKey :: Image -> ImageTimeKey
+imageTimeKey img = (imageDate img, imgName img)
 
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
@@ -585,8 +596,8 @@ repoGlobalExif :: RepoDirs -> GroupExif
 repoGlobalExif =
   Map.foldl' (\e f -> e <> pdExif f) def
 
--- | Type alias for search results. Unsorted for now.
-type SearchResults = Map (Text, Text) Image
+-- | Type alias for search results, weakly capture-time-sorted.
+type SearchResults = Map (Text, ImageTimeKey) Image
 
 -- | Type of the search cache.
 type SearchCache = LruCache UrlParams SearchResults

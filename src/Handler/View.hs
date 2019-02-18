@@ -122,8 +122,9 @@ bestMovie img =
 
 -- | Ensure that requested image is present in the (filtered) map.
 locateCurrentImage :: Text -> Text -> SearchResults -> Handler Image
-locateCurrentImage fname iname images =
-  case Map.lookup (fname, iname) images of
+locateCurrentImage fname iname images = do
+  unfiltered <- getImage fname iname
+  case Map.lookup (fname, imageTimeKey unfiltered) images of
     Just img -> return img
     Nothing  -> notFound
 
@@ -213,9 +214,10 @@ getImageInfoR folder iname = do
       -- (they might be the same), hence we can use the non-total
       -- functions findMin/findMax until newer containers package
       -- reaches LTS
+      tkey = imageTimeKey img
       imgFirst = snd  $  Map.findMin images
-      imgPrev  = snd <$> Map.lookupLT (folder, iname) images
-      imgNext  = snd <$> Map.lookupGT (folder, iname) images
+      imgPrev  = snd <$> Map.lookupLT (folder, tkey) images
+      imgNext  = snd <$> Map.lookupGT (folder, tkey) images
       imgLast  = snd  $  Map.findMax images
       mk i = mkImageInfo (imgParent i) (imgName i) (isJust $ bestMovie i)
                render params (transformForImage i)
