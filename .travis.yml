@@ -14,6 +14,7 @@ before_install:
   - chmod a+x ~/.local/bin/stack
 
 install:
+  - make git-version
   - stack setup --no-terminal
   - stack build --no-terminal --only-snapshot
 
