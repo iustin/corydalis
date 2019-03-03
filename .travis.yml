@@ -1,3 +1,6 @@
+# Generic language, so that the container/VM is lightweight.
+language: generic
+
 # Caching so the next build will be fast too.
 cache:
   directories:
