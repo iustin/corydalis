@@ -31,21 +31,22 @@ import           Types        (Config)
 
 simpleImage :: Config -> Image
 simpleImage config =
-  let f = File "a.nef" 0 0 0 "/no-such-file/a.nef" (Left "error")
-  in mkImage config "a" "b" (Just f) Nothing [] Nothing def
+  let f = File "a.nef" 0 0 0 "/no-such-file" def
+  in mkImage config "a" "b" (Just f) Nothing []
+             Nothing [] [] Nothing MediaImage def
 
 spec :: Spec
 spec = withConfig $
   describe "search cache" $ do
     it "caches a search result" $ \config -> do
       let image = simpleImage config
-          m1 = Map.singleton ("a", "b") image
+          m1 = Map.singleton ("a", (Nothing, "b")) image
       getSearchResults m1 [] `shouldReturn` m1
       getSearchResults (error "Failed to cache") [] `shouldReturn` m1
 
     it "flushes the search cache on rescan" $ \config -> do
       let image = simpleImage config
-          m1 = Map.singleton ("a", "b") image
+          m1 = Map.singleton ("a", (Nothing, "b")) image
           m2 = Map.empty
       _ <- forceScanAll config
       getSearchResults m1 [] `shouldReturn` m1
