@@ -28,7 +28,7 @@ view: corydalis.ps
 
 git-version:
 	if test -d .git; then \
-	  git describe --dirty > $@ ; \
+	  git describe --dirty --always > $@ ; \
 	elif test ! -f $@ ; then \
 	  echo "Error: cannot generate the '$@' file!"; exit 1; \
 	fi
