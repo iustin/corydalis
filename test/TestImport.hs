@@ -67,43 +67,38 @@ loadSettings =
     []
     useEnv
 
-setTempDir :: AppSettings -> IO AppSettings
+setTempDir :: AppSettings -> IO (FilePath, AppSettings)
 setTempDir settings = do
   rootTempDir <- getCanonicalTemporaryDirectory
   tempDir <- createTempDirectory rootTempDir "corydalis-test"
   let config = appConfig settings
       config' = config { cfgCacheDir = tempDir </> "cache" }
-  return settings { appConfig = config' }
+  return (tempDir, settings { appConfig = config' })
 
 -- | Adapted from temporary's code.
 ignoringIOErrors :: IO () -> IO ()
 ignoringIOErrors ioe =
   ioe `E.catch` (\e -> const (return ()) (e :: IOException))
 
-cleanupTempDir :: Config -> IO ()
-cleanupTempDir config = do
-  let tempDir = cfgCacheDir config
-  ignoringIOErrors . removeDirectoryRecursive $ tempDir
+cleanupTempDir :: (FilePath, a) -> IO ()
+cleanupTempDir = ignoringIOErrors . removeDirectoryRecursive . fst
 
 withTempConfig :: (Config -> IO ()) -> IO ()
 withTempConfig action = do
   settings <- loadSettings
-  bracket (appConfig <$> setTempDir settings) cleanupTempDir action
+  bracket (setTempDir settings) cleanupTempDir (action . appConfig . snd)
 
-openTempApp :: IO (TestApp App)
+openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
-  settings <- loadSettings >>= setTempDir
+  (tempDir, settings) <- loadSettings >>= setTempDir
   foundation <- makeFoundation settings
   wipeDB foundation
   logWare <- liftIO $ makeLogWare foundation
-  return (foundation, logWare)
-
-closeTempApp :: TestApp App -> IO ()
-closeTempApp =
-  cleanupTempDir . appConfig . appSettings . fst
+  return (tempDir, (foundation, logWare))
 
 withApp :: SpecWith (TestApp App) -> Spec
-withApp = around (bracket openTempApp closeTempApp)
+withApp =
+  around (\action -> bracket openTempApp cleanupTempDir (action . snd))
 
 withConfig :: SpecWith Config -> Spec
 withConfig = around withTempConfig
