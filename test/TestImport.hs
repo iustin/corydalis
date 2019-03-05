@@ -34,18 +34,20 @@ import           Database.Persist.Sql    (SqlBackend, SqlPersistM,
 import           Foundation              as X
 import           Model                   as X
 import           Test.Hspec              as X
-import           Types                   (Config)
+import           Types                   (Config, cfgCacheDir)
 import           Yesod.Auth              as X
 import           Yesod.Core.Unsafe       (fakeHandlerGetLogger)
 import           Yesod.Default.Config2   (loadYamlSettings, useEnv)
 import           Yesod.Test              as X
 
--- Wiping the database
+import qualified Control.Exception       as E
 import           Control.Monad.Logger    (runLoggingT)
 import           Database.Persist.Sqlite (createSqlPool, sqlDatabase,
                                           wrapConnection)
 import qualified Database.Sqlite         as Sqlite
 import           Settings                (AppSettings (..), appDatabaseConf)
+import           System.Directory        (removeDirectoryRecursive)
+import           System.IO.Temp
 import           Yesod.Core              (messageLoggerSource)
 
 runDB :: SqlPersistM a -> YesodExample App a
@@ -65,20 +67,46 @@ loadSettings =
     []
     useEnv
 
-withApp :: SpecWith (TestApp App) -> Spec
-withApp = before $ do
-    settings <- loadSettings
-    foundation <- makeFoundation settings
-    wipeDB foundation
-    logWare <- liftIO $ makeLogWare foundation
-    return (foundation, logWare)
+setTempDir :: AppSettings -> IO AppSettings
+setTempDir settings = do
+  rootTempDir <- getCanonicalTemporaryDirectory
+  tempDir <- createTempDirectory rootTempDir "corydalis-test"
+  let config = appConfig settings
+      config' = config { cfgCacheDir = tempDir </> "cache" }
+  return settings { appConfig = config' }
 
-withSettings :: SpecWith AppSettings -> Spec
-withSettings = before loadSettings
+-- | Adapted from temporary's code.
+ignoringIOErrors :: IO () -> IO ()
+ignoringIOErrors ioe =
+  ioe `E.catch` (\e -> const (return ()) (e :: IOException))
+
+cleanupTempDir :: Config -> IO ()
+cleanupTempDir config = do
+  let tempDir = cfgCacheDir config
+  ignoringIOErrors . removeDirectoryRecursive $ tempDir
+
+withTempConfig :: (Config -> IO ()) -> IO ()
+withTempConfig action = do
+  settings <- loadSettings
+  bracket (appConfig <$> setTempDir settings) cleanupTempDir action
+
+openTempApp :: IO (TestApp App)
+openTempApp = do
+  settings <- loadSettings >>= setTempDir
+  foundation <- makeFoundation settings
+  wipeDB foundation
+  logWare <- liftIO $ makeLogWare foundation
+  return (foundation, logWare)
+
+closeTempApp :: TestApp App -> IO ()
+closeTempApp =
+  cleanupTempDir . appConfig . appSettings . fst
+
+withApp :: SpecWith (TestApp App) -> Spec
+withApp = around (bracket openTempApp closeTempApp)
 
 withConfig :: SpecWith Config -> Spec
-withConfig = before $
-  appConfig <$> loadSettings
+withConfig = around withTempConfig
 
 -- This function will truncate all of the tables in your database.
 -- 'withApp' calls it before each test, creating a clean environment for each
