@@ -42,11 +42,13 @@ import           Yesod.Test              as X
 
 import qualified Control.Exception       as E
 import           Control.Monad.Logger    (runLoggingT)
-import           Database.Persist.Sqlite (createSqlPool, sqlDatabase,
-                                          wrapConnection)
+import qualified Data.Text               as T
+import           Database.Persist.Sqlite (SqliteConf (..), createSqlPool,
+                                          sqlDatabase, wrapConnection)
 import qualified Database.Sqlite         as Sqlite
 import           Settings                (AppSettings (..), appDatabaseConf)
-import           System.Directory        (removeDirectoryRecursive)
+import           System.Directory        (createDirectory,
+                                          removeDirectoryRecursive)
 import           System.IO.Temp
 import           Yesod.Core              (messageLoggerSource)
 
@@ -71,9 +73,13 @@ setTempDir :: AppSettings -> IO (FilePath, AppSettings)
 setTempDir settings = do
   rootTempDir <- getCanonicalTemporaryDirectory
   tempDir <- createTempDirectory rootTempDir "corydalis-test"
+  let dbDir = tempDir </> "db"
+      dbPath = dbDir </> "test-db.sqlite3"
+  createDirectory dbDir
   let config = appConfig settings
       config' = config { cfgCacheDir = tempDir </> "cache" }
-  return (tempDir, settings { appConfig = config' })
+      db = SqliteConf (T.pack dbPath) 10
+  return (tempDir, settings { appConfig = config', appDatabaseConf = db })
 
 -- | Adapted from temporary's code.
 ignoringIOErrors :: IO () -> IO ()

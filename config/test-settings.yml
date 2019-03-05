@@ -22,8 +22,8 @@ database:
   # would like to have environment variable overrides, you could instead use
   # something like:
   #
-  database: "_env:SQLITE_DATABASE:db/corydalis_test.sqlite3"
-  poolsize: "_env:SQLITE_POOLSIZE:10"
+  database: "/non-existent/db/corydalis_test.sqlite3"
+  poolsize: 10
 
 auth-dummy-login: true
 
