@@ -19,4 +19,4 @@ install:
   - stack build --no-terminal --only-snapshot
 
 script:
-  - stack --no-terminal test
+  - stack --no-terminal test --flag corydalis:dev
