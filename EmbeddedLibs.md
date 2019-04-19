@@ -3,7 +3,7 @@
 Current list of embedded libraries:
 
 - bootstrap v4.3.1, updated 2019-04-19
-- jquery
+- jquery v3.4.0, updated 2019-04-19
 - font-awesome
 - hammer
 - plotly (cartesian), v1.41.3, updated 2018-10-19
