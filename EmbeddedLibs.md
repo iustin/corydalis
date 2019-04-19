@@ -2,7 +2,7 @@
 
 Current list of embedded libraries:
 
-- bootstrap
+- bootstrap v4.3.1, updated 2019-04-19
 - jquery
 - font-awesome
 - hammer

@@ -25,8 +25,8 @@ License: AGPL-3+
 Files:
   static/bootstrap/css/bootstrap.css
   static/bootstrap/js/bootstrap.js
-Copyright: 2011-2018 The Bootstrap Authors
-Copyright: 2011-2018 Twitter, Inc.
+Copyright: 2011-2019 The Bootstrap Authors
+Copyright: 2011-2019 Twitter, Inc.
 License: MIT
 
 Files: static/js/jquery.js
