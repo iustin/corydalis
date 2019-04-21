@@ -40,6 +40,12 @@ $(document).ready(function() {
         }
     };
 
+    // Used in the initial image load to display the "is movie
+    // message".
+    var bootfakeinfo = {
+        movie: bootdiv.data("movie"),
+    };
+
     var divMain = $('#main');
     var navMenu = $('#nav');
 
@@ -47,6 +53,8 @@ $(document).ready(function() {
     var context = canvas.getContext('2d');
     var msgCanvas = $('#messageCanvas')[0];
     var msgCtx = msgCanvas.getContext('2d');
+    var persistCanvas = $('#persistCanvas')[0];
+    var persistCtx = persistCanvas.getContext('2d');
 
     // Virtual (not-in-DOM) canvas that is used to for pre-rendering
     // images. The alternative would be to use putImageData() instead,
@@ -148,6 +156,8 @@ $(document).ready(function() {
         context.canvas.height = height;
         msgCtx.canvas.width = $(msgCtx.canvas).width();
         msgCtx.canvas.height = $(msgCtx.canvas).height();
+        persistCtx.canvas.width = $(persistCtx.canvas).width();
+        persistCtx.canvas.height = $(persistCtx.canvas).height();
     };
 
     function resizeCanvasAndRedraw() {
@@ -246,37 +256,59 @@ $(document).ready(function() {
             drawImage(image, info.view, info.transform, info.name);
         };
         writeMessage("Loading " + info.name + "...");
+        maybeWriteIsMovie(info);
         image.src = info.bytes;
         updateInfo(info.info);
     }
 
-    function clearMessage() {
+    function clearMessageAndTimeout() {
         if (cory.state.msgTimeId) {
             window.clearTimeout(cory.state.msgTimeId);
         }
-        msgCtx.clearRect(0, 0, msgCanvas.width, msgCanvas.height);
+        clearCanvasContext(msgCanvas, msgCtx);
+    }
+
+    function clearCanvasContext(canv, ctx) {
+        ctx.clearRect(0, 0, canv.width, canv.height);
+    }
+
+    // Prepares a canvas context for writing text to it.
+    function writeText(text, canv, ctx) {
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = 'rgba(255, 255, 255, 1)';
+
+        ctx.fillStyle = 'Black';
+        ctx.textBaseline = 'top';
+        ctx.font = 'x-large Sans';
+
+        ctx.fillText(text, 0, 0);
     }
 
     function writeMessage(text, timeout) {
-        clearMessage();
-        msgCtx.shadowOffsetX = 2;
-        msgCtx.shadowOffsetY = 2;
-        msgCtx.shadowBlur = 2;
-        msgCtx.shadowColor = 'rgba(255, 255, 255, 1)';
+        clearMessageAndTimeout();
+        writeText(text, msgCanvas, msgCtx);
 
-        msgCtx.fillStyle = 'Black';
-        msgCtx.textBaseline = 'top';
-        msgCtx.font = 'x-large Sans';
-
-        msgCtx.fillText(text, 0, 0);
         if (typeof timeout === 'undefined') {
             timeout = 2000;
         }
-        if (timeout != 0) {
+        if (timeout > 0) {
             cory.state.msgTimeId = window.setTimeout(function() {
                 cory.state.msgTimeId = null;
-                clearMessage();
+                clearMessageAndTimeout();
             }, timeout);
+        }
+    }
+    function writePersistent(text) {
+        clearCanvasContext(persistCanvas, persistCtx);
+        writeText(text, persistCanvas, persistCtx);
+    }
+
+    function maybeWriteIsMovie(info) {
+        clearCanvasContext(persistCanvas, persistCtx);
+        if(info.movie) {
+            writePersistent("This is a movie. Press 'p', click or touch to play.");
         }
     }
 
@@ -298,6 +330,7 @@ $(document).ready(function() {
         }
         var viewurl = info.view;
         writeMessage("Loading " + info.name, 6000);
+        maybeWriteIsMovie(info);
         drawImage(img, viewurl, info.transform, info.name);
         updateInfo(info.info);
     }
@@ -415,6 +448,7 @@ $(document).ready(function() {
 
     mainToFixed();
     resizeCanvas();
+    maybeWriteIsMovie(bootfakeinfo);
 
     updateInfo(infourl);
 
