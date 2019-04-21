@@ -274,7 +274,7 @@ $(document).ready(function() {
     }
 
     // Prepares a canvas context for writing text to it.
-    function writeText(text, canv, ctx) {
+    function writeText(text, canv, ctx, font) {
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
         ctx.shadowBlur = 2;
@@ -282,14 +282,14 @@ $(document).ready(function() {
 
         ctx.fillStyle = 'Black';
         ctx.textBaseline = 'top';
-        ctx.font = 'x-large Sans';
+        ctx.font = font;
 
         ctx.fillText(text, 0, 0);
     }
 
     function writeMessage(text, timeout) {
         clearMessageAndTimeout();
-        writeText(text, msgCanvas, msgCtx);
+        writeText(text, msgCanvas, msgCtx, 'x-large Sans');
 
         if (typeof timeout === 'undefined') {
             timeout = 2000;
@@ -303,7 +303,7 @@ $(document).ready(function() {
     }
     function writePersistent(text) {
         clearCanvasContext(persistCanvas, persistCtx);
-        writeText(text, persistCanvas, persistCtx);
+        writeText(text, persistCanvas, persistCtx, 'italic large Sans');
     }
 
     function maybeWriteIsMovie(info) {
