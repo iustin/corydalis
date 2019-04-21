@@ -142,6 +142,7 @@ $(document).ready(function() {
 
     function redrawImage() {
         drawImage(cory.state.img, cory.state.url, cory.state.transform);
+        maybeWriteIsMovie(cory.state);
     };
 
     function resizeCanvas() {
