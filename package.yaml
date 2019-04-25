@@ -97,6 +97,7 @@ dependencies:
   - transformers
   - typed-process
   - unix
+  - unliftio
   - unordered-containers
   - vector
   - wai

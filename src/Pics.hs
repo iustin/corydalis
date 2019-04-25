@@ -93,33 +93,30 @@ module Pics ( PicDir(..)
             ) where
 
 import           Control.Applicative
-import           Control.Concurrent         (forkIO)
+import           Control.Concurrent       (forkIO)
 import           Control.Concurrent.Async
 import           Control.Concurrent.MVar
 import           Control.DeepSeq
-import           Control.Exception
 import           Control.Monad
-import           Control.Monad.Trans.Class  (lift)
-import           Control.Monad.Trans.Except
-import qualified Data.ByteString.Lazy       as BSL (append, length, writeFile)
-import           Data.Default               (Default, def)
-import           Data.Function              (on)
-import           Data.Int                   (Int64)
+import qualified Data.ByteString.Lazy     as BSL (append, length, writeFile)
+import           Data.Default             (Default, def)
+import           Data.Function            (on)
+import           Data.Int                 (Int64)
 import           Data.List
-import           Data.LruCache              (LruCache)
-import qualified Data.LruCache              as LRU
-import           Data.Map.Strict            (Map)
-import qualified Data.Map.Strict            as Map
+import           Data.LruCache            (LruCache)
+import qualified Data.LruCache            as LRU
+import           Data.Map.Strict          (Map)
+import qualified Data.Map.Strict          as Map
 import           Data.Maybe
 import           Data.Semigroup
-import           Data.Set                   (Set)
-import qualified Data.Set                   as Set
+import           Data.Set                 (Set)
+import qualified Data.Set                 as Set
 import qualified Data.Store
 import           Data.Store.TH
-import           Data.Text                  (Text)
-import qualified Data.Text                  as Text
-import qualified Data.Text.Lazy             as TextL
-import qualified Data.Text.Lazy.Encoding    as Text (decodeUtf8)
+import           Data.Text                (Text)
+import qualified Data.Text                as Text
+import qualified Data.Text.Lazy           as TextL
+import qualified Data.Text.Lazy.Encoding  as Text (decodeUtf8)
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
@@ -129,14 +126,15 @@ import           System.Exit
 import           System.FilePath
 import           System.IO.Error
 import           System.IO.Unsafe
-import           System.Posix.Files         hiding (fileSize)
-import qualified System.Posix.Files         (fileSize)
+import           System.Posix.Files       hiding (fileSize)
+import qualified System.Posix.Files       (fileSize)
 import           System.Posix.Types
 import           System.Process.Typed
-import qualified Text.Regex.TDFA            as TDFA
+import qualified Text.Regex.TDFA          as TDFA
+import           UnliftIO.Exception
 
 import           Cache
-import           Compat.Orphans             ()
+import           Compat.Orphans           ()
 import           Exif
 import           Settings.Development
 import           Types
@@ -275,6 +273,9 @@ instance NFData InodeInfo where
 
 data ImageError = ImageNotViewable
                 | ImageError Text
+  deriving (Show, Typeable)
+
+instance Exception ImageError
 
 -- | Represents a scaled down image size.
 newtype ImageSize = ImageSize Int
@@ -1167,7 +1168,7 @@ scaledImagePath config path res =
 -- TODO: stop presuming all images are jpeg.
 loadCachedOrBuild :: Config -> FilePath -> FilePath -> MimeType
                   -> POSIXTime -> ImageSize
-                  -> ExceptT ImageError IO (MimeType, FilePath)
+                  -> IO (MimeType, FilePath)
 loadCachedOrBuild config origPath bytesPath mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
@@ -1177,7 +1178,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
           fpath = scaledImagePath config origPath res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
-      stat <- lift $ tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
+      stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
       let needsGen = case stat of
                        Left _   -> True
                        Right st -> modificationTimeHiRes st < mtime
@@ -1187,9 +1188,9 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
                           else ["-resize", geom]
             (parent, _) = splitFileName fpath
             outFile = format ++ ":" ++ fpath
-        lift $ createDirectoryIfMissing True parent
-        (exitCode, out, err) <- lift $ readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])
-        when (exitCode /= ExitSuccess) . throwE . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
+        createDirectoryIfMissing True parent
+        (exitCode, out, err) <- readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])
+        when (exitCode /= ExitSuccess) . throwIO . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
       return (Text.pack $ "image/" ++ format, fpath)
 
 -- | Ordered list of tags that represent embedded images.
@@ -1300,7 +1301,7 @@ jpegMimeType = fileMimeType "image/jpeg"
 --
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc.
-getViewableVersion :: Config -> Image -> ExceptT ImageError IO (File, FilePath, MimeType, POSIXTime)
+getViewableVersion :: Config -> Image -> IO (File, FilePath, MimeType, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img =
       return (j, TextL.unpack (filePath j), jpegMimeType j, fileLastTouch j)
@@ -1308,26 +1309,26 @@ getViewableVersion config img
     True <- flagsSoftMaster (imgFlags img) =
       return (j, TextL.unpack (filePath j), jpegMimeType j, fileLastTouch j)
   | Just r <- imgRawPath img = do
-      embedded <- lift $ bestEmbedded config (filePath r)
+      embedded <- bestEmbedded config (filePath r)
       case embedded of
-        Left msg -> throwE $ ImageError msg
+        Left msg -> throwIO $ ImageError msg
         Right (mime, path) -> do
-          mtime <- lift $ filePathLastTouch path
+          mtime <- filePathLastTouch path
           return (r, path, mime, mtime)
   | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
-      embedded <- lift $ bestEmbedded config (filePath m)
+      embedded <- bestEmbedded config (filePath m)
       case embedded of
         Left _ -> do
-          firstFrame <- lift $ extractFirstFrame config (filePath m)
+          firstFrame <- extractFirstFrame config (filePath m)
           case firstFrame of
-            Left msg' -> throwE $ ImageError msg'
+            Left msg' -> throwIO $ ImageError msg'
             Right (mime, path) -> do
-              mtime <- lift $ filePathLastTouch path
+              mtime <- filePathLastTouch path
               return (m, path, mime, mtime)
         Right (mime, path) -> do
-          mtime <- lift $ filePathLastTouch path
+          mtime <- filePathLastTouch path
           return (m, path, mime, mtime)
-  | otherwise = throwE ImageNotViewable
+  | otherwise = throwIO ImageNotViewable
 
 -- | Return the path (on the filesystem) to a specific size rendering of an image.
 --
@@ -1342,7 +1343,7 @@ getViewableVersion config img
 --
 -- TODO: handle and meaningfully return errors.
 imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (MimeType, FilePath))
-imageAtRes config img size = runExceptT $ do
+imageAtRes config img size = try $ do
   (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of
     Nothing -> return (mime, path)
