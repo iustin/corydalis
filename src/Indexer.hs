@@ -42,18 +42,17 @@ module Indexer ( Symbol(..)
                , genQuickSearchParams
                ) where
 
-import           Control.Monad              (foldM, when)
-import           Control.Monad.Trans.Except
-import           Data.List                  (foldl', nub, partition)
-import qualified Data.Map                   as Map
-import           Data.Maybe                 (isNothing, mapMaybe)
-import           Data.Semigroup             ((<>))
-import           Data.Set                   (Set)
-import qualified Data.Set                   as Set
-import           Data.Text                  (Text)
-import qualified Data.Text                  as Text
-import qualified Data.Text.Read             as Text
-import           Yesod                      (PathPiece (..))
+import           Control.Monad  (foldM)
+import           Data.List      (foldl', nub, partition)
+import qualified Data.Map       as Map
+import           Data.Maybe     (isNothing, mapMaybe)
+import           Data.Semigroup ((<>))
+import           Data.Set       (Set)
+import qualified Data.Set       as Set
+import           Data.Text      (Text)
+import qualified Data.Text      as Text
+import qualified Data.Text.Read as Text
+import           Yesod          (PathPiece (..))
 
 import           Exif
 import           Pics
@@ -485,21 +484,21 @@ anyAtom = go . nub
         go [x, y] = Or x y
         go xs     = Any xs
 
-rpnParser :: [Atom] -> (Text, Text) -> Except Text [Atom]
-rpnParser (x:y:ys) ("and",_) = return $ And x y:ys
-rpnParser (x:y:ys) ("or",_) = return $ Or x y:ys
+rpnParser :: [Atom] -> (Text, Text) -> Either Text [Atom]
+rpnParser (x:y:ys) ("and",_) = Right $ And x y:ys
+rpnParser (x:y:ys) ("or",_) = Right $ Or x y:ys
 rpnParser (x:xs) ("not", _) =
   let a = case x of
             Not y -> y
             _     -> Not x
-  in return $ a:xs
-rpnParser xs ("all", _) = return [allAtom xs]
-rpnParser xs ("any", _) = return [anyAtom xs]
+  in Right $ a:xs
+rpnParser xs ("all", _) = Right [allAtom xs]
+rpnParser xs ("any", _) = Right [anyAtom xs]
 rpnParser xs (an, av) =
   let v = parseAtom an av
   in case v of
-    Just v' -> return $ v':xs
-    Nothing -> throwE $ "Failed to parse the atom " <>
+    Just v' -> Right $ v':xs
+    Nothing -> Left $ "Failed to parse the atom " <>
                an <> "=" <> av <>
                " with stack " <> Text.pack (show xs)
 
@@ -531,10 +530,10 @@ showType TypeImage   = "image"
 showType TypeUnknown = "unknown"
 
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
-parseAtomParams params = runExcept $ do
-  when (length params > 50) $
-    throwE "Too many search parameters. Maximum allowed is 50."
-  allAtom <$> foldM rpnParser [] params
+parseAtomParams params =
+  if length params > 50
+  then Left "Too many search parameters. Maximum allowed is 50."
+  else allAtom <$> foldM rpnParser [] params
 
 numOpToParam :: (ToText a) => Text -> NumOp a -> (Text, Text)
 numOpToParam s (OpEq v) = (s, toText v)
@@ -593,10 +592,8 @@ searchImages atom pics = do
 -- | Generates a quick search atom.
 genQuickSearchParams :: Repository -> Text ->
                         Either Text ([Atom], Maybe [(Text, Text)])
-genQuickSearchParams pics q = runExcept $ do
-  search <- case q of
-              "" -> throwE "Empty search parameter"
-              _  -> return q
+genQuickSearchParams _ "" = Left "Empty search parameter"
+genQuickSearchParams pics search =
   let swords = nub $ Text.words search
       findsAny a = not . null . filterImagesBy (imageSearchFunction a) $ pics
       -- Algorithm: for each symbol, try all words (that can be
@@ -628,4 +625,4 @@ genQuickSearchParams pics q = runExcept $ do
       p' = if null found
              then Nothing
              else Just . atomToParams . allAtom $ found
-  return (notfound, p')
+  in Right (notfound, p')
