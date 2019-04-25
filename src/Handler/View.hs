@@ -134,8 +134,8 @@ getViewR folder iname = do
   img <- locateCurrentImage folder iname images
   let Transform r fx fy = transformForImage img
       initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
-      isMovie = isJust $ bestMovie img
-  debug <- appShouldLogAll . appSettings <$> getYesod
+      isMovie = encodeToLazyText . isJust . bestMovie $ img
+  debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addScript $ StaticR corydalis_js_viewer_js
     addScript $ StaticR hammer_js_hammer_js
