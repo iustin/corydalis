@@ -105,6 +105,7 @@ data Config = Config
     , cfgBlacklistedDirs :: [FilePath]
     , cfgCacheDir        :: FilePath
     , cfgThumbnailSize   :: Int
+    , cfgBrowsingSize    :: Int
     , cfgAutoImageSizes  :: [Int]
     , cfgAllImageSizes   :: [Int]
     , cfgRawExts         :: [FilePath]
@@ -128,6 +129,7 @@ instance FromJSON Config where
          v .: "blacklisteddirs" <*>
          v .: "cachedir"        <*>
          thumbsize              <*>
+         browsingsize           <*>
          autosizes              <*>
          allsizes'              <*>
          rawexts                <*>
@@ -141,8 +143,9 @@ instance FromJSON Config where
          v .: "copyregex"       <*>
          v .: "peopleprefix"    <*>
          v .: "ignoreprefix"
-    where autosizes = sort . nub <$> ((:) <$> thumbsize <*> v .: "autoimgsizes")
+    where autosizes = sort . nub <$> ((:) <$> thumbsize <*> ((:) <$> browsingsize <*> v .: "autoimgsizes"))
           thumbsize = v .: "thumbnailsize"
+          browsingsize = v .: "browsingsize"
           demandsizes = v .: "demandimgsizes"
           allsizes = (++) <$> autosizes <*> demandsizes
           allsizes' = sort . nub <$> allsizes

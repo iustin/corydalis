@@ -67,12 +67,19 @@ config:
   # option), stripping unneeded information, and saved as PNGs; images
   # above will be saved as JPEGs.
   thumbnailsize: 64
+  # Browsing image size. This is the longest-side size that images
+  # will be rendered at in browsing mode; they will be scaled down
+  # based on browser view-port size, so this should be large enough to
+  # accommodate enough images without white-space. Currently in large
+  # size (bootstrap 'xl', i.e. > 1200px width), the templates will
+  # generate 3 columns, so ensure this is ≥ display_size/3.
+  browsingsize: 1024
   # Automatically-generated image sizes; recommended to include common
   # resolutions the pictures will be viewed at and thumbnail sizes
   # (64×64, 128×128). You can list the entries in any order (they will
   # be used in sorted order), but it's more readable to list them
-  # sorted as well. Note that the value "thumbnailsize" above is
-  # automatically added to this list.
+  # sorted as well. Note that the values "thumbnailsize" and
+  # "browsingsize" above are automatically added to this list.
   autoimgsizes: [1920, 2560]
   # Other image sizes that will be generated and saved to cachedir,
   # but only on demand. If a value appears both here and in
