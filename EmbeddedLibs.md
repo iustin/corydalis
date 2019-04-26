@@ -9,3 +9,5 @@ Current list of embedded libraries:
 - plotly (cartesian) v1.47.3, updated 2019-04-19
 - screenfull v4.2.0, updated 2019-04-19
 - tablesorter v2.31.1, updated 2019-04-19
+- imagesloaded v4.1.4, updated 2019-04-26,
+  https://imagesloaded.desandro.com/
