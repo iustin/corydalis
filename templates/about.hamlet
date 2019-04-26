@@ -37,9 +37,9 @@
   the Haskell side, too many to list, but special mentions: yesod,
   aeson, wai, warp, persistent, and so on. On the frontend (JS/CSS)
   side: bootstrap, jquery, tablesorter, plotly, hammerjs,
-  font-awesome. Run-time dependencies: exiftool, ImageMagick and
-  ffmpeg. Thanks to all the upstream authors for enabling this
-  project!
+  font-awesome, imagesloaded, masonry. Run-time dependencies:
+  exiftool, ImageMagick and ffmpeg. Thanks to all the upstream authors
+  for enabling this project!
 
 <p>
 
