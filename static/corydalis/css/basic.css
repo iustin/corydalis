@@ -85,3 +85,9 @@ footer {
 html {
   font-size: 14px;
 }
+
+/* For masonry layouts, restrict image size to be bound by the
+ * enclosing container */
+.grid-item-image {
+    max-width: 100%;
+}

@@ -58,6 +58,15 @@ imageBytes thumbsize params folder image =
                        style="width: #{thumbsize}px; height: #{thumbsize}px"
                        >|]
 
+imageBytesNoStyle :: Int -> UrlParams -> Text -> Image -> Widget
+imageBytesNoStyle imagesize params folder img =
+  toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
+                     <img
+                       .grid-item-image
+                       src="@?{(ImageBytesR folder image, [("res", Text.pack $ show imagesize)])}"
+                       >|]
+  where image = imgName img
+
 generatePrevNext :: (Ord k) => k -> Set k -> (k -> Route App) -> Widget
 generatePrevNext k m r = do
   let prevRoute = r <$> Set.lookupLT k m
@@ -76,6 +85,10 @@ imageList thumbsize params showParent hideStatus images = do
                       then [[1, 0], [3, 0], [2, 0]]
                       else [[2, 0], [1, 0]]::[[Int]]
   $(widgetFile "imagelist")
+
+imageGrid :: Int -> UrlParams -> [Image] -> Widget
+imageGrid imagesize params images = do
+  $(widgetFile "imagegrid")
 
 showExif :: Exif -> Widget
 showExif Exif{..} = do
