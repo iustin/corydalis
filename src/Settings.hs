@@ -88,14 +88,17 @@ data AppSettings = AppSettings
     -- ^ Picture-related configuration
     }
 
+isDevel :: Bool
+isDevel =
+#ifdef DEVELOPMENT
+  True
+#else
+  False
+#endif
+
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
-        let defaultDev =
-#ifdef DEVELOPMENT
-                True
-#else
-                False
-#endif
+        let defaultDev = isDevel
         appStaticDir              <- o .:  "static-dir"
         appDatabaseConf           <- o .:  "database"
         appRoot                   <- o .:? "approot"
@@ -147,8 +150,8 @@ widgetFile =
 
 combineStylesheets :: Name -> [Route Static] -> Q Exp
 combineStylesheets =
-  combineStylesheets' False combineSettings
+  combineStylesheets' isDevel combineSettings
 
 combineScripts :: Name -> [Route Static] -> Q Exp
 combineScripts =
-  combineScripts' False combineSettings
+  combineScripts' isDevel combineSettings
