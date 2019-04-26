@@ -11,3 +11,5 @@ Current list of embedded libraries:
 - tablesorter v2.31.1, updated 2019-04-19
 - imagesloaded v4.1.4, updated 2019-04-26,
   https://imagesloaded.desandro.com/
+- masonry v4.2.2, updated 2019-04-26,
+  https://imagesloaded.desandro.com/
