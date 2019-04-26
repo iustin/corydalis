@@ -45,6 +45,7 @@ $(document).ready(function() {
     var bootfakeinfo = {
         movie: bootdiv.data("movie"),
     };
+    LOG("boot fake info", bootfakeinfo);
 
     var divMain = $('#main');
     var navMenu = $('#nav');
