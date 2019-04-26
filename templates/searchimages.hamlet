@@ -18,4 +18,4 @@
          for this filter.
 
      <div .card>
-       ^{imageList thumbsize params True False images}
+       ^{imageGrid imagesize params images}

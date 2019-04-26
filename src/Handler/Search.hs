@@ -59,8 +59,11 @@ getSearchImagesR :: Handler Html
 getSearchImagesR = do
   (config, params, atom, search_string, pics) <- searchContext
   images <- Map.elems <$> liftIO (searchImages atom pics)
-  let thumbsize = cfgThumbnailSize config
+  let imagesize = cfgBrowsingSize config
   defaultLayout $ do
+    addScript $ StaticR masonry_js_masonry_pkgd_js
+    addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
+    addScript $ StaticR corydalis_js_imagegrid_js
     setHtmlTitle "searching images"
     $(widgetFile "searchimages")
 
