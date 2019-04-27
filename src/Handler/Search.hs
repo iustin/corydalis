@@ -56,10 +56,19 @@ getSearchFoldersR = do
     $(widgetFile "searchfolders")
 
 getSearchImagesR :: Int -> Handler Html
-getSearchImagesR _ = do
+getSearchImagesR page = do
+  when (page < 0) $
+    invalidArgs ["Negative page index"]
   (config, params, atom, search_string, pics) <- searchContext
-  images <- Map.elems <$> liftIO (searchImages atom pics)
-  let imagesize = cfgBrowsingSize config
+  images' <- Map.elems <$> liftIO (searchImages atom pics)
+  let pageSize = cfgPageSize config
+      currentIdx = page * pageSize
+      currentStart = currentIdx + 1
+      currentEnd = currentIdx + pageSize
+      (images, remImages) = splitAt pageSize . drop currentIdx $ images'
+      imagesize = cfgBrowsingSize config
+      nextPage = page + 1
+
   defaultLayout $ do
     addScript $ StaticR masonry_js_masonry_pkgd_js
     addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js

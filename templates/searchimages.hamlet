@@ -13,9 +13,17 @@
      <div .card>
        <div .card-body>
          The filter <i>#{search_string}</i>
-         matches #{length images} images.
+         matches #{length images'} images.
+         Currently viewing images #{currentStart} to #{currentEnd}.
          Go to the <a href="@?{(SearchFoldersR, params)}">folder list</a>
          for this filter.
 
      <div .card>
        ^{imageGrid imagesize params images}
+
+     <div .card>
+       <div .card-body>
+         $if null remImages
+           No more images
+         $else
+           <a href="@?{(SearchImagesR nextPage, params)}">load more images</a>
