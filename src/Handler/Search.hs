@@ -65,7 +65,6 @@ getSearchImagesR page = do
   let pageSize = cfgPageSize config
       currentIdx = page * pageSize
       currentStart = currentIdx + 1
-      currentEnd = currentIdx + pageSize
       (images, remImages) = splitAt pageSize . drop currentIdx $ images'
       imagesize = cfgBrowsingSize config
       nextPage = page + 1

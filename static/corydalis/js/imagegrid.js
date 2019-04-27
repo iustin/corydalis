@@ -20,7 +20,9 @@ $(document).ready(function() {
     var bootdiv = $("#boot");
     var pathurl = bootdiv.data("path-url");
     var pageindex = bootdiv.data("page-index");
+    var count = bootdiv.data("initial-count");
     var debug = bootdiv.data("debug");
+    var $howmany = $("#howmany");
     // init Packery
     var $grid = $('.grid').masonry({
         itemSelector: '.grid-item',
@@ -47,7 +49,13 @@ $(document).ready(function() {
         prefill: true,
         onInit: function() {
             this.pageIndex = pageindex;
+            this.on('append', function(response, path, items) {
+                count = count + items.length;
+                $howmany.text(count);
+                console.log("now viewing", count);
+            });
         },
-        debug: true
+        hideNav: '.pagination',
+        debug: debug
     });
 });

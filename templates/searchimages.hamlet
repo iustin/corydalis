@@ -4,6 +4,7 @@
   data-path-url="@?{(SearchImagesR 0, params)}"
   data-page-index=#{page}
   data-debug=#{debug}
+  data-initial-count=#{length images}
   />
 
 <div .row>
@@ -20,14 +21,16 @@
        <div .card-body>
          The filter <i>#{search_string}</i>
          matches #{length images'} images.
-         Currently viewing images #{currentStart} to #{currentEnd}.
+         Currently viewing <span id="howmany">#{pageSize}</span> images starting at image #{currentStart}. #
+         $if page > 0
+           Go back to the <a href="@?{(SearchImagesR 0, params)}">first page</a>. #
          Go to the <a href="@?{(SearchFoldersR, params)}">folder list</a>
          for this filter.
 
      <div .card>
        ^{imageGrid imagesize params images}
 
-     <div .card>
+     <div .card .pagination>
        <div .card-body>
          $if null remImages
            No more images
