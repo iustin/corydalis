@@ -14,7 +14,7 @@ $maybe msg <- homeMessage
           #{symbolPlCap TYear}
       <div .card-body>
          $forall year <- years
-          <a .btn .btn-light href="@?{(SearchFoldersR,[(symbolName TYear, Text.pack (show year))])}">#{year}
+          <a .btn .btn-light href="@?{(SearchImagesR 0,[(symbolName TYear, Text.pack (show year))])}">#{year}
 
     ^{itemDiv TPerson True topPeople}
 
