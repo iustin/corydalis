@@ -28,6 +28,7 @@ module Handler.Search ( getSearchFoldersR
                       , getSearchFoldersNoYearR
                       ) where
 
+import           Data.Aeson.Text (encodeToLazyText)
 import qualified Data.Map        as Map
 import qualified Data.Text       as Text
 
@@ -68,10 +69,11 @@ getSearchImagesR page = do
       (images, remImages) = splitAt pageSize . drop currentIdx $ images'
       imagesize = cfgBrowsingSize config
       nextPage = page + 1
-
+  debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addScript $ StaticR masonry_js_masonry_pkgd_js
     addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
+    addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
     addScript $ StaticR corydalis_js_imagegrid_js
     setHtmlTitle "searching images"
     $(widgetFile "searchimages")

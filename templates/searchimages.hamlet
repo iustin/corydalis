@@ -1,5 +1,11 @@
 <h1>Searching images
 
+<div #boot
+  data-path-url="@?{(SearchImagesR 0, params)}"
+  data-page-index=#{page}
+  data-debug=#{debug}
+  />
+
 <div .row>
  <div .col-12>
    $if null images
@@ -26,4 +32,4 @@
          $if null remImages
            No more images
          $else
-           <a href="@?{(SearchImagesR nextPage, params)}">load more images</a>
+           <a .pagination-next href="@?{(SearchImagesR nextPage, params)}">load more images</a>

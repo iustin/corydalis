@@ -16,6 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 $(document).ready(function() {
+    'use strict';
+    var bootdiv = $("#boot");
+    var pathurl = bootdiv.data("path-url");
+    var pageindex = bootdiv.data("page-index");
+    var debug = bootdiv.data("debug");
     // init Packery
     var $grid = $('.grid').masonry({
         itemSelector: '.grid-item',
@@ -27,5 +32,22 @@ $(document).ready(function() {
     $grid.imagesLoaded().progress( function() {
         $grid.masonry('layout');
         //$grid.packery();
+    });
+    // get Masonry instance
+    var msnry = $grid.data('masonry');
+    // infinite scrolling
+    $grid.infiniteScroll({
+        // options
+        //path: '.pagination-next',
+        path: pathurl.replace("/0?", "/{{#}}?"),
+        append: '.grid-item',
+        outlayer: msnry,
+        history: 'replace',
+        checkLastPage: '.pagination-next',
+        prefill: true,
+        onInit: function() {
+            this.pageIndex = pageindex;
+        },
+        debug: true
     });
 });
