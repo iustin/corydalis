@@ -163,3 +163,11 @@ createUser ident =
         { userName = ident
         , userPassword = Nothing
         }
+
+checkLoginSuccessful :: Route App -> YesodExample App ()
+checkLoginSuccessful route = do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+
+      get route
+      statusIs 200

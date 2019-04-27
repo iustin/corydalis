@@ -6,7 +6,7 @@ $if allpics > 0
     <div .col-12 .col-md-3>
       <div .card>
         <div .card-header>Images
-        <div .card-body>
+        <div .card-body #images>
           The repository contains #{allpics} images and #{untracked} #
           other untracked files, out of which:
           <ul>
@@ -27,7 +27,7 @@ $if allpics > 0
     <div .col-12 .col-md-4>
       <div .card>
         <div .card-header>Folders
-        <div .card-body>
+        <div .card-body #folders>
           The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
           <ul>
             $forall (fc, count) <- fstats
@@ -37,7 +37,7 @@ $if allpics > 0
     <div .col-12 .col-md-4>
       <div .card>
         <div .card-header>Bytes
-        <div .card-body>
+        <div .card-body #bytes>
           The overall size of the repository is #{showBinary totalsize}:
           <ul>
             <li>#{showBinary rawsize} in raw files
@@ -50,7 +50,7 @@ $if allpics > 0
     <div .col-12 .col-md-4 .my-3>
       <div .card>
         <div .card-header>Equipment
-        <div .card-body>
+        <div .card-body #equipment>
           <ul>
             <li>See the <a href=@{CameraStatsR}>#{numCameras} cameras</a>
             <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>

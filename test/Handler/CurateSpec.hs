@@ -20,27 +20,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.HomeSpec (spec) where
+module Handler.CurateSpec (spec) where
 
 import           TestImport
 
 spec :: Spec
 spec = withApp $ do
-    it "asserts redirect on access to home for anonymous users" $ do
-      get HomeR
-      statusIs 303
-
-    it "checks that login page shows info message" $ do
-      get $ AuthR LoginR
-      htmlAnyContain "div#info" "Hello user!"
-
-    it "asserts access to home for authenticated users" $ do
-      checkLoginSuccessful HomeR
-    it "loads the index and checks it looks right" $ do
-      checkLoginSuccessful HomeR
+    it "loads the empty curate page and checks it looks right" $ do
+      checkLoginSuccessful CurateR
+      printBody
       htmlAllContain "h1" "Corydalis"
-      htmlAnyContain "div#main" "Years"
-      htmlAnyContain "div#main" "Countries"
-      htmlAnyContain "div#main" "Locations"
-      htmlAnyContain "div#main" "People"
-      htmlAnyContain "div#main" "Keywords"
+      htmlCount "div#images" 0
+      htmlNoneContain "div#images" "contains 0 images"
