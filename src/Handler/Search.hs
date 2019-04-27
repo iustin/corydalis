@@ -55,8 +55,8 @@ getSearchFoldersR = do
     setHtmlTitle "searching folders"
     $(widgetFile "searchfolders")
 
-getSearchImagesR :: Handler Html
-getSearchImagesR = do
+getSearchImagesR :: Int -> Handler Html
+getSearchImagesR _ = do
   (config, params, atom, search_string, pics) <- searchContext
   images <- Map.elems <$> liftIO (searchImages atom pics)
   let imagesize = cfgBrowsingSize config
@@ -88,7 +88,7 @@ getQuickSearchR = do
           "The following filters had no results so they were skipped: " <>
           ", " `Text.intercalate` map atomDescription skipped <> "."
         setSession msgTypeKey msgWarning
-      redirect (SearchImagesR, p)
+      redirect (SearchImagesR 0, p)
 
 getSearchFoldersByYearR :: Integer -> Handler Html
 getSearchFoldersByYearR year =

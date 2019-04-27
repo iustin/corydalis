@@ -21,7 +21,7 @@
              <tr>
                <td data-text=#{fromMaybe "" n}>
                  <a href="@?{(SearchFoldersR,[atomAsParam atom n])}"><span class="far fa-folder-open">
-                 <a href="@?{(SearchImagesR,[atomAsParam atom n])}"><span class="far fa-images">
+                 <a href="@?{(SearchImagesR 0,[atomAsParam atom n])}"><span class="far fa-images">
                  $maybe val <- n
                    #{val}
                  $nothing

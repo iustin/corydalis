@@ -296,7 +296,7 @@ instance YesodBreadcrumbs App where
     return ("Showing images of type " <>
             Text.intercalate ", " (map toPathPiece kind), Just CurateR)
   breadcrumb SearchFoldersR      = return ("Search folders",    Nothing)
-  breadcrumb SearchImagesR       = return ("Search images",     Nothing)
+  breadcrumb (SearchImagesR _)   = return ("Search images",     Nothing)
   breadcrumb QuickSearchR        = return ("Quick search",      Nothing)
   breadcrumb SettingsR           = return ("Settings",          Nothing)
   breadcrumb LensStatsR          = return ("Lens statistics",   Just CurateR)
