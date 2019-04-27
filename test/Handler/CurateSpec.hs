@@ -25,7 +25,7 @@ module Handler.CurateSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = withApp $
     it "loads the empty curate page and checks it looks right" $ do
       checkLoginSuccessful CurateR
       printBody

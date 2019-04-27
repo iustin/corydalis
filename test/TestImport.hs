@@ -81,6 +81,7 @@ setTempDir settings = do
       db = SqliteConf (T.pack dbPath) 10
   return (tempDir, settings { appConfig = config', appDatabaseConf = db })
 
+{-# ANN ignoringIOErrors ("HLint: ignore Evaluate"::String) #-}
 -- | Adapted from temporary's code.
 ignoringIOErrors :: IO () -> IO ()
 ignoringIOErrors ioe =

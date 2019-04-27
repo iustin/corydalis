@@ -34,7 +34,7 @@ spec = withApp $ do
       get $ AuthR LoginR
       htmlAnyContain "div#info" "Hello user!"
 
-    it "asserts access to home for authenticated users" $ do
+    it "asserts access to home for authenticated users" $
       checkLoginSuccessful HomeR
     it "loads the index and checks it looks right" $ do
       checkLoginSuccessful HomeR

@@ -87,7 +87,7 @@ imageList thumbsize params showParent hideStatus images = do
   $(widgetFile "imagelist")
 
 imageGrid :: Int -> UrlParams -> [Image] -> Widget
-imageGrid imagesize params images = do
+imageGrid imagesize params images =
   $(widgetFile "imagegrid")
 
 showExif :: Exif -> Widget
