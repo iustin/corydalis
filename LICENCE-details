@@ -79,6 +79,12 @@ Files:
 Copyright: 2019, David DeSandro
 License: MIT
 
+Files:
+  static/infinite-scroll/js/infinite-scroll.pkgd.js
+Copyright: 2019, David DeSandro
+Comment: The GPLv3 license is available in the file LICENCE-infinite-scroll-gplv3
+License: GPLv3
+
 License: MIT
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation files
