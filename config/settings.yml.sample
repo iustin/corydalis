@@ -85,6 +85,9 @@ config:
   # but only on demand. If a value appears both here and in
   # autoimgsizes, the entry here will have no effect.
   demandimgsizes: [3840, 7680]
+  # Page size to use when browsing images. Should be kept low to speed
+  # up initial page load.
+  pagesize: 16
   # List of extensions considered "RAW" files:
   rawexts: ["nef", "raf", "orf", "crw", "tif", "tiff", "dng"]
   # List of extensions considered processed pictures:

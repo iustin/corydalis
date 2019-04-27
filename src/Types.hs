@@ -108,6 +108,7 @@ data Config = Config
     , cfgBrowsingSize    :: Int
     , cfgAutoImageSizes  :: [Int]
     , cfgAllImageSizes   :: [Int]
+    , cfgPageSize        :: Int
     , cfgRawExts         :: [FilePath]
     , cfgRawExtsSet      :: Set Text
     , cfgJpegExts        :: Set Text
@@ -132,6 +133,7 @@ instance FromJSON Config where
          browsingsize           <*>
          autosizes              <*>
          allsizes'              <*>
+         v .: "pagesize"        <*>
          rawexts                <*>
          rawextsset             <*>
          v .: "jpegexts"        <*>
