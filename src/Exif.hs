@@ -43,6 +43,7 @@ module Exif ( Exif(..)
             , lensType
             , formatPerson
             , rotateToJSON
+            , transformParams
             ) where
 
 import           Control.Applicative
@@ -519,6 +520,10 @@ data Transform = Transform
 
 instance Default Transform where
   def = Transform RCenter False False
+
+transformParams :: Transform -> (Int, Bool, Bool)
+transformParams (Transform r fx fy) =
+  (rotateToJSON r, fx, fy)
 
 -- | Parses the (Lightroom-specific?) hierarchical keywords.
 parseHierSubject :: Text -> [Text]

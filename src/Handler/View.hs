@@ -72,12 +72,12 @@ instance ToJSON ImageInfo where
 
 mkImageInfo :: Text -> Text -> Bool -> Hamlet.Render (Route App)
             -> UrlParams -> Transform -> ImageInfo
-mkImageInfo folder iname movie render params (Transform r fx fy) =
+mkImageInfo folder iname movie render params t =
   ImageInfo (render (ImageInfoR folder iname) params)
             (render (ImageBytesR folder iname) [])
             (if movie then Just (render (MovieBytesR folder iname) []) else Nothing)
             (render (ViewR folder iname) params)
-            iname (rotateToJSON r, fx, fy)
+            iname (transformParams t)
 
 data ViewInfo = ViewInfo
   { viYear    :: Text
