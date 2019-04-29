@@ -42,6 +42,7 @@ module Exif ( Exif(..)
             , lensShortName
             , lensType
             , formatPerson
+            , rotateToJSON
             ) where
 
 import           Control.Applicative
@@ -505,6 +506,11 @@ unknown = "unknown"
 data Rotate = RCenter
             | RLeft
             | RRight
+
+rotateToJSON :: Rotate -> Int
+rotateToJSON RCenter =  0
+rotateToJSON RLeft   = -1
+rotateToJSON RRight  =  1
 
 data Transform = Transform
                    Rotate

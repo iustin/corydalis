@@ -70,11 +70,6 @@ instance ToJSON ImageInfo where
            , "transform" .= iiTransform
            ]
 
-rotateToJSON :: Rotate -> Int
-rotateToJSON RCenter =  0
-rotateToJSON RLeft   = -1
-rotateToJSON RRight  =  1
-
 mkImageInfo :: Text -> Text -> Bool -> Hamlet.Render (Route App)
             -> UrlParams -> Transform -> ImageInfo
 mkImageInfo folder iname movie render params (Transform r fx fy) =
