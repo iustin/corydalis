@@ -44,6 +44,7 @@ module Exif ( Exif(..)
             , formatPerson
             , rotateToJSON
             , transformParams
+            , transformMatrix
             ) where
 
 import           Control.Applicative
@@ -524,6 +525,18 @@ instance Default Transform where
 transformParams :: Transform -> (Int, Bool, Bool)
 transformParams (Transform r fx fy) =
   (rotateToJSON r, fx, fy)
+
+transformMatrix :: Transform -> (Double, Double, Double, Double)
+transformMatrix (Transform r fx fy) =
+  let radians = case r of
+        RCenter -> 0
+        RLeft   -> pi * 3 /2
+        RRight  -> pi / 2
+      r_cos = cos radians
+      r_sin = sin radians
+      scale_x = if fx then -1 else 1
+      scale_y = if fy then -1 else 1
+  in (r_cos * scale_x, r_sin, -r_sin, r_cos * scale_y)
 
 -- | Parses the (Lightroom-specific?) hierarchical keywords.
 parseHierSubject :: Text -> [Text]
