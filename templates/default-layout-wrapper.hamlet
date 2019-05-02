@@ -40,10 +40,6 @@ $doctype 5
                 <span .fas .fa-search>
 
         <div .navbar-nav>
-            <a .nav-item .nav-link href=@{CurateR}>
-                <span .fas .fa-tasks>
-                <span .d-none .d-lg-inline>
-                  Curate
             <form action=@{ReloadR} method=post .form-inline>
                 <!-- This unused input is needed to avoid Chrome's SPDY protocol error. Sigh… -->
                 <input type="hidden" name="unused" value="unused">
@@ -51,6 +47,10 @@ $doctype 5
                   <span .fas .fa-sync>
                   <span .d-none .d-lg-inline>
                     Reload
+            <a .nav-item .nav-link href=@{CurateR}>
+                <span .fas .fa-tasks>
+                <span .d-none .d-lg-inline>
+                  Curate
             <a .nav-item .nav-link .d-none .d-sm-inline href=@{SettingsR}>
                 <span .fas .fa-cog>
                 <span .d-none .d-lg-inline>
