@@ -47,6 +47,10 @@ $doctype 5
                   <span .fas .fa-sync>
                   <span .d-none .d-lg-inline>
                     Reload
+            <a .nav-item .nav-link href=@{StatusR}>
+                <span .fas .fa-percentage>
+                <span .d-none .d-lg-inline>
+                  Status
             <a .nav-item .nav-link href=@{CurateR}>
                 <span .fas .fa-tasks>
                 <span .d-none .d-lg-inline>

@@ -81,6 +81,7 @@ import           Handler.List
 import           Handler.Reload
 import           Handler.Search
 import           Handler.Settings
+import           Handler.Status
 import           Handler.View
 
 -- This line actually creates our YesodDispatch instance. It is the second half

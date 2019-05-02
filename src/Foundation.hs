@@ -267,6 +267,7 @@ instance YesodBreadcrumbs App where
   breadcrumb HomeR          = return ("Home"         , Nothing)
   breadcrumb CurateR        = return ("Curate"       , Nothing)
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
+  breadcrumb StatusR        = return ("Status"       , Nothing)
   breadcrumb (FolderR name) = do
     pics <- getPics
     let r = case Map.lookup name (repoDirs pics) of
