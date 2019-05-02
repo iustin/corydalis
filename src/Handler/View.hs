@@ -58,6 +58,7 @@ data ImageInfo = ImageInfo
   , iiViewUrl   :: Text
   , iiName      :: Text
   , iiTransform :: (Int, Bool, Bool)
+  , iiMatrix    :: (Double, Double, Double, Double)
   }
 
 instance ToJSON ImageInfo where
@@ -68,6 +69,7 @@ instance ToJSON ImageInfo where
            , "view"      .= iiViewUrl
            , "name"      .= iiName
            , "transform" .= iiTransform
+           , "matrix"    .= iiMatrix
            ]
 
 mkImageInfo :: Text -> Text -> Bool -> Hamlet.Render (Route App)
@@ -77,7 +79,7 @@ mkImageInfo folder iname movie render params t =
             (render (ImageBytesR folder iname) [])
             (if movie then Just (render (MovieBytesR folder iname) []) else Nothing)
             (render (ViewR folder iname) params)
-            iname (transformParams t)
+            iname (transformParams t) (transformMatrix t)
 
 data ViewInfo = ViewInfo
   { viYear    :: Text
@@ -127,8 +129,9 @@ getViewR :: Text -> Text -> Handler Html
 getViewR folder iname = do
   (params, _, images) <- getAtomAndSearch
   img <- locateCurrentImage folder iname images
-  let Transform r fx fy = transformForImage img
+  let tr@(Transform r fx fy) = transformForImage img
       initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
+      initialMatrix = encodeToLazyText (transformMatrix tr)
       isMovie = encodeToLazyText . isJust . bestMovie $ img
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do

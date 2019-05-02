@@ -5,6 +5,7 @@
   data-info-url="@?{(ImageInfoR (imgParent img) (imgName img), params)}"
   data-random-url="@?{(RandomImageInfoR, params)}"
   data-initial-transform="#{initialTransform}"
+  data-initial-matrix="#{initialMatrix}"
   data-debug=#{debug}
   data-movie=#{isMovie}
   />
