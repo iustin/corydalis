@@ -88,6 +88,8 @@ module Pics ( PicDir(..)
             , imgProblems
             , pdProblems
             , repoProblems
+            , transformForFile
+            , transformForImage
             -- Test export :/
             , mkImage
             ) where
@@ -1364,6 +1366,19 @@ pdProblems =
 repoProblems :: Repository -> NameStats
 repoProblems =
   Map.unionsWith (+) . map pdProblems . Map.elems . repoDirs
+
+transformForFile :: File -> Transform
+transformForFile  = affineTransform . exifOrientation . fileExif
+
+transformForImage :: Image -> Transform
+transformForImage =
+  maybe def transformForFile . fileToView
+
+fileToView :: Image -> Maybe File
+fileToView img =
+  case imgJpegPath img of
+    f:_ -> Just f
+    []  -> imgRawPath img
 
 $(makeStore ''CameraInfo)
 $(makeStore ''Occurrence)

@@ -180,19 +180,6 @@ getMovieBytesR folder iname = do
                 (TextL.unpack $ filePath f)
     _      -> sendResponse imageNotViewable
 
-fileToView :: Image -> Maybe File
-fileToView img =
-  case imgJpegPath img of
-    f:_ -> Just f
-    []  -> imgRawPath img
-
-transformForFile :: File -> Transform
-transformForFile  = affineTransform . exifOrientation . fileExif
-
-transformForImage :: Image -> Transform
-transformForImage =
-  maybe def transformForFile . fileToView
-
 randomPick :: SearchResults -> IO Image
 randomPick images = do
   idx <- getStdRandom $ randomR (0, Map.size images - 1)
