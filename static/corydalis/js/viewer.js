@@ -21,6 +21,7 @@ $(document).ready(function() {
     var booturl = bootdiv.data("bytes-url");
     var infourl = bootdiv.data("info-url");
     var boottrans = bootdiv.data("initial-transform");
+    var bootmatrix = bootdiv.data("initial-matrix");
     var debug = bootdiv.data("debug");
     var LOG = debug ? console.log.bind(console) : function () {};
     var T_START = debug ? console.time.bind(console) : function () {};
@@ -64,12 +65,12 @@ $(document).ready(function() {
     var offCanvas = document.createElement('canvas');
     var offContext = offCanvas.getContext('2d');
 
-    function drawImage(img, url, transform, msg) {
+    function drawImage(img, url, transform, matrix, msg) {
         if (!isImageReady(img)) {
             img.onload = function() {
                 LOG("Late load of ", url);
                 setImageState(img, true);
-                drawImage(img, url, transform, msg);
+                drawImage(img, url, transform, matrix, msg);
             };
             return;
         }
@@ -78,7 +79,7 @@ $(document).ready(function() {
         context.clearRect(0, 0, canvas.width, canvas.height);
         var cW = $(context.canvas).width();
         var cH = $(context.canvas).height();
-        LOG("transform information:", transform);
+        LOG("transform information:", transform, "matrix information:", matrix);
         var rotation = transform[0];
         var imgW = rotation == 0 ? img.width : img.height;
         var imgH = rotation == 0 ? img.height : img.width;
@@ -99,23 +100,8 @@ $(document).ready(function() {
             "targetW:", targetW, "targetH", targetH);
         cory.state.lastX = offX;
         T_START("drawImage");
-        var radians = 0;
-        switch (rotation) {
-        case -1:
-            radians = Math.PI * 3/2;
-            break;
-        case 1:
-            radians = Math.PI / 2;
-            break;
-        // Other cases are simply dropped.
-        }
-        var scale_x = transform[1] ? -1 : 1;
-        var scale_y = transform[2] ? -1 : 1;
-        LOG("translated rotation info:", radians, scale_x, scale_y);
-        var r_cos = Math.cos(radians);
-        var r_sin = Math.sin(radians);
-        LOG("transform call:", r_cos * scale_x, r_sin, -r_sin, r_cos * scale_y, cW/2, cH/2);
-        context.transform(r_cos * scale_x, r_sin, -r_sin, r_cos * scale_y, cW/2, cH/2);
+        LOG("transform call:", matrix, cW/2, cH/2);
+        context.transform(matrix[0], matrix[1], matrix[2], matrix[3], cW/2, cH/2);
         offX -= cW/2;
         offY -= cH/2;
         LOG("draw call:", offX, offY, targetW, targetH);
@@ -128,6 +114,7 @@ $(document).ready(function() {
         cory.state.img = img;
         cory.state.url = url;
         cory.state.transform = transform;
+        cory.state.matrix = matrix;
         if (msg != null) {
             writeMessage(msg);
         }
@@ -142,7 +129,7 @@ $(document).ready(function() {
     };
 
     function redrawImage() {
-        drawImage(cory.state.img, cory.state.url, cory.state.transform);
+        drawImage(cory.state.img, cory.state.url, cory.state.transform, cory.state.matrix);
         maybeWriteIsMovie(cory.state);
     };
 
@@ -255,7 +242,7 @@ $(document).ready(function() {
         var image = new Image();
         image.onload = function() {
             setImageState(image, true);
-            drawImage(image, info.view, info.transform, info.name);
+            drawImage(image, info.view, info.transform, info.matrix, info.name);
         };
         writeMessage("Loading " + info.name + "...");
         maybeWriteIsMovie(info);
@@ -333,7 +320,7 @@ $(document).ready(function() {
         var viewurl = info.view;
         writeMessage("Loading " + info.name, 6000);
         maybeWriteIsMovie(info);
-        drawImage(img, viewurl, info.transform, info.name);
+        drawImage(img, viewurl, info.transform, info.matrix, info.name);
         updateInfo(info.info);
     }
 
@@ -457,7 +444,7 @@ $(document).ready(function() {
     var image = new Image();
     image.onload = function() {
         setImageState(image, true);
-        drawImage(image, location.href, boottrans);
+        drawImage(image, location.href, boottrans, bootmatrix);
     };
     image.src = imageUrlScaled(booturl);
 
