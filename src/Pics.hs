@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE ViewPatterns        #-}
 
 module Pics ( PicDir(..)
             , Image(..)
@@ -38,7 +39,9 @@ module Pics ( PicDir(..)
             , repoDirs
             , repoStats
             , repoExif
+            , repoStatus
             , RepoStats(..)
+            , RepoStatus(..)
             , ImageSize(..)
             , FileOffset
             , Occurrence(..)
@@ -384,16 +387,41 @@ instance NFData PicDir where
 
 type RepoDirs = Map Text PicDir
 
+-- | Status of a repository.
+data RepoStatus = RepoEmpty
+                | RepoScanning
+                | RepoFinished
+                | RepoError !Text
+ deriving (Show)
+
+instance NFData RepoStatus where
+  rnf RepoEmpty     = ()
+  rnf RepoScanning  = ()
+  rnf RepoFinished  = ()
+  rnf (RepoError t) = rnf t
+
+instance Default RepoStatus where
+  def = RepoEmpty
+
 data Repository = Repository
-  { repoDirs  :: !RepoDirs
-  , repoStats :: !RepoStats
-  , repoExif  :: !GroupExif
+  { repoDirs   :: !RepoDirs
+  , repoStats  :: !RepoStats
+  , repoExif   :: !GroupExif
+  , repoStatus :: !RepoStatus
   } deriving (Show)
 
 instance NFData Repository where
   rnf Repository{..} = rnf repoDirs  `seq`
                        rnf repoStats `seq`
-                       rnf repoExif
+                       rnf repoExif  `seq`
+                       rnf repoStatus
+
+instance Default  Repository where
+  def = Repository { repoDirs   = Map.empty
+                   , repoStats  = def
+                   , repoExif   = def
+                   , repoStatus = def
+                   }
 
 type FolderClassStats = Map FolderClass Int
 
@@ -498,9 +526,15 @@ instance NFData RepoStats where
   rnf RepoStats{..} = rnf rsPicStats `seq`
                       rnf rsFCStats
 
+instance Default RepoStats where
+  def = RepoStats def def
+
 -- | The empty (zero) stats.
 zeroStats :: Stats
 zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
+
+instance Default Stats where
+  def = zeroStats
 
 -- | The total recorded size in a `Stats` structure.
 totalStatsSize :: Stats -> FileOffset
@@ -607,8 +641,8 @@ type SearchResults = Map (Text, ImageTimeKey) Image
 type SearchCache = LruCache UrlParams SearchResults
 
 {-# NOINLINE repoCache #-}
-repoCache :: MVar (Maybe Repository)
-repoCache = unsafePerformIO $ newMVar Nothing
+repoCache :: MVar Repository
+repoCache = unsafePerformIO $ newMVar def
 
 -- TODO: hardcoded cache size. Hmm...
 {-# NOINLINE searchCache #-}
@@ -1015,9 +1049,10 @@ scanFilesystem config = do
                        mergeShadows config) repo
       stats = computeRepoStats repo'
       rexif = repoGlobalExif repo'
-      repo'' = Repository { repoDirs  = repo'
-                          , repoStats = stats
-                          , repoExif  = rexif
+      repo'' = Repository { repoDirs   = repo'
+                          , repoStats  = stats
+                          , repoExif   = rexif
+                          , repoStatus = RepoFinished
                           }
   writeRepoCache config repo''
   _ <- forkIO $ forceBuildThumbCaches config repo''
@@ -1052,9 +1087,9 @@ readRepoCache config = do
 
 maybeUpdateCache :: Config
                  -> Bool
-                 -> Maybe Repository
-                 -> IO (Maybe Repository, Repository)
-maybeUpdateCache config skipCache Nothing = do
+                 -> Repository
+                 -> IO (Repository, Repository)
+maybeUpdateCache config skipCache (repoStatus -> RepoEmpty) = do
   let readCache = if skipCache
                   then return Nothing
                   else readRepoCache config
@@ -1066,13 +1101,13 @@ maybeUpdateCache config skipCache Nothing = do
   -- lead to deadlocks if ever one reads getPics inside the cache
   -- update.
   flushSearchCache
-  return (Just r, r)
-maybeUpdateCache _ _ orig@(Just r) = return (orig, r)
+  return (r, r)
+maybeUpdateCache _ _ orig = return (orig, orig)
 
 forceUpdateCache :: Config
-                 -> Maybe Repository
-                 -> IO (Maybe Repository, Repository)
-forceUpdateCache config _ = maybeUpdateCache config True Nothing
+                 -> Repository
+                 -> IO (Repository, Repository)
+forceUpdateCache config _ = maybeUpdateCache config True def
 
 -- | Tries to cheaply return the repository.
 --
@@ -1080,7 +1115,7 @@ forceUpdateCache config _ = maybeUpdateCache config True Nothing
 -- repository, so that `scanAll` can be called for the expensive
 -- scan. This function thus allows a cheap retrieve without having to
 -- scan the database for exif information pre-caching, etc.
-getRepo :: IO (Maybe Repository)
+getRepo :: IO Repository
 getRepo = readMVar repoCache
 
 scanAll :: Config -> IO Repository
@@ -1389,4 +1424,5 @@ $(makeStore ''Image)
 $(makeStore ''Stats)
 $(makeStore ''RepoStats)
 $(makeStore ''PicDir)
+$(makeStore ''RepoStatus)
 $(makeStore ''Repository)

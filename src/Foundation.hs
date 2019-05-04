@@ -386,12 +386,8 @@ getConfig = appConfig . appSettings <$> getYesod
 
 getPics :: Handler Repository
 getPics = do
-  cheapRepo <- liftIO getRepo
-  case cheapRepo of
-    Just repo -> return repo
-    Nothing -> do
-      config <- getConfig
-      liftIO $ scanAll config
+  config <- getConfig
+  liftIO $ scanAll config
 
 instance YesodAuthPersist App
 
