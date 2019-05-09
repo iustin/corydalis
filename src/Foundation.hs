@@ -169,6 +169,10 @@ instance Yesod App where
         scanProgress <- liftIO $ getProgress
         repo <- getPics
         let repoState = repoStatus repo
+            scanPercent = case repoState of
+                            -- so ugly!
+                            RepoScanning t | t > 0 -> Just (truncate (fromIntegral scanProgress * 100 / (fromIntegral t::Double)))
+                            _ -> Nothing::Maybe Int
 
         -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
         (title, parents) <- breadcrumbs

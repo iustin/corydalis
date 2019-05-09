@@ -13,6 +13,10 @@ $case repoState
   $of RepoScanning total
     <div .alert .alert-info>
       Repository scanning in progress, #{scanProgress} out of #{total} items scanned.
+      $maybe sp <- scanPercent
+        <div .progress>
+          <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{sp}" aria-valuemin="0" aria-valuemax="100" style="width: #{sp}%">
+            #{sp}%
   $of RepoFinished
   $of RepoError txt
     <div .alert .alert-danger>
