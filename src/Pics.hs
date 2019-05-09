@@ -1024,6 +1024,7 @@ loadFolder config name path isSource = do
                         ) Nothing images
       exif = buildGroupExif images
       timesort = buildTimeSort images
+  atomically $ modifyTVar' scanProgress (+ length contents)
   return $!! PicDir tname dirpath [] images timesort shadows year exif
 
 mergeShadows :: Config -> PicDir -> PicDir
@@ -1078,6 +1079,7 @@ scanFilesystem config rc logfn = do
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   itemcounts <- mapConcurrently (countDir config) $ map fst $ srcdirs ++ outdirs
+  atomically $ writeTVar scanProgress 0
   _ <- swapMVar rc $ inProgressRepo $ sum itemcounts
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
