@@ -166,6 +166,8 @@ instance Yesod App where
                           Just mmsgKind' -> if mmsgKind' `elem` msgValidTypes
                                               then mmsgKind'
                                               else msgInfo
+        repo <- getPics
+        let repoState = repoStatus repo
 
         -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
         (title, parents) <- breadcrumbs

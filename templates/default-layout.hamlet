@@ -3,6 +3,18 @@ $maybe msg <- mmsg
     <button type="button" .close data-dismiss="alert" aria-label="Close">
       <span aria-hidden="true">&times;
     #{msg}
+$case repoState
+  $of RepoEmpty
+    <div .alert .alert-dark>
+      Repository is being (re)initialized
+  $of RepoScanning
+    <div .alert .alert-info>
+      Repository scanning in progress
+  $of RepoFinished
+  $of RepoError txt
+    <div .alert .alert-danger>
+      <h4 .alert-heading>Repository scanning failed
+      Error message: #{txt}
 ^{widget}
 
 <br>
