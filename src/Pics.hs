@@ -1046,23 +1046,27 @@ resolveProcessedRanges config picd =
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
-launchScanFileSystem :: Config -> MVar Repository -> IO ()
-launchScanFileSystem config rc = do
+launchScanFileSystem :: Config -> MVar Repository -> LogFn -> IO ()
+launchScanFileSystem config rc logfn = do
   bracketOnError
-    (async (scanFilesystem config rc)) cancel $ \a -> do
+    (async (scanFilesystem config rc logfn)) cancel $ \a -> do
     currentSC <- atomically $ swapTVar scannerThread (Just a)
     case currentSC of
       Nothing -> return ()
       Just t  -> do
+        logfn "Cancelling previous scanner"
         cancel t
+        logfn "Cancel done"
 
-scanFilesystem :: Config -> MVar Repository -> IO ()
-scanFilesystem config rc = do
+scanFilesystem :: Config -> MVar Repository -> LogFn -> IO ()
+scanFilesystem config rc logfn = do
+  logfn "Launching scan filesystem"
   _ <- swapMVar rc inProgressRepo
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
+  logfn "Finished scanning directories"
   let repo = foldl' (flip (addDirToRepo config)) Map.empty $ concat asyncDirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
@@ -1075,7 +1079,9 @@ scanFilesystem config rc = do
                           }
   writeRepoCache config repo''
   _ <- swapMVar rc $!! repo''
+  logfn "Finished building repo, starting rendering"
   forceBuildThumbCaches config repo''
+  logfn "Finished rendering, all done"
   return ()
 
 forceBuildThumbCaches :: Config -> Repository -> IO ()
@@ -1107,18 +1113,25 @@ readRepoCache config = do
 
 loadCacheOrScan :: Config
                 -> Repository
+                -> LogFn
                 -> IO Repository
-loadCacheOrScan config (repoStatus -> RepoEmpty) = do
+loadCacheOrScan config (repoStatus -> RepoEmpty) logfn = do
   cachedRepo <- readRepoCache config
   r <- case cachedRepo of
-         Nothing    -> scanFilesystem config repoCache >> return def
-         Just cache -> swapMVar repoCache cache >> return cache
+         Nothing    -> do
+           logfn "No cache data or data incompatible, scanning filesystem"
+           scanFilesystem config repoCache logfn
+           return def
+         Just cache -> do
+           logfn "Cached data available, skipping scan"
+           _ <- swapMVar repoCache cache
+           return cache
   -- this is tricky; we take another mvar inside an mvar, which could
   -- lead to deadlocks if ever one reads getPics inside the cache
   -- update.
   flushSearchCache
   return r
-loadCacheOrScan _ orig = return orig
+loadCacheOrScan _ orig _ = return orig
 
 -- | Tries to cheaply return the repository.
 --
@@ -1129,14 +1142,14 @@ loadCacheOrScan _ orig = return orig
 getRepo :: IO Repository
 getRepo = readMVar repoCache
 
-scanAll :: Config -> IO Repository
-scanAll config = do
+scanAll :: Config -> LogFn -> IO Repository
+scanAll config logfn = do
   current <- getRepo
-  loadCacheOrScan config current
+  loadCacheOrScan config current logfn
 
-forceScanAll :: Config -> IO ()
-forceScanAll config =
-  launchScanFileSystem config repoCache
+forceScanAll :: Config -> LogFn -> IO ()
+forceScanAll config logfn =
+  launchScanFileSystem config repoCache logfn
 
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =

@@ -38,6 +38,7 @@ module Foundation
   , unsafeHandler
   , getConfig
   , getPics
+  , withLogFn
   ) where
 
 import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
@@ -52,7 +53,7 @@ import           Yesod.Auth.Dummy
 import           Yesod.Auth.HashDB     (authHashDBWithForm)
 
 import           Yesod.Auth.Message
-import           Yesod.Core.Types      (Logger)
+import           Yesod.Core.Types      (Logger, loggerPutStr)
 import qualified Yesod.Core.Unsafe     as Unsafe
 import           Yesod.Default.Util    (addStaticContentExternal)
 import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
@@ -65,7 +66,7 @@ import qualified Data.Text             as Text
 import           Indexer
 import           Pics
 import           Types                 (Config, FolderClass (..),
-                                        ImageStatus (..))
+                                        ImageStatus (..), LogFn)
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -387,7 +388,13 @@ getConfig = appConfig . appSettings <$> getYesod
 getPics :: Handler Repository
 getPics = do
   config <- getConfig
-  liftIO $ scanAll config
+  withLogFn $ scanAll config
+
+withLogFn :: (LogFn -> IO a) -> Handler a
+withLogFn action = do
+  logger <- appLogger <$> getYesod
+  let logfn str = loggerPutStr logger $ str <> "\n"
+  liftIO $ action logfn
 
 instance YesodAuthPersist App
 

@@ -167,8 +167,7 @@ imgRowClass img =
 reloadPics :: Handler ()
 reloadPics = do
   config <- getConfig
-  _ <- liftIO $ forceScanAll config
-  return ()
+  withLogFn $ forceScanAll config
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
