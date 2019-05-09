@@ -98,30 +98,31 @@ module Pics ( PicDir(..)
             ) where
 
 import           Control.Applicative
-import           Control.Concurrent       (forkIO)
 import           Control.Concurrent.Async
 import           Control.Concurrent.MVar
+import           Control.Concurrent.STM.TVar
 import           Control.DeepSeq
 import           Control.Monad
-import qualified Data.ByteString.Lazy     as BSL (append, length, writeFile)
-import           Data.Default             (Default, def)
-import           Data.Function            (on)
-import           Data.Int                 (Int64)
+import           Control.Monad.STM
+import qualified Data.ByteString.Lazy        as BSL (append, length, writeFile)
+import           Data.Default                (Default, def)
+import           Data.Function               (on)
+import           Data.Int                    (Int64)
 import           Data.List
-import           Data.LruCache            (LruCache)
-import qualified Data.LruCache            as LRU
-import           Data.Map.Strict          (Map)
-import qualified Data.Map.Strict          as Map
+import           Data.LruCache               (LruCache)
+import qualified Data.LruCache               as LRU
+import           Data.Map.Strict             (Map)
+import qualified Data.Map.Strict             as Map
 import           Data.Maybe
 import           Data.Semigroup
-import           Data.Set                 (Set)
-import qualified Data.Set                 as Set
+import           Data.Set                    (Set)
+import qualified Data.Set                    as Set
 import qualified Data.Store
 import           Data.Store.TH
-import           Data.Text                (Text)
-import qualified Data.Text                as Text
-import qualified Data.Text.Lazy           as TextL
-import qualified Data.Text.Lazy.Encoding  as Text (decodeUtf8)
+import           Data.Text                   (Text)
+import qualified Data.Text                   as Text
+import qualified Data.Text.Lazy              as TextL
+import qualified Data.Text.Lazy.Encoding     as Text (decodeUtf8)
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
@@ -131,15 +132,15 @@ import           System.Exit
 import           System.FilePath
 import           System.IO.Error
 import           System.IO.Unsafe
-import           System.Posix.Files       hiding (fileSize)
-import qualified System.Posix.Files       (fileSize)
+import           System.Posix.Files          hiding (fileSize)
+import qualified System.Posix.Files          (fileSize)
 import           System.Posix.Types
 import           System.Process.Typed
-import qualified Text.Regex.TDFA          as TDFA
+import qualified Text.Regex.TDFA             as TDFA
 import           UnliftIO.Exception
 
 import           Cache
-import           Compat.Orphans           ()
+import           Compat.Orphans              ()
 import           Exif
 import           Settings.Development
 import           Types
@@ -423,6 +424,9 @@ instance Default  Repository where
                    , repoStatus = def
                    }
 
+inProgressRepo :: Repository
+inProgressRepo = def { repoStatus = RepoScanning }
+
 type FolderClassStats = Map FolderClass Int
 
 -- | Type alias for the trends keys.
@@ -643,6 +647,10 @@ type SearchCache = LruCache UrlParams SearchResults
 {-# NOINLINE repoCache #-}
 repoCache :: MVar Repository
 repoCache = unsafePerformIO $ newMVar def
+
+{-# NOINLINE scannerThread #-}
+scannerThread :: TVar (Maybe (Async ()))
+scannerThread = unsafePerformIO $ newTVarIO Nothing
 
 -- TODO: hardcoded cache size. Hmm...
 {-# NOINLINE searchCache #-}
@@ -1038,8 +1046,19 @@ resolveProcessedRanges config picd =
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
-scanFilesystem :: Config -> IO Repository
-scanFilesystem config = do
+launchScanFileSystem :: Config -> MVar Repository -> IO ()
+launchScanFileSystem config rc = do
+  bracketOnError
+    (async (scanFilesystem config rc)) cancel $ \a -> do
+    currentSC <- atomically $ swapTVar scannerThread (Just a)
+    case currentSC of
+      Nothing -> return ()
+      Just t  -> do
+        cancel t
+
+scanFilesystem :: Config -> MVar Repository -> IO ()
+scanFilesystem config rc = do
+  _ <- swapMVar rc inProgressRepo
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
@@ -1055,8 +1074,9 @@ scanFilesystem config = do
                           , repoStatus = RepoFinished
                           }
   writeRepoCache config repo''
-  _ <- forkIO $ forceBuildThumbCaches config repo''
-  return $!! repo''
+  _ <- swapMVar rc $!! repo''
+  forceBuildThumbCaches config repo''
+  return ()
 
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
@@ -1085,29 +1105,20 @@ readRepoCache config = do
                       then Just repo
                       else Nothing
 
-maybeUpdateCache :: Config
-                 -> Bool
-                 -> Repository
-                 -> IO (Repository, Repository)
-maybeUpdateCache config skipCache (repoStatus -> RepoEmpty) = do
-  let readCache = if skipCache
-                  then return Nothing
-                  else readRepoCache config
-  cachedRepo <- readCache
+loadCacheOrScan :: Config
+                -> Repository
+                -> IO Repository
+loadCacheOrScan config (repoStatus -> RepoEmpty) = do
+  cachedRepo <- readRepoCache config
   r <- case cachedRepo of
-         Nothing    -> scanFilesystem config
-         Just cache -> return cache
+         Nothing    -> scanFilesystem config repoCache >> return def
+         Just cache -> swapMVar repoCache cache >> return cache
   -- this is tricky; we take another mvar inside an mvar, which could
   -- lead to deadlocks if ever one reads getPics inside the cache
   -- update.
   flushSearchCache
-  return (r, r)
-maybeUpdateCache _ _ orig = return (orig, orig)
-
-forceUpdateCache :: Config
-                 -> Repository
-                 -> IO (Repository, Repository)
-forceUpdateCache config _ = maybeUpdateCache config True def
+  return r
+loadCacheOrScan _ orig = return orig
 
 -- | Tries to cheaply return the repository.
 --
@@ -1119,11 +1130,13 @@ getRepo :: IO Repository
 getRepo = readMVar repoCache
 
 scanAll :: Config -> IO Repository
-scanAll config =
-  modifyMVar repoCache (maybeUpdateCache config False)
+scanAll config = do
+  current <- getRepo
+  loadCacheOrScan config current
 
-forceScanAll :: Config -> IO Repository
-forceScanAll config = modifyMVar repoCache (forceUpdateCache config)
+forceScanAll :: Config -> IO ()
+forceScanAll config =
+  launchScanFileSystem config repoCache
 
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =

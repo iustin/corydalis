@@ -90,6 +90,7 @@ dependencies:
   - scientific
   - shakespeare
   - store
+  - stm
   - template-haskell
   - temporary
   - text
