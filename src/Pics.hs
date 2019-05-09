@@ -898,6 +898,13 @@ scanSubDir config path isSource = do
   let allpaths' = filter (isOKDir config) dirpaths
   mapM (\s -> loadFolder config s (path </> s) isSource) allpaths'
 
+-- | Recursively count number of items under a directory.
+countDir :: Config -> String -> IO Int
+countDir config path = do
+  (dirpaths, iinfo) <- getDirContents config path
+  subdirs <- mapConcurrently (\p -> countDir config (path </> p)) dirpaths
+  return $!! sum subdirs + length iinfo + 1
+
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
 addDirToRepo config dir =
   Map.insertWith (mergeFolders config) (pdName dir) dir
@@ -1070,6 +1077,8 @@ scanFilesystem config rc logfn = do
   _ <- swapMVar rc $ inProgressRepo 0
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
+  itemcounts <- mapConcurrently (countDir config) $ map fst $ srcdirs ++ outdirs
+  _ <- swapMVar rc $ inProgressRepo $ sum itemcounts
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
