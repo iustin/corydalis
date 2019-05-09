@@ -391,6 +391,7 @@ type RepoDirs = Map Text PicDir
 
 -- | Status of a repository.
 data RepoStatus = RepoEmpty
+                | RepoStarting
                 | RepoScanning !Int
                 | RepoFinished
                 | RepoError !Text
@@ -398,6 +399,7 @@ data RepoStatus = RepoEmpty
 
 instance NFData RepoStatus where
   rnf RepoEmpty        = ()
+  rnf RepoStarting     = ()
   rnf (RepoScanning t) = rnf t
   rnf RepoFinished     = ()
   rnf (RepoError t)    = rnf t
@@ -424,10 +426,6 @@ instance Default  Repository where
                    , repoExif   = def
                    , repoStatus = def
                    }
-
-inProgressRepo :: Int -> Repository
-inProgressRepo t  =
-  def { repoStatus = RepoScanning t }
 
 type FolderClassStats = Map FolderClass Int
 
@@ -1075,12 +1073,12 @@ launchScanFileSystem config rc logfn = do
 scanFilesystem :: Config -> MVar Repository -> LogFn -> IO ()
 scanFilesystem config rc logfn = do
   logfn "Launching scan filesystem"
-  _ <- swapMVar rc $ inProgressRepo 0
+  _ <- swapMVar rc $ def { repoStatus = RepoStarting }
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   itemcounts <- mapConcurrently (countDir config) $ map fst $ srcdirs ++ outdirs
   atomically $ writeTVar scanProgress 0
-  _ <- swapMVar rc $ inProgressRepo $ sum itemcounts
+  _ <- swapMVar rc $ def { repoStatus = RepoScanning $ sum itemcounts }
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"

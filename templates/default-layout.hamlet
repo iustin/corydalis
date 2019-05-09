@@ -5,8 +5,11 @@ $maybe msg <- mmsg
     #{msg}
 $case repoState
   $of RepoEmpty
-    <div .alert .alert-dark>
+    <div .alert .alert-warning>
       Repository is being (re)initialized
+  $of RepoStarting
+    <div .alert .alert-primary>
+      Preparing to scan the repository.
   $of RepoScanning total
     <div .alert .alert-info>
       Repository scanning in progress, #{scanProgress} out of #{total} items scanned.
