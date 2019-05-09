@@ -30,43 +30,15 @@ module Handler.Status
   ( getStatusR
   ) where
 
-import qualified Data.Map      as Map
-import qualified Data.Set      as Set
-import qualified Data.Text     as Text
-
-import           Exif
-import           Handler.Items
 import           Handler.Utils
 import           Import
-import           Indexer
 import           Pics
 
 getStatusR :: Handler Html
 getStatusR = do
   pics <- getPics
-  let all_years = Map.foldl' (\s ->
-                                maybe s (`Set.insert` s) . pdYear
-                             ) Set.empty (repoDirs pics)
-      topN n f =
-        splitAt n .
-        -- sortBy + flip (compare `on`) = sortBy + reverse
-        sortBy (flip compare `on` snd) .
-        foldl' (\l (a, b) ->
-                  case a of
-                    Nothing -> l
-                    Just a' -> (a', b):l
-               ) [] .
-        Map.toList .
-        f $ gexif
-      years = Set.toAscList all_years
-      gexif = repoExif pics
-      topCountries  = topN 10 gExifCountries
-      topProvinces  = topN  7 gExifProvinces
-      topCities     = topN  7 gExifCities
-      topLocations  = topN  7 gExifLocations
-      topPeople     = topN 15 gExifPeople
-      topKeywords   = topN 10 gExifKeywords
-  homeMessage <- appHomeMessage . appSettings <$> getYesod
+  let repoState = repoStatus pics
+  scanProgress <- liftIO $ getProgress
   defaultLayout $ do
-    setHtmlTitle "home"
-    $(widgetFile "homepage")
+    setHtmlTitle "status"
+    $(widgetFile "status")

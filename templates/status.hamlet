@@ -1,0 +1,30 @@
+<h1>Corydalis
+  <small> - status page
+
+<div .row>
+  <div .col-12 .col-md-4>
+    <div .card>
+      <div .card-header>Repository status
+      $case repoState
+        $of RepoEmpty
+          <div .card-body .text-warning>
+            Repository is being (re)initialized
+        $of RepoStarting
+          <div .card-body .text-primary>
+            Preparing to scan the repository.
+        $of RepoScanning total
+          <div .card-body .text-info>
+            Repository scanning in progress, #{scanProgress}/#{total}.
+        $of RepoFinished t
+          <div .card-body>
+            Repository scan finished, #{t} items scanned.
+        $of RepoError txt
+          <div .card-body .text-danger>
+            <h4 .alert-heading>Repository scanning failed
+            Error message: #{txt}
+
+  <div .col-12 .col-md-4>
+    <div .card .border-warning>
+      <div .card-header>Rendering status
+      <div .card-body text-secondary>
+          Rendering status not implemented.
