@@ -1133,12 +1133,9 @@ loadCacheOrScan config (repoStatus -> RepoEmpty) logfn = do
   return r
 loadCacheOrScan _ orig _ = return orig
 
--- | Tries to cheaply return the repository.
+-- | Returns the current repository.
 --
--- If we already have a repository, return it. Otherwise, signal no
--- repository, so that `scanAll` can be called for the expensive
--- scan. This function thus allows a cheap retrieve without having to
--- scan the database for exif information pre-caching, etc.
+-- Nowadays this always returns the repository, which might be empty.
 getRepo :: IO Repository
 getRepo = readMVar repoCache
 
