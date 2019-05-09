@@ -31,25 +31,27 @@ module Types ( Config(..)
              , UrlParams
              , pathSep
              , LazyText
+             , LogFn
              ) where
 
 import           Control.Applicative
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
-import           Data.Function       (on)
-import           Data.List           (nub, sort)
-import           Data.Set            (Set)
-import qualified Data.Set            as Set
+import           Data.Function         (on)
+import           Data.List             (nub, sort)
+import           Data.Set              (Set)
+import qualified Data.Set              as Set
 import           Data.Store
-import           Data.Store.TH       (makeStore)
-import           Data.Text           (Text)
-import qualified Data.Text           as Text
-import qualified Data.Text.Lazy      as TextL
+import           Data.Store.TH         (makeStore)
+import           Data.Text             (Text)
+import qualified Data.Text             as Text
+import qualified Data.Text.Lazy        as TextL
 import           Data.Time.Clock
 import           Prelude
-import           System.FilePath     (pathSeparator)
-import qualified Text.Regex.TDFA     as TDFA
+import           System.FilePath       (pathSeparator)
+import           System.Log.FastLogger (LogStr)
+import qualified Text.Regex.TDFA       as TDFA
 import           Yesod
 
 data Regex = Regex
@@ -224,3 +226,5 @@ instance PathPiece [FolderClass] where
 type UrlParams = [(Text, Text)]
 
 $(makeStore ''Config)
+
+type LogFn = LogStr -> IO ()
