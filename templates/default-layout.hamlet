@@ -17,7 +17,7 @@ $case repoState
         <div .progress>
           <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{sp}" aria-valuemin="0" aria-valuemax="100" style="width: #{sp}%">
             #{sp}%
-  $of RepoFinished
+  $of RepoFinished _
   $of RepoError txt
     <div .alert .alert-danger>
       <h4 .alert-heading>Repository scanning failed

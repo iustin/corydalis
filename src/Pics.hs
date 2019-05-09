@@ -393,7 +393,7 @@ type RepoDirs = Map Text PicDir
 data RepoStatus = RepoEmpty
                 | RepoStarting
                 | RepoScanning !Int
-                | RepoFinished
+                | RepoFinished !Int
                 | RepoError !Text
   deriving (Show)
 
@@ -401,7 +401,7 @@ instance NFData RepoStatus where
   rnf RepoEmpty        = ()
   rnf RepoStarting     = ()
   rnf (RepoScanning t) = rnf t
-  rnf RepoFinished     = ()
+  rnf (RepoFinished t) = rnf t
   rnf (RepoError t)    = rnf t
 
 instance Default RepoStatus where
@@ -1088,6 +1088,7 @@ scanFilesystem config rc logfn = do
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
+  scanned <- readTVarIO scanProgress
   let repo = foldl' (flip (addDirToRepo config)) Map.empty $ concat asyncDirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
@@ -1096,7 +1097,7 @@ scanFilesystem config rc logfn = do
       repo'' = Repository { repoDirs   = repo'
                           , repoStats  = stats
                           , repoExif   = rexif
-                          , repoStatus = RepoFinished
+                          , repoStatus = RepoFinished scanned
                           }
   writeRepoCache config repo''
   _ <- swapMVar rc $!! repo''
