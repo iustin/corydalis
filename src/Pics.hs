@@ -1135,7 +1135,7 @@ loadCacheOrScan config (repoStatus -> RepoEmpty) logfn = do
   r <- case cachedRepo of
          Nothing    -> do
            logfn "No cache data or data incompatible, scanning filesystem"
-           scanFilesystem config repoCache logfn
+           launchScanFileSystem config repoCache logfn
            return def
          Just cache -> do
            logfn "Cached data available, skipping scan"
