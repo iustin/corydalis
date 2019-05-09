@@ -897,11 +897,17 @@ scanSubDir config path isSource = do
   mapM (\s -> loadFolder config s (path </> s) isSource) allpaths'
 
 -- | Recursively count number of items under a directory.
-countDir :: Config -> String -> IO Int
-countDir config path = do
+countDir :: Config -> Int -> String -> IO Int
+countDir config level path = do
   (dirpaths, iinfo) <- getDirContents config path
-  subdirs <- mapConcurrently (\p -> countDir config (path </> p)) dirpaths
-  return $!! sum subdirs + length iinfo + 1
+  -- TODO: This level thinig is ugly; the two-level hierarchy is rigid
+  -- and thus needs hardcoding here and there. Urgh!
+  let allpaths = if level == 2
+                 then filter (isOKDir config) dirpaths
+                 else dirpaths
+  subdirs <- mapConcurrently (\p -> countDir config (level+1) (path </> p)) allpaths
+  let total = sum subdirs + if level > 2 then length iinfo + 1 else 0
+  return $!! total
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
 addDirToRepo config dir =
@@ -1076,7 +1082,7 @@ scanFilesystem config rc logfn = do
   _ <- swapMVar rc $ def { repoStatus = RepoStarting }
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
-  itemcounts <- mapConcurrently (countDir config) $ map fst $ srcdirs ++ outdirs
+  itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
   atomically $ writeTVar scanProgress 0
   _ <- swapMVar rc $ def { repoStatus = RepoScanning $ sum itemcounts }
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
