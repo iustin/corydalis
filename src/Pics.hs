@@ -906,7 +906,7 @@ countDir config level path = do
                  then filter (isOKDir config) dirpaths
                  else dirpaths
   subdirs <- mapConcurrently (\p -> countDir config (level+1) (path </> p)) allpaths
-  let total = sum subdirs + if level > 2 then length iinfo + 1 else 0
+  let total = sum subdirs + if level > 2 then length iinfo else 0
   return $!! total
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
