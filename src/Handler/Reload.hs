@@ -34,6 +34,6 @@ postReloadR :: Handler Html
 postReloadR = do
   setUltDestReferer
   reloadPics
-  setMessage "Cache reloaded"
+  setMessage "Rescan triggered"
   setSession msgTypeKey msgSuccess
   redirectUltDest HomeR
