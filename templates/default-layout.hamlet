@@ -7,9 +7,9 @@ $case repoState
   $of RepoEmpty
     <div .alert .alert-dark>
       Repository is being (re)initialized
-  $of RepoScanning
+  $of RepoScanning total
     <div .alert .alert-info>
-      Repository scanning in progress
+      Repository scanning in progress, #{scanProgress} out of #{total} items scanned.
   $of RepoFinished
   $of RepoError txt
     <div .alert .alert-danger>

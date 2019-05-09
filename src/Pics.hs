@@ -50,6 +50,7 @@ module Pics ( PicDir(..)
             , fileLastTouch
             , fileMimeType
             , getRepo
+            , getProgress
             , scanAll
             , forceScanAll
             , isProcessed
@@ -390,16 +391,16 @@ type RepoDirs = Map Text PicDir
 
 -- | Status of a repository.
 data RepoStatus = RepoEmpty
-                | RepoScanning
+                | RepoScanning !Int
                 | RepoFinished
                 | RepoError !Text
- deriving (Show)
+  deriving (Show)
 
 instance NFData RepoStatus where
-  rnf RepoEmpty     = ()
-  rnf RepoScanning  = ()
-  rnf RepoFinished  = ()
-  rnf (RepoError t) = rnf t
+  rnf RepoEmpty        = ()
+  rnf (RepoScanning t) = rnf t
+  rnf RepoFinished     = ()
+  rnf (RepoError t)    = rnf t
 
 instance Default RepoStatus where
   def = RepoEmpty
@@ -424,8 +425,9 @@ instance Default  Repository where
                    , repoStatus = def
                    }
 
-inProgressRepo :: Repository
-inProgressRepo = def { repoStatus = RepoScanning }
+inProgressRepo :: Int -> Repository
+inProgressRepo t  =
+  def { repoStatus = RepoScanning t }
 
 type FolderClassStats = Map FolderClass Int
 
@@ -651,6 +653,10 @@ repoCache = unsafePerformIO $ newMVar def
 {-# NOINLINE scannerThread #-}
 scannerThread :: TVar (Maybe (Async ()))
 scannerThread = unsafePerformIO $ newTVarIO Nothing
+
+{-# NOINLINE scanProgress #-}
+scanProgress :: TVar Int
+scanProgress = unsafePerformIO $ newTVarIO 0
 
 -- TODO: hardcoded cache size. Hmm...
 {-# NOINLINE searchCache #-}
@@ -1061,7 +1067,7 @@ launchScanFileSystem config rc logfn = do
 scanFilesystem :: Config -> MVar Repository -> LogFn -> IO ()
 scanFilesystem config rc logfn = do
   logfn "Launching scan filesystem"
-  _ <- swapMVar rc inProgressRepo
+  _ <- swapMVar rc $ inProgressRepo 0
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
@@ -1138,6 +1144,14 @@ loadCacheOrScan _ orig _ = return orig
 -- Nowadays this always returns the repository, which might be empty.
 getRepo :: IO Repository
 getRepo = readMVar repoCache
+
+-- | Returns the progress of the repository scanner.
+--
+-- If the scan has finished, this is the value of all files and
+-- directories scanned (mildly interesting). If not, then this value
+-- is the running state.
+getProgress :: IO Int
+getProgress = readTVarIO scanProgress
 
 scanAll :: Config -> LogFn -> IO Repository
 scanAll config logfn = do

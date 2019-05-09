@@ -166,6 +166,7 @@ instance Yesod App where
                           Just mmsgKind' -> if mmsgKind' `elem` msgValidTypes
                                               then mmsgKind'
                                               else msgInfo
+        scanProgress <- liftIO $ getProgress
         repo <- getPics
         let repoState = repoStatus repo
 
