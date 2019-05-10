@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP                 #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TupleSections         #-}
@@ -51,6 +52,29 @@ diffZ a b = diffUTCTime (zonedTimeToUTC a) (zonedTimeToUTC b)
 
 swissNum :: (Integral n, Buildable n) => n -> Text
 swissNum = sformat (groupInt 3 '\'')
+
+workInProgress :: ZonedTime -> Text -> WorkStart -> Widget
+workInProgress now work WorkStart{..} =
+  toWidget [hamlet|
+          <div .card-body .text-info>
+            <p .card-text>
+               #{work} in progress for #{sformat (F.f 2) (diffZ now wsStart)} seconds.
+               |]
+
+scanResults :: WorkResults -> Widget
+scanResults WorkResults{..} =
+  toWidget [hamlet|
+          <div .card-body>
+            <p .card-text>
+              Repository scan finished, #{swissNum wrDone} items scanned.
+            <p .card-text>
+              Scan started at #{show wrStart} and finished at #{show wrEnd}.
+            <p .card-text>
+              Scan duration: #{sformat (F.f 2) delta} seconds.
+            <p .card-text>
+              Scan throughput: #{showThroughput $ throughput wrDone delta} files/s.
+              |]
+  where delta = diffZ wrEnd wrStart
 
 getStatusR :: Handler Html
 getStatusR = do

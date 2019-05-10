@@ -12,6 +12,32 @@
         $of RepoStarting
           <div .card-body .text-primary>
             Preparing to scan the repository.
+        $of RepoScanning ws
+          ^{workInProgress now "Repository scanning" ws}
+        $of RepoRendering _ ws
+          ^{workInProgress now "Rendering" ws}
+        $of RepoFinished (WorkResults { wrDone = t, wrStart = b, wrEnd = e }) (WorkResults { wrEnd = er })
+          <div .card-body>
+            <p .card-text>
+              All work completed.
+              Repository age is #{sformat (F.f 2) (diffZ now b)} seconds.
+            <p .card-text>
+              Total duration: #{sformat (F.f 2) (diffZ er b)} seconds.
+        $of RepoError txt
+          <div .card-body .text-danger>
+            <h4 .alert-heading>Repository scanning failed
+            Error message: #{txt}
+
+  <div .col-12 .col-md-4>
+    <div .card>
+      <div .card-header>Scan status
+      $case repoState
+        $of RepoEmpty
+          <div .card-body .text-warning>
+            Scanning has not started yet.
+        $of RepoStarting
+          <div .card-body .text-primary>
+            Preparing to scan the repository.
         $of RepoScanning (WorkStart { wsStart = s, wsGoal = total })
           <div .card-body .text-info>
             <p .card-text>
@@ -20,18 +46,10 @@
               Scanning started at #{show s}.
             <p .card-text>
               Scanning is running for #{sformat (F.f 2) (diffZ now s)} seconds.
-        $of RepoFinished (WorkResults { wrDone = t, wrStart = b, wrEnd = e }) _
-         $with delta <- diffZ e b
-          <div .card-body>
-            <p .card-text>
-              Repository scan finished, #{swissNum t} items scanned.
-              Repository age is #{sformat (F.f 2) (diffZ now b)} seconds.
-            <p .card-text>
-              Scan started at #{show b} and finished at #{show e}.
-            <p .card-text>
-              Scan duration: #{sformat (F.f 2) delta} seconds.
-            <p .card-text>
-              Scan throughput: #{showThroughput $ throughput t delta} files/s.
+        $of RepoRendering sr _
+          ^{scanResults sr}
+        $of RepoFinished sr _
+          ^{scanResults sr}
         $of RepoError txt
           <div .card-body .text-danger>
             <h4 .alert-heading>Repository scanning failed
