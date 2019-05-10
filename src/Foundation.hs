@@ -66,7 +66,8 @@ import qualified Data.Text             as Text
 import           Indexer
 import           Pics
 import           Types                 (Config, FolderClass (..),
-                                        ImageStatus (..), LogFn, WorkStart (..))
+                                        ImageStatus (..), LogFn, WorkStart (..),
+                                        pgTotal)
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -166,7 +167,7 @@ instance Yesod App where
                           Just mmsgKind' -> if mmsgKind' `elem` msgValidTypes
                                               then mmsgKind'
                                               else msgInfo
-        scanProgress <- liftIO getProgress
+        scanProgress <- liftIO (pgTotal <$> getProgress)
         repo <- getPics
         let repoState = repoStatus repo
             scanPercent = case repoState of

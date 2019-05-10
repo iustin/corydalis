@@ -47,14 +47,9 @@
         $of RepoStarting
           <div .card-body .text-primary>
             Preparing to scan the repository.
-        $of RepoScanning (WorkStart { wsStart = s, wsGoal = total })
-          <div .card-body .text-info>
-            <p .card-text>
-              Repository scanning in progress, #{swissNum scanProgress}/#{swissNum total}.
-            <p .card-text>
-              Scanning started at #{show s}.
-            <p .card-text>
-              Scanning is running for #{relTime False (diffZ now s)}.
+        $of RepoScanning ws
+          <div .card-body>
+            ^{workInProgress now "Scanning" scanProgress ws}
         $of RepoRendering sr _
           ^{workResults now sr "Scanning" "files"}
         $of RepoFinished sr _

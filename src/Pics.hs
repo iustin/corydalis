@@ -1276,8 +1276,8 @@ getRepo = readTVarIO repoCache
 -- If the scan has finished, this is the value of all files and
 -- directories scanned (mildly interesting). If not, then this value
 -- is the running state.
-getProgress :: IO Int
-getProgress = pgTotal <$> readTVarIO scanProgress
+getProgress :: IO Progress
+getProgress = readTVarIO scanProgress
 
 -- | Returns the progress of the render thread.
 getRenderProgress :: IO Progress
