@@ -20,7 +20,7 @@
               Scanning started at #{show s}.
             <p .card-text>
               Scanning is running for #{sformat (F.f 2) (diffZ now s)} seconds.
-        $of RepoFinished (WorkResults { wrDone = t, wrStart = b, wrEnd = e })
+        $of RepoFinished (WorkResults { wrDone = t, wrStart = b, wrEnd = e }) _
          $with delta <- diffZ e b
           <div .card-body>
             <p .card-text>

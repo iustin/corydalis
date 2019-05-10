@@ -394,16 +394,18 @@ type RepoDirs = Map Text PicDir
 data RepoStatus = RepoEmpty
                 | RepoStarting
                 | RepoScanning !WorkStart
-                | RepoFinished !WorkResults
+                | RepoRendering !WorkResults !WorkStart
+                | RepoFinished !WorkResults !WorkResults
                 | RepoError !Text
   deriving (Show)
 
 instance NFData RepoStatus where
-  rnf RepoEmpty         = ()
-  rnf RepoStarting      = ()
-  rnf (RepoScanning ws) = rnf ws
-  rnf (RepoFinished wr) = rnf wr
-  rnf (RepoError t)     = rnf t
+  rnf RepoEmpty              = ()
+  rnf RepoStarting           = ()
+  rnf (RepoScanning ws)      = rnf ws
+  rnf (RepoRendering wr ws)  = rnf wr `seq` rnf ws
+  rnf (RepoFinished wr1 wr2) = rnf wr1 `seq` rnf wr2
+  rnf (RepoError t)          = rnf t
 
 instance Default RepoStatus where
   def = RepoEmpty
@@ -1102,21 +1104,39 @@ scanFilesystem config rc logfn = do
                        mergeShadows config) repo
       stats = computeRepoStats repo'
       rexif = repoGlobalExif repo'
-      wr = WorkResults { wrStart = start
-                       , wrEnd = end
-                       , wrGoal = wsGoal ws
-                       , wrDone = scanned
-                       , wrErrors = 0
-                       }
+      -- For render stats:
+      allsizes  = cfgAutoImageSizes config
+      allimgs = renderableImages (def { repoDirs = repo' })
+      totalrender = length allsizes * length allimgs
+      wrscan = WorkResults { wrStart = start
+                           , wrEnd = end
+                           , wrGoal = wsGoal ws
+                           , wrDone = scanned
+                           , wrErrors = 0
+                           }
+      wsrender= WorkStart { wsStart = end
+                          , wsGoal = totalrender
+                          }
       repo'' = Repository { repoDirs   = repo'
                           , repoStats  = stats
                           , repoExif   = rexif
-                          , repoStatus = RepoFinished wr
+                          , repoStatus = RepoRendering wrscan wsrender
                           }
   writeRepoCache config repo''
   _ <- swapMVar rc $!! repo''
   logfn "Finished building repo, starting rendering"
   forceBuildThumbCaches config repo''
+  endr <- getZonedTime
+  rendered <- readTVarIO renderProgress
+  let wrrender = WorkResults { wrStart = end
+                             , wrEnd = endr
+                             , wrGoal = totalrender
+                             , wrDone = rendered
+                             , wrErrors = 0
+                             }
+  let repo''' = repo'' { repoStatus = RepoFinished wrscan wrrender }
+  writeRepoCache config repo'''
+  _ <- swapMVar rc $!! repo'''
   logfn "Finished rendering, all done"
   return ()
 
