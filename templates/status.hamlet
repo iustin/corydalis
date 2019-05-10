@@ -38,7 +38,11 @@
             Error message: #{txt}
 
   <div .col-12 .col-md-4>
-    <div .card .border-warning>
+    <div .card>
       <div .card-header>Rendering status
       <div .card-body text-secondary>
-          Rendering status not implemented.
+        Rendering progress: #{swissNum renderCur}/#{swissNum renderTotal}.
+        $maybe rp <- renderPercent
+          <div .progress>
+            <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">
+              #{rp}%

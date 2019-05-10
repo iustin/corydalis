@@ -54,8 +54,13 @@ swissNum = sformat (groupInt 3 '\'')
 getStatusR :: Handler Html
 getStatusR = do
   pics <- getPics
+  config <- getConfig
   let repoState = repoStatus pics
   scanProgress <- liftIO getProgress
+  (renderCur, renderTotal) <- liftIO $ getRenderProgress config pics
+  let renderPercent = if renderTotal > 0
+                      then Just (truncate (fromIntegral renderCur * 100 / (fromIntegral renderTotal::Double)))
+                      else Nothing::Maybe Int
   now <- liftIO getZonedTime
   defaultLayout $ do
     setHtmlTitle "status"
