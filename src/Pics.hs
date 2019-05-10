@@ -1212,13 +1212,8 @@ getProgress :: IO Int
 getProgress = readTVarIO scanProgress
 
 -- | Returns the progress of the render thread.
-getRenderProgress :: Config -> Repository -> IO (Int, Int)
-getRenderProgress config repo = do
-  let allsizes  = cfgAutoImageSizes config
-      allimgs = renderableImages repo
-      total = length allsizes * length allimgs
-  current <- readTVarIO renderProgress
-  return (current, total)
+getRenderProgress :: IO Int
+getRenderProgress = readTVarIO renderProgress
 
 scanAll :: Config -> LogFn -> IO Repository
 scanAll config logfn = do

@@ -16,7 +16,7 @@
           ^{workInProgress now "Repository scanning" ws}
         $of RepoRendering _ ws
           ^{workInProgress now "Rendering" ws}
-        $of RepoFinished (WorkResults { wrDone = t, wrStart = b, wrEnd = e }) (WorkResults { wrEnd = er })
+        $of RepoFinished (WorkResults { wrStart = b }) (WorkResults { wrEnd = er })
           <div .card-body>
             <p .card-text>
               All work completed.
@@ -47,9 +47,9 @@
             <p .card-text>
               Scanning is running for #{sformat (F.f 2) (diffZ now s)} seconds.
         $of RepoRendering sr _
-          ^{scanResults sr}
+          ^{workResults sr "Scanning" "files"}
         $of RepoFinished sr _
-          ^{scanResults sr}
+          ^{workResults sr "Scanning" "files"}
         $of RepoError txt
           <div .card-body .text-danger>
             <h4 .alert-heading>Repository scanning failed
@@ -58,9 +58,23 @@
   <div .col-12 .col-md-4>
     <div .card>
       <div .card-header>Rendering status
-      <div .card-body text-secondary>
-        Rendering progress: #{swissNum renderCur}/#{swissNum renderTotal}.
-        $maybe rp <- renderPercent
-          <div .progress>
-            <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">
-              #{rp}%
+      $case repoState
+        $of RepoEmpty
+          ^{renderIdle}
+        $of RepoStarting
+          ^{renderIdle}
+        $of RepoScanning _
+          ^{renderIdle}
+        $of RepoRendering _ (WorkStart{..})
+         <div .card-body>
+          Rendering progress: #{swissNum renderCur}/#{swissNum wsGoal}.
+          $maybe rp <- renderPercent
+            <div .progress>
+              <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">
+                #{rp}%
+        $of RepoFinished _ rr
+          ^{workResults rr "Rendering" "images"}
+        $of RepoError txt
+          <div .card-body .text-danger>
+            <h4 .alert-heading>Repository scanning failed
+            Error message: #{txt}

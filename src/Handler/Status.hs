@@ -61,31 +61,43 @@ workInProgress now work WorkStart{..} =
                #{work} in progress for #{sformat (F.f 2) (diffZ now wsStart)} seconds.
                |]
 
-scanResults :: WorkResults -> Widget
-scanResults WorkResults{..} =
+workResults :: WorkResults -> Text -> Text -> Widget
+workResults WorkResults{..} work item =
   toWidget [hamlet|
           <div .card-body>
             <p .card-text>
-              Repository scan finished, #{swissNum wrDone} items scanned.
+              #{work} finished, #{swissNum wrDone} #{item} processed.
             <p .card-text>
-              Scan started at #{show wrStart} and finished at #{show wrEnd}.
+              #{work} started at #{show wrStart} and finished at #{show wrEnd}.
             <p .card-text>
-              Scan duration: #{sformat (F.f 2) delta} seconds.
+              #{work} duration: #{sformat (F.f 2) delta} seconds.
             <p .card-text>
-              Scan throughput: #{showThroughput $ throughput wrDone delta} files/s.
+              #{work} throughput: #{showThroughput $ throughput wrDone delta} #{item}/s.
               |]
   where delta = diffZ wrEnd wrStart
+
+renderIdle :: Widget
+renderIdle =
+  toWidget [hamlet|
+          <div .card-body .text-warning>
+            Rendering has not started yet.
+            |]
 
 getStatusR :: Handler Html
 getStatusR = do
   pics <- getPics
-  config <- getConfig
   let repoState = repoStatus pics
   scanProgress <- liftIO getProgress
-  (renderCur, renderTotal) <- liftIO $ getRenderProgress config pics
-  let renderPercent = if renderTotal > 0
-                      then Just (truncate (fromIntegral renderCur * 100 / (fromIntegral renderTotal::Double)))
-                      else Nothing::Maybe Int
+  renderCur <- liftIO $ getRenderProgress
+  let renderTotal = case repoState of
+        RepoRendering _ ws -> Just $ wsGoal ws
+        RepoFinished _ wr  -> Just $ wrGoal wr
+        _                  -> Nothing
+      renderPercent = do
+        rt <- renderTotal
+        if rt > 0
+        then Just (truncate (fromIntegral renderCur * 100 / (fromIntegral rt::Double)))
+        else Nothing::Maybe Int
   now <- liftIO getZonedTime
   defaultLayout $ do
     setHtmlTitle "status"
