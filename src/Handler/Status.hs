@@ -40,7 +40,7 @@ import           Import
 import           Pics
 
 throughput :: Int -> NominalDiffTime -> Double
-throughput t delta = ((fromIntegral t)::Double) / realToFrac delta
+throughput t delta = (fromIntegral t::Double) / realToFrac delta
 
 showThroughput :: Double -> Text
 showThroughput = sformat (F.f 2)
@@ -55,8 +55,8 @@ getStatusR :: Handler Html
 getStatusR = do
   pics <- getPics
   let repoState = repoStatus pics
-  scanProgress <- liftIO $ getProgress
-  now <- liftIO $ getZonedTime
+  scanProgress <- liftIO getProgress
+  now <- liftIO getZonedTime
   defaultLayout $ do
     setHtmlTitle "status"
     $(widgetFile "status")

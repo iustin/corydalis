@@ -1065,7 +1065,7 @@ resolveProcessedRanges config picd =
   in picd { pdImages = images' }
 
 launchScanFileSystem :: Config -> MVar Repository -> LogFn -> IO ()
-launchScanFileSystem config rc logfn = do
+launchScanFileSystem config rc logfn =
   bracketOnError
     (async (scanFilesystem config rc logfn)) cancel $ \a -> do
     currentSC <- atomically $ swapTVar scannerThread (Just a)
@@ -1177,8 +1177,8 @@ scanAll config logfn = do
   loadCacheOrScan config current logfn
 
 forceScanAll :: Config -> LogFn -> IO ()
-forceScanAll config logfn =
-  launchScanFileSystem config repoCache logfn
+forceScanAll config =
+  launchScanFileSystem config repoCache
 
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =
