@@ -261,8 +261,8 @@ incDone :: Progress -> Progress
 incDone p@Progress { pgDone = old } =
   p { pgDone = old + 1 }
 
-incProgress :: Progress -> Int -> Int -> Progress
-incProgress Progress{..} e d =
+incProgress :: Int -> Int -> Progress -> Progress
+incProgress e d Progress{..} =
   Progress { pgErrors = pgErrors + e,
              pgDone = pgDone + d
            }

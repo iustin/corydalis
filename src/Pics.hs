@@ -685,8 +685,8 @@ scannerThread :: TVar (Maybe (Async ()))
 scannerThread = unsafePerformIO $ newTVarIO Nothing
 
 {-# NOINLINE scanProgress #-}
-scanProgress :: TVar Int
-scanProgress = unsafePerformIO $ newTVarIO 0
+scanProgress :: TVar Progress
+scanProgress = unsafePerformIO $ newTVarIO def
 
 {-# NOINLINE renderProgress #-}
 renderProgress :: TVar Progress
@@ -1065,7 +1065,7 @@ loadFolder config name path isSource = do
                         ) Nothing images
       exif = buildGroupExif images
       timesort = buildTimeSort images
-  atomically $ modifyTVar' scanProgress (+ length contents)
+  atomically $ modifyTVar' scanProgress (incProgress 0 (length contents))
   return $!! PicDir tname dirpath [] images timesort shadows year exif
 
 mergeShadows :: Config -> PicDir -> PicDir
@@ -1144,7 +1144,7 @@ scanFilesystem config rc newrepo logfn = do
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
-  atomically $ writeTVar scanProgress 0
+  atomically $ writeTVar scanProgress def
   start <- getZonedTime
   let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
   tryUpdateRepo rc (newrepo { repoStatus = RepoScanning ws })
@@ -1166,8 +1166,8 @@ scanFilesystem config rc newrepo logfn = do
       wrscan = WorkResults { wrStart = start
                            , wrEnd = end
                            , wrGoal = wsGoal ws
-                           , wrDone = scanned
-                           , wrErrors = 0
+                           , wrDone = pgDone scanned
+                           , wrErrors = pgErrors scanned
                            }
       wsrender= WorkStart { wsStart = end
                           , wsGoal = totalrender
@@ -1277,7 +1277,7 @@ getRepo = readTVarIO repoCache
 -- directories scanned (mildly interesting). If not, then this value
 -- is the running state.
 getProgress :: IO Int
-getProgress = readTVarIO scanProgress
+getProgress = pgTotal <$> readTVarIO scanProgress
 
 -- | Returns the progress of the render thread.
 getRenderProgress :: IO Progress
