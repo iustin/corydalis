@@ -96,8 +96,16 @@ getStatusR = do
       renderPercent = do
         rt <- renderTotal
         if rt > 0
-        then Just (truncate (fromIntegral renderCur * 100 / (fromIntegral rt::Double)))
-        else Nothing::Maybe Int
+          then Just (truncate (fromIntegral renderCur * 100 / (fromIntegral rt::Double)))
+          else Nothing::Maybe Int
+      (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
+        RepoEmpty         -> (0::Int, "empty"::Text, "bg-warning"::Text, False)
+        RepoStarting      -> (5, "preparing scan", "bg-warning", False)
+        RepoScanning _    -> (10, "scanning filesystem", "bg-info", True)
+        RepoRendering _ _ -> (50, "rendering images", "bg-info", True)
+        RepoFinished _ _  -> (100, "all done", "bg-info", False)
+        RepoError _       -> (100, "error", "bg-danger", False)
+      overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
   now <- liftIO getZonedTime
   defaultLayout $ do
     setHtmlTitle "status"
