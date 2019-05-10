@@ -1101,21 +1101,32 @@ newRepo rc = do
   return new
 
 launchScanFileSystem :: Config -> TVar Repository -> LogFn -> IO ()
-launchScanFileSystem config rc logfn =
+launchScanFileSystem config rc logfn = do
   bracketOnError
-    (async (scanFilesystem config rc logfn)) cancel $ \a -> do
-    currentSC <- atomically $ swapTVar scannerThread (Just a)
-    case currentSC of
-      Nothing -> return ()
-      Just t  -> do
-        logfn "Cancelling previous scanner"
-        cancel t
-        logfn "Cancel done"
+    (atomically $ newRepo rc)
+    (\new -> tryUpdateRepo rc (new { repoStatus = RepoError "unknown"}))
+    $ \newrepo -> do
+      newscanner <- async (scanFSWrapper config rc newrepo logfn)
+      currentSC <- atomically $ swapTVar scannerThread (Just newscanner)
+      case currentSC of
+        Nothing -> return ()
+        Just t -> do
+          logfn "Cancelling previous scanner"
+          cancel t
+          logfn "Cancel done"
+      return ()
 
-scanFilesystem :: Config -> TVar Repository -> LogFn -> IO ()
-scanFilesystem config rc logfn = do
+scanFSWrapper :: Config -> TVar Repository -> Repository -> LogFn -> IO ()
+scanFSWrapper config rc newrepo logfn = do
+  scanner <- async $ scanFilesystem config rc newrepo logfn
+  result <- waitCatch scanner
+  case result of
+    Left err -> tryUpdateRepo rc newrepo { repoStatus = RepoError (Text.pack $ show err) }
+    Right _ -> return ()
+
+scanFilesystem :: Config -> TVar Repository -> Repository -> LogFn -> IO ()
+scanFilesystem config rc newrepo logfn = do
   logfn "Launching scan filesystem"
-  newrepo <- atomically $ newRepo rc
   tryUpdateRepo rc (newrepo { repoStatus = RepoStarting })
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
