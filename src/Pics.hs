@@ -40,6 +40,7 @@ module Pics ( PicDir(..)
             , repoStats
             , repoExif
             , repoStatus
+            , repoSerial
             , RepoStats(..)
             , RepoStatus(..)
             , ImageSize(..)
@@ -415,19 +416,22 @@ data Repository = Repository
   , repoStats  :: !RepoStats
   , repoExif   :: !GroupExif
   , repoStatus :: !RepoStatus
+  , repoSerial :: !Int
   } deriving (Show)
 
 instance NFData Repository where
-  rnf Repository{..} = rnf repoDirs  `seq`
-                       rnf repoStats `seq`
-                       rnf repoExif  `seq`
-                       rnf repoStatus
+  rnf Repository{..} = rnf repoDirs   `seq`
+                       rnf repoStats  `seq`
+                       rnf repoExif   `seq`
+                       rnf repoStatus `seq`
+                       rnf repoSerial
 
 instance Default  Repository where
   def = Repository { repoDirs   = Map.empty
                    , repoStats  = def
                    , repoExif   = def
                    , repoStatus = def
+                   , repoSerial = 0
                    }
 
 type FolderClassStats = Map FolderClass Int
@@ -954,6 +958,7 @@ buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
 loadFolder config name path isSource = do
+  -- throwString "boo"
   contents <- recursiveScanPath config path id
   lcache <- getExif config path $ map inodeName contents
   let rawe = cfgRawExtsSet config
@@ -1121,6 +1126,7 @@ scanFilesystem config rc logfn = do
                           , repoStats  = stats
                           , repoExif   = rexif
                           , repoStatus = RepoRendering wrscan wsrender
+                          , repoSerial = 0
                           }
   writeRepoCache config repo''
   _ <- swapMVar rc $!! repo''

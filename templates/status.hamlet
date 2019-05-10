@@ -28,7 +28,7 @@
         $of RepoFinished (WorkResults { wrStart = b }) (WorkResults { wrEnd = er })
           <div .card-body>
             <p .card-text>
-              All work completed.
+              All work completed. Repository generation number is #{repoSerial repo}.
               Repository age is #{sformat (F.f 2) (diffZ now b)} seconds.
             <p .card-text>
               Total duration: #{sformat (F.f 2) (diffZ er b)} seconds.

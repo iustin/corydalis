@@ -88,8 +88,8 @@ renderIdle =
 
 getStatusR :: Handler Html
 getStatusR = do
-  pics <- getPics
-  let repoState = repoStatus pics
+  repo <- getPics
+  let repoState = repoStatus repo
   scanProgress <- liftIO getProgress
   renderCur <- liftIO $ getRenderProgress
   let renderTotal = case repoState of
