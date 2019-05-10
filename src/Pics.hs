@@ -678,7 +678,7 @@ updateRepo rc new =
 tryUpdateRepo :: TVar Repository -> Repository -> IO ()
 tryUpdateRepo rc new = do
   owning <- updateRepo rc new
-  when (not owning) $ throwString "Repository ownership changed, aborting"
+  unless owning $ throwString "Repository ownership changed, aborting"
 
 {-# NOINLINE scannerThread #-}
 scannerThread :: TVar (Maybe (Async ()))
@@ -1114,7 +1114,7 @@ newRepo rc = do
   return new
 
 launchScanFileSystem :: Config -> TVar Repository -> LogFn -> IO ()
-launchScanFileSystem config rc logfn = do
+launchScanFileSystem config rc logfn =
   bracketOnError
     (atomically $ newRepo rc)
     (\new -> tryUpdateRepo rc (new { repoStatus = RepoError "unknown"}))
@@ -1242,7 +1242,7 @@ loadCacheOrScan config old@(repoStatus -> RepoEmpty) logfn = do
            logfn "No cache data or data incompatible, scanning filesystem"
            launchScanFileSystem config repoCache logfn
            return $ rescanningRepository old
-         Just cache -> do
+         Just cache ->
            case repoStatus cache of
              RepoFinished _ _ -> do
                logfn "Cached data available, skipping scan"

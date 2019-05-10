@@ -98,7 +98,7 @@ getStatusR = do
   repo <- getPics
   let repoState = repoStatus repo
   scanProgress <- liftIO getProgress
-  renderCur <- liftIO $ getRenderProgress
+  renderCur <- liftIO getRenderProgress
   let renderTotal = case repoState of
         RepoRendering _ ws -> Just $ wsGoal ws
         RepoFinished _ wr  -> Just $ wrGoal wr

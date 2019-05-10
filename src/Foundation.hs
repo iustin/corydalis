@@ -171,7 +171,7 @@ instance Yesod App where
         let repoState = repoStatus repo
             scanPercent = case repoState of
                             -- so ugly!
-                            RepoScanning (WorkStart { wsGoal = t }) | t > 0 ->
+                            RepoScanning WorkStart { wsGoal = t } | t > 0 ->
                                  Just (truncate (fromIntegral scanProgress * 100 / (fromIntegral t::Double)))
                             _ -> Nothing::Maybe Int
 
