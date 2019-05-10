@@ -135,6 +135,7 @@ import           System.Exit
 import           System.FilePath
 import           System.IO.Error
 import           System.IO.Unsafe
+import           System.Log.FastLogger       (toLogStr)
 import           System.Posix.Files          hiding (fileSize)
 import qualified System.Posix.Files          (fileSize)
 import           System.Posix.Types
@@ -1229,12 +1230,19 @@ loadCacheOrScan config (repoStatus -> RepoEmpty) logfn = do
            launchScanFileSystem config repoCache logfn
            return def
          Just cache -> do
-           logfn "Cached data available, skipping scan"
-           -- Note: this shouldn't fail, since a repo empty should
-           -- only happen upon initial load. Oh hey, or immediatelly
-           -- right away after a forced rescan? To investigage.
-           tryUpdateRepo repoCache cache
-           return cache
+           case repoStatus cache of
+             RepoFinished _ _ -> do
+               logfn "Cached data available, skipping scan"
+               -- Note: this shouldn't fail, since a repo empty should
+               -- only happen upon initial load. Oh hey, or immediatelly
+               -- right away after a forced rescan? To investigage.
+               tryUpdateRepo repoCache cache
+               return cache
+             x -> do
+               logfn . toLogStr $ "Unfinished cache found, state: " ++ show x
+               logfn "Restarting scan"
+               launchScanFileSystem config repoCache logfn
+               return def
   -- this is tricky; we take another mvar inside an mvar, which could
   -- lead to deadlocks if ever one reads getPics inside the cache
   -- update.
