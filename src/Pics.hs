@@ -51,6 +51,7 @@ module Pics ( PicDir(..)
             , fileMimeType
             , getRepo
             , getProgress
+            , getRenderProgress
             , scanAll
             , forceScanAll
             , isProcessed
@@ -656,6 +657,10 @@ scannerThread = unsafePerformIO $ newTVarIO Nothing
 scanProgress :: TVar Int
 scanProgress = unsafePerformIO $ newTVarIO 0
 
+{-# NOINLINE renderProgress #-}
+renderProgress :: TVar Int
+renderProgress = unsafePerformIO $ newTVarIO 0
+
 -- TODO: hardcoded cache size. Hmm...
 {-# NOINLINE searchCache #-}
 searchCache :: MVar SearchCache
@@ -1108,10 +1113,18 @@ scanFilesystem config rc logfn = do
   logfn "Finished rendering, all done"
   return ()
 
+-- | Computes the list of images that can be rendered.
+renderableImages :: Repository -> [Image]
+renderableImages = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalone]
+
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
-  let images = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalone] repo
-      builder i = mapM_ (imageAtRes config i . Just . ImageSize)
+  atomically $ writeTVar renderProgress 0
+  let images = renderableImages repo
+      builder i = mapM_ (\size -> do
+                            _ <- imageAtRes config i . Just . ImageSize $ size
+                            atomically $ modifyTVar renderProgress (+1)
+                        )
                     (cfgAutoImageSizes config)
   mapM_ builder images
 
@@ -1170,6 +1183,15 @@ getRepo = readMVar repoCache
 -- is the running state.
 getProgress :: IO Int
 getProgress = readTVarIO scanProgress
+
+-- | Returns the progress of the render thread.
+getRenderProgress :: Config -> Repository -> IO (Int, Int)
+getRenderProgress config repo = do
+  let allsizes  = cfgAutoImageSizes config
+      allimgs = renderableImages repo
+      total = length allsizes * length allimgs
+  current <- readTVarIO renderProgress
+  return (current, total)
 
 scanAll :: Config -> LogFn -> IO Repository
 scanAll config logfn = do
