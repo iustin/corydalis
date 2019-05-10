@@ -35,7 +35,7 @@ main = do
     -- Scan repository
     t1m <- getTime Monotonic
     t1p <- getTime ProcessCPUTime
-    repo <- scanAll config
+    repo <- scanAll config (const $ return ())
     performGC
     t2m <- getTime Monotonic
     t2p <- getTime ProcessCPUTime
