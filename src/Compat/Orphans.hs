@@ -38,3 +38,6 @@ $(makeStore ''COff)
 
 instance NFData COff where
   rnf (COff x) = rnf x
+
+$(makeStore ''TimeZone)
+$(makeStore ''ZonedTime)
