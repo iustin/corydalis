@@ -66,7 +66,7 @@ import qualified Data.Text             as Text
 import           Indexer
 import           Pics
 import           Types                 (Config, FolderClass (..),
-                                        ImageStatus (..), LogFn)
+                                        ImageStatus (..), LogFn, WorkStart (..))
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -171,7 +171,8 @@ instance Yesod App where
         let repoState = repoStatus repo
             scanPercent = case repoState of
                             -- so ugly!
-                            RepoScanning t _ | t > 0 -> Just (truncate (fromIntegral scanProgress * 100 / (fromIntegral t::Double)))
+                            RepoScanning (WorkStart { wsGoal = t }) | t > 0 ->
+                                 Just (truncate (fromIntegral scanProgress * 100 / (fromIntegral t::Double)))
                             _ -> Nothing::Maybe Int
 
         -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.

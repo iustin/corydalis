@@ -10,14 +10,14 @@ $case repoState
   $of RepoStarting
     <div .alert .alert-primary>
       Preparing to scan the repository.
-  $of RepoScanning total _
+  $of RepoScanning (WorkStart { wsGoal = total })
     <div .alert .alert-info>
       Repository scanning in progress, #{scanProgress} out of #{total} items scanned.
       $maybe sp <- scanPercent
         <div .progress>
           <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{sp}" aria-valuemin="0" aria-valuemax="100" style="width: #{sp}%">
             #{sp}%
-  $of RepoFinished _ _ _
+  $of RepoFinished _
   $of RepoError txt
     <div .alert .alert-danger>
       <h4 .alert-heading>Repository scanning failed

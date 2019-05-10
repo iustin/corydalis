@@ -12,7 +12,7 @@
         $of RepoStarting
           <div .card-body .text-primary>
             Preparing to scan the repository.
-        $of RepoScanning total s
+        $of RepoScanning (WorkStart { wsStart = s, wsGoal = total })
           <div .card-body .text-info>
             <p .card-text>
               Repository scanning in progress, #{swissNum scanProgress}/#{swissNum total}.
@@ -20,7 +20,7 @@
               Scanning started at #{show s}.
             <p .card-text>
               Scanning is running for #{sformat (F.f 2) (diffZ now s)} seconds.
-        $of RepoFinished t b e
+        $of RepoFinished (WorkResults { wrDone = t, wrStart = b, wrEnd = e })
          $with delta <- diffZ e b
           <div .card-body>
             <p .card-text>

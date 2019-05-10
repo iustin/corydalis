@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Types ( Config(..)
@@ -32,6 +33,12 @@ module Types ( Config(..)
              , pathSep
              , LazyText
              , LogFn
+             , Progress(..)
+             , incErrors
+             , incDone
+             , incProgress
+             , WorkStart(..)
+             , WorkResults(..)
              ) where
 
 import           Control.Applicative
@@ -48,11 +55,14 @@ import           Data.Text             (Text)
 import qualified Data.Text             as Text
 import qualified Data.Text.Lazy        as TextL
 import           Data.Time.Clock
+import           Data.Time.LocalTime
 import           Prelude
 import           System.FilePath       (pathSeparator)
 import           System.Log.FastLogger (LogStr)
 import qualified Text.Regex.TDFA       as TDFA
 import           Yesod
+
+import           Compat.Orphans        ()
 
 data Regex = Regex
     { reString :: Text
@@ -228,3 +238,48 @@ type UrlParams = [(Text, Text)]
 $(makeStore ''Config)
 
 type LogFn = LogStr -> IO ()
+
+-- | Progress of a work item.
+data Progress = Progress
+  { pgErrors :: !Int
+  , pgDone   :: !Int
+  }
+
+incErrors :: Progress -> Progress
+incErrors p@Progress { pgErrors = old } =
+  p { pgErrors = old + 1 }
+
+incDone :: Progress -> Progress
+incDone p@Progress { pgDone = old } =
+  p { pgDone = old + 1 }
+
+incProgress :: Progress -> Int -> Int -> Progress
+incProgress Progress{..} e d =
+  Progress { pgErrors = pgErrors + e,
+             pgDone = pgDone + d
+           }
+
+data WorkStart = WorkStart
+  { wsStart :: !ZonedTime
+  , wsGoal  :: !Int
+  }
+  deriving (Show)
+
+instance NFData WorkStart where
+  rnf (WorkStart s g) = rnf s `seq` rnf g
+
+data WorkResults = WorkResults
+  { wrStart  :: !ZonedTime
+  , wrEnd    :: !ZonedTime
+  , wrGoal   :: !Int
+  , wrDone   :: !Int
+  , wrErrors :: !Int
+  }
+  deriving (Show)
+
+instance NFData WorkResults where
+  rnf (WorkResults a b c d e) =
+    rnf a `seq` rnf b `seq` rnf c `seq` rnf d `seq` rnf e
+
+$(makeStore ''WorkStart)
+$(makeStore ''WorkResults)

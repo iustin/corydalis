@@ -393,17 +393,17 @@ type RepoDirs = Map Text PicDir
 -- | Status of a repository.
 data RepoStatus = RepoEmpty
                 | RepoStarting
-                | RepoScanning !Int !ZonedTime
-                | RepoFinished !Int !ZonedTime !ZonedTime
+                | RepoScanning !WorkStart
+                | RepoFinished !WorkResults
                 | RepoError !Text
   deriving (Show)
 
 instance NFData RepoStatus where
-  rnf RepoEmpty            = ()
-  rnf RepoStarting         = ()
-  rnf (RepoScanning t s)   = rnf t `seq` rnf s
-  rnf (RepoFinished t b e) = rnf t `seq` rnf b `seq` rnf e
-  rnf (RepoError t)        = rnf t
+  rnf RepoEmpty         = ()
+  rnf RepoStarting      = ()
+  rnf (RepoScanning ws) = rnf ws
+  rnf (RepoFinished wr) = rnf wr
+  rnf (RepoError t)     = rnf t
 
 instance Default RepoStatus where
   def = RepoEmpty
@@ -1090,7 +1090,8 @@ scanFilesystem config rc logfn = do
   itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
   atomically $ writeTVar scanProgress 0
   start <- getZonedTime
-  _ <- swapMVar rc $ def { repoStatus = RepoScanning (sum itemcounts) start }
+  let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
+  _ <- swapMVar rc $ def { repoStatus = RepoScanning ws }
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
@@ -1101,10 +1102,16 @@ scanFilesystem config rc logfn = do
                        mergeShadows config) repo
       stats = computeRepoStats repo'
       rexif = repoGlobalExif repo'
+      wr = WorkResults { wrStart = start
+                       , wrEnd = end
+                       , wrGoal = wsGoal ws
+                       , wrDone = scanned
+                       , wrErrors = 0
+                       }
       repo'' = Repository { repoDirs   = repo'
                           , repoStats  = stats
                           , repoExif   = rexif
-                          , repoStatus = RepoFinished scanned start end
+                          , repoStatus = RepoFinished wr
                           }
   writeRepoCache config repo''
   _ <- swapMVar rc $!! repo''

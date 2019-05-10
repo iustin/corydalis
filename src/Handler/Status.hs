@@ -38,6 +38,7 @@ import qualified Formatting.ShortFormatters as F
 import           Handler.Utils
 import           Import
 import           Pics
+import           Types
 
 throughput :: Int -> NominalDiffTime -> Double
 throughput t delta = (fromIntegral t::Double) / realToFrac delta
