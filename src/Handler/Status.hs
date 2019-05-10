@@ -93,9 +93,7 @@ workResults now WorkResults{..} work item =
                A total of #{wrErrors} errors have occured.
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
-              and finished <abbr title="#{show wrEnd}">#{relTime True (diffZ wrEnd now)}</abbr>.
-            <p .card-text>
-              #{work} duration: #{relTime False delta}.
+              and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
             <p .card-text>
               #{work} throughput: #{showThroughput $ throughput wrDone delta} #{item}/s.
               |]
