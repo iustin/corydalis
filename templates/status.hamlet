@@ -29,7 +29,7 @@
           <div .card-body>
             <p .card-text>
               All work completed. Repository generation number is #{repoSerial repo}.
-              Repository age is #{relTime False (diffZ now b)}.
+              Repository age is <abbr title="Scanned at #{show b}">#{relTime False (diffZ now b)}</abbr>.
             <p .card-text>
               Total duration: #{relTime False (diffZ er b)}.
         $of RepoError txt
