@@ -392,17 +392,17 @@ type RepoDirs = Map Text PicDir
 -- | Status of a repository.
 data RepoStatus = RepoEmpty
                 | RepoStarting
-                | RepoScanning !Int
-                | RepoFinished !Int
+                | RepoScanning !Int !ZonedTime
+                | RepoFinished !Int !ZonedTime !ZonedTime
                 | RepoError !Text
   deriving (Show)
 
 instance NFData RepoStatus where
-  rnf RepoEmpty        = ()
-  rnf RepoStarting     = ()
-  rnf (RepoScanning t) = rnf t
-  rnf (RepoFinished t) = rnf t
-  rnf (RepoError t)    = rnf t
+  rnf RepoEmpty            = ()
+  rnf RepoStarting         = ()
+  rnf (RepoScanning t s)   = rnf t `seq` rnf s
+  rnf (RepoFinished t b e) = rnf t `seq` rnf b `seq` rnf e
+  rnf (RepoError t)        = rnf t
 
 instance Default RepoStatus where
   def = RepoEmpty
@@ -1084,11 +1084,13 @@ scanFilesystem config rc logfn = do
       outdirs = zip (cfgOutputDirs config) (repeat False)
   itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
   atomically $ writeTVar scanProgress 0
-  _ <- swapMVar rc $ def { repoStatus = RepoScanning $ sum itemcounts }
+  start <- getZonedTime
+  _ <- swapMVar rc $ def { repoStatus = RepoScanning (sum itemcounts) start }
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
   scanned <- readTVarIO scanProgress
+  end <- getZonedTime
   let repo = foldl' (flip (addDirToRepo config)) Map.empty $ concat asyncDirs
   let repo' = Map.map (resolveProcessedRanges config .
                        mergeShadows config) repo
@@ -1097,7 +1099,7 @@ scanFilesystem config rc logfn = do
       repo'' = Repository { repoDirs   = repo'
                           , repoStats  = stats
                           , repoExif   = rexif
-                          , repoStatus = RepoFinished scanned
+                          , repoStatus = RepoFinished scanned start end
                           }
   writeRepoCache config repo''
   _ <- swapMVar rc $!! repo''
@@ -1479,3 +1481,5 @@ $(makeStore ''RepoStats)
 $(makeStore ''PicDir)
 $(makeStore ''RepoStatus)
 $(makeStore ''Repository)
+$(makeStore ''TimeZone)
+$(makeStore ''ZonedTime)

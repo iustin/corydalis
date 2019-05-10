@@ -12,10 +12,10 @@
         $of RepoStarting
           <div .card-body .text-primary>
             Preparing to scan the repository.
-        $of RepoScanning total
+        $of RepoScanning total _
           <div .card-body .text-info>
             Repository scanning in progress, #{scanProgress}/#{total}.
-        $of RepoFinished t
+        $of RepoFinished t _ _
           <div .card-body>
             Repository scan finished, #{t} items scanned.
         $of RepoError txt
