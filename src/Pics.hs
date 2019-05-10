@@ -393,8 +393,10 @@ instance NFData PicDir where
 type RepoDirs = Map Text PicDir
 
 -- | Status of a repository.
-data RepoStatus = RepoEmpty
-                | RepoStarting
+data RepoStatus = RepoEmpty    -- ^ Only to be used at application
+                               -- startup time!
+                | RepoStarting -- ^ Denotes an empty, in-process of
+                               -- being rescanned repo.
                 | RepoScanning !WorkStart
                 | RepoRendering !WorkResults !WorkStart
                 | RepoFinished !WorkResults !WorkResults
@@ -427,13 +429,21 @@ instance NFData Repository where
                        rnf repoStatus `seq`
                        rnf repoSerial
 
-instance Default  Repository where
-  def = Repository { repoDirs   = Map.empty
-                   , repoStats  = def
-                   , repoExif   = def
-                   , repoStatus = def
-                   , repoSerial = 0
-                   }
+-- | Value to be set at application startup time.
+--
+-- This will allow differentiation from "in progess of rescanning".
+startupRepository :: Repository
+startupRepository =
+   Repository { repoDirs   = Map.empty
+              , repoStats  = def
+              , repoExif   = def
+              , repoStatus = def
+              , repoSerial = 0
+              }
+
+-- | Changes an existing repository into starting state.
+rescanningRepository :: Repository -> Repository
+rescanningRepository repo = repo { repoStatus = RepoStarting }
 
 type FolderClassStats = Map FolderClass Int
 
@@ -654,7 +664,7 @@ type SearchCache = LruCache UrlParams SearchResults
 
 {-# NOINLINE repoCache #-}
 repoCache :: TVar Repository
-repoCache = unsafePerformIO $ newTVarIO def
+repoCache = unsafePerformIO $ newTVarIO startupRepository
 
 updateRepo :: TVar Repository -> Repository -> IO Bool
 updateRepo rc new =
@@ -1097,7 +1107,9 @@ resolveProcessedRanges config picd =
 newRepo :: TVar Repository -> STM Repository
 newRepo rc = do
   old <- readTVar rc
-  let new = def { repoSerial = repoSerial old + 1 }
+  let new = old { repoSerial = repoSerial old + 1
+                , repoStatus = RepoStarting
+                }
   writeTVar rc $! new
   return new
 
@@ -1148,7 +1160,8 @@ scanFilesystem config rc newrepo logfn = do
       rexif = repoGlobalExif repo'
       -- For render stats:
       allsizes  = cfgAutoImageSizes config
-      allimgs = renderableImages (def { repoDirs = repo' })
+      -- urgh, renderable images needs a full repo…
+      allimgs = renderableImages (newrepo { repoDirs = repo' })
       totalrender = length allsizes * length allimgs
       wrscan = WorkResults { wrStart = start
                            , wrEnd = end
@@ -1222,27 +1235,28 @@ loadCacheOrScan :: Config
                 -> Repository
                 -> LogFn
                 -> IO Repository
-loadCacheOrScan config (repoStatus -> RepoEmpty) logfn = do
+loadCacheOrScan config old@(repoStatus -> RepoEmpty) logfn = do
   cachedRepo <- readRepoCache config
   r <- case cachedRepo of
          Nothing    -> do
            logfn "No cache data or data incompatible, scanning filesystem"
            launchScanFileSystem config repoCache logfn
-           return def
+           return $ rescanningRepository old
          Just cache -> do
            case repoStatus cache of
              RepoFinished _ _ -> do
                logfn "Cached data available, skipping scan"
-               -- Note: this shouldn't fail, since a repo empty should
-               -- only happen upon initial load. Oh hey, or immediatelly
-               -- right away after a forced rescan? To investigage.
+               -- Note: this shouldn't fail, since an empty repo
+               -- happens only upon initial load, and (initial) empty
+               -- repos have a serial number of zero while any valid
+               -- cache will have a positive serial.
                tryUpdateRepo repoCache cache
                return cache
              x -> do
                logfn . toLogStr $ "Unfinished cache found, state: " ++ show x
                logfn "Restarting scan"
                launchScanFileSystem config repoCache logfn
-               return def
+               return $ rescanningRepository old
   -- this is tricky; we take another mvar inside an mvar, which could
   -- lead to deadlocks if ever one reads getPics inside the cache
   -- update.
