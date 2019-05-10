@@ -77,7 +77,10 @@ workInProgress now work counter WorkStart{..} =
                 No errors found (yet).
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
+               ETA: #{relTime True newtime}.
                |]
+  where multiplier = (fromIntegral wsGoal::Double) / fromIntegral (pgTotal counter)
+        newtime = realToFrac (diffZ now wsStart) * multiplier
 
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
 workResults now WorkResults{..} work item =
