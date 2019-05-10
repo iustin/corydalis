@@ -76,7 +76,11 @@
           ^{renderIdle}
         $of RepoRendering _ ws
          <div .card-body>
-          Rendering progress: #{swissNum renderCur}/#{swissNum (wsGoal ws)}.
+          Rendering progress: #{swissNum $ pgTotal renderCur}/#{swissNum (wsGoal ws)}. #
+          $if pgErrors renderCur > 0
+            A total of #{pgErrors renderCur} errors have occured so far.
+          $else
+            No errors found yet.
           $maybe rp <- renderPercent
             <div .progress>
               <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">

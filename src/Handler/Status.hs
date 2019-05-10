@@ -67,6 +67,9 @@ workResults WorkResults{..} work item =
           <div .card-body>
             <p .card-text>
               #{work} finished, #{swissNum wrDone} #{item} processed.
+            $if wrErrors > 0
+             <p .card-text>
+               A total of #{wrErrors} errors have occured.
             <p .card-text>
               #{work} started at #{show wrStart} and finished at #{show wrEnd}.
             <p .card-text>
@@ -93,10 +96,11 @@ getStatusR = do
         RepoRendering _ ws -> Just $ wsGoal ws
         RepoFinished _ wr  -> Just $ wrGoal wr
         _                  -> Nothing
+      renderDone = pgTotal renderCur
       renderPercent = do
         rt <- renderTotal
         if rt > 0
-          then Just (truncate (fromIntegral renderCur * 100 / (fromIntegral rt::Double)))
+          then Just (truncate (fromIntegral renderDone * 100 / (fromIntegral rt::Double)))
           else Nothing::Maybe Int
       (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
         RepoEmpty         -> (0::Int, "empty"::Text, "bg-warning"::Text, False)

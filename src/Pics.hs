@@ -660,8 +660,8 @@ scanProgress :: TVar Int
 scanProgress = unsafePerformIO $ newTVarIO 0
 
 {-# NOINLINE renderProgress #-}
-renderProgress :: TVar Int
-renderProgress = unsafePerformIO $ newTVarIO 0
+renderProgress :: TVar Progress
+renderProgress = unsafePerformIO $ newTVarIO def
 
 -- TODO: hardcoded cache size. Hmm...
 {-# NOINLINE searchCache #-}
@@ -1131,8 +1131,8 @@ scanFilesystem config rc logfn = do
   let wrrender = WorkResults { wrStart = end
                              , wrEnd = endr
                              , wrGoal = totalrender
-                             , wrDone = rendered
-                             , wrErrors = 0
+                             , wrDone = pgDone rendered
+                             , wrErrors = pgErrors rendered
                              }
   let repo''' = repo'' { repoStatus = RepoFinished wrscan wrrender }
   writeRepoCache config repo'''
@@ -1146,11 +1146,12 @@ renderableImages = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalon
 
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
-  atomically $ writeTVar renderProgress 0
+  atomically $ writeTVar renderProgress def
   let images = renderableImages repo
       builder i = mapM_ (\size -> do
-                            _ <- imageAtRes config i . Just . ImageSize $ size
-                            atomically $ modifyTVar renderProgress (+1)
+                            res <- imageAtRes config i . Just . ImageSize $ size
+                            let modifier = either (const incErrors) (const incDone) res
+                            atomically $ modifyTVar renderProgress modifier
                         )
                     (cfgAutoImageSizes config)
   mapM_ builder images
@@ -1212,7 +1213,7 @@ getProgress :: IO Int
 getProgress = readTVarIO scanProgress
 
 -- | Returns the progress of the render thread.
-getRenderProgress :: IO Int
+getRenderProgress :: IO Progress
 getRenderProgress = readTVarIO renderProgress
 
 scanAll :: Config -> LogFn -> IO Repository

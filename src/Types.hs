@@ -34,6 +34,7 @@ module Types ( Config(..)
              , LazyText
              , LogFn
              , Progress(..)
+             , pgTotal
              , incErrors
              , incDone
              , incProgress
@@ -45,6 +46,7 @@ import           Control.Applicative
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
+import           Data.Default          (Default, def)
 import           Data.Function         (on)
 import           Data.List             (nub, sort)
 import           Data.Set              (Set)
@@ -244,6 +246,12 @@ data Progress = Progress
   { pgErrors :: !Int
   , pgDone   :: !Int
   }
+
+instance Default Progress where
+  def = Progress 0 0
+
+pgTotal :: Progress -> Int
+pgTotal p = pgErrors p + pgDone p
 
 incErrors :: Progress -> Progress
 incErrors p@Progress { pgErrors = old } =
