@@ -30,15 +30,33 @@ module Handler.Status
   ( getStatusR
   ) where
 
+import           Data.Time.Clock
+import           Data.Time.LocalTime
+import           Formatting                 (Buildable, groupInt, sformat)
+import qualified Formatting.ShortFormatters as F
+
 import           Handler.Utils
 import           Import
 import           Pics
+
+throughput :: Int -> NominalDiffTime -> Double
+throughput t delta = ((fromIntegral t)::Double) / realToFrac delta
+
+showThroughput :: Double -> Text
+showThroughput = sformat (F.f 2)
+
+diffZ :: ZonedTime -> ZonedTime -> NominalDiffTime
+diffZ a b = diffUTCTime (zonedTimeToUTC a) (zonedTimeToUTC b)
+
+swissNum :: (Integral n, Buildable n) => n -> Text
+swissNum = sformat (groupInt 3 '\'')
 
 getStatusR :: Handler Html
 getStatusR = do
   pics <- getPics
   let repoState = repoStatus pics
   scanProgress <- liftIO $ getProgress
+  now <- liftIO $ getZonedTime
   defaultLayout $ do
     setHtmlTitle "status"
     $(widgetFile "status")
