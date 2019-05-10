@@ -652,8 +652,22 @@ type SearchResults = Map (Text, ImageTimeKey) Image
 type SearchCache = LruCache UrlParams SearchResults
 
 {-# NOINLINE repoCache #-}
-repoCache :: MVar Repository
-repoCache = unsafePerformIO $ newMVar def
+repoCache :: TVar Repository
+repoCache = unsafePerformIO $ newTVarIO def
+
+updateRepo :: TVar Repository -> Repository -> IO Bool
+updateRepo rc new =
+  -- TODO: replace this with stateTVar when LTS 13.
+  atomically $ do
+  current <- readTVar rc
+  let update = repoSerial current <= repoSerial new
+  when update $ writeTVar rc $! new
+  return update
+
+tryUpdateRepo :: TVar Repository -> Repository -> IO ()
+tryUpdateRepo rc new = do
+  owning <- updateRepo rc new
+  when (not owning) $ throwString "Repository ownership changed, aborting"
 
 {-# NOINLINE scannerThread #-}
 scannerThread :: TVar (Maybe (Async ()))
@@ -1076,7 +1090,17 @@ resolveProcessedRanges config picd =
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
-launchScanFileSystem :: Config -> MVar Repository -> LogFn -> IO ()
+-- | Resets the repository to empty with an increase serial number.
+--
+-- The logic here needs to be kept in sync with updateRepo.
+newRepo :: TVar Repository -> STM Repository
+newRepo rc = do
+  old <- readTVar rc
+  let new = def { repoSerial = repoSerial old + 1 }
+  writeTVar rc $! new
+  return new
+
+launchScanFileSystem :: Config -> TVar Repository -> LogFn -> IO ()
 launchScanFileSystem config rc logfn =
   bracketOnError
     (async (scanFilesystem config rc logfn)) cancel $ \a -> do
@@ -1088,17 +1112,18 @@ launchScanFileSystem config rc logfn =
         cancel t
         logfn "Cancel done"
 
-scanFilesystem :: Config -> MVar Repository -> LogFn -> IO ()
+scanFilesystem :: Config -> TVar Repository -> LogFn -> IO ()
 scanFilesystem config rc logfn = do
   logfn "Launching scan filesystem"
-  _ <- swapMVar rc $ def { repoStatus = RepoStarting }
+  newrepo <- atomically $ newRepo rc
+  tryUpdateRepo rc (newrepo { repoStatus = RepoStarting })
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
   atomically $ writeTVar scanProgress 0
   start <- getZonedTime
   let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
-  _ <- swapMVar rc $ def { repoStatus = RepoScanning ws }
+  tryUpdateRepo rc (newrepo { repoStatus = RepoScanning ws })
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
@@ -1122,14 +1147,13 @@ scanFilesystem config rc logfn = do
       wsrender= WorkStart { wsStart = end
                           , wsGoal = totalrender
                           }
-      repo'' = Repository { repoDirs   = repo'
-                          , repoStats  = stats
-                          , repoExif   = rexif
-                          , repoStatus = RepoRendering wrscan wsrender
-                          , repoSerial = 0
-                          }
+      repo'' = newrepo { repoDirs   = repo'
+                       , repoStats  = stats
+                       , repoExif   = rexif
+                       , repoStatus = RepoRendering wrscan wsrender
+                       }
+  tryUpdateRepo rc repo''
   writeRepoCache config repo''
-  _ <- swapMVar rc $!! repo''
   logfn "Finished building repo, starting rendering"
   forceBuildThumbCaches config repo''
   endr <- getZonedTime
@@ -1141,8 +1165,8 @@ scanFilesystem config rc logfn = do
                              , wrErrors = pgErrors rendered
                              }
   let repo''' = repo'' { repoStatus = RepoFinished wrscan wrrender }
+  tryUpdateRepo rc repo'''
   writeRepoCache config repo'''
-  _ <- swapMVar rc $!! repo'''
   logfn "Finished rendering, all done"
   return ()
 
@@ -1195,7 +1219,10 @@ loadCacheOrScan config (repoStatus -> RepoEmpty) logfn = do
            return def
          Just cache -> do
            logfn "Cached data available, skipping scan"
-           _ <- swapMVar repoCache cache
+           -- Note: this shouldn't fail, since a repo empty should
+           -- only happen upon initial load. Oh hey, or immediatelly
+           -- right away after a forced rescan? To investigage.
+           tryUpdateRepo repoCache cache
            return cache
   -- this is tricky; we take another mvar inside an mvar, which could
   -- lead to deadlocks if ever one reads getPics inside the cache
@@ -1208,7 +1235,7 @@ loadCacheOrScan _ orig _ = return orig
 --
 -- Nowadays this always returns the repository, which might be empty.
 getRepo :: IO Repository
-getRepo = readMVar repoCache
+getRepo = readTVarIO repoCache
 
 -- | Returns the progress of the repository scanner.
 --
