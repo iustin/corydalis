@@ -35,6 +35,7 @@ import           Data.Time.Clock
 import           Data.Time.LocalTime
 import           Formatting                 (Buildable, groupInt, sformat)
 import qualified Formatting.ShortFormatters as F
+import qualified Formatting.Time            as FT
 
 import           Handler.Utils
 import           Import
@@ -53,16 +54,33 @@ diffZ a b = diffUTCTime (zonedTimeToUTC a) (zonedTimeToUTC b)
 swissNum :: (Integral n, Buildable n) => n -> Text
 swissNum = sformat (groupInt 3 '\'')
 
-workInProgress :: ZonedTime -> Text -> WorkStart -> Widget
-workInProgress now work WorkStart{..} =
+relTime :: RealFrac n => Bool -> n -> Text
+relTime b = sformat (FT.diff b)
+
+repoInProgress :: ZonedTime -> Text -> WorkStart -> Widget
+repoInProgress now work WorkStart{..} =
   toWidget [hamlet|
           <div .card-body .text-info>
             <p .card-text>
-               #{work} in progress for #{sformat (F.f 2) (diffZ now wsStart)} seconds.
+               #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
                |]
 
-workResults :: WorkResults -> Text -> Text -> Widget
-workResults WorkResults{..} work item =
+workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
+workInProgress now work counter WorkStart{..} =
+  toWidget [hamlet|
+            <p .card-text>
+               #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}.
+            <p .card-text>
+              $if pgErrors counter > 0
+                A total of #{pgErrors counter} errors have occured so far.
+              $else
+                No errors found (yet).
+            <p .card-text>
+               #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
+               |]
+
+workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
+workResults now WorkResults{..} work item =
   toWidget [hamlet|
           <div .card-body>
             <p .card-text>
@@ -71,9 +89,10 @@ workResults WorkResults{..} work item =
              <p .card-text>
                A total of #{wrErrors} errors have occured.
             <p .card-text>
-              #{work} started at #{show wrStart} and finished at #{show wrEnd}.
+              #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
+              and finished <abbr title="#{show wrEnd}">#{relTime True (diffZ wrEnd now)}</abbr>.
             <p .card-text>
-              #{work} duration: #{sformat (F.f 2) delta} seconds.
+              #{work} duration: #{relTime False delta}.
             <p .card-text>
               #{work} throughput: #{showThroughput $ throughput wrDone delta} #{item}/s.
               |]

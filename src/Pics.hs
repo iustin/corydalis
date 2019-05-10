@@ -1202,6 +1202,7 @@ renderableImages = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalon
 forceBuildThumbCaches :: Config -> Repository -> IO ()
 forceBuildThumbCaches config repo = do
   atomically $ writeTVar renderProgress def
+  -- throwString "boo"
   let images = renderableImages repo
       builder i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size

@@ -22,16 +22,16 @@
           <div .card-body .text-primary>
             Preparing to scan the repository.
         $of RepoScanning ws
-          ^{workInProgress now "Repository scanning" ws}
+          ^{repoInProgress now "Repository scanning" ws}
         $of RepoRendering _ ws
-          ^{workInProgress now "Rendering" ws}
+          ^{repoInProgress now "Rendering" ws}
         $of RepoFinished (WorkResults { wrStart = b }) (WorkResults { wrEnd = er })
           <div .card-body>
             <p .card-text>
               All work completed. Repository generation number is #{repoSerial repo}.
-              Repository age is #{sformat (F.f 2) (diffZ now b)} seconds.
+              Repository age is #{relTime False (diffZ now b)}.
             <p .card-text>
-              Total duration: #{sformat (F.f 2) (diffZ er b)} seconds.
+              Total duration: #{relTime False (diffZ er b)}.
         $of RepoError txt
           <div .card-body .text-danger>
             <h4 .alert-heading>Repository scanning failed
@@ -54,11 +54,11 @@
             <p .card-text>
               Scanning started at #{show s}.
             <p .card-text>
-              Scanning is running for #{sformat (F.f 2) (diffZ now s)} seconds.
+              Scanning is running for #{relTime False (diffZ now s)}.
         $of RepoRendering sr _
-          ^{workResults sr "Scanning" "files"}
+          ^{workResults now sr "Scanning" "files"}
         $of RepoFinished sr _
-          ^{workResults sr "Scanning" "files"}
+          ^{workResults now sr "Scanning" "files"}
         $of RepoError _
           ^{scanFailed}
 
@@ -74,16 +74,12 @@
           ^{renderIdle}
         $of RepoRendering _ ws
          <div .card-body>
-          Rendering progress: #{swissNum $ pgTotal renderCur}/#{swissNum (wsGoal ws)}. #
-          $if pgErrors renderCur > 0
-            A total of #{pgErrors renderCur} errors have occured so far.
-          $else
-            No errors found yet.
+          ^{workInProgress now "Rendering" renderCur ws}
           $maybe rp <- renderPercent
             <div .progress>
               <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">
                 #{rp}%
         $of RepoFinished _ rr
-          ^{workResults rr "Rendering" "images"}
+          ^{workResults now rr "Rendering" "images"}
         $of RepoError _
           ^{scanFailed}
