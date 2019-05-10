@@ -86,6 +86,13 @@ renderIdle =
             Rendering has not started yet.
             |]
 
+scanFailed :: Widget
+scanFailed =
+  toWidget [hamlet|
+          <div .card-body .text-danger>
+            Repository scanning failed.
+            |]
+
 getStatusR :: Handler Html
 getStatusR = do
   repo <- getPics

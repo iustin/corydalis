@@ -59,10 +59,8 @@
           ^{workResults sr "Scanning" "files"}
         $of RepoFinished sr _
           ^{workResults sr "Scanning" "files"}
-        $of RepoError txt
-          <div .card-body .text-danger>
-            <h4 .alert-heading>Repository scanning failed
-            Error message: #{txt}
+        $of RepoError _
+          ^{scanFailed}
 
   <div .col-12 .col-md-4>
     <div .card>
@@ -87,7 +85,5 @@
                 #{rp}%
         $of RepoFinished _ rr
           ^{workResults rr "Rendering" "images"}
-        $of RepoError txt
-          <div .card-body .text-danger>
-            <h4 .alert-heading>Repository scanning failed
-            Error message: #{txt}
+        $of RepoError _
+          ^{scanFailed}
