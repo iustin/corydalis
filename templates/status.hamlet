@@ -74,9 +74,9 @@
           ^{renderIdle}
         $of RepoScanning _
           ^{renderIdle}
-        $of RepoRendering _ (WorkStart{..})
+        $of RepoRendering _ ws
          <div .card-body>
-          Rendering progress: #{swissNum renderCur}/#{swissNum wsGoal}.
+          Rendering progress: #{swissNum renderCur}/#{swissNum (wsGoal ws)}.
           $maybe rp <- renderPercent
             <div .progress>
               <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">
