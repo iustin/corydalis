@@ -36,6 +36,7 @@ module Types ( Config(..)
              , Progress(..)
              , pgTotal
              , incErrors
+             , incNoop
              , incDone
              , incProgress
              , WorkStart(..)
@@ -243,28 +244,34 @@ type LogFn = LogStr -> IO ()
 
 -- | Progress of a work item.
 data Progress = Progress
-  { pgErrors :: !Int
-  , pgDone   :: !Int
+  { pgErrors :: !Int  -- ^ Work that was attempted but failed.
+  , pgNoop   :: !Int  -- ^ Work that was skipped.
+  , pgDone   :: !Int  -- ^ Work that was attempted and succeeded.
   }
 
 instance Default Progress where
-  def = Progress 0 0
+  def = Progress 0 0 0
 
 pgTotal :: Progress -> Int
-pgTotal p = pgErrors p + pgDone p
+pgTotal p = pgErrors p + pgNoop p + pgDone p
 
 incErrors :: Progress -> Progress
 incErrors p@Progress { pgErrors = old } =
   p { pgErrors = old + 1 }
 
+incNoop :: Progress -> Progress
+incNoop p@Progress { pgNoop = old } =
+  p { pgNoop = old + 1 }
+
 incDone :: Progress -> Progress
 incDone p@Progress { pgDone = old } =
   p { pgDone = old + 1 }
 
-incProgress :: Int -> Int -> Progress -> Progress
-incProgress e d Progress{..} =
-  Progress { pgErrors = pgErrors + e,
-             pgDone = pgDone + d
+incProgress :: Int -> Int -> Int -> Progress -> Progress
+incProgress e n d Progress{..} =
+  Progress { pgErrors = pgErrors + e
+           , pgNoop = pgNoop + n
+           , pgDone = pgDone + d
            }
 
 data WorkStart = WorkStart

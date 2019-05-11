@@ -1065,7 +1065,7 @@ loadFolder config name path isSource = do
                         ) Nothing images
       exif = buildGroupExif images
       timesort = buildTimeSort images
-  atomically $ modifyTVar' scanProgress (incProgress 0 (length contents))
+  atomically $ modifyTVar' scanProgress (incProgress 0 0 (length contents))
   return $!! PicDir tname dirpath [] images timesort shadows year exif
 
 mergeShadows :: Config -> PicDir -> PicDir
