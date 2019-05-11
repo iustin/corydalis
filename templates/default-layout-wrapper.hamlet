@@ -48,7 +48,7 @@ $doctype 5
                   <span .d-none .d-lg-inline>
                     Reload
             <a .nav-item .nav-link href=@{StatusR}>
-                <span .fas .fa-percentage>
+                <span class="#{repoStatusIcon repoState}"`>
                 <span .d-none .d-lg-inline>
                   Status
             <a .nav-item .nav-link href=@{CurateR}>
