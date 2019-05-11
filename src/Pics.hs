@@ -1178,7 +1178,7 @@ scanFilesystem config rc newrepo logfn = do
                        , repoStatus = RepoRendering wrscan wsrender
                        }
   tryUpdateRepo rc repo''
-  writeRepoCache config repo''
+  writeDiskCache config repo''
   logfn "Finished building repo, starting rendering"
   forceBuildThumbCaches config repo''
   endr <- getZonedTime
@@ -1191,7 +1191,7 @@ scanFilesystem config rc newrepo logfn = do
                              }
   let repo''' = repo'' { repoStatus = RepoFinished wrscan wrrender }
   tryUpdateRepo rc repo'''
-  writeRepoCache config repo'''
+  writeDiskCache config repo'''
   logfn "Finished rendering, all done"
   return ()
 
@@ -1212,19 +1212,19 @@ forceBuildThumbCaches config repo = do
                     (cfgAutoImageSizes config)
   mapM_ builder images
 
-repoCacheFile :: String
-repoCacheFile = "repo"
+repoDiskFile :: String
+repoDiskFile = "repo"
 
-repoCachePath :: Config -> FilePath -> FilePath
-repoCachePath config path = cachedBasename config path ("cache" ++ devSuffix)
+repoDiskPath :: Config -> FilePath -> FilePath
+repoDiskPath config path = cachedBasename config path ("cache" ++ devSuffix)
 
-writeRepoCache :: Config -> Repository -> IO ()
-writeRepoCache config repo =
-  writeCacheFile config repoCacheFile repoCachePath (Data.Store.encode (config, repo))
+writeDiskCache :: Config -> Repository -> IO ()
+writeDiskCache config repo =
+  writeCacheFile config repoDiskFile repoDiskPath (Data.Store.encode (config, repo))
 
-readRepoCache :: Config -> IO (Maybe Repository)
-readRepoCache config = do
-  contents <- readCacheFile config repoCacheFile repoCachePath False []
+readDiskCache :: Config -> IO (Maybe Repository)
+readDiskCache config = do
+  contents <- readCacheFile config repoDiskFile repoDiskPath False []
   let decoded = contents >>= either (const Nothing) Just . Data.Store.decode
   return $ case decoded of
     Nothing -> Nothing
@@ -1237,7 +1237,7 @@ loadCacheOrScan :: Config
                 -> LogFn
                 -> IO Repository
 loadCacheOrScan config old@(repoStatus -> RepoEmpty) logfn = do
-  cachedRepo <- readRepoCache config
+  cachedRepo <- readDiskCache config
   r <- case cachedRepo of
          Nothing    -> do
            logfn "No cache data or data incompatible, scanning filesystem"
