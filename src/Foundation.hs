@@ -181,8 +181,8 @@ instance Yesod App where
 
         -- We break up the default layout into two components:
         -- default-layout is the contents of the body tag, and
-        -- default-layout-wrapper is the entire page. Since the final
-        -- value passed to hamletToRepHtml cannot be a widget, this allows
+        -- layout-wrapper is the entire page. Since the final value
+        -- passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
 
         pc <- widgetToPageContent $ do
@@ -211,7 +211,7 @@ instance Yesod App where
 
           $(widgetFile "default-layout")
         let inflist = [1..]::[Int]
-        withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
+        withUrlRenderer $(hamletFile "templates/layout-wrapper.hamlet")
 
     -- The page to be redirected to when authentication is required.
     authRoute _ = Just $ AuthR LoginR
