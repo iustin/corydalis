@@ -57,13 +57,57 @@ swissNum = sformat (groupInt 3 '\'')
 relTime :: RealFrac n => Bool -> n -> Text
 relTime b = sformat (FT.diff b)
 
+scanning :: Text
+scanning = "Scanning"
+
+rendering :: Text
+rendering = "Rendering"
+
+repoStatusToCardStyle :: RepoStatus -> Text
+repoStatusToCardStyle RepoEmpty        = "border-warning"
+repoStatusToCardStyle RepoStarting     = "border-primary"
+repoStatusToCardStyle RepoScanning {}  = "border-primary"
+repoStatusToCardStyle RepoRendering {} = "border-primary"
+repoStatusToCardStyle RepoFinished {}  = ""
+repoStatusToCardStyle RepoError {}     = "border-danger text-danger"
+
+repoStatusToScanStyle :: RepoStatus -> Text
+repoStatusToScanStyle RepoEmpty        = "border-warning"
+repoStatusToScanStyle RepoStarting     = "border-warning"
+repoStatusToScanStyle RepoScanning {}  = "border-info"
+repoStatusToScanStyle RepoRendering {} = "border-success"
+repoStatusToScanStyle RepoFinished {}  = "border-succces"
+repoStatusToScanStyle RepoError {}     = "border-danger text-danger"
+
+repoStatusToRenderStyle :: RepoStatus -> Text
+repoStatusToRenderStyle RepoEmpty        = "border-warning"
+repoStatusToRenderStyle RepoStarting     = "border-warning"
+repoStatusToRenderStyle RepoScanning {}  = "border-warning"
+repoStatusToRenderStyle RepoRendering {} = "border-info"
+repoStatusToRenderStyle RepoFinished {}  = "border-succces"
+repoStatusToRenderStyle RepoError {}     = "border-danger text-danger"
+
 repoInProgress :: ZonedTime -> Text -> WorkStart -> Widget
 repoInProgress now work WorkStart{..} =
   toWidget [hamlet|
-          <div .card-body .text-info>
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
                |]
+
+repoContents :: Repository -> Widget
+repoContents repo =
+  toWidget [hamlet|
+    <p .card-text>
+      Repository currently contains #
+      $if totalImages > 0
+        #{swissNum totalImages} images
+      $else
+        no images
+      .
+    <p .card-text>
+      Repository generation number is #{repoSerial repo}.
+      |]
+  where totalImages = totalStatsCount . rsPicStats . repoStats $ repo
 
 workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
 workInProgress now work counter WorkStart{..} =
@@ -102,11 +146,11 @@ workResults now WorkResults{..} work item =
               |]
   where delta = diffZ wrEnd wrStart
 
-renderIdle :: Widget
-renderIdle =
+workIdle :: Text -> Widget
+workIdle work =
   toWidget [hamlet|
           <div .card-body .text-warning>
-            Rendering has not started yet.
+            #{work} has not started yet.
             |]
 
 scanFailed :: Widget

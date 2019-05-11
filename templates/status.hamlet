@@ -12,69 +12,67 @@
 
 <div .row>
   <div .col-12 .col-md-4>
-    <div .card>
+    <div .card class="#{repoStatusToCardStyle repoState}">
       <div .card-header>Repository status
-      $case repoState
-        $of RepoEmpty
-          <div .card-body .text-warning>
-            Repository is being (re)initialized
-        $of RepoStarting
-          <div .card-body .text-primary>
-            Preparing to scan the repository.
-        $of RepoScanning ws
-          ^{repoInProgress now "Repository scanning" ws}
-        $of RepoRendering _ ws
-          ^{repoInProgress now "Rendering" ws}
-        $of RepoFinished (WorkResults { wrStart = b }) (WorkResults { wrEnd = er })
-          <div .card-body>
+      <div .card-body>
+        $case repoState
+          $of RepoEmpty
             <p .card-text>
-              All work completed. Repository generation number is #{repoSerial repo}.
+              Repository is being (re)initialized.
+          $of RepoStarting
+            <p .card-text>
+              Preparing to scan the repository.
+          $of RepoScanning ws
+            ^{repoInProgress now scanning ws}
+          $of RepoRendering _ ws
+            ^{repoInProgress now rendering ws}
+          $of RepoFinished (WorkResults { wrStart = b }) (WorkResults { wrEnd = er })
+            <p .card-text>
+              All work completed.
               Repository age is <abbr title="Scanned at #{show b}">#{relTime False (diffZ now b)}</abbr>.
             <p .card-text>
               Total duration: #{relTime False (diffZ er b)}.
-        $of RepoError txt
-          <div .card-body .text-danger>
+          $of RepoError txt
             <h4 .alert-heading>Repository scanning failed
             Error message: #{txt}
+        ^{repoContents repo}
 
   <div .col-12 .col-md-4>
-    <div .card>
+    <div .card class="#{repoStatusToScanStyle repoState}">
       <div .card-header>Scan status
       $case repoState
         $of RepoEmpty
-          <div .card-body .text-warning>
-            Scanning has not started yet.
+          ^{workIdle scanning}
         $of RepoStarting
-          <div .card-body .text-primary>
-            Preparing to scan the repository.
+          ^{workIdle scanning}
         $of RepoScanning ws
           <div .card-body>
-            ^{workInProgress now "Scanning" scanProgress ws}
+            ^{workInProgress now scanning scanProgress ws}
         $of RepoRendering sr _
-          ^{workResults now sr "Scanning" "files"}
+          ^{workResults now sr scanning "files"}
         $of RepoFinished sr _
-          ^{workResults now sr "Scanning" "files"}
+          ^{workResults now sr scanning "files"}
         $of RepoError _
           ^{scanFailed}
 
   <div .col-12 .col-md-4>
-    <div .card>
+    <div .card class="#{repoStatusToRenderStyle repoState}">
       <div .card-header>Rendering status
       $case repoState
         $of RepoEmpty
-          ^{renderIdle}
+          ^{workIdle rendering}
         $of RepoStarting
-          ^{renderIdle}
+          ^{workIdle rendering}
         $of RepoScanning _
-          ^{renderIdle}
+          ^{workIdle rendering}
         $of RepoRendering _ ws
          <div .card-body>
-          ^{workInProgress now "Rendering" renderCur ws}
+          ^{workInProgress now rendering renderCur ws}
           $maybe rp <- renderPercent
             <div .progress>
               <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">
                 #{rp}%
         $of RepoFinished _ rr
-          ^{workResults now rr "Rendering" "images"}
+          ^{workResults now rr rendering "images"}
         $of RepoError _
           ^{scanFailed}
