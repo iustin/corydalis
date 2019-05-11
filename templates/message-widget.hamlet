@@ -1,6 +1,6 @@
 <div .container>
   <div .row>
-    <div .col-md-2>
-    <div .col-md-8>
+    <div .col-md-1>
+    <div .col-md-10>
       <h1>#{title}
       ^{body}
