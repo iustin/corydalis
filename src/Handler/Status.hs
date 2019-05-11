@@ -83,6 +83,7 @@ workInProgress now work counter WorkStart{..} =
         elapsed = realToFrac $ diffZ now wsStart
         totaltime = elapsed * multiplier
         remaining = totaltime - elapsed
+        -- TODO: add actual ETA once upgrading to newer time library [easy] [dependency].
 
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
 workResults now WorkResults{..} work item =
