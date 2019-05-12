@@ -1206,7 +1206,10 @@ forceBuildThumbCaches config repo = do
   let images = renderableImages repo
       builder i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size
-                            let modifier = either (const incErrors) (const incDone) res
+                            let modifier = case res of
+                                  Left _              -> incErrors
+                                  Right (False, _, _) -> incNoop
+                                  Right (True, _, _)  -> incDone
                             atomically $ modifyTVar renderProgress modifier
                         )
                     (cfgAutoImageSizes config)
