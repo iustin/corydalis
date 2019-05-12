@@ -134,17 +134,19 @@ workResults now WorkResults{..} work item =
   toWidget [hamlet|
           <div .card-body>
             <p .card-text>
-              #{work} finished, #{swissNum wrDone} #{item} processed.
-            $if wrErrors > 0
+              #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed.
+            $if errors > 0
              <p .card-text>
-               A total of #{wrErrors} errors have occured.
+               A total of #{errors} errors have occured.
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
             <p .card-text>
-              #{work} throughput: #{showThroughput $ throughput wrDone delta} #{item}/s.
+              #{work} throughput: #{showThroughput $ throughput totalWork delta} #{item}/s.
               |]
   where delta = diffZ wrEnd wrStart
+        totalWork = pgDone wrDone + pgErrors wrDone
+        errors= pgErrors wrDone
 
 workIdle :: Text -> Widget
 workIdle work =

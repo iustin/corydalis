@@ -248,9 +248,15 @@ data Progress = Progress
   , pgNoop   :: !Int  -- ^ Work that was skipped.
   , pgDone   :: !Int  -- ^ Work that was attempted and succeeded.
   }
+  deriving (Show)
 
 instance Default Progress where
   def = Progress 0 0 0
+
+instance NFData Progress where
+  rnf (Progress a b c) = rnf a `seq` rnf b `seq` rnf c
+
+$(makeStore ''Progress)
 
 pgTotal :: Progress -> Int
 pgTotal p = pgErrors p + pgNoop p + pgDone p
@@ -284,17 +290,16 @@ instance NFData WorkStart where
   rnf (WorkStart s g) = rnf s `seq` rnf g
 
 data WorkResults = WorkResults
-  { wrStart  :: !ZonedTime
-  , wrEnd    :: !ZonedTime
-  , wrGoal   :: !Int
-  , wrDone   :: !Int
-  , wrErrors :: !Int
+  { wrStart :: !ZonedTime
+  , wrEnd   :: !ZonedTime
+  , wrGoal  :: !Int
+  , wrDone  :: !Progress
   }
   deriving (Show)
 
 instance NFData WorkResults where
-  rnf (WorkResults a b c d e) =
-    rnf a `seq` rnf b `seq` rnf c `seq` rnf d `seq` rnf e
+  rnf (WorkResults a b c d) =
+    rnf a `seq` rnf b `seq` rnf c `seq` rnf d
 
 $(makeStore ''WorkStart)
 $(makeStore ''WorkResults)

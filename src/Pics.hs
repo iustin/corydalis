@@ -1166,8 +1166,7 @@ scanFilesystem config rc newrepo logfn = do
       wrscan = WorkResults { wrStart = start
                            , wrEnd = end
                            , wrGoal = wsGoal ws
-                           , wrDone = pgDone scanned
-                           , wrErrors = pgErrors scanned
+                           , wrDone = scanned
                            }
       wsrender= WorkStart { wsStart = end
                           , wsGoal = totalrender
@@ -1186,8 +1185,7 @@ scanFilesystem config rc newrepo logfn = do
   let wrrender = WorkResults { wrStart = end
                              , wrEnd = endr
                              , wrGoal = totalrender
-                             , wrDone = pgDone rendered
-                             , wrErrors = pgErrors rendered
+                             , wrDone = rendered
                              }
   let repo''' = repo'' { repoStatus = RepoFinished wrscan wrrender }
   tryUpdateRepo rc repo'''
