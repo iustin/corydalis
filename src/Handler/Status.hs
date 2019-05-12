@@ -118,6 +118,15 @@ progressDetails counter =
                   <li>#{swissNum $ pgErrors counter} items had issues during processing.
                   |]
 
+progressThroughput :: Progress -> NominalDiffTime -> Widget
+progressThroughput counter delta =
+  toWidget [hamlet|
+            <p .card-text>
+              Throughput: #{showThroughput $ throughput (pgTotal counter) delta} files/s overall,
+              #{showThroughput $ throughput totalWork delta} files/s for actual work.
+              |]
+  where totalWork = pgDone counter + pgErrors counter
+
 workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
 workInProgress now work counter WorkStart{..} =
   [whamlet|
@@ -125,13 +134,15 @@ workInProgress now work counter WorkStart{..} =
                #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}:
                  ^{progressDetails counter}
             <p .card-text>
-               #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
+               #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
                ETA: #{relTime True remaining}.
+            ^{progressThroughput counter delta}
                |]
   where multiplier = (fromIntegral wsGoal::Double) / fromIntegral (pgTotal counter)
         elapsed = realToFrac $ diffZ now wsStart
         totaltime = elapsed * multiplier
         remaining = totaltime - elapsed
+        delta = diffZ now wsStart
         -- TODO: add actual ETA once upgrading to newer time library [easy] [dependency].
 
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
@@ -144,11 +155,9 @@ workResults now WorkResults{..} work item =
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
-            <p .card-text>
-              #{work} throughput: #{showThroughput $ throughput totalWork delta} #{item}/s.
+            ^{progressThroughput wrDone delta}
               |]
   where delta = diffZ wrEnd wrStart
-        totalWork = pgDone wrDone + pgErrors wrDone
 
 workIdle :: Text -> Widget
 workIdle work =
