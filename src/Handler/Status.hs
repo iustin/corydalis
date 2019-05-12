@@ -196,22 +196,28 @@ percentsDone p@Progress{..} total =
       pR = 100 - pE - pN - pD
   in (pE, pN, pD, pR)
 
+pgBar :: Int -> Text -> Text-> Widget
+pgBar perc classes title =
+  toWidget [hamlet|
+      <div class="progress-bar #{classes}"
+           role=progressbar
+           aria-valuenow="#{perc}" aria-valuemin="0" aria-valuemax="100"
+           style="width: #{perc}%" title="#{title}">
+        #{perc}%
+        |]
+
 percentsBar :: Progress -> Maybe Int -> Widget
 percentsBar _ Nothing =
   toWidget [hamlet| <!-- cannot show a progress bar (yet). --> |]
 
 percentsBar counter (Just goal) =
-  toWidget [hamlet|
+  [whamlet|
     <div .progress>
-      <div .progress-bar .progress-bar .bg-success role=progressbar aria-valuenow="#{pN}" aria-valuemin="0" aria-valuemax="100" style="width: #{pN}%">
-                #{pN}%
-      <div .progress-bar .progress-bar .bg-danger role=progressbar aria-valuenow="#{pE}" aria-valuemin="0" aria-valuemax="100" style="width: #{pE}%">
-                #{pE}%
-      <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{pD}" aria-valuemin="0" aria-valuemax="100" style="width: #{pD}%">
-                #{pD}%
-      <div .progress-bar .progress-bar .bg-light .text-secondary role=progressbar aria-valuenow="#{pR}" aria-valuemin="0" aria-valuemax="100" style="width: #{pR}%">
-                #{pR}%
-                |]
+      ^{pgBar pN "bg-success" "Already up-to-date"}
+      ^{pgBar pE "bg-danger" "Processed with errors"}
+      ^{pgBar pD "bg-info progress-bar-striped" "Processed successfully"}
+      ^{pgBar pR "bg-light text-secondary" "Left to do"}
+      |]
   where (pE, pN, pD, pR) = percentsDone counter goal
 
 getStatusR :: Handler Html
