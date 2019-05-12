@@ -132,7 +132,7 @@ workInProgress now work counter WorkStart{..} =
   [whamlet|
             <p .card-text>
                #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}:
-                 ^{progressDetails counter}
+            ^{progressDetails counter}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
                ETA: #{relTime True remaining}.
