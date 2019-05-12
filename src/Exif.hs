@@ -771,7 +771,7 @@ readExif config path = do
   return $ contents >>= Just . first Text.pack . eitherDecodeStrict'
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: Config -> FilePath -> [FilePath] -> IO (Map Text EExif)
+getExif :: Config -> FilePath -> [FilePath] -> IO (Int, Map Text EExif)
 getExif config dir paths = do
   (cache1, m1) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
@@ -814,10 +814,12 @@ getExif config dir paths = do
                                                  freValue = Nothing
                                              in Left FailRExif{..}) m2
                           Right rs -> rs
-  foldM (\m r -> do
-            (path, e) <- writeExifs config dir r
-            return $ Map.insert (Text.pack path) e m
-        ) cache2 jsons
+  let expensive = length m2
+  cache3 <- foldM (\m r -> do
+                      (path, e) <- writeExifs config dir r
+                      return $ Map.insert (Text.pack path) e m
+                  ) cache2 jsons
+  return (expensive, cache3)
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =

@@ -985,7 +985,7 @@ loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
 loadFolder config name path isSource = do
   -- throwString "boo"
   contents <- recursiveScanPath config path id
-  lcache <- getExif config path $ map inodeName contents
+  (readexifs, lcache) <- getExif config path $ map inodeName contents
   let rawe = cfgRawExtsSet config
       side = cfgSidecarExts config
       jpeg = cfgJpegExts config
@@ -1065,7 +1065,9 @@ loadFolder config name path isSource = do
                         ) Nothing images
       exif = buildGroupExif images
       timesort = buildTimeSort images
-  atomically $ modifyTVar' scanProgress (incProgress 0 0 (length contents))
+      totalitems = length contents
+      noopexifs = max (totalitems - readexifs) 0
+  atomically $ modifyTVar' scanProgress (incProgress 0 noopexifs readexifs)
   return $!! PicDir tname dirpath [] images timesort shadows year exif
 
 mergeShadows :: Config -> PicDir -> PicDir
