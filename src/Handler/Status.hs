@@ -109,16 +109,21 @@ repoContents repo =
       |]
   where totalImages = totalStatsCount . rsPicStats . repoStats $ repo
 
+progressDetails :: Progress -> Widget
+progressDetails counter =
+  toWidget [hamlet|
+                <ul>
+                  <li>#{swissNum $ pgNoop counter} items were already up-to-date.
+                  <li>#{swissNum $ pgDone counter} items needed processing.
+                  <li>#{swissNum $ pgErrors counter} items had issues during processing.
+                  |]
+
 workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
 workInProgress now work counter WorkStart{..} =
-  toWidget [hamlet|
+  [whamlet|
             <p .card-text>
-               #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}.
-            <p .card-text>
-              $if pgErrors counter > 0
-                A total of #{pgErrors counter} errors have occured so far.
-              $else
-                No errors found (yet).
+               #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}:
+                 ^{progressDetails counter}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
                ETA: #{relTime True remaining}.
@@ -131,13 +136,11 @@ workInProgress now work counter WorkStart{..} =
 
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
 workResults now WorkResults{..} work item =
-  toWidget [hamlet|
+  [whamlet|
           <div .card-body>
             <p .card-text>
-              #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed.
-            $if errors > 0
-             <p .card-text>
-               A total of #{errors} errors have occured.
+              #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed:
+                 ^{progressDetails wrDone}
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
@@ -146,7 +149,6 @@ workResults now WorkResults{..} work item =
               |]
   where delta = diffZ wrEnd wrStart
         totalWork = pgDone wrDone + pgErrors wrDone
-        errors= pgErrors wrDone
 
 workIdle :: Text -> Widget
 workIdle work =
