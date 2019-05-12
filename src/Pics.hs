@@ -1385,6 +1385,10 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
           fpath = scaledImagePath config origPath res'
           isThumb = res' <= cfgThumbnailSize config
           format = if isThumb then "png" else "jpg"
+      -- Note: this calls getFileStatus not getSymbolicLinkStatus
+      -- since this is a file, not a directory, so symlinks to
+      -- somewhere else are OK-ish; we do not recurse into the target
+      -- directory.
       stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
       let needsGen = case stat of
                        Left _   -> True

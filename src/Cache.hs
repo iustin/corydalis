@@ -78,6 +78,8 @@ newestTime stat =
 
 lastTouch :: FilePath -> IO POSIXTime
 lastTouch path =
+  -- Note: this uses getFileStatus as we don't recurse into the
+  -- destination, so if it is a link, that's OK-ish.
   (newestTime `fmap` getFileStatus path) `catchIOError` (\e -> if isDoesNotExistError e ||
                                                                   isPermissionError e
                                                                then return 0
