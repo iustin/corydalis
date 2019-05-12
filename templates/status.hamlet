@@ -48,10 +48,15 @@
         $of RepoScanning ws
           <div .card-body>
             ^{workInProgress now scanning scanProgress ws}
+            ^{percentsBar scanProgress scanGoal}
         $of RepoRendering sr _
-          ^{workResults now sr scanning "files"}
+          <div .card-body>
+            ^{workResults now sr scanning "files"}
+            ^{percentsBar scanProgress scanGoal}
         $of RepoFinished sr _
-          ^{workResults now sr scanning "files"}
+          <div .card-body>
+            ^{workResults now sr scanning "files"}
+            ^{percentsBar scanProgress scanGoal}
         $of RepoError _
           ^{scanFailed}
 
@@ -66,13 +71,12 @@
         $of RepoScanning _
           ^{workIdle rendering}
         $of RepoRendering _ ws
-         <div .card-body>
-          ^{workInProgress now rendering renderCur ws}
-          $maybe rp <- renderPercent
-            <div .progress>
-              <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{rp}" aria-valuemin="0" aria-valuemax="100" style="width: #{rp}%">
-                #{rp}%
+          <div .card-body>
+            ^{workInProgress now rendering renderProgress ws}
+            ^{percentsBar renderProgress renderGoal}
         $of RepoFinished _ rr
-          ^{workResults now rr rendering "images"}
+          <div .card-body>
+            ^{workResults now rr rendering "images"}
+            ^{percentsBar renderProgress renderGoal}
         $of RepoError _
           ^{scanFailed}

@@ -159,7 +159,6 @@ workInProgress now work counter WorkStart{..} =
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
 workResults now WorkResults{..} work item =
   [whamlet|
-          <div .card-body>
             <p .card-text>
               #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed:
                  ^{progressDetails wrDone}
@@ -184,22 +183,52 @@ scanFailed =
             Repository scanning failed.
             |]
 
+percentsDone :: Progress -> Int -> (Int, Int, Int, Int)
+percentsDone p@Progress{..} total =
+  -- Normalisation for total: if total < pgTotal p, then take the
+  -- latter as goal (some weird error in this case). If that's still 0
+  -- (in 0/0 case), make it 1 to not have to deal with ±∞.
+  let atotal = fromIntegral (maximumEx [total, pgTotal p, 1])::Double
+      f x = truncate $ fromIntegral x * 100 / atotal
+      pE = f pgErrors
+      pN = f pgNoop
+      pD = f pgDone
+      pR = 100 - pE - pN - pD
+  in (pE, pN, pD, pR)
+
+percentsBar :: Progress -> Maybe Int -> Widget
+percentsBar _ Nothing =
+  toWidget [hamlet| <!-- cannot show a progress bar (yet). --> |]
+
+percentsBar counter (Just goal) =
+  toWidget [hamlet|
+    <div .progress>
+      <div .progress-bar .progress-bar .bg-success role=progressbar aria-valuenow="#{pN}" aria-valuemin="0" aria-valuemax="100" style="width: #{pN}%">
+                #{pN}%
+      <div .progress-bar .progress-bar .bg-danger role=progressbar aria-valuenow="#{pE}" aria-valuemin="0" aria-valuemax="100" style="width: #{pE}%">
+                #{pE}%
+      <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{pD}" aria-valuemin="0" aria-valuemax="100" style="width: #{pD}%">
+                #{pD}%
+      <div .progress-bar .progress-bar .bg-light .text-secondary role=progressbar aria-valuenow="#{pR}" aria-valuemin="0" aria-valuemax="100" style="width: #{pR}%">
+                #{pR}%
+                |]
+  where (pE, pN, pD, pR) = percentsDone counter goal
+
 getStatusR :: Handler Html
 getStatusR = do
   repo <- getPics
   let repoState = repoStatus repo
   scanProgress <- liftIO getProgress
-  renderCur <- liftIO getRenderProgress
-  let renderTotal = case repoState of
+  renderProgress <- liftIO getRenderProgress
+  let renderGoal = case repoState of
         RepoRendering _ ws -> Just $ wsGoal ws
         RepoFinished _ wr  -> Just $ wrGoal wr
         _                  -> Nothing
-      renderDone = pgTotal renderCur
-      renderPercent = do
-        rt <- renderTotal
-        if rt > 0
-          then Just (truncate (fromIntegral renderDone * 100 / (fromIntegral rt::Double)))
-          else Nothing::Maybe Int
+      scanGoal = case repoState of
+        RepoScanning ws    -> Just $ wsGoal ws
+        RepoRendering wr _ -> Just $ wrGoal wr
+        RepoFinished wr _  -> Just $ wrGoal wr
+        _                  -> Nothing
       (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
         RepoEmpty         -> (0::Int, "empty"::Text, "bg-warning"::Text, False)
         RepoStarting      -> (5, "preparing scan", "bg-warning", False)
