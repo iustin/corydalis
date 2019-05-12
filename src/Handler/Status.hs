@@ -138,7 +138,18 @@ workInProgress now work counter WorkStart{..} =
                ETA: #{relTime True remaining}.
             ^{progressThroughput counter delta}
                |]
-  where multiplier = (fromIntegral wsGoal::Double) / fromIntegral (pgTotal counter)
+  where doneitems = pgTotal counter - pgNoop counter
+        -- Tricky: if we actually did work, estimate on (goal - noop)
+        -- / actual work. If not, then fall back to goal /
+        -- work. Otherwise, with the formaer we'd never get an ETA for
+        -- all-cached scenario, and with the latter, we'd get overly
+        -- optimistic estimations in the partially-cached case. Of
+        -- course, can still show get inf right at the start, but
+        -- that's acceptable.
+        multiplier = if doneitems > 0
+                     then fromIntegral (wsGoal - pgNoop counter) /
+                          fromIntegral doneitems::Double
+                     else fromIntegral wsGoal / fromIntegral (pgTotal counter)
         elapsed = realToFrac $ diffZ now wsStart
         totaltime = elapsed * multiplier
         remaining = totaltime - elapsed
