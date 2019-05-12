@@ -1372,11 +1372,11 @@ scaledImagePath config path res =
 -- TODO: stop presuming all images are jpeg.
 loadCachedOrBuild :: Config -> FilePath -> FilePath -> MimeType
                   -> POSIXTime -> ImageSize
-                  -> IO (MimeType, FilePath)
+                  -> IO (Bool, MimeType, FilePath)
 loadCachedOrBuild config origPath bytesPath mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
-    Nothing -> return (mime, bytesPath)
+    Nothing -> return (False, mime, bytesPath)
     Just res' -> do
       let geom = show res' ++ "x" ++ show res'
           fpath = scaledImagePath config origPath res'
@@ -1395,7 +1395,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
         createDirectoryIfMissing True parent
         (exitCode, out, err) <- readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])
         when (exitCode /= ExitSuccess) . throwIO . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
-      return (Text.pack $ "image/" ++ format, fpath)
+      return (needsGen, Text.pack $ "image/" ++ format, fpath)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]
@@ -1546,11 +1546,11 @@ getViewableVersion config img
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (MimeType, FilePath))
+imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Bool, MimeType, FilePath))
 imageAtRes config img size = try $ do
   (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of
-    Nothing -> return (mime, path)
+    Nothing -> return (False, mime, path)
     Just s  -> loadCachedOrBuild config (TextL.unpack $ filePath origFile) path mime mtime s
 
 imgProblems :: Image -> Set Text

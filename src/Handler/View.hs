@@ -171,7 +171,7 @@ getImageBytesR folder iname = do
       sendResponse imageNotViewable
     Left (ImageError err) ->
       sendResponse $ imageError err
-    Right (ctype, rpath) ->
+    Right (_, ctype, rpath) ->
       sendFile (Text.encodeUtf8 ctype) rpath
 
 getMovieBytesR :: Text -> Text -> Handler ()
