@@ -666,15 +666,14 @@ repoCache :: TVar Repository
 repoCache = unsafePerformIO $ newTVarIO startupRepository
 
 updateRepo :: TVar Repository -> Repository -> IO Bool
-updateRepo rc new = do
+updateRepo rc new = atomically $ do
   -- TODO: replace this with stateTVar when LTS 13.
-  atomically $ do
-    current <- readTVar rc
-    let update = repoSerial current <= repoSerial new
-    when update $ do
-      writeTVar rc $! new
-      flushSearchCache
-    return update
+  current <- readTVar rc
+  let update = repoSerial current <= repoSerial new
+  when update $ do
+    writeTVar rc $! new
+    flushSearchCache
+  return update
 
 tryUpdateRepo :: TVar Repository -> Repository -> IO ()
 tryUpdateRepo rc new = do
