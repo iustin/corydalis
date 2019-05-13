@@ -407,10 +407,10 @@ withLogFn action = do
 
 repoStatusIcon :: RepoStatus -> Text
 repoStatusIcon RepoEmpty        = "fas fa-question"
-repoStatusIcon RepoStarting     = "far fa-hourglass"
-repoStatusIcon RepoScanning {}  = "fas fa-hourglass-start"
-repoStatusIcon RepoRendering {} = "fas fa-hourglass-half"
-repoStatusIcon RepoFinished {}  = "fas fa-hourglass-end"
+repoStatusIcon RepoStarting     = "fas fa-hourglass-start"
+repoStatusIcon RepoScanning {}  = "fas fa-hourglass-half"
+repoStatusIcon RepoRendering {} = "fas fa-check"
+repoStatusIcon RepoFinished {}  = "fas fa-check-double"
 repoStatusIcon RepoError {}     = "fas fa-exclamation"
 
 instance YesodAuthPersist App
