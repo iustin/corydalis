@@ -1245,31 +1245,24 @@ loadCacheOrScan :: Config
                 -> IO Repository
 loadCacheOrScan config old@(repoStatus -> RepoEmpty) logfn = do
   cachedRepo <- readDiskCache config
-  r <- case cachedRepo of
-         Nothing    -> do
-           logfn "No cache data or data incompatible, scanning filesystem"
-           launchScanFileSystem config repoCache logfn
-           return $ rescanningRepository old
-         Just cache ->
-           case repoStatus cache of
-             RepoFinished _ _ -> do
-               logfn "Cached data available, skipping scan"
-               -- Note: this shouldn't fail, since an empty repo
-               -- happens only upon initial load, and (initial) empty
-               -- repos have a serial number of zero while any valid
-               -- cache will have a positive serial.
-               tryUpdateRepo repoCache cache
-               return cache
-             x -> do
-               logfn . toLogStr $ "Unfinished cache found, state: " ++ show x
-               logfn "Restarting scan"
-               launchScanFileSystem config repoCache logfn
-               return $ rescanningRepository old
-  -- this is tricky; we take another mvar inside an mvar, which could
-  -- lead to deadlocks if ever one reads getPics inside the cache
-  -- update.
-  flushSearchCache
-  return r
+  case cachedRepo of
+     Nothing    -> do
+       logfn "No cache data or data incompatible, scanning filesystem"
+       launchScanFileSystem config repoCache logfn
+       return $ rescanningRepository old
+     Just cache@(repoStatus -> RepoFinished {}) -> do
+       logfn "Cached data available, skipping scan"
+       -- Note: this shouldn't fail, since an empty repo happens only
+       -- upon initial load, and (initial) empty repos have a serial
+       -- number of zero while any valid cache will have a positive
+       -- serial.
+       tryUpdateRepo repoCache cache
+       return cache
+     Just unfinished -> do
+       logfn . toLogStr $ "Unfinished cache found, state: " ++ show unfinished
+       logfn "Restarting scan"
+       launchScanFileSystem config repoCache logfn
+       return $ rescanningRepository old
 loadCacheOrScan _ orig _ = return orig
 
 -- | Returns the current repository.
