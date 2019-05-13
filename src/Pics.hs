@@ -694,9 +694,12 @@ renderProgress :: TVar Progress
 renderProgress = unsafePerformIO $ newTVarIO def
 
 -- TODO: hardcoded cache size. Hmm...
+emptySearchCache :: SearchCache
+emptySearchCache = LRU.empty 10
+
 {-# NOINLINE searchCache #-}
-searchCache :: MVar SearchCache
-searchCache = unsafePerformIO $ newMVar (LRU.empty 10)
+searchCache :: TVar SearchCache
+searchCache = unsafePerformIO $ newTVarIO emptySearchCache
 
 getSearchResults :: SearchResults -> UrlParams -> IO SearchResults
 getSearchResults lazy key = modifyMVar searchCache $ \cache ->
@@ -707,7 +710,7 @@ getSearchResults lazy key = modifyMVar searchCache $ \cache ->
 
 flushSearchCache :: IO ()
 flushSearchCache = modifyMVar_ searchCache $ \_ ->
-  return $ LRU.empty 10
+  return emptySearchCache
 
 -- | Selects the best master file between two masters.
 --
