@@ -130,6 +130,7 @@ progressThroughput counter delta =
 workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
 workInProgress now work counter WorkStart{..} =
   [whamlet|
+          <div .card-body>
             <p .card-text>
                #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}:
             ^{progressDetails counter}
@@ -137,6 +138,7 @@ workInProgress now work counter WorkStart{..} =
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
                ETA: #{relTime True remaining}.
             ^{progressThroughput counter delta}
+            ^{percentsBar counter wsGoal}
                |]
   where doneitems = pgTotal counter - pgNoop counter
         -- Tricky: if we actually did work, estimate on (goal - noop)
@@ -159,6 +161,7 @@ workInProgress now work counter WorkStart{..} =
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
 workResults now WorkResults{..} work item =
   [whamlet|
+          <div .card-body>
             <p .card-text>
               #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed:
                  ^{progressDetails wrDone}
@@ -166,6 +169,7 @@ workResults now WorkResults{..} work item =
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
             ^{progressThroughput wrDone delta}
+            ^{percentsBar wrDone wrGoal}
               |]
   where delta = diffZ wrEnd wrStart
 
