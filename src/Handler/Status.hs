@@ -206,11 +206,8 @@ pgBar perc classes title =
         #{perc}%
         |]
 
-percentsBar :: Progress -> Maybe Int -> Widget
-percentsBar _ Nothing =
-  toWidget [hamlet| <!-- cannot show a progress bar (yet). --> |]
-
-percentsBar counter (Just goal) =
+percentsBar :: Progress -> Int -> Widget
+percentsBar counter goal =
   [whamlet|
     <div .progress>
       ^{pgBar pN "bg-success" "Already up-to-date"}
@@ -226,16 +223,7 @@ getStatusR = do
   let repoState = repoStatus repo
   scanProgress <- liftIO getProgress
   renderProgress <- liftIO getRenderProgress
-  let renderGoal = case repoState of
-        RepoRendering _ ws -> Just $ wsGoal ws
-        RepoFinished _ wr  -> Just $ wrGoal wr
-        _                  -> Nothing
-      scanGoal = case repoState of
-        RepoScanning ws    -> Just $ wsGoal ws
-        RepoRendering wr _ -> Just $ wrGoal wr
-        RepoFinished wr _  -> Just $ wrGoal wr
-        _                  -> Nothing
-      (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
+  let (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
         RepoEmpty         -> (0::Int, "empty"::Text, "bg-warning"::Text, False)
         RepoStarting      -> (5, "preparing scan", "bg-warning", False)
         RepoScanning _    -> (10, "scanning filesystem", "bg-info", True)

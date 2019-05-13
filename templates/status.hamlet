@@ -48,15 +48,15 @@
         $of RepoScanning ws
           <div .card-body>
             ^{workInProgress now scanning scanProgress ws}
-            ^{percentsBar scanProgress scanGoal}
+            ^{percentsBar scanProgress (wsGoal ws)}
         $of RepoRendering sr _
           <div .card-body>
             ^{workResults now sr scanning "files"}
-            ^{percentsBar scanProgress scanGoal}
+            ^{percentsBar scanProgress (wrGoal sr)}
         $of RepoFinished sr _
           <div .card-body>
             ^{workResults now sr scanning "files"}
-            ^{percentsBar scanProgress scanGoal}
+            ^{percentsBar scanProgress (wrGoal sr)}
         $of RepoError _
           ^{scanFailed}
 
@@ -73,10 +73,10 @@
         $of RepoRendering _ ws
           <div .card-body>
             ^{workInProgress now rendering renderProgress ws}
-            ^{percentsBar renderProgress renderGoal}
+            ^{percentsBar renderProgress (wsGoal ws)}
         $of RepoFinished _ rr
           <div .card-body>
             ^{workResults now rr rendering "images"}
-            ^{percentsBar renderProgress renderGoal}
+            ^{percentsBar renderProgress (wrGoal rr)}
         $of RepoError _
           ^{scanFailed}
