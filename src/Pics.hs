@@ -703,9 +703,9 @@ searchCache = unsafePerformIO $ newTVarIO emptySearchCache
 getSearchResults :: SearchResults -> UrlParams -> IO SearchResults
 getSearchResults lazy key = atomically $ do
   oldCache <- readTVar searchCache
-  let (val, newCache) = case (LRU.lookup key oldCache) of
-        Nothing -> force lazy `seq` (lazy, LRU.insert key lazy oldCache)
-        Just v  -> v
+  let (val, newCache) =
+        fromMaybe (force lazy `seq` (lazy, LRU.insert key lazy oldCache))
+          (LRU.lookup key oldCache)
   writeTVar searchCache $! newCache
   return val
 
