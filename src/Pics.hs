@@ -102,7 +102,6 @@ module Pics ( PicDir(..)
 
 import           Control.Applicative
 import           Control.Concurrent.Async
-import           Control.Concurrent.MVar
 import           Control.Concurrent.STM.TVar
 import           Control.DeepSeq
 import           Control.Monad
@@ -702,15 +701,16 @@ searchCache :: TVar SearchCache
 searchCache = unsafePerformIO $ newTVarIO emptySearchCache
 
 getSearchResults :: SearchResults -> UrlParams -> IO SearchResults
-getSearchResults lazy key = modifyMVar searchCache $ \cache ->
-  return $ case LRU.lookup key cache of
-             Nothing -> force lazy `seq`
-                        (LRU.insert key lazy cache, lazy)
-             Just (v, cache')  -> (cache', v)
+getSearchResults lazy key = atomically $ do
+  oldCache <- readTVar searchCache
+  let (val, newCache) = case (LRU.lookup key oldCache) of
+        Nothing -> force lazy `seq` (lazy, LRU.insert key lazy oldCache)
+        Just v  -> v
+  writeTVar searchCache $! newCache
+  return val
 
 flushSearchCache :: IO ()
-flushSearchCache = modifyMVar_ searchCache $ \_ ->
-  return emptySearchCache
+flushSearchCache = atomically $ writeTVar searchCache emptySearchCache
 
 -- | Selects the best master file between two masters.
 --
