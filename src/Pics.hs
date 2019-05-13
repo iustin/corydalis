@@ -1117,6 +1117,9 @@ newRepo rc = do
   let new = old { repoSerial = repoSerial old + 1
                 , repoStatus = RepoStarting
                 }
+  -- Note: it is safe to update the repository without flushing the
+  -- cache, as the image date has not been changed, only the serial
+  -- and status; hence, not going through updateRepo.
   writeTVar rc $! new
   return new
 
