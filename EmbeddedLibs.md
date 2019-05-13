@@ -10,8 +10,8 @@ Current list of embedded libraries:
 - screenfull v4.2.0, updated 2019-04-19
 - tablesorter v2.31.1, updated 2019-04-19
 - imagesloaded v4.1.4, updated 2019-04-26,
-  https://imagesloaded.desandro.com/
+  <https://imagesloaded.desandro.com/>
 - masonry v4.2.2, updated 2019-04-26,
-  https://imagesloaded.desandro.com/
+  <https://imagesloaded.desandro.com/>
 - infinite-scroll v3.0.5, updated 2019-04-26,
-  https://infinite-scroll.com/
+  <https://infinite-scroll.com/>

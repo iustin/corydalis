@@ -28,15 +28,11 @@ CPU; on my own collection, a cold start will probably take many hours
 (for initial, required EXIF gathering) and follow-up work possibly a
 day or so (for the pre-rendering).
 
-Being a web application, it also has a few JavaScript dependencies:
-
-* jquery
-* jquery-metadata
-* jquery-tablesorter
-
-However, these are distributed with the application, so there's no
-need to do anything, unless you want to use newer version of them;
-just update the files in the `static/` subdirectory.
+Being a web application, it also has a quite a bit of JavaScript
+dependencies. However, these are distributed with the application, so
+there's no need to do anything, unless you want to use newer version
+of them; just update the files in the `static/` subdirectory. See the
+[embedded libraries](embeddedlibs.md) doc for details.
 
 ## Building from source
 
@@ -111,9 +107,9 @@ Once the configuration is updated, simply run the application:
     $ ./corydalis settings.yml
 
 Note that at the first run, it will start scanning the configured
-directories and parse metadata, so it will take a long while - hours -
-for the initial run to finish. This metadata should be moved to async
-operation, of course.
+directories and parse metadata, so it will take a long while - maybe
+up to hours - for the initial run to finish, depending on both CPU and
+disk I/O for your storage.
 
 I've also seen that due to the nontrivial amount of memory used by all
 the filename tracking, the periodic idle GCs use non-trivial amount of
