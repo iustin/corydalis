@@ -38,6 +38,7 @@ simpleImage config =
 spec :: Spec
 spec = withConfig $
   describe "search cache" $ do
+    let logfn = const $ return ()
     it "caches a search result" $ \config -> do
       let image = simpleImage config
           m1 = Map.singleton ("a", (Nothing, "b")) image
@@ -48,7 +49,7 @@ spec = withConfig $
       let image = simpleImage config
           m1 = Map.singleton ("a", (Nothing, "b")) image
           m2 = Map.empty
-      _ <- forceScanAll config
+      _ <- forceScanAll config logfn
       getSearchResults m1 [] `shouldReturn` m1
-      _ <- forceScanAll config
+      _ <- forceScanAll config logfn
       getSearchResults m2 [] `shouldReturn` m2
