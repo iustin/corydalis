@@ -667,12 +667,13 @@ repoCache = unsafePerformIO $ newTVarIO startupRepository
 
 updateRepo :: TVar Repository -> Repository -> IO Bool
 updateRepo rc new = do
-  flushSearchCache
   -- TODO: replace this with stateTVar when LTS 13.
   atomically $ do
     current <- readTVar rc
     let update = repoSerial current <= repoSerial new
-    when update $ writeTVar rc $! new
+    when update $ do
+      writeTVar rc $! new
+      flushSearchCache
     return update
 
 tryUpdateRepo :: TVar Repository -> Repository -> IO ()
@@ -709,8 +710,8 @@ getSearchResults lazy key = atomically $ do
   writeTVar searchCache $! newCache
   return val
 
-flushSearchCache :: IO ()
-flushSearchCache = atomically $ writeTVar searchCache emptySearchCache
+flushSearchCache :: STM ()
+flushSearchCache = writeTVar searchCache emptySearchCache
 
 -- | Selects the best master file between two masters.
 --
