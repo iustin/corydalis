@@ -500,7 +500,7 @@ rpnParser xs (an, av) =
     Just v' -> Right $ v':xs
     Nothing -> Left $ "Failed to parse the atom " <>
                an <> "=" <> av <>
-               " with stack " <> Text.pack (show xs)
+               " with stack " <> Text.pack (show $ map atomDescription xs)
 
 parseString :: Text -> Maybe StrOp
 parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy (makeFuzzy v)
