@@ -70,6 +70,12 @@ clean:
 test:
 	stack test --coverage --flag corydalis:dev
 
+fast-tests:
+	stack test --file-watch --flag corydalis:dev
+
+coverage-tests:
+	stack test --file-watch --coverage --flag corydalis:dev
+
 lint:
 	@rm -f lint-report.html
 	hlint \
