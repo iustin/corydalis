@@ -20,15 +20,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.CurateSpec (spec) where
+module Handler.CameraSpec (spec) where
 
 import           TestImport
 
 spec :: Spec
-spec = withApp $
-  it "loads the empty curate page and checks it looks right" $ do
+spec = withApp $ do
+  it "loads the camera stats page and checks it looks right" $ do
     login
-    checkRoute CurateR
-    htmlAllContain "h1" "Corydalis"
-    htmlCount "div#images" 0
-    htmlNoneContain "div#images" "contains 0 images"
+    checkRoute CameraStatsR
+    htmlAllContain "h1" "Camera statistics"
+    htmlAnyContain "p" "No camera information found."
+  it "load a wrong camera details page" $ do
+    login
+    checkNotFound $ CameraInfoR "foo"
+  it "load a camera details page" $
+    const pending

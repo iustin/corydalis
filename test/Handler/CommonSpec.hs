@@ -19,18 +19,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.CommonSpec (spec) where
 
-import TestImport
+import           TestImport
 
 spec :: Spec
 spec = withApp $ do
-    describe "robots.txt" $ do
-        it "gives a 200" $ do
-            get RobotsR
-            statusIs 200
-        it "has correct User-agent" $ do
-            get RobotsR
-            bodyContains "User-agent: *"
-    describe "favicon.ico" $
-        it "gives a 200" $ do
-            get FaviconR
-            statusIs 200
+  describe "robots.txt" $ do
+    it "gives a 200" $
+      checkRoute RobotsR
+    it "has correct User-agent" $ do
+      checkRoute RobotsR
+      bodyContains "User-agent: *"
+  describe "favicon.ico" $
+    it "gives a 200" $ do
+      get FaviconR
+      statusIs 200

@@ -20,15 +20,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.CurateSpec (spec) where
+module Handler.ListSpec (spec) where
 
 import           TestImport
 
+import           Indexer    (Symbol (TPath))
+
 spec :: Spec
 spec = withApp $
-  it "loads the empty curate page and checks it looks right" $ do
-    login
-    checkRoute CurateR
-    htmlAllContain "h1" "Corydalis"
-    htmlCount "div#images" 0
-    htmlNoneContain "div#images" "contains 0 images"
+  describe "loads the list pages and checks it looks right" $ do
+    forM_ [s | s <- [minBound..maxBound], s /= TPath] $ \symbol ->
+      it ("validates symbol " ++ show symbol) $ do
+        login
+        checkRoute $ ListItemsR symbol
+        htmlAllContain "h1" "Listing"
+    it "checks Paths are not listable" $ do
+      login
+      checkNotFound $ ListItemsR TPath

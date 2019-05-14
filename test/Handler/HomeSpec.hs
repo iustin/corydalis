@@ -26,21 +26,27 @@ import           TestImport
 
 spec :: Spec
 spec = withApp $ do
-    it "asserts redirect on access to home for anonymous users" $ do
-      get HomeR
-      statusIs 303
+  it "asserts redirect on access to home for anonymous users" $
+    checkRouteIs HomeR 303
 
-    it "checks that login page shows info message" $ do
-      get $ AuthR LoginR
-      htmlAnyContain "div#info" "Hello user!"
+  it "checks that login page works un-authenticated" $ do
+    checkRoute $ AuthR LoginR
+    htmlAnyContain "div#info" "Hello user!"
 
-    it "asserts access to home for authenticated users" $
-      checkLoginSuccessful HomeR
-    it "loads the index and checks it looks right" $ do
-      checkLoginSuccessful HomeR
-      htmlAllContain "h1" "Corydalis"
-      htmlAnyContain "div#main" "Years"
-      htmlAnyContain "div#main" "Countries"
-      htmlAnyContain "div#main" "Locations"
-      htmlAnyContain "div#main" "People"
-      htmlAnyContain "div#main" "Keywords"
+  it "checks that login page shows info message" $ do
+    get $ AuthR LoginR
+    htmlAnyContain "div#info" "Hello user!"
+
+  it "asserts access to home for authenticated users" $ do
+    login
+    checkRoute HomeR
+
+  it "loads the index and checks it looks right" $ do
+    login
+    checkRoute HomeR
+    htmlAllContain "h1" "Corydalis"
+    htmlAnyContain "div#main" "Years"
+    htmlAnyContain "div#main" "Countries"
+    htmlAnyContain "div#main" "Locations"
+    htmlAnyContain "div#main" "People"
+    htmlAnyContain "div#main" "Keywords"

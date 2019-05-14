@@ -25,32 +25,37 @@ module TestImport
     , module X
     ) where
 
-import           Application             (makeFoundation, makeLogWare)
-import           ClassyPrelude           as X hiding (Handler, delete, deleteBy)
-import           Database.Persist        as X hiding (get)
-import           Database.Persist.Sql    (SqlBackend, SqlPersistM,
-                                          connEscapeName, rawExecute, rawSql,
-                                          runSqlPersistMPool, unSingle)
-import           Foundation              as X
-import           Model                   as X
-import           Test.Hspec              as X
-import           Types                   (Config, cfgCacheDir)
-import           Yesod.Auth              as X
-import           Yesod.Core.Unsafe       (fakeHandlerGetLogger)
-import           Yesod.Default.Config2   (loadYamlSettings, useEnv)
-import           Yesod.Test              as X
+import           Application                    (makeFoundation, makeLogWare)
+import           ClassyPrelude                  as X hiding (Handler, delete,
+                                                      deleteBy)
+import           Database.Persist               as X hiding (get)
+import           Database.Persist.Sql           (SqlBackend, SqlPersistM,
+                                                 connEscapeName, rawExecute,
+                                                 rawSql, runSqlPersistMPool,
+                                                 unSingle)
+import           Foundation                     as X
+import           Model                          as X
+import           Test.Hspec                     as X hiding (shouldSatisfy)
+import           Test.Hspec.Expectations.Lifted
+import           Types                          (Config, cfgCacheDir)
+import           Yesod.Auth                     as X
+import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
+import           Yesod.Default.Config2          (loadYamlSettings, useEnv)
+import           Yesod.Test                     as X
 
-import qualified Control.Exception       as E
-import           Control.Monad.Logger    (runLoggingT)
-import qualified Data.Text               as T
-import           Database.Persist.Sqlite (SqliteConf (..), createSqlPool,
-                                          sqlDatabase, wrapConnection)
-import qualified Database.Sqlite         as Sqlite
-import           Settings                (AppSettings (..), appDatabaseConf)
-import           System.Directory        (createDirectory,
-                                          removeDirectoryRecursive)
+import qualified Control.Exception              as E
+import           Control.Monad.Logger           (runLoggingT)
+import           Data.Either
+import qualified Data.Text                      as T
+import           Database.Persist.Sqlite        (SqliteConf (..), createSqlPool,
+                                                 sqlDatabase, wrapConnection)
+import qualified Database.Sqlite                as Sqlite
+import           Settings                       (AppSettings (..),
+                                                 appDatabaseConf)
+import           System.Directory               (createDirectory,
+                                                 removeDirectoryRecursive)
 import           System.IO.Temp
-import           Yesod.Core              (messageLoggerSource)
+import           Yesod.Core                     (messageLoggerSource)
 
 runDB :: SqlPersistM a -> YesodExample App a
 runDB query = do
@@ -165,10 +170,32 @@ createUser ident =
         , userPassword = Nothing
         }
 
+login :: YesodExample App ()
+login = checkLoginIs 200 HomeR
+
 checkLoginSuccessful :: Route App -> YesodExample App ()
-checkLoginSuccessful route = do
+checkLoginSuccessful = checkLoginIs 200
+
+checkLoginIs :: Int -> Route App -> YesodExample App ()
+checkLoginIs result route = do
       userEntity <- createUser "foo"
       authenticateAs userEntity
 
       get route
-      statusIs 200
+      statusIs result
+
+checkRouteIs :: Route App -> Int -> YesodExample App ()
+checkRouteIs route result = do
+     get route
+     statusIs result
+
+checkRoute :: Route App -> YesodExample App ()
+checkRoute = (`checkRouteIs` 200)
+
+checkNotFound :: Route App -> YesodExample App ()
+checkNotFound = (`checkRouteIs` 404)
+
+checkRedirect :: YesodExample App ()
+checkRedirect = do
+    redir <- followRedirect
+    redir `shouldSatisfy` isRight

@@ -20,15 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.CurateSpec (spec) where
+module Handler.ImageSpec (spec) where
 
 import           TestImport
 
 spec :: Spec
 spec = withApp $
-  it "loads the empty curate page and checks it looks right" $ do
+  it "loads an image page and checks it looks right" $ do
     login
-    checkRoute CurateR
-    htmlAllContain "h1" "Corydalis"
-    htmlCount "div#images" 0
-    htmlNoneContain "div#images" "contains 0 images"
+    checkNotFound $ ImageR "foo" "bar"

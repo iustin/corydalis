@@ -20,15 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.CurateSpec (spec) where
+module Handler.LensSpec (spec) where
 
 import           TestImport
 
 spec :: Spec
-spec = withApp $
-  it "loads the empty curate page and checks it looks right" $ do
+spec = withApp $ do
+  it "loads the lens page and checks it looks right" $ do
     login
-    checkRoute CurateR
-    htmlAllContain "h1" "Corydalis"
-    htmlCount "div#images" 0
-    htmlNoneContain "div#images" "contains 0 images"
+    checkRoute LensStatsR
+    htmlAllContain "h1" "Lens statistics"
+  it "loads a wrong lens info page and returns not found" $ do
+    login
+    checkNotFound $ LensInfoR "foo"
+  it "load a lens info page and checks it looks right" $
+    const pending

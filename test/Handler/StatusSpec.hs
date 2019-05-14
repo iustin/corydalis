@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.CurateSpec (spec) where
+module Handler.StatusSpec (spec) where
 
 import           TestImport
 
@@ -28,7 +28,6 @@ spec :: Spec
 spec = withApp $
   it "loads the empty curate page and checks it looks right" $ do
     login
-    checkRoute CurateR
+    checkRoute StatusR
     htmlAllContain "h1" "Corydalis"
-    htmlCount "div#images" 0
-    htmlNoneContain "div#images" "contains 0 images"
+    -- FIXME: add testing of repository status [test]

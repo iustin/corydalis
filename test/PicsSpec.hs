@@ -45,6 +45,7 @@ spec = withConfig $
       getSearchResults m1 [] `shouldReturn` m1
       getSearchResults (error "Failed to cache") [] `shouldReturn` m1
 
+
     it "flushes the search cache on rescan" $ \config -> do
       let image = simpleImage config
           m1 = Map.singleton ("a", (Nothing, "b")) image

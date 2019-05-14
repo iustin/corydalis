@@ -20,15 +20,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.CurateSpec (spec) where
+module Handler.SettingsSpec (spec) where
 
 import           TestImport
 
 spec :: Spec
 spec = withApp $
-  it "loads the empty curate page and checks it looks right" $ do
+  it "loads the settings page and checks it looks right" $ do
     login
-    checkRoute CurateR
-    htmlAllContain "h1" "Corydalis"
-    htmlCount "div#images" 0
-    htmlNoneContain "div#images" "contains 0 images"
+    checkRoute SettingsR
+    htmlAllContain "h1" "Settings"
+    -- FIXME: check the page matches the configuration [test]

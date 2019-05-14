@@ -20,15 +20,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.CurateSpec (spec) where
+module Handler.ReloadSpec (spec) where
 
 import           TestImport
 
 spec :: Spec
-spec = withApp $
-  it "loads the empty curate page and checks it looks right" $ do
+spec = withApp $ do
+  it "loads the reload page and checks GET doesn't work" $ do
     login
-    checkRoute CurateR
-    htmlAllContain "h1" "Corydalis"
-    htmlCount "div#images" 0
-    htmlNoneContain "div#images" "contains 0 images"
+    checkRouteIs ReloadR 405
+  it "loads the reload page and checks redirect message" $ do
+    login
+    post ReloadR
+    statusIs 303
+    checkRedirect
+    statusIs 200
+    htmlAllContain "span#corydalis-app-message" "Rescan triggered"
