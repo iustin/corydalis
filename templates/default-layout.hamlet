@@ -2,7 +2,8 @@ $maybe msg <- mmsg
   <div .alert .alert-#{mmsgClass} .alert-dismissable>
     <button type="button" .close data-dismiss="alert" aria-label="Close">
       <span aria-hidden="true">&times;
-    #{msg}
+    <span id="corydalis-app-message">
+      #{msg}
 $case repoState
   $of RepoEmpty
     <div .alert .alert-warning>
