@@ -55,6 +55,7 @@ module Pics ( PicDir(..)
             , getRenderProgress
             , scanAll
             , forceScanAll
+            , waitForScan
             , isProcessed
             , isUnprocessed
             , isStandalone
@@ -675,13 +676,14 @@ updateRepo rc new = atomically $ do
     flushSearchCache
   return update
 
-tryUpdateRepo :: TVar Repository -> Repository -> IO ()
+tryUpdateRepo :: TVar Repository -> Repository -> IO Repository
 tryUpdateRepo rc new = do
   owning <- updateRepo rc new
   unless owning $ throwString "Repository ownership changed, aborting"
+  return new
 
 {-# NOINLINE scannerThread #-}
-scannerThread :: TVar (Maybe (Async ()))
+scannerThread :: TVar (Maybe (Async Repository))
 scannerThread = unsafePerformIO $ newTVarIO Nothing
 
 {-# NOINLINE scanProgress #-}
@@ -1122,6 +1124,11 @@ newRepo rc = do
   writeTVar rc $! new
   return new
 
+waitForScan :: IO Repository
+waitForScan = atomically $ do
+  scanner <- readTVar scannerThread
+  maybe (readTVar repoCache) waitSTM scanner
+
 launchScanFileSystem :: Config -> TVar Repository -> LogFn -> IO ()
 launchScanFileSystem config rc logfn =
   bracketOnError
@@ -1138,25 +1145,25 @@ launchScanFileSystem config rc logfn =
           logfn "Cancel done"
       return ()
 
-scanFSWrapper :: Config -> TVar Repository -> Repository -> LogFn -> IO ()
+scanFSWrapper :: Config -> TVar Repository -> Repository -> LogFn -> IO Repository
 scanFSWrapper config rc newrepo logfn = do
   scanner <- async $ scanFilesystem config rc newrepo logfn
   result <- waitCatch scanner
   case result of
     Left err -> tryUpdateRepo rc newrepo { repoStatus = RepoError (Text.pack $ show err) }
-    Right _ -> return ()
+    Right r -> return r
 
-scanFilesystem :: Config -> TVar Repository -> Repository -> LogFn -> IO ()
+scanFilesystem :: Config -> TVar Repository -> Repository -> LogFn -> IO Repository
 scanFilesystem config rc newrepo logfn = do
   logfn "Launching scan filesystem"
-  tryUpdateRepo rc (newrepo { repoStatus = RepoStarting })
+  r1 <- tryUpdateRepo rc (newrepo { repoStatus = RepoStarting })
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
   atomically $ writeTVar scanProgress def
   start <- getZonedTime
   let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
-  tryUpdateRepo rc (newrepo { repoStatus = RepoScanning ws })
+  r2 <- tryUpdateRepo rc (r1 { repoStatus = RepoScanning ws })
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
@@ -1180,12 +1187,11 @@ scanFilesystem config rc newrepo logfn = do
       wsrender= WorkStart { wsStart = end
                           , wsGoal = totalrender
                           }
-      repo'' = newrepo { repoDirs   = repo'
-                       , repoStats  = stats
-                       , repoExif   = rexif
-                       , repoStatus = RepoRendering wrscan wsrender
-                       }
-  tryUpdateRepo rc repo''
+  repo'' <- tryUpdateRepo rc r2 { repoDirs   = repo'
+                                , repoStats  = stats
+                                , repoExif   = rexif
+                                , repoStatus = RepoRendering wrscan wsrender
+                                }
   writeDiskCache config repo''
   logfn "Finished building repo, starting rendering"
   forceBuildThumbCaches config repo''
@@ -1196,11 +1202,11 @@ scanFilesystem config rc newrepo logfn = do
                              , wrGoal = totalrender
                              , wrDone = rendered
                              }
-  let repo''' = repo'' { repoStatus = RepoFinished wrscan wrrender }
-  tryUpdateRepo rc repo'''
-  writeDiskCache config repo'''
+  repo''' <- evaluate $ force $ repo'' { repoStatus = RepoFinished wrscan wrrender }
+  r4 <- tryUpdateRepo rc repo'''
+  writeDiskCache config r4
   logfn "Finished rendering, all done"
-  return ()
+  return r4
 
 -- | Computes the list of images that can be rendered.
 renderableImages :: Repository -> [Image]
@@ -1260,7 +1266,6 @@ loadCacheOrScan config old@(repoStatus -> RepoEmpty) logfn = do
        -- number of zero while any valid cache will have a positive
        -- serial.
        tryUpdateRepo repoCache cache
-       return cache
      Just unfinished -> do
        logfn . toLogStr $ "Unfinished cache found, state: " ++ show unfinished
        logfn "Restarting scan"
