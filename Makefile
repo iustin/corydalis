@@ -86,5 +86,8 @@ lint:
 	  --cpp-define=DEVELOPMENT=1 \
 	  .
 
+lentil:
+	lentil src static/corydalis templates test
+
 .PHONY: build devel profiling view release doc haddock clean test dist
 .INTERMEDIATE: %.ps
