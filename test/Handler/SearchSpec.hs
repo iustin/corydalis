@@ -77,4 +77,3 @@ spec = withApp $ do
       login
       get (QuickSearchR, [("q", "1900")])
       checkRedirect
-      printBody
