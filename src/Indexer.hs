@@ -492,6 +492,10 @@ rpnParser (x:xs) ("not", _) =
             Not y -> y
             _     -> Not x
   in Right $ a:xs
+-- FIXME: the any/all atoms consume the entire stack, including any
+-- previous any/all, which means that we can't actually represent and
+-- (any a b c) (any c d e) construct. Is any/all (unbounded length)
+-- actually usable in a RPN parser? [hard]
 rpnParser xs ("all", _) = Right [allAtom xs]
 rpnParser xs ("any", _) = Right [anyAtom xs]
 rpnParser xs (an, av) =

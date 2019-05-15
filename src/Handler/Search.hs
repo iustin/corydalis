@@ -68,6 +68,8 @@ getSearchImagesR page = do
       (images, remImages) = splitAt pageSize . drop currentIdx $ images'
       imagesize = cfgBrowsingSize config
       nextPage = page + 1
+  -- TODO: allow switching between grid and list, so that people can
+  -- choose either [feature].
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addScript $ StaticR masonry_js_masonry_pkgd_js
