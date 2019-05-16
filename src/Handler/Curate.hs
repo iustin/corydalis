@@ -40,7 +40,6 @@ import           Handler.Utils
 import           Import
 import           Indexer
 import           Pics
-import           Types
 
 data XGraphData a b = XGraphData
   { xgdName :: Text

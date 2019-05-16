@@ -65,9 +65,6 @@ import qualified Data.Text             as Text
 
 import           Indexer
 import           Pics
-import           Types                 (Config, FolderClass (..),
-                                        ImageStatus (..), LogFn, WorkStart (..),
-                                        pgTotal)
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application

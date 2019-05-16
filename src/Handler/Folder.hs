@@ -35,7 +35,6 @@ import           Handler.Utils
 import           Handler.Widgets
 import           Import
 import           Pics
-import           Types
 
 import qualified Data.Map        as Map
 

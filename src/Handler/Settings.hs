@@ -32,7 +32,6 @@ module Handler.Settings
 
 import           Handler.Utils
 import           Import
-import           Types
 
 import qualified Data.Set      as Set
 

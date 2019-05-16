@@ -49,7 +49,6 @@ import           Exif
 import           Handler.Utils
 import           Import
 import           Pics
-import           Types
 
 data ImageInfo = ImageInfo
   { iiInfoUrl   :: Text

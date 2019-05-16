@@ -40,7 +40,6 @@ import qualified Formatting.Time            as FT
 import           Handler.Utils
 import           Import
 import           Pics
-import           Types
 
 throughput :: Int -> NominalDiffTime -> Double
 throughput t delta = (fromIntegral t::Double) / realToFrac delta

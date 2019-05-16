@@ -36,7 +36,6 @@ import           Handler.Utils
 import           Import
 import           Indexer
 import           Pics
-import           Types
 
 showFile :: Pics.File -> Widget
 showFile f =

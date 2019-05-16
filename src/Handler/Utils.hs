@@ -28,7 +28,6 @@ import           Exif
 import           Import
 import           Indexer
 import           Pics
-import           Types
 
 import qualified Data.Map                   as Map
 import           Data.Prefix.Units

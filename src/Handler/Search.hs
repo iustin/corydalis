@@ -37,7 +37,6 @@ import           Handler.Widgets
 import           Import
 import           Indexer
 import           Pics
-import           Types
 
 searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do

@@ -39,7 +39,6 @@ import           Handler.Widgets
 import           Import
 import           Indexer
 import           Pics
-import           Types
 
 getBrowseFoldersR :: [FolderClass] -> Handler Html
 getBrowseFoldersR kinds = do
