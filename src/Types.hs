@@ -41,31 +41,42 @@ module Types ( Config(..)
              , incProgress
              , WorkStart(..)
              , WorkResults(..)
+             , Context
+             , ctxConfig
+             , ctxRepo
+             , ctxScanner
+             , ctxScanProgress
+             , ctxRenderProgress
+             , ctxSearchCache
+             , newContext
              ) where
 
 import           Control.Applicative
+import           Control.Concurrent.Async
+import           Control.Concurrent.STM
+import           Control.Concurrent.STM.TVar
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
-import           Data.Default          (Default, def)
-import           Data.Function         (on)
-import           Data.List             (nub, sort)
-import           Data.Set              (Set)
-import qualified Data.Set              as Set
+import           Data.Default                (Default, def)
+import           Data.Function               (on)
+import           Data.List                   (nub, sort)
+import           Data.Set                    (Set)
+import qualified Data.Set                    as Set
 import           Data.Store
-import           Data.Store.TH         (makeStore)
-import           Data.Text             (Text)
-import qualified Data.Text             as Text
-import qualified Data.Text.Lazy        as TextL
+import           Data.Store.TH               (makeStore)
+import           Data.Text                   (Text)
+import qualified Data.Text                   as Text
+import qualified Data.Text.Lazy              as TextL
 import           Data.Time.Clock
 import           Data.Time.LocalTime
 import           Prelude
-import           System.FilePath       (pathSeparator)
-import           System.Log.FastLogger (LogStr)
-import qualified Text.Regex.TDFA       as TDFA
+import           System.FilePath             (pathSeparator)
+import           System.Log.FastLogger       (LogStr)
+import qualified Text.Regex.TDFA             as TDFA
 import           Yesod
 
-import           Compat.Orphans        ()
+import           Compat.Orphans              ()
 
 data Regex = Regex
     { reString :: Text
@@ -300,6 +311,38 @@ data WorkResults = WorkResults
 instance NFData WorkResults where
   rnf (WorkResults a b c d) =
     rnf a `seq` rnf b `seq` rnf c `seq` rnf d
+
+
+-- | Data representing the entirety of the application state.
+--
+-- Sadly this is parametrized only to work around the big monolitic
+-- Pics module, not because it needs to be parametrized.
+data Context a b = Context
+  { ctxConfig         :: !Config
+  , ctxRepo           :: !(TVar a)
+  , ctxScanner        :: !(TVar (Maybe (Async a)))
+  , ctxScanProgress   :: !(TVar Progress)
+  , ctxRenderProgress :: !(TVar Progress)
+  -- TODO: this really shouldn't be parametrised…
+  , ctxSearchCache    :: !(TVar b)
+  , ctxLogger         :: !LogFn
+  }
+
+newContext :: Config -> LogFn -> a -> b -> STM (Context a b)
+newContext config logfn a b = do
+  ta <- newTVar a
+  tb <- newTVar b
+  scanner <- newTVar Nothing
+  scanProg <- newTVar def
+  renderProg <- newTVar def
+  return $ Context { ctxConfig         = config
+                   , ctxRepo           = ta
+                   , ctxScanner        = scanner
+                   , ctxScanProgress   = scanProg
+                   , ctxRenderProgress = renderProg
+                   , ctxSearchCache    = tb
+                   , ctxLogger         = logfn
+                   }
 
 $(makeStore ''WorkStart)
 $(makeStore ''WorkResults)
