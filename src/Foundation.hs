@@ -76,6 +76,7 @@ data App = App
     , appConnPool    :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger      :: Logger
+    , appContext     :: Context Repository SearchCache
     }
 
 -- This is where we define all of the routes in our application. For a full

@@ -35,6 +35,7 @@ module Pics ( PicDir(..)
             , filePath
             , Flags(..)
             , Repository
+            , startupRepository
             , Exif(..)
             , repoDirs
             , repoStats
@@ -92,6 +93,8 @@ module Pics ( PicDir(..)
             , imageTimeKey
             , SearchResults
             , getSearchResults
+            , SearchCache
+            , emptySearchCache
             , imgProblems
             , pdProblems
             , repoProblems
@@ -148,6 +151,8 @@ import           Compat.Orphans              ()
 import           Exif
 import           Settings.Development
 import           Types
+
+type Ctx = Context Repository SearchCache
 
 blacklistedDirs :: Config -> [String]
 blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
