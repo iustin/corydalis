@@ -396,6 +396,8 @@ getContext = appContext <$> getYesod
 getConfig :: Handler Config
 getConfig = ctxConfig <$> getContext
 
+-- TODO: replace this with reading from context, after forcing scan at
+-- start?
 getPics :: Handler Repository
 getPics = do
   ctx <- appContext <$> getYesod
