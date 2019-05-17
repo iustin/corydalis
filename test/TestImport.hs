@@ -35,10 +35,12 @@ import           Database.Persist.Sql           (SqlBackend, SqlPersistM,
                                                  unSingle)
 import           Foundation                     as X
 import           Model                          as X
-import           Pics                           (Ctx, initContext)
+import           Pics                           (Ctx, initContext,
+                                                 launchScanFileSystem,
+                                                 waitForScan)
 import           Test.Hspec                     as X hiding (shouldSatisfy)
 import           Test.Hspec.Expectations.Lifted
-import           Types                          (cfgCacheDir)
+import           Types                          (Config (..))
 import           Yesod.Auth                     as X
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
 import           Yesod.Default.Config2          (loadYamlSettings, useEnv)
@@ -81,16 +83,26 @@ setTempDir :: AppSettings -> IO (FilePath, (AppSettings, Ctx))
 setTempDir settings = do
   rootTempDir <- getCanonicalTemporaryDirectory
   tempDir <- createTempDirectory rootTempDir "corydalis-test"
-  let dbDir = tempDir </> "db"
+  let inTemp = (tempDir </>)
+      dbDir = inTemp "db"
       dbPath = dbDir </> "test-db.sqlite3"
+      rawDir = inTemp "raw"
+      jpgDir = inTemp "jpg"
   createDirectory dbDir
+  createDirectory rawDir
+  createDirectory jpgDir
   let config = appConfig settings
-      config' = config { cfgCacheDir = tempDir </> "cache" }
+      config' = config { cfgCacheDir = tempDir </> "cache"
+                       , cfgSourceDirs = [rawDir]
+                       , cfgOutputDirs = [jpgDir]
+                       }
       db = SqliteConf (T.pack dbPath) 10
       settings' = settings { appConfig = config', appDatabaseConf = db }
       -- FIXME: use a proper logger? replace with one from yesod?
       logger = BS8.putStrLn . fromLogStr
   ctx <- atomically $ initContext config' logger
+  launchScanFileSystem ctx
+  _ <- waitForScan ctx
   return (tempDir, (settings', ctx))
 
 {-# ANN ignoringIOErrors ("HLint: ignore Evaluate"::String) #-}
