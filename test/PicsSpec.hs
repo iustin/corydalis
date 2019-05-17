@@ -49,7 +49,7 @@ spec = withContext $
       let image = simpleImage (ctxConfig ctx)
           m1 = Map.singleton ("a", (Nothing, "b")) image
           m2 = Map.empty
-      _ <- launchScanFilesystem ctx
+      _ <- launchScanFileSystem ctx
       getSearchResults ctx m1 [] `shouldReturn` m1
-      _ <- launchScanFilesystem ctx
+      _ <- launchScanFileSystem ctx
       getSearchResults ctx m2 [] `shouldReturn` m2

@@ -38,7 +38,7 @@ import           Model                          as X
 import           Pics                           (Ctx, initContext)
 import           Test.Hspec                     as X hiding (shouldSatisfy)
 import           Test.Hspec.Expectations.Lifted
-import           Types                          (Config, cfgCacheDir)
+import           Types                          (cfgCacheDir)
 import           Yesod.Auth                     as X
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
 import           Yesod.Default.Config2          (loadYamlSettings, useEnv)
@@ -46,7 +46,7 @@ import           Yesod.Test                     as X
 
 import qualified Control.Exception              as E
 import           Control.Monad.Logger           (runLoggingT)
-import qualified Data.ByteString                as BS
+import qualified Data.ByteString.Char8          as BS8
 import           Data.Either
 import qualified Data.Text                      as T
 import           Database.Persist.Sqlite        (SqliteConf (..), createSqlPool,
@@ -89,7 +89,7 @@ setTempDir settings = do
       db = SqliteConf (T.pack dbPath) 10
       settings' = settings { appConfig = config', appDatabaseConf = db }
       -- FIXME: use a proper logger? replace with one from yesod?
-      logger = BS.putStrLn . fromLogStr
+      logger = BS8.putStrLn . fromLogStr
   ctx <- atomically $ initContext config' logger
   return (tempDir, (settings', ctx))
 
@@ -109,7 +109,7 @@ withTempContext action = do
 
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
-  (tempDir, (settings, ctx)) <- loadSettings >>= setTempDir
+  (tempDir, (settings, _)) <- loadSettings >>= setTempDir
   foundation <- makeFoundation settings
   wipeDB foundation
   logWare <- liftIO $ makeLogWare foundation
