@@ -166,7 +166,7 @@ imgRowClass img =
 reloadPics :: Handler ()
 reloadPics = do
   ctx <- getContext
-  liftIO $ forceScanAll ctx
+  liftIO $ launchScanFileSystem ctx
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do

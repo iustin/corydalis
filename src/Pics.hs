@@ -56,7 +56,7 @@ module Pics ( PicDir(..)
             , getProgress
             , getRenderProgress
             , scanAll
-            , forceScanAll
+            , launchScanFileSystem
             , waitForScan
             , isProcessed
             , isUnprocessed
@@ -1299,11 +1299,6 @@ scanAll :: Ctx -> IO Repository
 scanAll ctx = do
   current <- getRepo ctx
   loadCacheOrScan ctx current
-
--- TODO: remove this, as migration to ctx completes. [cleanup]
-forceScanAll :: Ctx -> IO ()
-forceScanAll =
-  launchScanFileSystem
 
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =
