@@ -495,7 +495,8 @@ rpnParser (x:xs) ("not", _) =
 -- FIXME: the any/all atoms consume the entire stack, including any
 -- previous any/all, which means that we can't actually represent and
 -- (any a b c) (any c d e) construct. Is any/all (unbounded length)
--- actually usable in a RPN parser? [hard]
+-- actually usable in a RPN parser? Fix it by adding in the UrlParams
+-- representation the length of the atom. [hard]
 rpnParser xs ("all", _) = Right [allAtom xs]
 rpnParser xs ("any", _) = Right [anyAtom xs]
 rpnParser xs (an, av) =
@@ -600,6 +601,11 @@ genQuickSearchParams :: Repository -> Text ->
 genQuickSearchParams _ "" = Left "Empty search parameter"
 genQuickSearchParams pics search =
   let swords = nub $ Text.words search
+      -- TODO: this way of checking search is too slow, especially for
+      -- negative searches, as it really needs to scan the entire
+      -- repository. Improve by checking membership in sum of
+      -- atom-values (e.g. a set with all defined cities, so on) where
+      -- possible. [performance]
       findsAny a = not . null . filterImagesBy (imageSearchFunction a) $ pics
       -- Algorithm: for each symbol, try all words (that can be
       -- converted). Combine all words that find matches using the Any
@@ -614,8 +620,8 @@ genQuickSearchParams pics search =
       params = foldl' (\(pf, pm) w ->
                          let allA = mapMaybe (`quickSearch` w)
                                       [minBound..maxBound]
-                             -- va is all valid atoms; now split into
-                             -- found and missing.
+                             -- allA is all atoms that were able to
+                             -- parse from the input word.
                              (f, m) = partition findsAny allA
                              -- and if any are found, combine them
                              -- using any; in case none are found, we
