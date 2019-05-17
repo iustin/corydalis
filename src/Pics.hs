@@ -1263,13 +1263,13 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
        logfn "No cache data or data incompatible, scanning filesystem"
        launchScanFileSystem ctx
        return rescanning
-     Just cache@(repoStatus -> RepoFinished {}) -> do
+     Just cached@(repoStatus -> RepoFinished {}) -> do
        logfn "Cached data available, skipping scan"
        -- Note: this shouldn't fail, since an empty repo happens only
        -- upon initial load, and (initial) empty repos have a serial
        -- number of zero while any valid cache will have a positive
        -- serial.
-       tryUpdateRepo ctx cache
+       tryUpdateRepo ctx cached
      Just unfinished -> do
        logfn . toLogStr $ "Unfinished cache found, state: " ++ show unfinished
        logfn "Restarting scan"
