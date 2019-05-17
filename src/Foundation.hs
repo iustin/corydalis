@@ -38,7 +38,7 @@ module Foundation
   , unsafeHandler
   , getConfig
   , getPics
-  , withLogFn
+  , getContext
   ) where
 
 import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
@@ -53,7 +53,7 @@ import           Yesod.Auth.Dummy
 import           Yesod.Auth.HashDB     (authHashDBWithForm)
 
 import           Yesod.Auth.Message
-import           Yesod.Core.Types      (Logger, loggerPutStr)
+import           Yesod.Core.Types      (Logger)
 import qualified Yesod.Core.Unsafe     as Unsafe
 import           Yesod.Default.Util    (addStaticContentExternal)
 import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
@@ -165,7 +165,8 @@ instance Yesod App where
                           Just mmsgKind' -> if mmsgKind' `elem` msgValidTypes
                                               then mmsgKind'
                                               else msgInfo
-        scanProgress <- liftIO (pgTotal <$> getProgress)
+        ctx <- getContext
+        scanProgress <- liftIO (pgTotal <$> getProgress ctx)
         repo <- getPics
         let repoState = repoStatus repo
             scanPercent = case repoState of
@@ -389,19 +390,16 @@ isAuthenticated = do
         Nothing -> AuthenticationRequired
         Just _  -> Authorized
 
+getContext :: Handler Ctx
+getContext = appContext <$> getYesod
+
 getConfig :: Handler Config
-getConfig = appConfig . appSettings <$> getYesod
+getConfig = ctxConfig <$> getContext
 
 getPics :: Handler Repository
 getPics = do
-  config <- getConfig
-  withLogFn $ scanAll config
-
-withLogFn :: (LogFn -> IO a) -> Handler a
-withLogFn action = do
-  logger <- appLogger <$> getYesod
-  let logfn str = loggerPutStr logger $ str <> "\n"
-  liftIO $ action logfn
+  ctx <- appContext <$> getYesod
+  liftIO $ scanAll ctx
 
 repoStatusIcon :: RepoStatus -> Text
 repoStatusIcon RepoEmpty        = "fas fa-question"

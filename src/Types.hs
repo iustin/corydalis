@@ -48,35 +48,35 @@ module Types ( Config(..)
              , ctxScanProgress
              , ctxRenderProgress
              , ctxSearchCache
+             , ctxLogger
              , newContext
              ) where
 
 import           Control.Applicative
 import           Control.Concurrent.Async
 import           Control.Concurrent.STM
-import           Control.Concurrent.STM.TVar
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
-import           Data.Default                (Default, def)
-import           Data.Function               (on)
-import           Data.List                   (nub, sort)
-import           Data.Set                    (Set)
-import qualified Data.Set                    as Set
+import           Data.Default             (Default, def)
+import           Data.Function            (on)
+import           Data.List                (nub, sort)
+import           Data.Set                 (Set)
+import qualified Data.Set                 as Set
 import           Data.Store
-import           Data.Store.TH               (makeStore)
-import           Data.Text                   (Text)
-import qualified Data.Text                   as Text
-import qualified Data.Text.Lazy              as TextL
+import           Data.Store.TH            (makeStore)
+import           Data.Text                (Text)
+import qualified Data.Text                as Text
+import qualified Data.Text.Lazy           as TextL
 import           Data.Time.Clock
 import           Data.Time.LocalTime
 import           Prelude
-import           System.FilePath             (pathSeparator)
-import           System.Log.FastLogger       (LogStr)
-import qualified Text.Regex.TDFA             as TDFA
+import           System.FilePath          (pathSeparator)
+import           System.Log.FastLogger    (LogStr)
+import qualified Text.Regex.TDFA          as TDFA
 import           Yesod
 
-import           Compat.Orphans              ()
+import           Compat.Orphans           ()
 
 data Regex = Regex
     { reString :: Text

@@ -223,9 +223,12 @@ percentsBar counter goal =
 getStatusR :: Handler Html
 getStatusR = do
   repo <- getPics
+  ctx <- getContext
   let repoState = repoStatus repo
-  scanProgress <- liftIO getProgress
-  renderProgress <- liftIO getRenderProgress
+  -- TODO: both of these should be moved to STM and read in a single
+  -- transaction, and repo as well. [cleanup]
+  scanProgress <- liftIO $ getProgress ctx
+  renderProgress <- liftIO $ getRenderProgress ctx
   let (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
         RepoEmpty         -> (0::Int, "empty"::Text, "bg-warning"::Text, False)
         RepoStarting      -> (5, "preparing scan", "bg-warning", False)

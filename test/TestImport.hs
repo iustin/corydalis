@@ -35,6 +35,7 @@ import           Database.Persist.Sql           (SqlBackend, SqlPersistM,
                                                  unSingle)
 import           Foundation                     as X
 import           Model                          as X
+import           Pics                           (Ctx, initContext)
 import           Test.Hspec                     as X hiding (shouldSatisfy)
 import           Test.Hspec.Expectations.Lifted
 import           Types                          (Config, cfgCacheDir)
@@ -45,6 +46,7 @@ import           Yesod.Test                     as X
 
 import qualified Control.Exception              as E
 import           Control.Monad.Logger           (runLoggingT)
+import qualified Data.ByteString                as BS
 import           Data.Either
 import qualified Data.Text                      as T
 import           Database.Persist.Sqlite        (SqliteConf (..), createSqlPool,
@@ -55,6 +57,7 @@ import           Settings                       (AppSettings (..),
 import           System.Directory               (createDirectory,
                                                  removeDirectoryRecursive)
 import           System.IO.Temp
+import           System.Log.FastLogger          (fromLogStr)
 import           Yesod.Core                     (messageLoggerSource)
 
 runDB :: SqlPersistM a -> YesodExample App a
@@ -74,7 +77,7 @@ loadSettings =
     []
     useEnv
 
-setTempDir :: AppSettings -> IO (FilePath, AppSettings)
+setTempDir :: AppSettings -> IO (FilePath, (AppSettings, Ctx))
 setTempDir settings = do
   rootTempDir <- getCanonicalTemporaryDirectory
   tempDir <- createTempDirectory rootTempDir "corydalis-test"
@@ -84,7 +87,11 @@ setTempDir settings = do
   let config = appConfig settings
       config' = config { cfgCacheDir = tempDir </> "cache" }
       db = SqliteConf (T.pack dbPath) 10
-  return (tempDir, settings { appConfig = config', appDatabaseConf = db })
+      settings' = settings { appConfig = config', appDatabaseConf = db }
+      -- FIXME: use a proper logger? replace with one from yesod?
+      logger = BS.putStrLn . fromLogStr
+  ctx <- atomically $ initContext config' logger
+  return (tempDir, (settings', ctx))
 
 {-# ANN ignoringIOErrors ("HLint: ignore Evaluate"::String) #-}
 -- | Adapted from temporary's code.
@@ -92,17 +99,17 @@ ignoringIOErrors :: IO () -> IO ()
 ignoringIOErrors ioe =
   ioe `E.catch` (\e -> const (return ()) (e :: IOException))
 
-cleanupTempDir :: (FilePath, a) -> IO ()
-cleanupTempDir = ignoringIOErrors . removeDirectoryRecursive . fst
+cleanupTempDir :: (FilePath, (a, b)) -> IO ()
+cleanupTempDir  = ignoringIOErrors . removeDirectoryRecursive . fst
 
-withTempConfig :: (Config -> IO ()) -> IO ()
-withTempConfig action = do
+withTempContext :: (Ctx -> IO ()) -> IO ()
+withTempContext action = do
   settings <- loadSettings
-  bracket (setTempDir settings) cleanupTempDir (action . appConfig . snd)
+  bracket (setTempDir settings) cleanupTempDir (action . snd . snd)
 
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
-  (tempDir, settings) <- loadSettings >>= setTempDir
+  (tempDir, (settings, ctx)) <- loadSettings >>= setTempDir
   foundation <- makeFoundation settings
   wipeDB foundation
   logWare <- liftIO $ makeLogWare foundation
@@ -112,8 +119,8 @@ withApp :: SpecWith (TestApp App) -> Spec
 withApp =
   around (\action -> bracket openTempApp cleanupTempDir (action . snd))
 
-withConfig :: SpecWith Config -> Spec
-withConfig = around withTempConfig
+withContext :: SpecWith Ctx -> Spec
+withContext = around withTempContext
 
 -- This function will truncate all of the tables in your database.
 -- 'withApp' calls it before each test, creating a clean environment for each

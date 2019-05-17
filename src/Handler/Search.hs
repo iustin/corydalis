@@ -38,17 +38,17 @@ import           Import
 import           Indexer
 import           Pics
 
-searchContext :: Handler (Config, [(Text, Text)], Atom, Text, Repository)
+searchContext :: Handler (Ctx, Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
-  config <- getConfig
+  ctx <- getContext
   (_, atom) <- getAtomParams
   let search_string = atomDescription atom
   pics <- getPics
-  return (config, atomToParams atom, atom, search_string, pics)
+  return (ctx, ctxConfig ctx, atomToParams atom, atom, search_string, pics)
 
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
-  (config, params, atom, search_string, pics) <- searchContext
+  (_, config, params, atom, search_string, pics) <- searchContext
   let folders = filter (folderSearchFunction atom) . Map.elems . repoDirs $ pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
@@ -59,8 +59,8 @@ getSearchImagesR :: Int -> Handler Html
 getSearchImagesR page = do
   when (page < 0) $
     invalidArgs ["Negative page index"]
-  (config, params, atom, search_string, pics) <- searchContext
-  images' <- Map.elems <$> liftIO (searchImages atom pics)
+  (ctx, config, params, atom, search_string, pics) <- searchContext
+  images' <- Map.elems <$> liftIO (searchImages ctx atom pics)
   let pageSize = cfgPageSize config
       currentIdx = page * pageSize
       currentStart = currentIdx + 1

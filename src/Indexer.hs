@@ -586,12 +586,13 @@ buildImageMap atom =
          ) Map.empty .
   filterImagesBy (imageSearchFunction atom)
 
-searchImages :: Atom -> Repository -> IO SearchResults
-searchImages atom pics = do
+searchImages :: Ctx -> Atom -> Repository -> IO SearchResults
+searchImages ctx atom pics = do
   -- Note: the call to buildImageMap must *not* be evaluated,
   -- otherwise we don't gain anything from caching it.
+  -- TODO: remove repository argument, read from ctx? [cleanup]
   let lazyimages = buildImageMap atom pics
-  getSearchResults lazyimages (atomToParams atom)
+  getSearchResults ctx lazyimages (atomToParams atom)
 
 -- | Generates a quick search atom.
 genQuickSearchParams :: Repository -> Text ->

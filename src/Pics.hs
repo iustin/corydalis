@@ -35,7 +35,8 @@ module Pics ( PicDir(..)
             , filePath
             , Flags(..)
             , Repository
-            , startupRepository
+            , Ctx
+            , initContext
             , Exif(..)
             , repoDirs
             , repoStats
@@ -94,7 +95,6 @@ module Pics ( PicDir(..)
             , SearchResults
             , getSearchResults
             , SearchCache
-            , emptySearchCache
             , imgProblems
             , pdProblems
             , repoProblems
@@ -137,7 +137,6 @@ import           System.Directory
 import           System.Exit
 import           System.FilePath
 import           System.IO.Error
-import           System.IO.Unsafe
 import           System.Log.FastLogger       (toLogStr)
 import           System.Posix.Files          hiding (fileSize)
 import qualified System.Posix.Files          (fileSize)
@@ -153,6 +152,12 @@ import           Settings.Development
 import           Types
 
 type Ctx = Context Repository SearchCache
+
+-- TODO: move this to IO, so that callers don't have to know about
+-- atomically? [cleanup]
+initContext :: Config -> LogFn -> STM Ctx
+initContext config logfn =
+  newContext config logfn startupRepository emptySearchCache
 
 blacklistedDirs :: Config -> [String]
 blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
@@ -667,48 +672,32 @@ type SearchResults = Map (Text, ImageTimeKey) Image
 -- | Type of the search cache.
 type SearchCache = LruCache UrlParams SearchResults
 
-{-# NOINLINE repoCache #-}
-repoCache :: TVar Repository
-repoCache = unsafePerformIO $ newTVarIO startupRepository
-
-updateRepo :: TVar Repository -> Repository -> IO Bool
-updateRepo rc new = atomically $ do
+updateRepo :: Ctx -> Repository -> IO Bool
+updateRepo ctx new = atomically $ do
+  let rc = ctxRepo ctx
   -- TODO: replace this with stateTVar when LTS 13.
   current <- readTVar rc
   let update = repoSerial current <= repoSerial new
+  -- TODO: add logging for prevented overwrites.
   when update $ do
     writeTVar rc $! new
-    flushSearchCache
+    flushSearchCache (ctxSearchCache ctx)
   return update
 
-tryUpdateRepo :: TVar Repository -> Repository -> IO Repository
-tryUpdateRepo rc new = do
-  owning <- updateRepo rc new
+tryUpdateRepo :: Ctx -> Repository -> IO Repository
+tryUpdateRepo ctx new = do
+  owning <- updateRepo ctx new
   unless owning $ throwString "Repository ownership changed, aborting"
   return new
 
-{-# NOINLINE scannerThread #-}
-scannerThread :: TVar (Maybe (Async Repository))
-scannerThread = unsafePerformIO $ newTVarIO Nothing
-
-{-# NOINLINE scanProgress #-}
-scanProgress :: TVar Progress
-scanProgress = unsafePerformIO $ newTVarIO def
-
-{-# NOINLINE renderProgress #-}
-renderProgress :: TVar Progress
-renderProgress = unsafePerformIO $ newTVarIO def
-
--- TODO: hardcoded cache size. Hmm...
+-- TODO: replace hardcoded cache size with config option.
 emptySearchCache :: SearchCache
 emptySearchCache = LRU.empty 10
 
-{-# NOINLINE searchCache #-}
-searchCache :: TVar SearchCache
-searchCache = unsafePerformIO $ newTVarIO emptySearchCache
-
-getSearchResults :: SearchResults -> UrlParams -> IO SearchResults
-getSearchResults lazy key = atomically $ do
+-- FIXME: move to STM?
+getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
+getSearchResults ctx lazy key = atomically $ do
+  let searchCache = ctxSearchCache ctx
   oldCache <- readTVar searchCache
   let (val, newCache) =
         fromMaybe (force lazy `seq` (lazy, LRU.insert key lazy oldCache))
@@ -716,8 +705,8 @@ getSearchResults lazy key = atomically $ do
   writeTVar searchCache $! newCache
   return val
 
-flushSearchCache :: STM ()
-flushSearchCache = writeTVar searchCache emptySearchCache
+flushSearchCache :: TVar SearchCache -> STM ()
+flushSearchCache = flip writeTVar emptySearchCache
 
 -- | Selects the best master file between two masters.
 --
@@ -923,25 +912,26 @@ getDirContents config base = do
   return $!! (map inodeName dirs, files)
 
 -- | Scans one of the directories defined in the configuration.
-scanBaseDir :: Config
+scanBaseDir :: Ctx
             -> String
             -> Bool
             -> IO [PicDir]
-scanBaseDir config base isSource = do
-  (dirs, _) <- getDirContents config base
-  concat <$> mapConcurrently (\p -> scanSubDir config (base </> p) isSource) dirs
+scanBaseDir ctx base isSource = do
+  (dirs, _) <- getDirContents (ctxConfig ctx) base
+  concat <$> mapConcurrently (\p -> scanSubDir ctx (base </> p) isSource) dirs
 
 -- | Scans a directory one level below a base dir. The actual
 -- subdirectory name is currently discarded and will not appear in the
 -- final folder names.
-scanSubDir :: Config
+scanSubDir :: Ctx
            -> String
            -> Bool
            -> IO [PicDir]
-scanSubDir config path isSource = do
+scanSubDir ctx path isSource = do
+  let config = ctxConfig ctx
   (dirpaths, _) <- getDirContents config path
   let allpaths' = filter (isOKDir config) dirpaths
-  mapM (\s -> loadFolder config s (path </> s) isSource) allpaths'
+  mapM (\s -> loadFolder ctx s (path </> s) isSource) allpaths'
 
 -- | Recursively count number of items under a directory.
 countDir :: Config -> Int -> String -> IO Int
@@ -992,9 +982,11 @@ buildTimeSort :: Map Text Image -> Set ImageTimeKey
 buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
-loadFolder :: Config -> String -> FilePath -> Bool -> IO PicDir
-loadFolder config name path isSource = do
+loadFolder :: Ctx -> String -> FilePath -> Bool -> IO PicDir
+loadFolder ctx name path isSource = do
   -- throwString "boo"
+  let config = ctxConfig ctx
+      scanProgress = ctxScanProgress ctx
   contents <- recursiveScanPath config path id
   (readexifs, lcache) <- getExif config path $ map inodeName contents
   let rawe = cfgRawExtsSet config
@@ -1129,18 +1121,18 @@ newRepo rc = do
   writeTVar rc $! new
   return new
 
-waitForScan :: IO Repository
-waitForScan = atomically $ do
-  scanner <- readTVar scannerThread
-  maybe (readTVar repoCache) waitSTM scanner
+waitForScan :: Ctx -> IO Repository
+waitForScan ctx = atomically $ do
+  scanner <- readTVar (ctxScanner ctx)
+  maybe (readTVar (ctxRepo ctx)) waitSTM scanner
 
-launchScanFileSystem :: Config -> TVar Repository -> LogFn -> IO ()
-launchScanFileSystem config rc logfn =
+launchScanFileSystem :: Ctx -> IO ()
+launchScanFileSystem ctx =
   bracketOnError
     (atomically $ newRepo rc)
-    (\new -> tryUpdateRepo rc (new { repoStatus = RepoError "unknown"}))
+    (\new -> tryUpdateRepo ctx (new { repoStatus = RepoError "unknown"}))
     $ \newrepo -> do
-      newscanner <- async (scanFSWrapper config rc newrepo logfn)
+      newscanner <- async (scanFSWrapper ctx newrepo)
       currentSC <- atomically $ swapTVar scannerThread (Just newscanner)
       case currentSC of
         Nothing -> return ()
@@ -1149,27 +1141,33 @@ launchScanFileSystem config rc logfn =
           cancel t
           logfn "Cancel done"
       return ()
+     where rc = ctxRepo ctx
+           logfn = ctxLogger ctx
+           scannerThread = ctxScanner ctx
 
-scanFSWrapper :: Config -> TVar Repository -> Repository -> LogFn -> IO Repository
-scanFSWrapper config rc newrepo logfn = do
-  scanner <- async $ scanFilesystem config rc newrepo logfn
+scanFSWrapper :: Ctx -> Repository -> IO Repository
+scanFSWrapper ctx newrepo = do
+  scanner <- async $ scanFilesystem ctx newrepo
   result <- waitCatch scanner
   case result of
-    Left err -> tryUpdateRepo rc newrepo { repoStatus = RepoError (Text.pack $ show err) }
+    Left err -> tryUpdateRepo ctx newrepo { repoStatus = RepoError (Text.pack $ show err) }
     Right r -> return r
 
-scanFilesystem :: Config -> TVar Repository -> Repository -> LogFn -> IO Repository
-scanFilesystem config rc newrepo logfn = do
+scanFilesystem :: Ctx -> Repository -> IO Repository
+scanFilesystem ctx newrepo = do
+  let logfn = ctxLogger ctx
+      config = ctxConfig ctx
+      scanProgress = ctxScanProgress ctx
   logfn "Launching scan filesystem"
-  r1 <- tryUpdateRepo rc (newrepo { repoStatus = RepoStarting })
+  r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
   itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
   atomically $ writeTVar scanProgress def
   start <- getZonedTime
   let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
-  r2 <- tryUpdateRepo rc (r1 { repoStatus = RepoScanning ws })
-  asyncDirs <- mapConcurrently (uncurry (scanBaseDir config))
+  r2 <- tryUpdateRepo ctx (r1 { repoStatus = RepoScanning ws })
+  asyncDirs <- mapConcurrently (uncurry (scanBaseDir ctx))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
   scanned <- readTVarIO scanProgress
@@ -1192,23 +1190,22 @@ scanFilesystem config rc newrepo logfn = do
       wsrender= WorkStart { wsStart = end
                           , wsGoal = totalrender
                           }
-  repo'' <- tryUpdateRepo rc r2 { repoDirs   = repo'
+  repo'' <- tryUpdateRepo ctx r2 { repoDirs   = repo'
                                 , repoStats  = stats
                                 , repoExif   = rexif
                                 , repoStatus = RepoRendering wrscan wsrender
                                 }
   writeDiskCache config repo''
   logfn "Finished building repo, starting rendering"
-  forceBuildThumbCaches config repo''
+  rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo''
   endr <- getZonedTime
-  rendered <- readTVarIO renderProgress
   let wrrender = WorkResults { wrStart = end
                              , wrEnd = endr
                              , wrGoal = totalrender
                              , wrDone = rendered
                              }
   repo''' <- evaluate $ force $ repo'' { repoStatus = RepoFinished wrscan wrrender }
-  r4 <- tryUpdateRepo rc repo'''
+  r4 <- tryUpdateRepo ctx repo'''
   writeDiskCache config r4
   logfn "Finished rendering, all done"
   return r4
@@ -1217,8 +1214,8 @@ scanFilesystem config rc newrepo logfn = do
 renderableImages :: Repository -> [Image]
 renderableImages = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalone]
 
-forceBuildThumbCaches :: Config -> Repository -> IO ()
-forceBuildThumbCaches config repo = do
+forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> IO Progress
+forceBuildThumbCaches config renderProgress repo = do
   atomically $ writeTVar renderProgress def
   -- throwString "boo"
   let images = renderableImages repo
@@ -1232,6 +1229,7 @@ forceBuildThumbCaches config repo = do
                         )
                     (cfgAutoImageSizes config)
   mapM_ builder images
+  readTVarIO renderProgress
 
 repoDiskFile :: String
 repoDiskFile = "repo"
@@ -1253,57 +1251,59 @@ readDiskCache config = do
                       then Just repo
                       else Nothing
 
-loadCacheOrScan :: Config
+loadCacheOrScan :: Ctx
                 -> Repository
-                -> LogFn
                 -> IO Repository
-loadCacheOrScan config old@(repoStatus -> RepoEmpty) logfn = do
-  cachedRepo <- readDiskCache config
+loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
+  cachedRepo <- readDiskCache (ctxConfig ctx)
+  let rescanning = rescanningRepository old
+      logfn = ctxLogger ctx
   case cachedRepo of
      Nothing    -> do
        logfn "No cache data or data incompatible, scanning filesystem"
-       launchScanFileSystem config repoCache logfn
-       return $ rescanningRepository old
+       launchScanFileSystem ctx
+       return rescanning
      Just cache@(repoStatus -> RepoFinished {}) -> do
        logfn "Cached data available, skipping scan"
        -- Note: this shouldn't fail, since an empty repo happens only
        -- upon initial load, and (initial) empty repos have a serial
        -- number of zero while any valid cache will have a positive
        -- serial.
-       tryUpdateRepo repoCache cache
+       tryUpdateRepo ctx cache
      Just unfinished -> do
        logfn . toLogStr $ "Unfinished cache found, state: " ++ show unfinished
        logfn "Restarting scan"
-       launchScanFileSystem config repoCache logfn
-       return $ rescanningRepository old
-loadCacheOrScan _ orig _ = return orig
+       launchScanFileSystem ctx
+       return rescanning
+loadCacheOrScan _ orig = return orig
 
 -- | Returns the current repository.
 --
 -- Nowadays this always returns the repository, which might be empty.
-getRepo :: IO Repository
-getRepo = readTVarIO repoCache
+getRepo :: Ctx -> IO Repository
+getRepo = readTVarIO . ctxRepo
 
 -- | Returns the progress of the repository scanner.
 --
 -- If the scan has finished, this is the value of all files and
 -- directories scanned (mildly interesting). If not, then this value
 -- is the running state.
-getProgress :: IO Progress
-getProgress = readTVarIO scanProgress
+getProgress :: Ctx -> IO Progress
+getProgress = readTVarIO . ctxScanProgress
 
 -- | Returns the progress of the render thread.
-getRenderProgress :: IO Progress
-getRenderProgress = readTVarIO renderProgress
+getRenderProgress :: Ctx -> IO Progress
+getRenderProgress = readTVarIO . ctxRenderProgress
 
-scanAll :: Config -> LogFn -> IO Repository
-scanAll config logfn = do
-  current <- getRepo
-  loadCacheOrScan config current logfn
+scanAll :: Ctx -> IO Repository
+scanAll ctx = do
+  current <- getRepo ctx
+  loadCacheOrScan ctx current
 
-forceScanAll :: Config -> LogFn -> IO ()
-forceScanAll config =
-  launchScanFileSystem config repoCache
+-- TODO: remove this, as migration to ctx completes. [cleanup]
+forceScanAll :: Ctx -> IO ()
+forceScanAll =
+  launchScanFileSystem
 
 computeStandaloneDirs :: Repository -> [PicDir]
 computeStandaloneDirs =

@@ -32,10 +32,11 @@ main = do
 
     let config = appConfig settings
 
+    ctx <- atomically $ initContext config (const $ return ())
     -- Scan repository
     t1m <- getTime Monotonic
     t1p <- getTime ProcessCPUTime
-    repo <- scanAll config (const $ return ())
+    repo <- scanAll ctx
     performGC
     t2m <- getTime Monotonic
     t2p <- getTime ProcessCPUTime

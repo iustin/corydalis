@@ -68,8 +68,7 @@ import           System.Log.FastLogger                (defaultBufSize,
                                                        toLogStr)
 import           Yesod.Core.Types                     (loggerPutStr)
 
-import           Pics                                 (emptySearchCache,
-                                                       startupRepository)
+import           Pics                                 (initContext)
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -113,8 +112,7 @@ makeFoundation appSettings = do
 
     -- Initialise the application context
     let logfn str = loggerPutStr appLogger $ str <> "\n"
-    appContext <- atomically $
-                  newContext (appConfig appSettings) logfn startupRepository emptySearchCache
+    appContext <- atomically $ initContext (appConfig appSettings) logfn
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a
     -- logging function. To get out of this loop, we initially create a

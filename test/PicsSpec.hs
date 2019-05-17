@@ -27,7 +27,7 @@ import qualified Data.Map     as Map
 
 import           Pics
 import           TestImport
-import           Types        (Config)
+import           Types        (Config, ctxConfig)
 
 simpleImage :: Config -> Image
 simpleImage config =
@@ -36,21 +36,20 @@ simpleImage config =
              Nothing [] [] Nothing MediaImage def
 
 spec :: Spec
-spec = withConfig $
+spec = withContext $
   describe "search cache" $ do
-    let logfn = const $ return ()
-    it "caches a search result" $ \config -> do
-      let image = simpleImage config
+    it "caches a search result" $ \ctx -> do
+      let image = simpleImage (ctxConfig ctx)
           m1 = Map.singleton ("a", (Nothing, "b")) image
-      getSearchResults m1 [] `shouldReturn` m1
-      getSearchResults (error "Failed to cache") [] `shouldReturn` m1
+      getSearchResults ctx m1 [] `shouldReturn` m1
+      getSearchResults ctx (error "Failed to cache") [] `shouldReturn` m1
 
 
-    it "flushes the search cache on rescan" $ \config -> do
-      let image = simpleImage config
+    it "flushes the search cache on rescan" $ \ctx -> do
+      let image = simpleImage (ctxConfig ctx)
           m1 = Map.singleton ("a", (Nothing, "b")) image
           m2 = Map.empty
-      _ <- forceScanAll config logfn
-      getSearchResults m1 [] `shouldReturn` m1
-      _ <- forceScanAll config logfn
-      getSearchResults m2 [] `shouldReturn` m2
+      _ <- forceScanAll ctx
+      getSearchResults ctx m1 [] `shouldReturn` m1
+      _ <- forceScanAll ctx
+      getSearchResults ctx m2 [] `shouldReturn` m2

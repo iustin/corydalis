@@ -165,8 +165,8 @@ imgRowClass img =
 
 reloadPics :: Handler ()
 reloadPics = do
-  config <- getConfig
-  withLogFn $ forceScanAll config
+  ctx <- getContext
+  liftIO $ forceScanAll ctx
 
 getPicsAndFolder :: Text -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
@@ -259,7 +259,8 @@ getAtomAndSearch :: Handler (UrlParams, Atom, SearchResults)
 getAtomAndSearch = do
   (_, atom) <- getAtomParams
   pics <- getPics
-  images <- liftIO $ searchImages atom pics
+  ctx <- getContext
+  images <- liftIO $ searchImages ctx atom pics
   return (atomToParams atom, atom, images)
 
 atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
