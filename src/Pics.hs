@@ -1271,7 +1271,7 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
        -- serial.
        tryUpdateRepo ctx cached
      Just unfinished -> do
-       logfn . toLogStr $ "Unfinished cache found, state: " ++ show unfinished
+       logfn . toLogStr $ "Unfinished cache found, state: " ++ show (repoStatus unfinished)
        logfn "Restarting scan"
        launchScanFileSystem ctx
        return rescanning
