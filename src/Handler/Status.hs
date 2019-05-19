@@ -108,14 +108,16 @@ repoContents repo =
       |]
   where totalImages = totalStatsCount . rsPicStats . repoStats $ repo
 
-progressDetails :: Progress -> Widget
-progressDetails counter =
+progressDetails :: Progress -> Int -> Widget
+progressDetails counter goal =
   toWidget [hamlet|
                 <ul>
                   <li>#{swissNum $ pgNoop counter} items were already up-to-date.
                   <li>#{swissNum $ pgDone counter} items needed processing.
                   <li>#{swissNum $ pgErrors counter} items had issues during processing.
+                  <li>#{swissNum $ remaining} items to left to investigate.
                   |]
+  where remaining = goal - pgTotal counter
 
 progressThroughput :: Progress -> NominalDiffTime -> Widget
 progressThroughput counter delta =
@@ -132,7 +134,7 @@ workInProgress now work counter WorkStart{..} =
           <div .card-body>
             <p .card-text>
                #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}:
-            ^{progressDetails counter}
+            ^{progressDetails counter wsGoal}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
                ETA: #{relTime True remaining}.
@@ -163,7 +165,7 @@ workResults now WorkResults{..} work item =
           <div .card-body>
             <p .card-text>
               #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed:
-                 ^{progressDetails wrDone}
+                 ^{progressDetails wrDone wrGoal}
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
