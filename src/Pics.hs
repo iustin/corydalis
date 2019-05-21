@@ -514,14 +514,18 @@ minMaxPairMerge (xmin, xmax) (ymin, ymax) =
   (xmin `min` ymin, xmax `max` ymax)
 
 -- | Merge two Maybe values using a custom function.
-mergeMM :: Maybe a -> Maybe a -> (a -> a -> a) -> Maybe a
-mergeMM Nothing x _          = x
-mergeMM x Nothing _          = x
-mergeMM (Just x) (Just y) fn = Just $ fn x y
+mergeMM :: (a -> a -> a) -> Maybe a -> Maybe a -> Maybe a
+mergeMM _ Nothing x          = x
+mergeMM _ x Nothing          = x
+mergeMM fn (Just x) (Just y) = Just $ fn x y
+
+-- | Helper for merging two Maybe values using minxMaxPairMerge.
+mergeMinMaxPair :: (Ord a) => Maybe (a, a) -> Maybe (a, a) -> Maybe (a, a)
+mergeMinMaxPair = mergeMM minMaxPairMerge
 
 instance Semigroup CameraInfo where
-  x <> y = x { ciShutterCount = mergeMM (ciShutterCount x) (ciShutterCount y) minMaxPairMerge
-             , ciDateRange = mergeMM (ciDateRange x) (ciDateRange y) minMaxPairMerge
+  x <> y = x { ciShutterCount = mergeMinMaxPair (ciShutterCount x) (ciShutterCount y)
+             , ciDateRange = mergeMinMaxPair (ciDateRange x) (ciDateRange y)
              }
 
 instance Default CameraInfo where
