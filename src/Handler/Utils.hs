@@ -35,7 +35,7 @@ import qualified Data.Text                  as Text
 import qualified Data.Text.Lazy             as TL
 import           Data.Time
 import           Data.Time.Clock.POSIX
-import           Formatting                 (format, (%))
+import           Formatting                 hiding (string)
 import qualified Formatting.ShortFormatters as F
 import           Text.Blaze                 (Markup, ToMarkup, string, toMarkup)
 
@@ -382,3 +382,21 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
   in object [ "imagecount" .= jsonl
             , "trends"     .= jsont
             ]
+
+formatDate :: Integer -> TL.Text
+formatDate d =
+  let (years, d1) = d `quotRem` 365
+      (months, d2) = d1 `quotRem` 30
+      (weeks, days) = d2 `quotRem` 7
+      pl :: Integer -> TL.Text
+      pl n = if n > 1 then "s" else ""
+      fpl :: Integer -> TL.Text -> Maybe TL.Text
+      fpl n t = if n > 0
+                then Just (format (int % " " % text % text) n t (pl n))
+                else Nothing
+      elems = [ fpl years "year"
+              , fpl months "month"
+              , fpl weeks "week"
+              , fpl days "day"
+              ]
+  in TL.intercalate " and " $ take 2 $ catMaybes elems
