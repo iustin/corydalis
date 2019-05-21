@@ -41,7 +41,7 @@
                <td .number>
                  $maybe kr <- keeperRate oc
                    #{formatKeeperRate kr}
-               $maybe (bDate, eDate) <- ciDateRange $ ocData oc
+               $maybe (bDate, eDate) <- ocDateRange oc
                  <td .date>#{showLocalDate bDate}
                  <td .date>#{showLocalDate eDate}
                  $# FIXME: when time 1.9, this becomes much easier…

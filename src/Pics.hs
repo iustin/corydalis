@@ -506,13 +506,11 @@ type DateRange = (LocalTime, LocalTime)
 data CameraInfo = CameraInfo
   { ciName         :: !Text
   , ciShutterCount :: !(Maybe (Integer, Integer))
-  , ciDateRange    :: !(Maybe DateRange)
   } deriving (Eq, Show, Ord)
 
 instance NFData CameraInfo where
   rnf CameraInfo{..} = rnf ciName `seq`
-                       rnf ciShutterCount `seq`
-                       rnf ciDateRange
+                       rnf ciShutterCount
 
 -- | Min-max merge of two pairs.
 minMaxPairMerge :: (Ord a) => (a, a) -> (a, a) -> (a, a)
@@ -531,11 +529,10 @@ mergeMinMaxPair = mergeMM minMaxPairMerge
 
 instance Semigroup CameraInfo where
   x <> y = x { ciShutterCount = mergeMinMaxPair (ciShutterCount x) (ciShutterCount y)
-             , ciDateRange = mergeMinMaxPair (ciDateRange x) (ciDateRange y)
              }
 
 instance Default CameraInfo where
-  def = CameraInfo unknown Nothing Nothing
+  def = CameraInfo unknown Nothing
 
 -- | Data type holding per-folder picture statistics.
 data Stats = Stats
@@ -640,7 +637,7 @@ updateStatsWithPic orig img =
       doubleUp x = (x, x)
       shutterCount = doubleUp <$> exifShutterCount exif
       captureDate = doubleUp <$> exifCreateDate exif
-      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount captureDate) ymdate captureDate
+      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount) ymdate captureDate
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
