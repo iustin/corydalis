@@ -469,7 +469,7 @@ data Occurrence a = Occurrence
   , ocFolders   :: !Integer
   , ocData      :: !a
   , ocTrends    :: !Trends
-  , ocDateRange :: !(Maybe (LocalTime, LocalTime))
+  , ocDateRange :: !(Maybe DateRange)
   } deriving (Show)
 
 instance Default a => Default (Occurrence a) where
@@ -500,10 +500,13 @@ ocFromSize size d tk =
              , ocDateRange = Nothing
              }
 
+-- | Helper type alias for a (start date, end date) interval.
+type DateRange = (LocalTime, LocalTime)
+
 data CameraInfo = CameraInfo
   { ciName         :: !Text
   , ciShutterCount :: !(Maybe (Integer, Integer))
-  , ciDateRange    :: !(Maybe (LocalTime, LocalTime))
+  , ciDateRange    :: !(Maybe DateRange)
   } deriving (Eq, Show, Ord)
 
 instance NFData CameraInfo where
