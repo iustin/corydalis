@@ -15,3 +15,5 @@ Current list of embedded libraries:
   <https://imagesloaded.desandro.com/>
 - infinite-scroll v3.0.5, updated 2019-04-26,
   <https://infinite-scroll.com/>
+- fancyBox v3.5.7, updated 2019-05-18,
+  <http://fancyapps.com/fancybox/>

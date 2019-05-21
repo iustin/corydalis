@@ -82,7 +82,14 @@ License: MIT
 Files:
   static/infinite-scroll/js/infinite-scroll.pkgd.js
 Copyright: 2019, David DeSandro
-Comment: The GPLv3 license is available in the file LICENCE-infinite-scroll-gplv3
+Comment: The GPLv3 license is available in the file LICENCE-aux-gplv3
+License: GPLv3
+
+Files:
+  static/fancybox/js/jquery.fancybox.js
+  static/fancybox/css/jquery.fancybox.css
+Copyright: 2019, fancyApps
+Comment: The GPLv3 license is available in the file LICENCE-aux-gplv3
 License: GPLv3
 
 License: MIT
