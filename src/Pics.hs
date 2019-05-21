@@ -632,12 +632,13 @@ updateStatsWithPic orig img =
                Nothing -> case imgJpegPath img of
                             x:_ -> fileSize x
                             _   -> 0
-      lens = exifLens exif
-      lensOcc = ocFromSize xsize lens ymdate captureDate
       doubleUp x = (x, x)
       shutterCount = doubleUp <$> exifShutterCount exif
       captureDate = doubleUp <$> exifCreateDate exif
-      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount) ymdate captureDate
+      ocBuilder i = ocFromSize xsize i ymdate captureDate
+      lens = exifLens exif
+      lensOcc = ocBuilder lens
+      cameraOcc = ocBuilder (CameraInfo camera shutterCount)
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
