@@ -490,14 +490,14 @@ instance Semigroup a => Semigroup (Occurrence a) where
 instance NFData a => NFData (Occurrence a) where
   rnf occ = rwhnf occ `seq` rnf (ocData occ)
 
-ocFromSize :: FileOffset -> a -> Maybe TrendsKey -> Occurrence a
-ocFromSize size d tk =
+ocFromSize :: FileOffset -> a -> Maybe TrendsKey -> Maybe DateRange -> Occurrence a
+ocFromSize size d tk dr =
   Occurrence { ocFiles = 1
              , ocFileSize = size
              , ocFolders = 0
              , ocData = d
              , ocTrends = maybe Map.empty (`Map.singleton` 1) tk
-             , ocDateRange = Nothing
+             , ocDateRange = dr
              }
 
 -- | Helper type alias for a (start date, end date) interval.
@@ -636,11 +636,11 @@ updateStatsWithPic orig img =
                             x:_ -> fileSize x
                             _   -> 0
       lens = exifLens exif
-      lensOcc = ocFromSize xsize lens ymdate
+      lensOcc = ocFromSize xsize lens ymdate captureDate
       doubleUp x = (x, x)
       shutterCount = doubleUp <$> exifShutterCount exif
       captureDate = doubleUp <$> exifCreateDate exif
-      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount captureDate) ymdate
+      cameraOcc = ocFromSize xsize (CameraInfo camera shutterCount captureDate) ymdate captureDate
       ms = foldl' (\s f -> s + fileSize f) 0 (maybeToList (imgMasterMov img) ++ imgMovs img)
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
