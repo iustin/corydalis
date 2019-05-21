@@ -37,7 +37,9 @@ import           Import
 import           Indexer
 import           Pics
 
-import qualified Data.Map      as Map
+import qualified Data.Map            as Map
+import           Data.Time.Calendar
+import           Data.Time.LocalTime
 
 getByLens :: Repository -> Map Text (Occurrence LensInfo)
 getByLens = sByLens . rsPicStats . repoStats

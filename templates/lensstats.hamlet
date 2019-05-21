@@ -26,7 +26,9 @@
              <th .sorter-text .filter-select>Type
              <th .sorter-digit>Image count
              <th .sorter-digit>Folder count
-             <th .sorter-digit>Months used
+             <th>First picture
+             <th>Last picture
+             <th>Working age
          <tbody>
            $forall (name, oc) <- lenses
              $with lens <- ocData oc
@@ -44,4 +46,13 @@
                      <td data-text=variable-zoom>Variable-aperture zoom
                  <td .number>#{ocFiles oc}
                  <td .number>#{ocFolders oc}
-                 <td .number>#{Map.size $ ocTrends oc}
+                 $maybe (bDate, eDate) <- ocDateRange oc
+                   <td .date>#{showLocalDate bDate}
+                   <td .date>#{showLocalDate eDate}
+                   $# FIXME: when time 1.9, this becomes much easier…
+                   $with age <- diffDays (localDay eDate) (localDay bDate) + 1
+                     <td data-text="#{show age}">#{formatDate age}
+                 $nothing
+                   <td>
+                   <td>
+                   <td>
