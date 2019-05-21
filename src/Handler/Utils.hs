@@ -210,7 +210,7 @@ buildTopNItems :: (Ord a)
                => a -> Map.Map Text (Occurrence a) -> Int -> [(Integer, FileOffset, Text, a, Trends)]
 buildTopNItems d m n =
   let allItems = sortBy (flip compare) $
-                 Map.foldlWithKey' (\a k (Occurrence cnt sz _ li tr) ->
+                 Map.foldlWithKey' (\a k (Occurrence cnt sz _ li tr _) ->
                                        (cnt, sz, k, li, tr):a) [] m
       top10 = if length allItems > n
                 then let t10 = reverse $ take (n-1) allItems

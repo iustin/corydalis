@@ -464,15 +464,16 @@ type TrendsKey = (Int, Int)
 type Trends = Map TrendsKey Integer
 
 data Occurrence a = Occurrence
-  { ocFiles    :: !Integer
-  , ocFileSize :: !FileOffset
-  , ocFolders  :: !Integer
-  , ocData     :: !a
-  , ocTrends   :: !Trends
+  { ocFiles     :: !Integer
+  , ocFileSize  :: !FileOffset
+  , ocFolders   :: !Integer
+  , ocData      :: !a
+  , ocTrends    :: !Trends
+  , ocDateRange :: !(Maybe (LocalTime, LocalTime))
   } deriving (Show)
 
 instance Default a => Default (Occurrence a) where
-  def = Occurrence 0 0 0 def Map.empty
+  def = Occurrence 0 0 0 def Map.empty Nothing
 
 instance (Semigroup a, Default a) => Monoid (Occurrence a) where
   mempty = def
@@ -483,6 +484,7 @@ instance Semigroup a => Semigroup (Occurrence a) where
                       , ocFolders = ocFolders x + ocFolders y
                       , ocData = ocData x <> ocData y
                       , ocTrends = Map.unionWith (+) (ocTrends x) (ocTrends y)
+                      , ocDateRange = mergeMinMaxPair (ocDateRange x) (ocDateRange y)
                       }
 
 instance NFData a => NFData (Occurrence a) where
@@ -495,6 +497,7 @@ ocFromSize size d tk =
              , ocFolders = 0
              , ocData = d
              , ocTrends = maybe Map.empty (`Map.singleton` 1) tk
+             , ocDateRange = Nothing
              }
 
 data CameraInfo = CameraInfo
