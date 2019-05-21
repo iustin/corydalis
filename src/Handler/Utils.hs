@@ -400,3 +400,10 @@ formatDate d =
               , fpl days "day"
               ]
   in TL.intercalate " and " $ take 2 $ catMaybes elems
+
+-- | Select best movie for an image.
+bestMovie :: Image -> Maybe File
+bestMovie img =
+  case imgMovs img of
+    m:_ -> Just m
+    _   -> imgMasterMov img

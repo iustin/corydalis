@@ -109,13 +109,6 @@ instance ToJSON ViewInfo where
            , "last"        .= viLast
            ]
 
--- | Select best movie for an image.
-bestMovie :: Image -> Maybe File
-bestMovie img =
-  case imgMovs img of
-    m:_ -> Just m
-    _   -> imgMasterMov img
-
 -- | Ensure that requested image is present in the (filtered) map.
 locateCurrentImage :: Text -> Text -> SearchResults -> Handler Image
 locateCurrentImage fname iname images = do
