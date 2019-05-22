@@ -31,6 +31,7 @@ module Handler.Browse
   , getBrowseImagesR
   ) where
 
+import qualified Data.Map        as Map
 import qualified Data.Text       as Text
 import qualified Data.Text.Lazy  as TextL
 
@@ -63,13 +64,11 @@ getBrowseFoldersR kinds = do
     setHtmlTitle $ "browsing folders of type " <> kinds_string
     $(widgetFile "browsefolders")
 
-getBrowseImagesR :: [ImageStatus] -> Handler TypedContent
-getBrowseImagesR kinds = do
-  config <- getConfig
-  pics <- getPics
-  let kinds_string = Text.intercalate ", " . map (Text.pack . show) $ kinds
-      thumbsize = cfgThumbnailSize config
-      images = filterImagesByClass kinds pics
+getBrowseImagesR :: Handler TypedContent
+getBrowseImagesR = do
+  (ctx, config, params, atom, search_string, pics) <- searchContext
+  images <- Map.elems <$> liftIO (searchImages ctx atom pics)
+  let thumbsize = cfgThumbnailSize config
       allpaths = foldl' (\paths img ->
                            let jpaths = map filePath . imgJpegPath $ img
                                withJpegs = jpaths  ++ paths
@@ -78,6 +77,6 @@ getBrowseImagesR kinds = do
                              Just r  -> filePath r:withJpegs) [] images
   selectRep $ do
     provideRep $ defaultLayout $ do
-      setHtmlTitle $ "showing images with status " <> kinds_string
+      setHtmlTitle "Listing images"
       $(widgetFile "browseimages")
     provideRep $ return $ "\n" `TextL.intercalate` allpaths

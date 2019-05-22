@@ -11,13 +11,13 @@ $if allpics > 0
           other untracked files, out of which:
           <ul>
             $if processed > 0
-              <li>#{processed} <a href=@{BrowseImagesR [ImageProcessed]}>processed images</a> backed by RAW files.
+              <li>#{processed} <a href=@?{imageFilter StatusProcessed}>processed images</a> backed by RAW files.
             $if unprocessed > 0
-              <li>#{unprocessed} <a href=@{BrowseImagesR [ImageRaw]}>unprocessed</a> files (located in <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
+              <li>#{unprocessed} <a href=@?{imageFilter StatusUnprocessed}>unprocessed</a> files (located in <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
             $if standalone > 0
-              <li>#{standalone} <a href=@{BrowseImagesR [ImageStandalone]}>standalone JPEGs</a>
+              <li>#{standalone} <a href=@?{imageFilter StatusStandalone}>standalone JPEGs</a>
             $if orphaned > 0
-              <li>#{orphaned} <a href=@{BrowseImagesR [ImageOrphaned]}>orphaned sidecar files</a>
+              <li>#{orphaned} <a href=@?{imageFilter StatusOrphaned}>orphaned sidecar files</a>
             $if movies > 0
               $# TODO: add movie listing
               <li>#{movies} movies

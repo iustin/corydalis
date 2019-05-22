@@ -1,5 +1,5 @@
 <h1>Showing images #
-  <small>of type #{kinds_string}
+  <small>for filter #{search_string}
 
 <div .row>
  <div .col-12>
@@ -15,4 +15,4 @@
          The selected filter matches #{length images} images.
 
      <div .card>
-       ^{imageList thumbsize [] True True images}
+       ^{imageList thumbsize params True True images}

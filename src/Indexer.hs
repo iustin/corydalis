@@ -40,6 +40,7 @@ module Indexer ( Symbol(..)
                , buildImageMap
                , searchImages
                , genQuickSearchParams
+               , StatusOp(..)
                ) where
 
 import           Control.Monad  (foldM)

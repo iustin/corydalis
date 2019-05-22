@@ -38,14 +38,6 @@ import           Import
 import           Indexer
 import           Pics
 
-searchContext :: Handler (Ctx, Config, [(Text, Text)], Atom, Text, Repository)
-searchContext = do
-  ctx <- getContext
-  (_, atom) <- getAtomParams
-  let search_string = atomDescription atom
-  pics <- getPics
-  return (ctx, ctxConfig ctx, atomToParams atom, atom, search_string, pics)
-
 getSearchFoldersR :: Handler Html
 getSearchFoldersR = do
   (_, config, params, atom, search_string, pics) <- searchContext

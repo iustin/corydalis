@@ -37,7 +37,7 @@ import qualified Data.Text     as Text
 import           Exif          (lensShortName, liName, liSpec, unknownLens)
 import           Handler.Items
 import           Handler.Utils
-import           Import
+import           Import        hiding (Status)
 import           Indexer
 import           Pics
 
@@ -167,6 +167,7 @@ getCurateR = do
                ) [] .
         Map.toList
       problems = topN 3 $ repoProblems pics
+      imageFilter s = (BrowseImagesR, atomToParams (Status s))
   let html = do
         setTitle "Corydalis: curate"
         addPlotly

@@ -408,3 +408,11 @@ bestMovie img =
   case imgMovs img of
     m:_ -> Just m
     _   -> imgMasterMov img
+
+searchContext :: Handler (Ctx, Config, [(Text, Text)], Atom, Text, Repository)
+searchContext = do
+  ctx <- getContext
+  (_, atom) <- getAtomParams
+  let search_string = atomDescription atom
+  pics <- getPics
+  return (ctx, ctxConfig ctx, atomToParams atom, atom, search_string, pics)
