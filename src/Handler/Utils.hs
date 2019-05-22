@@ -129,7 +129,8 @@ atomIcon TCamera   = "fas fa-camera"
 atomIcon TLens     = "fas fa-camera" -- :(
 atomIcon TProblem  = "fas fa-bomb"
 atomIcon TType     = "fas fa-file"
-atomIcon TPath     = "fas fs-folder"
+atomIcon TPath     = "fas fa-folder"
+atomIcon TStatus   = "fas fa-file-alt"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =

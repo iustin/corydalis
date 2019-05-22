@@ -50,6 +50,7 @@ symbolPlCap TCamera   = "Cameras"
 symbolPlCap TLens     = "Lenses"
 symbolPlCap TType     = "Types"
 symbolPlCap TPath     = "Paths"
+symbolPlCap TStatus   = "Statuses"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"

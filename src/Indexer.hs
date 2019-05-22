@@ -57,6 +57,7 @@ import           Yesod          (PathPiece (..))
 
 import           Exif
 import           Pics
+import           Types          (ImageStatus (..))
 
 data Symbol = TCountry
             | TProvince
@@ -70,6 +71,7 @@ data Symbol = TCountry
             | TProblem
             | TType
             | TPath
+            | TStatus
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -85,6 +87,8 @@ instance PathPiece Symbol where
   fromPathPiece "lenses"    = Just TLens
   fromPathPiece "problems"  = Just TProblem
   fromPathPiece "types"     = Just TType
+  fromPathPiece "statuses"  = Just TStatus
+  -- TODO: hmm, what about paths?
   fromPathPiece _           = Nothing
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
@@ -134,6 +138,19 @@ evalType TypeMovie   = (== MediaMovie) . imgType
 evalType TypeImage   = (== MediaImage) . imgType
 evalType TypeUnknown = (== MediaUnknown) . imgType
 
+data StatusOp
+  = StatusOrphaned
+  | StatusStandalone
+  | StatusUnprocessed
+  | StatusProcessed
+  deriving (Show, Eq)
+
+statusToImageStatus :: StatusOp -> ImageStatus
+statusToImageStatus StatusOrphaned    = ImageOrphaned
+statusToImageStatus StatusStandalone  = ImageStandalone
+statusToImageStatus StatusUnprocessed = ImageRaw
+statusToImageStatus StatusProcessed   = ImageProcessed
+
 data Atom = Country  StrOp
           | Province StrOp
           | City     StrOp
@@ -146,6 +163,7 @@ data Atom = Country  StrOp
           | Problem  StrOp
           | Type     TypeOp
           | Path     StrOp
+          | Status   StatusOp
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -170,6 +188,7 @@ symbolName TLens     = "lens"
 symbolName TProblem  = "problem"
 symbolName TType     = "type"
 symbolName TPath     = "path"
+symbolName TStatus   = "status"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -187,6 +206,7 @@ parseSymbol "lens"     = Just TLens
 parseSymbol "problem"  = Just TProblem
 parseSymbol "type"     = Just TType
 parseSymbol "path"     = Just TPath
+parseSymbol "status"   = Just TStatus
 parseSymbol _          = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -205,6 +225,8 @@ buildMissingAtom s =
     TType     -> Type      TypeUnknown
     -- FIXME: this should fail instead (using Maybe).
     TPath     -> Path      OpMissing
+    -- FIXME: what to return here?
+    TStatus   -> error "No missing atom for status"
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -215,6 +237,7 @@ parseAtom a v = do
   let dec = parseDecimal v
       str = parseString v
       typ = parseType v
+      sta = parseStatus v
   case s of
     TCountry  -> Country  <$> str
     TProvince -> Province <$> str
@@ -228,6 +251,7 @@ parseAtom a v = do
     TProblem  -> Problem  <$> str
     TType     -> Type     <$> typ
     TPath     -> Path     <$> str
+    TStatus   -> Status   <$> sta
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -247,6 +271,7 @@ quickSearch s v =
         _              -> Nothing
     TType     -> Type <$> parseType v
     TPath     -> Just . Path . OpFuzzy $ f
+    TStatus   -> Status <$> parseStatus v
   where f = makeFuzzy v
 
 atomTypeDescriptions :: Symbol -> Text
@@ -262,6 +287,7 @@ atomTypeDescriptions TLens     = "lenses"
 atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
 atomTypeDescriptions TPath     = "paths"
+atomTypeDescriptions TStatus   = "statuses"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -327,6 +353,7 @@ atomDescription (Type TypeImage)       = "is an image"
 atomDescription (Type TypeMovie)       = "is a movie"
 atomDescription (Type TypeUnknown)     = "is of unknown type"
 atomDescription (Path s)               = describeStr "path" s
+atomDescription (Status v)             = "image status is " <> showStatus v
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -404,6 +431,9 @@ imageSearchFunction (Path p) =
   \img -> (evalStr p  . Just . imgName)   img ||
           (evalStr p  . Just . imgParent) img
 
+imageSearchFunction (Status v) =
+  \img -> imgStatus img == statusToImageStatus v
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -436,6 +466,7 @@ getAtoms TYear     = yearStats
 getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
 getAtoms TPath     = const Map.empty
+getAtoms TStatus   = statusStats
 
 -- | Media type to Type.
 mediaToType :: MediaType -> TypeOp
@@ -452,6 +483,16 @@ typeStats =
                        ) stats . pdImages
          ) Map.empty . Map.elems . repoDirs
     where incM m t = Map.insertWith (+) (Just t) 1 m
+
+-- | Gets status stastics from repository statistics.
+statusStats :: Repository -> NameStats
+statusStats (rsPicStats . repoStats -> stats) =
+  Map.fromList . map (\(s, f) -> (Just $ showStatus s, fromIntegral $ f stats)) $
+  [ (StatusOrphaned,    sOrphaned)
+  , (StatusStandalone,  sStandalone)
+  , (StatusUnprocessed, sRaw)
+  , (StatusProcessed,   sProcessed)
+  ]
 
 -- | Computes year statistics.
 yearStats :: Repository -> NameStats
@@ -554,6 +595,19 @@ showType TypeMovie   = "movie"
 showType TypeImage   = "image"
 showType TypeUnknown = "unknown"
 
+parseStatus :: Text -> Maybe StatusOp
+parseStatus "orphaned"    = Just StatusOrphaned
+parseStatus "standalone"  = Just StatusStandalone
+parseStatus "unprocessed" = Just StatusUnprocessed
+parseStatus "processed"   = Just StatusProcessed
+parseStatus _             = Nothing
+
+showStatus :: StatusOp -> Text
+showStatus StatusOrphaned    = "orphaned"
+showStatus StatusStandalone  = "standalone"
+showStatus StatusUnprocessed = "unprocessed"
+showStatus StatusProcessed   = "processed"
+
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params =
   if length params > 50
@@ -574,6 +628,9 @@ strOpToParam s OpMissing   = ("no-" <> s, "")
 typeOpToParam :: Text -> TypeOp -> (Text, Text)
 typeOpToParam s = (s, ) . showType
 
+statusOpToParam :: Text -> StatusOp -> (Text, Text)
+statusOpToParam s = (s, ) . showStatus
+
 atomToParams :: Atom -> [(Text, Text)]
 atomToParams (Country  v) = [strOpToParam (symbolName TCountry ) v]
 atomToParams (Province v) = [strOpToParam (symbolName TProvince) v]
@@ -587,6 +644,7 @@ atomToParams (Lens     v) = [strOpToParam (symbolName TLens    ) v]
 atomToParams (Problem  v) = [strOpToParam (symbolName TProblem ) v]
 atomToParams (Type     v) = [typeOpToParam (symbolName TType   ) v]
 atomToParams (Path     v) = [strOpToParam (symbolName TPath    ) v]
+atomToParams (Status   v) = [statusOpToParam (symbolName TStatus ) v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =
