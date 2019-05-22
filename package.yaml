@@ -125,6 +125,7 @@ library:
     - Cache
     - Exif
     - Foundation
+    - Handler.Browse
     - Handler.Camera
     - Handler.Common
     - Handler.Curate

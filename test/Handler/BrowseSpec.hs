@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Handler.SearchSpec (spec) where
+module Handler.BrowseSpec (spec) where
 
 import           TestImport
 
@@ -32,28 +32,22 @@ checkRedirAndHeader = do
 
 spec :: Spec
 spec = withApp $ do
-  -- TODO: add folders by year
-  -- TODO: add quick search
-  describe "checks the per-year handlers" $ do
-    it "loads the folders no year page and checks it looks right" $ do
+  -- TODO: add search folders
+  describe "checks image search" $ do
+    it "checks invalid page request" $ do
       login
-      get SearchFoldersNoYearR
-      checkRedirAndHeader
-    it "loads empty folder=1900 page and checks it looks right" $ do
+      checkRouteIs (SearchImagesR (-1)) 400
+    it "checks empty search on page 0" $ do
       login
-      get $ SearchFoldersByYearR 1900
-      checkRedirAndHeader
+      checkRoute $ SearchImagesR 0
       htmlAnyContain "div.card-header" "Nothing found"
-      htmlAnyContain "div.card-body" "doesn&#39;t match any folders"
-  describe "checks quick search" $ do
-    it "checks for missing search parameter" $ do
+      htmlAnyContain "div.card-body" "doesn&#39;t match any images"
+      bodyContains "data-page-index=\"0\""
+      bodyContains "data-initial-count=\"0\""
+    it "checks empty search on page 3" $ do
       login
-      checkRouteIs QuickSearchR 400
-    it "checks for invalid search parameter" $ do
-      login
-      get (QuickSearchR, [("q", "")])
-      statusIs 400
-    it "checks for fruitless search" $ do
-      login
-      get (QuickSearchR, [("q", "1900")])
-      checkRedirect
+      checkRoute $ SearchImagesR 3
+      htmlAnyContain "div.card-header" "Nothing found"
+      htmlAnyContain "div.card-body" "doesn&#39;t match any images"
+      bodyContains "data-page-index=\"3\""
+      bodyContains "data-initial-count=\"0\""

@@ -21,57 +21,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Handler.Search ( getSearchFoldersR
-                      , getSearchImagesR
-                      , getQuickSearchR
+module Handler.Search ( getQuickSearchR
                       , getSearchFoldersByYearR
                       , getSearchFoldersNoYearR
                       ) where
 
-import           Data.Aeson.Text (encodeToLazyText)
-import qualified Data.Map        as Map
-import qualified Data.Text       as Text
+import qualified Data.Text     as Text
 
 import           Handler.Utils
-import           Handler.Widgets
 import           Import
 import           Indexer
-import           Pics
-
-getSearchFoldersR :: Handler Html
-getSearchFoldersR = do
-  (_, config, params, atom, search_string, pics) <- searchContext
-  let folders = filter (folderSearchFunction atom) . Map.elems . repoDirs $ pics
-      thumbsize = cfgThumbnailSize config
-  defaultLayout $ do
-    setHtmlTitle "searching folders"
-    $(widgetFile "searchfolders")
-
-getSearchImagesR :: Int -> Handler Html
-getSearchImagesR page = do
-  when (page < 0) $
-    invalidArgs ["Negative page index"]
-  (ctx, config, params, atom, search_string, pics) <- searchContext
-  images' <- Map.elems <$> liftIO (searchImages ctx atom pics)
-  let pageSize = cfgPageSize config
-      currentIdx = page * pageSize
-      currentStart = currentIdx + 1
-      (images, remImages) = splitAt pageSize . drop currentIdx $ images'
-      imagesize = cfgBrowsingSize config
-      nextPage = page + 1
-  -- TODO: allow switching between grid and list, so that people can
-  -- choose either [feature].
-  debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
-  defaultLayout $ do
-    addStylesheet $ StaticR fancybox_css_jquery_fancybox_css
-    addScript $ StaticR masonry_js_masonry_pkgd_js
-    addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
-    addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
-    addScript $ StaticR fancybox_js_jquery_fancybox_js
-    addScript $ StaticR corydalis_js_imagegrid_js
-    addScript $ StaticR corydalis_js_fancybox_js
-    setHtmlTitle "searching images"
-    $(widgetFile "searchimages")
 
 getQuickSearchR :: Handler Html
 getQuickSearchR = do
