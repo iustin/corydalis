@@ -41,7 +41,7 @@ getBrowseFoldersR = do
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setHtmlTitle "searching folders"
-    $(widgetFile "searchfolders")
+    $(widgetFile "browsefolders")
 
 getBrowseImagesR :: Int -> Handler Html
 getBrowseImagesR page = do
@@ -67,4 +67,4 @@ getBrowseImagesR page = do
     addScript $ StaticR corydalis_js_imagegrid_js
     addScript $ StaticR corydalis_js_fancybox_js
     setHtmlTitle "searching images"
-    $(widgetFile "searchimages")
+    $(widgetFile "browseimages")
