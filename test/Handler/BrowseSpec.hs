@@ -36,17 +36,17 @@ spec = withApp $ do
   describe "checks image search" $ do
     it "checks invalid page request" $ do
       login
-      checkRouteIs (SearchImagesR (-1)) 400
+      checkRouteIs (BrowseImagesR (-1)) 400
     it "checks empty search on page 0" $ do
       login
-      checkRoute $ SearchImagesR 0
+      checkRoute $ BrowseImagesR 0
       htmlAnyContain "div.card-header" "Nothing found"
       htmlAnyContain "div.card-body" "doesn&#39;t match any images"
       bodyContains "data-page-index=\"0\""
       bodyContains "data-initial-count=\"0\""
     it "checks empty search on page 3" $ do
       login
-      checkRoute $ SearchImagesR 3
+      checkRoute $ BrowseImagesR 3
       htmlAnyContain "div.card-header" "Nothing found"
       htmlAnyContain "div.card-body" "doesn&#39;t match any images"
       bodyContains "data-page-index=\"3\""

@@ -57,7 +57,7 @@
         <td>Number of images
         $if length images > 0
           <td .number>
-            <a href="@?{(SearchImagesR 0,[atomAsParam TLens (Just lensname)])}">
+            <a href="@?{(BrowseImagesR 0,[atomAsParam TLens (Just lensname)])}">
               #{length images}
         $else
           <td .number>#{length images}

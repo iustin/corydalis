@@ -14,7 +14,7 @@
        <div .card-body>
          The filter <i>#{search_string}</i>
          matches #{length folders} folders.
-         Go to the <a href="@?{(SearchImagesR 0, params)}">image list</a>
+         Go to the <a href="@?{(BrowseImagesR 0, params)}">image list</a>
          for this filter.
 
      <div .card>

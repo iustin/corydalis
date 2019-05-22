@@ -53,12 +53,12 @@ getQuickSearchR = do
           "The following filters had no results so they were skipped: " <>
           ", " `Text.intercalate` map atomDescription skipped <> "."
         setSession msgTypeKey msgWarning
-      redirect (SearchImagesR 0, p)
+      redirect (BrowseImagesR 0, p)
 
 getSearchFoldersByYearR :: Integer -> Handler Html
 getSearchFoldersByYearR year =
-  redirect (SearchFoldersR, [(symbolName TYear, Text.pack $ show year)])
+  redirect (BrowseFoldersR, [(symbolName TYear, Text.pack $ show year)])
 
 getSearchFoldersNoYearR :: Handler Html
 getSearchFoldersNoYearR =
-  redirect (SearchFoldersR, [(negSymbolName TYear, "")])
+  redirect (BrowseFoldersR, [(negSymbolName TYear, "")])

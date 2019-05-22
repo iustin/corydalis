@@ -21,8 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Handler.Browse ( getSearchFoldersR
-                      , getSearchImagesR
+module Handler.Browse ( getBrowseFoldersR
+                      , getBrowseImagesR
                       ) where
 
 import           Data.Aeson.Text (encodeToLazyText)
@@ -34,8 +34,8 @@ import           Import
 import           Indexer
 import           Pics
 
-getSearchFoldersR :: Handler Html
-getSearchFoldersR = do
+getBrowseFoldersR :: Handler Html
+getBrowseFoldersR = do
   (_, config, params, atom, search_string, pics) <- searchContext
   let folders = filter (folderSearchFunction atom) . Map.elems . repoDirs $ pics
       thumbsize = cfgThumbnailSize config
@@ -43,8 +43,8 @@ getSearchFoldersR = do
     setHtmlTitle "searching folders"
     $(widgetFile "searchfolders")
 
-getSearchImagesR :: Int -> Handler Html
-getSearchImagesR page = do
+getBrowseImagesR :: Int -> Handler Html
+getBrowseImagesR page = do
   when (page < 0) $
     invalidArgs ["Negative page index"]
   (ctx, config, params, atom, search_string, pics) <- searchContext

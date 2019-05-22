@@ -2,13 +2,13 @@ $with smf <- showMaybeField "?"
   <tr>
     <td>Location
     <td>
-      <a href="@?{(SearchImagesR 0,[atomAsParam TCountry exifCountry])}"><span title="Country">^{smf exifCountry}
+      <a href="@?{(BrowseImagesR 0,[atomAsParam TCountry exifCountry])}"><span title="Country">^{smf exifCountry}
       <span .fas .fa-caret-right .mx-1>
-      <a href="@?{(SearchImagesR 0,[atomAsParam TProvince exifProvince])}"><span title="Province">^{smf exifProvince}
+      <a href="@?{(BrowseImagesR 0,[atomAsParam TProvince exifProvince])}"><span title="Province">^{smf exifProvince}
       <span .fas .fa-caret-right .mx-1>
-      <a href="@?{(SearchImagesR 0,[atomAsParam TCity exifCity])}"><span title="City">^{smf exifCity}
+      <a href="@?{(BrowseImagesR 0,[atomAsParam TCity exifCity])}"><span title="City">^{smf exifCity}
       <span .fas .fa-caret-right .mx-1>
-      <a href="@?{(SearchImagesR 0,[atomAsParam TLocation exifLocation])}"><span title="Location">^{smf exifLocation}
+      <a href="@?{(BrowseImagesR 0,[atomAsParam TLocation exifLocation])}"><span title="Location">^{smf exifLocation}
   <tr>
     <td>People
     <td>^{showSetField exifPeople}
