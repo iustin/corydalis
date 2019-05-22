@@ -54,29 +54,30 @@ imageBytes :: Int -> UrlParams -> Text -> Text -> Widget
 imageBytes thumbsize params folder image =
   toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
                      <img
-                       src="@?{(ImageBytesR folder image, [("res", Text.pack $ show thumbsize)])}"
+                       src="@{ImageBytesR folder image thumbsize}"
                        style="width: #{thumbsize}px; height: #{thumbsize}px"
                        >|]
 
 -- | Generates srcset for an image based on all auto-built versions.
-imageSrcSet :: Config -> (Route App -> [(Text, Text)] -> Text) -> Text -> Text -> Int -> Text
+imageSrcSet :: Config -> (Route App -> Text) -> Text -> Text -> Int -> Text
 imageSrcSet config renderer folder image minsize =
   -- FIXME: this should filter out all sizes greater than actual image
   -- size; this needs knowing the image size in Image. [performance]
   let allSizes = reverse . sort . filter (>= minsize) . cfgAutoImageSizes $ config
       sizes = map (\size -> sformat (stext % " " % int % "w")
-                            (renderer (ImageBytesR folder image) [("res", Text.pack $ show size)])
+                            (renderer (ImageBytesR folder image size))
                             size
                   ) allSizes
-      sizes' = renderer (ImageBytesR folder image) []:sizes
+      sizes' = renderer (ImageBytesR folder image 0):sizes
   in Text.intercalate ", " $ reverse sizes'
 
 imageBytesNoStyle :: Config -> Int -> UrlParams -> Text -> Image -> Widget
 imageBytesNoStyle config imagesize params folder img = do
-  render <- getUrlRenderParams
+  renderP <- getUrlRenderParams
+  render <- getUrlRender
   let image = imgName img
-      viewurl = render (ViewR folder image) params
-      infourl = render (ImageR folder image) params
+      viewurl = renderP (ViewR folder image) params
+      infourl = renderP (ImageR folder image) params
   case bestMovie img of
     Just f ->
       toWidget [hamlet|<a href=@?{(MovieBytesR folder image, params)}
@@ -88,13 +89,13 @@ imageBytesNoStyle config imagesize params folder img = do
                          >
                          <img
                            .grid-item-image
-                           src="@?{(ImageBytesR folder image, [("res", Text.pack $ show imagesize)])}"
+                           src="@{ImageBytesR folder image imagesize}"
                            >
                            <span class="fas fa-file-video fa-2x icon-overlay"></span>
                            |]
     Nothing -> do
       let srcset = imageSrcSet config render folder image imagesize
-      toWidget [hamlet|<a href=@?{(ImageBytesR folder image, params)}
+      toWidget [hamlet|<a href=@{ImageBytesR folder image 0}
                          class="fbox-item"
                          data-type="image"
                          data-viewurl="#{viewurl}"
@@ -104,7 +105,7 @@ imageBytesNoStyle config imagesize params folder img = do
                          >
                          <img
                            .grid-item-image
-                           src="@?{(ImageBytesR folder image, [("res", Text.pack $ show imagesize)])}"
+                           src="@{ImageBytesR folder image imagesize}"
                            >
                            |]
 

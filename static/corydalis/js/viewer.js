@@ -177,7 +177,16 @@ $(document).ready(function() {
         var w = $(canvas).width();
         var h = $(canvas).height();
         var r = w > h ? w : h;
-        return baseUrl + "?res=" + r;
+        // TODO: suply and read rendered sizes in/from boot data, and
+        // make calls only for the right image sizes.
+        if (baseUrl.endsWith('/0')) {
+            return baseUrl.slice(0, -1) + r;
+        } else if (baseUrl.endsWith('/0/')) {
+            return baseUrl.slice(0, -2) + r;
+        } else {
+            // Otherwise unchanged, since we couldn't find how to replace.
+            return baseUrl;
+        }
     }
 
     function requestImage(img, info, text) {

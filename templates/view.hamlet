@@ -1,7 +1,7 @@
 <div #boot
   data-folder="#{imgParent img}"
   data-image="#{imgName img}"
-  data-bytes-url="@{ImageBytesR (imgParent img) (imgName img)}"
+  data-bytes-url="@{ImageBytesR (imgParent img) (imgName img) 0}"
   data-info-url="@?{(ImageInfoR (imgParent img) (imgName img), params)}"
   data-random-url="@?{(RandomImageInfoR, params)}"
   data-initial-transform="#{initialTransform}"

@@ -16,7 +16,7 @@
 /search/folders/no-year SearchFoldersNoYearR GET
 /search/images/#Int SearchImagesR GET
 /view/#Text/#Text ViewR GET
-/image/bytes/#Text/#Text ImageBytesR GET
+/image/bytes/#Text/#Text/#Int ImageBytesR GET
 /image/movie/#Text/#Text MovieBytesR GET
 /image/info/#Text/#Text ImageInfoR GET
 /image/random RandomImageInfoR GET

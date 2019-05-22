@@ -43,7 +43,6 @@ import qualified Text.Blaze.Svg              as Svg
 import           Text.Blaze.Svg11            (Svg, docTypeSvg, text_, (!))
 import qualified Text.Blaze.Svg11.Attributes as SA
 import qualified Text.Hamlet                 as Hamlet (Render)
-import           Text.Read                   (readMaybe)
 
 import           Exif
 import           Handler.Utils
@@ -75,7 +74,7 @@ mkImageInfo :: Text -> Text -> Bool -> Hamlet.Render (Route App)
             -> UrlParams -> Transform -> ImageInfo
 mkImageInfo folder iname movie render params t =
   ImageInfo (render (ImageInfoR folder iname) params)
-            (render (ImageBytesR folder iname) [])
+            (render (ImageBytesR folder iname 0) [])
             (if movie then Just (render (MovieBytesR folder iname) []) else Nothing)
             (render (ViewR folder iname) params)
             iname (transformParams t) (transformMatrix t)
@@ -150,14 +149,12 @@ imageError :: Text -> TypedContent
 imageError msg =
   TypedContent typeSvg . toContent $ basicSvg ("Error: " <> msg)
 
-getImageBytesR :: Text -> Text -> Handler ()
-getImageBytesR folder iname = do
+getImageBytesR :: Text -> Text -> Int -> Handler ()
+getImageBytesR folder iname res = do
   config <- getConfig
   img <- getImage folder iname
-  -- TODO: make this 'res' string and the javascript string derive from the same constant
-  res <- lookupGetParam "res"
-  let res' = fmap Text.unpack res >>= readMaybe
-  imgbytes <- liftIO $ imageAtRes config img (ImageSize <$> res')
+  let res' = if res == 0 then Nothing else Just (ImageSize res)
+  imgbytes <- liftIO $ imageAtRes config img res'
   case imgbytes of
     Left ImageNotViewable ->
       sendResponse imageNotViewable
