@@ -30,6 +30,7 @@ module Handler.Widgets where
 import qualified Data.Map      as Map
 import qualified Data.Set      as Set
 import qualified Data.Text     as Text
+import           Formatting
 
 import           Exif
 import           Handler.Utils
@@ -57,8 +58,21 @@ imageBytes thumbsize params folder image =
                        style="width: #{thumbsize}px; height: #{thumbsize}px"
                        >|]
 
-imageBytesNoStyle :: Int -> UrlParams -> Text -> Image -> Widget
-imageBytesNoStyle imagesize params folder img = do
+-- | Generates srcset for an image based on all auto-built versions.
+imageSrcSet :: Config -> (Route App -> [(Text, Text)] -> Text) -> Text -> Text -> Int -> Text
+imageSrcSet config renderer folder image minsize =
+  -- FIXME: this should filter out all sizes greater than actual image
+  -- size; this needs knowing the image size in Image. [performance]
+  let allSizes = reverse . sort . filter (>= minsize) . cfgAutoImageSizes $ config
+      sizes = map (\size -> sformat (stext % " " % int % "w")
+                            (renderer (ImageBytesR folder image) [("res", Text.pack $ show size)])
+                            size
+                  ) allSizes
+      sizes' = renderer (ImageBytesR folder image) []:sizes
+  in Text.intercalate ", " $ reverse sizes'
+
+imageBytesNoStyle :: Config -> Int -> UrlParams -> Text -> Image -> Widget
+imageBytesNoStyle config imagesize params folder img = do
   render <- getUrlRenderParams
   let image = imgName img
       viewurl = render (ViewR folder image) params
@@ -78,13 +92,15 @@ imageBytesNoStyle imagesize params folder img = do
                            >
                            <span class="fas fa-file-video fa-2x icon-overlay"></span>
                            |]
-    Nothing ->
-      -- TODO: add srcset so that images are not loaded too large.
+    Nothing -> do
+      let srcset = imageSrcSet config render folder image imagesize
       toWidget [hamlet|<a href=@?{(ImageBytesR folder image, params)}
                          class="fbox-item"
                          data-type="image"
                          data-viewurl="#{viewurl}"
                          data-infourl="#{infourl}"
+                         data-srcset="#{srcset}"
+                         data-sizes="100vw"
                          >
                          <img
                            .grid-item-image
@@ -111,8 +127,8 @@ imageList thumbsize params showParent hideStatus images = do
                       else [[2, 0], [1, 0]]::[[Int]]
   $(widgetFile "imagelist")
 
-imageGrid :: Int -> UrlParams -> [Image] -> Widget
-imageGrid imagesize params images =
+imageGrid :: Config -> Int -> UrlParams -> [Image] -> Widget
+imageGrid config imagesize params images =
   $(widgetFile "imagegrid")
 
 showExif :: Exif -> Widget

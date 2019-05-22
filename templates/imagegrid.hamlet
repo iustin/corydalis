@@ -2,4 +2,4 @@
   <div .grid-sizer .col-12 .col-lg-6 .col-xl-4 .p-0>
   $forall img@Image{imgParent=p} <- images
     <div .grid-item .col-12 .col-lg-6 .col-xl-4 .p-0>
-      ^{imageBytesNoStyle imagesize params p img}
+      ^{imageBytesNoStyle config imagesize params p img}

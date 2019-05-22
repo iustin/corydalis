@@ -28,7 +28,7 @@
          for this filter.
 
      <div .card #fbox-container>
-       ^{imageGrid imagesize params images}
+       ^{imageGrid config imagesize params images}
 
      <div .card .pagination>
        <div .card-body>
