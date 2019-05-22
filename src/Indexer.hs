@@ -52,6 +52,7 @@ import qualified Data.Set       as Set
 import           Data.Text      (Text)
 import qualified Data.Text      as Text
 import qualified Data.Text.Read as Text
+import           Formatting
 import           Yesod          (PathPiece (..))
 
 import           Exif
@@ -484,6 +485,30 @@ anyAtom = go . nub
         go [x, y] = Or x y
         go xs     = Any xs
 
+-- | Simpler Text to decimal parsing with error handling.
+parseDecimalPlain :: (Integral a) => Text -> Either Text a
+parseDecimalPlain w =
+  case Text.decimal w of
+    Right (w', "") -> Right w'
+    Right (w', leftover) ->
+      Left $ sformat ("Parsed " % int % " decimal but with leftover text '" %
+                      stext % "'") w' leftover
+    Left msg ->
+      Left $ sformat ("Failed to parse integer from '" % stext % "': " %
+                      string) w msg
+
+-- | Helper that applies a "pop N from stack and build atom" function
+-- to the stack.
+--
+-- Useful for any/all to correctly pop the required amount of items
+-- from the stack, and not all.
+anyAllParser :: ([Atom] -> Atom) -> [Atom] -> Int -> Either Text [Atom]
+anyAllParser fn stack count =
+  let (selected, remaining) = splitAt count stack
+  in if length selected < count
+     then Left $ sformat ("Failed to pop " % int % " items from the stack " % shown) count stack
+     else Right $ fn selected:remaining
+
 rpnParser :: [Atom] -> (Text, Text) -> Either Text [Atom]
 rpnParser (x:y:ys) ("and",_) = Right $ And x y:ys
 rpnParser (x:y:ys) ("or",_) = Right $ Or x y:ys
@@ -492,13 +517,8 @@ rpnParser (x:xs) ("not", _) =
             Not y -> y
             _     -> Not x
   in Right $ a:xs
--- FIXME: the any/all atoms consume the entire stack, including any
--- previous any/all, which means that we can't actually represent and
--- (any a b c) (any c d e) construct. Is any/all (unbounded length)
--- actually usable in a RPN parser? Fix it by adding in the UrlParams
--- representation the length of the atom. [hard]
-rpnParser xs ("all", _) = Right [allAtom xs]
-rpnParser xs ("any", _) = Right [anyAtom xs]
+rpnParser xs ("all", c) = either Left (anyAllParser allAtom xs) $ parseDecimalPlain c
+rpnParser xs ("any", c) = either Left (anyAllParser anyAtom xs) $ parseDecimalPlain c
 rpnParser xs (an, av) =
   let v = parseAtom an av
   in case v of
@@ -574,9 +594,9 @@ atomToParams (Or a b)     =
 atomToParams (Not a)      =
   atomToParams a ++ [("not", "")]
 atomToParams (All xs)     =
-  concatMap atomToParams xs ++ [("all", "")]
+  concatMap atomToParams xs ++ [("all", sformat int $ length xs)]
 atomToParams (Any xs)     =
-  concatMap atomToParams xs ++ [("any", "")]
+  concatMap atomToParams xs ++ [("any", sformat int $ length xs)]
 atomToParams ConstTrue    = atomToParams (All [])
 
 -- | Build image map (with static sorting).
