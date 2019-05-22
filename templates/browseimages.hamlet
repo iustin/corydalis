@@ -1,5 +1,4 @@
-<h1>Showing images #
-  <small>for filter #{search_string}
+<h1>Listing images
 
 <div .row>
  <div .col-12>
@@ -12,7 +11,11 @@
    $else
      <div .card>
        <div .card-body>
-         The selected filter matches #{length images} images.
+         The filter <i>#{search_string}</i>
+         matches #{length images} images.
+         Switch to <a href="@?{(SearchImagesR 0, params)}">grid view</a>, or
+         go to the <a href="@?{(SearchFoldersR, params)}">folder list</a>
+         for this filter.
 
      <div .card>
        ^{imageList thumbsize params True True images}
