@@ -28,13 +28,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.List
   ( getListItemsR
+  , getBrowseFoldersR
+  , getBrowseImagesR
   ) where
 
+import qualified Data.Map        as Map
+import qualified Data.Text       as Text
+import qualified Data.Text.Lazy  as TextL
+
 import           Handler.Utils
+import           Handler.Widgets
 import           Import
 import           Indexer
-
-import qualified Data.Map      as Map
+import           Pics
 
 getListItemsR :: Symbol -> Handler Html
 getListItemsR atom = do
@@ -44,3 +50,44 @@ getListItemsR atom = do
   defaultLayout $ do
     setHtmlTitle $ "listing " <> description
     $(widgetFile "listitems")
+
+
+getBrowseFoldersR :: [FolderClass] -> Handler Html
+getBrowseFoldersR kinds = do
+  config <- getConfig
+  pics <- getPics
+  (params, atom) <- getAtomParams
+  let kinds_string = Text.intercalate ", " . map fcName $ kinds
+      clsfolders = filterDirsByClass kinds pics
+      folders = filter (folderSearchFunction atom) clsfolders
+      stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
+      allpics = sum . map numPics $ folders
+      -- allraws = sum . map numRawPics $ folders
+      allunproc = sum . map numUnprocessedPics $ folders
+      allprocessed = sum . map numProcessedPics $ folders
+      allstandalone = sum . map numStandalonePics $ folders
+      allorphaned = sum . map numOrphanedPics $ folders
+      npairs = map (\n -> let f_class = (fcIcon . folderClass) n
+                          in (n, f_class))
+               folders
+      thumbsize = cfgThumbnailSize config
+  defaultLayout $ do
+    setHtmlTitle $ "browsing folders of type " <> kinds_string
+    $(widgetFile "browsefolders")
+
+getBrowseImagesR :: Handler TypedContent
+getBrowseImagesR = do
+  (ctx, config, params, atom, search_string, pics) <- searchContext
+  images <- Map.elems <$> liftIO (searchImages ctx atom pics)
+  let thumbsize = cfgThumbnailSize config
+      allpaths = foldl' (\paths img ->
+                           let jpaths = map filePath . imgJpegPath $ img
+                               withJpegs = jpaths  ++ paths
+                           in case imgRawPath img of
+                             Nothing -> withJpegs
+                             Just r  -> filePath r:withJpegs) [] images
+  selectRep $ do
+    provideRep $ defaultLayout $ do
+      setHtmlTitle "Listing images"
+      $(widgetFile "browseimages")
+    provideRep $ return $ "\n" `TextL.intercalate` allpaths

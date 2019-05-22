@@ -27,7 +27,7 @@ import           TestImport
 import           Indexer    (Symbol (TPath))
 
 spec :: Spec
-spec = withApp $
+spec = withApp $ do
   describe "loads the list pages and checks it looks right" $ do
     forM_ [s | s <- [minBound..maxBound], s /= TPath] $ \symbol ->
       it ("validates symbol " ++ show symbol) $ do
@@ -37,3 +37,9 @@ spec = withApp $
     it "checks Paths are not listable" $ do
       login
       checkNotFound $ ListItemsR TPath
+  it "loads wrong folder browse page and checks it 404's" $ do
+    login
+    checkNotFound $ BrowseFoldersR []
+  it "loads wrong image browse page and checks it 404's" $ do
+    login
+    checkNotFound $ BrowseImagesR []
