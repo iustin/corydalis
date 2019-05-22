@@ -167,7 +167,7 @@ getCurateR = do
                ) [] .
         Map.toList
       problems = topN 3 $ repoProblems pics
-      imageFilter s = (BrowseImagesR, atomToParams (Status s))
+      imageFilter s = (ListImagesR, atomToParams (Status s))
   let html = do
         setTitle "Corydalis: curate"
         addPlotly

@@ -24,7 +24,7 @@
          Currently viewing <span id="howmany">#{pageSize}</span> images starting at image #{currentStart}. #
          $if page > 0
            Go back to the <a href="@?{(SearchImagesR 0, params)}">first page</a>. #
-         Switch to the <a href="@?{(BrowseImagesR, params)}">list view</a>, or
+         Switch to the <a href="@?{(ListImagesR, params)}">list view</a>, or
          go to the <a href="@?{(SearchFoldersR, params)}">folder list</a>
          for this filter.
 

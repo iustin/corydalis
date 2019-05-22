@@ -42,4 +42,4 @@ spec = withApp $ do
     checkNotFound $ ListFoldersR []
   it "loads wrong image browse page and checks it 404's" $ do
     login
-    checkNotFound $ BrowseImagesR []
+    checkNotFound $ ListImagesR []

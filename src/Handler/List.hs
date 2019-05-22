@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.List
   ( getListItemsR
   , getListFoldersR
-  , getBrowseImagesR
+  , getListImagesR
   ) where
 
 import qualified Data.Map        as Map
@@ -75,8 +75,8 @@ getListFoldersR kinds = do
     setHtmlTitle $ "browsing folders of type " <> kinds_string
     $(widgetFile "browsefolders")
 
-getBrowseImagesR :: Handler TypedContent
-getBrowseImagesR = do
+getListImagesR :: Handler TypedContent
+getListImagesR = do
   (ctx, config, params, atom, search_string, pics) <- searchContext
   images <- Map.elems <$> liftIO (searchImages ctx atom pics)
   let thumbsize = cfgThumbnailSize config

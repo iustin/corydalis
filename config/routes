@@ -14,7 +14,7 @@
 /search/folders/by-year/#Integer SearchFoldersByYearR GET
 /search/folders/no-year SearchFoldersNoYearR GET
 /search/images/grid/#Int SearchImagesR GET
-/search/images/list BrowseImagesR GET
+/search/images/list ListImagesR GET
 /view/#Text/#Text ViewR GET
 /image/bytes/#Text/#Text/#Int ImageBytesR GET
 /image/movie/#Text/#Text MovieBytesR GET
