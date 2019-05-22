@@ -10,11 +10,11 @@
 /folder/#Text FolderR GET
 /folder/#Text/images/#Text ImageR GET
 /browse/folders/#[FolderClass] BrowseFoldersR GET
-/browse/images/ BrowseImagesR GET
 /search/folders SearchFoldersR GET
 /search/folders/by-year/#Integer SearchFoldersByYearR GET
 /search/folders/no-year SearchFoldersNoYearR GET
-/search/images/#Int SearchImagesR GET
+/search/images/grid/#Int SearchImagesR GET
+/search/images/list BrowseImagesR GET
 /view/#Text/#Text ViewR GET
 /image/bytes/#Text/#Text/#Int ImageBytesR GET
 /image/movie/#Text/#Text MovieBytesR GET
