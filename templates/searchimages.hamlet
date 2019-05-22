@@ -27,7 +27,7 @@
          Go to the <a href="@?{(SearchFoldersR, params)}">folder list</a>
          for this filter.
 
-     <div .card>
+     <div .card #fbox-container>
        ^{imageGrid imagesize params images}
 
      <div .card .pagination>

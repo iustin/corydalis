@@ -91,3 +91,11 @@ html {
 .grid-item-image {
     max-width: 100%;
 }
+
+.icon-overlay {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    color: white;
+    opacity: 0.9;
+}

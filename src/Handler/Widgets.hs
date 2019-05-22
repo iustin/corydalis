@@ -58,13 +58,39 @@ imageBytes thumbsize params folder image =
                        >|]
 
 imageBytesNoStyle :: Int -> UrlParams -> Text -> Image -> Widget
-imageBytesNoStyle imagesize params folder img =
-  toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
-                     <img
-                       .grid-item-image
-                       src="@?{(ImageBytesR folder image, [("res", Text.pack $ show imagesize)])}"
-                       >|]
-  where image = imgName img
+imageBytesNoStyle imagesize params folder img = do
+  render <- getUrlRenderParams
+  let image = imgName img
+      viewurl = render (ViewR folder image) params
+      infourl = render (ImageR folder image) params
+  case bestMovie img of
+    Just f ->
+      toWidget [hamlet|<a href=@?{(MovieBytesR folder image, params)}
+                         class="fbox-item"
+                         data-type="video"
+                         data-video-format=#{fileMimeType "video/mp4" f}
+                         data-viewurl="#{viewurl}"
+                         data-infourl="#{infourl}"
+                         >
+                         <img
+                           .grid-item-image
+                           src="@?{(ImageBytesR folder image, [("res", Text.pack $ show imagesize)])}"
+                           >
+                           <span class="fas fa-file-video fa-2x icon-overlay"></span>
+                           |]
+    Nothing ->
+      -- TODO: add srcset so that images are not loaded too large.
+      toWidget [hamlet|<a href=@?{(ImageBytesR folder image, params)}
+                         class="fbox-item"
+                         data-type="image"
+                         data-viewurl="#{viewurl}"
+                         data-infourl="#{infourl}"
+                         >
+                         <img
+                           .grid-item-image
+                           src="@?{(ImageBytesR folder image, [("res", Text.pack $ show imagesize)])}"
+                           >
+                           |]
 
 generatePrevNext :: (Ord k) => k -> Set k -> (k -> Route App) -> Widget
 generatePrevNext k m r = do

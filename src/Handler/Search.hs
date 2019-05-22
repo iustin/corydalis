@@ -71,10 +71,13 @@ getSearchImagesR page = do
   -- choose either [feature].
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
+    addStylesheet $ StaticR fancybox_css_jquery_fancybox_css
     addScript $ StaticR masonry_js_masonry_pkgd_js
     addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
     addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
+    addScript $ StaticR fancybox_js_jquery_fancybox_js
     addScript $ StaticR corydalis_js_imagegrid_js
+    addScript $ StaticR corydalis_js_fancybox_js
     setHtmlTitle "searching images"
     $(widgetFile "searchimages")
 
