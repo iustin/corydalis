@@ -13,7 +13,7 @@ $if allpics > 0
             $if processed > 0
               <li>#{processed} <a href=@?{imageFilter StatusProcessed}>processed images</a> backed by RAW files.
             $if unprocessed > 0
-              <li>#{unprocessed} <a href=@?{imageFilter StatusUnprocessed}>unprocessed</a> files (located in <a href=@{BrowseFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
+              <li>#{unprocessed} <a href=@?{imageFilter StatusUnprocessed}>unprocessed</a> files (located in <a href=@{ListFoldersR ([FolderRaw, FolderUnprocessed])}>these folders</a>)
             $if standalone > 0
               <li>#{standalone} <a href=@?{imageFilter StatusStandalone}>standalone JPEGs</a>
             $if orphaned > 0
@@ -28,11 +28,11 @@ $if allpics > 0
       <div .card>
         <div .card-header>Folders
         <div .card-body #folders>
-          The repository is split across #{numfolders} <a href=@{BrowseFoldersR all_fc}>folders</a>, classified as follows:
+          The repository is split across #{numfolders} <a href=@{ListFoldersR all_fc}>folders</a>, classified as follows:
           <ul>
             $forall (fc, count) <- fstats
               $with fclist <- [fc]
-                <li>#{count} folders of type '<a href=@{BrowseFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
+                <li>#{count} folders of type '<a href=@{ListFoldersR fclist}>#{fcName fc}</a>': folder #{fcDescription fc}
 
     <div .col-12 .col-md-4>
       <div .card>

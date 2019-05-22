@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.List
   ( getListItemsR
-  , getBrowseFoldersR
+  , getListFoldersR
   , getBrowseImagesR
   ) where
 
@@ -52,8 +52,8 @@ getListItemsR atom = do
     $(widgetFile "listitems")
 
 
-getBrowseFoldersR :: [FolderClass] -> Handler Html
-getBrowseFoldersR kinds = do
+getListFoldersR :: [FolderClass] -> Handler Html
+getListFoldersR kinds = do
   config <- getConfig
   pics <- getPics
   (params, atom) <- getAtomParams
