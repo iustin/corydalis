@@ -72,8 +72,8 @@ getListFoldersR kinds = do
                folders
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
-    setHtmlTitle $ "browsing folders of type " <> kinds_string
-    $(widgetFile "browsefolders")
+    setHtmlTitle $ "Listing folders of type " <> kinds_string
+    $(widgetFile "listfolders")
 
 getListImagesR :: Handler TypedContent
 getListImagesR = do
@@ -89,5 +89,5 @@ getListImagesR = do
   selectRep $ do
     provideRep $ defaultLayout $ do
       setHtmlTitle "Listing images"
-      $(widgetFile "browseimages")
+      $(widgetFile "listimages")
     provideRep $ return $ "\n" `TextL.intercalate` allpaths
