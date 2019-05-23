@@ -76,21 +76,33 @@ data Symbol = TCountry
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
-  toPathPiece  = atomTypeDescriptions
-  fromPathPiece "countries" = Just TCountry
-  fromPathPiece "provinces" = Just TProvince
-  fromPathPiece "cities"    = Just TCity
-  fromPathPiece "locations" = Just TLocation
-  fromPathPiece "people"    = Just TPerson
-  fromPathPiece "keywords"  = Just TKeyword
-  fromPathPiece "years"     = Just TYear
-  fromPathPiece "cameras"   = Just TCamera
-  fromPathPiece "lenses"    = Just TLens
-  fromPathPiece "problems"  = Just TProblem
-  fromPathPiece "types"     = Just TType
-  fromPathPiece "statuses"  = Just TStatus
+  toPathPiece TCountry  = "countries"
+  toPathPiece TProvince = "provinces"
+  toPathPiece TCity     = "cities"
+  toPathPiece TLocation = "locations"
+  toPathPiece TPerson   = "people"
+  toPathPiece TKeyword  = "keywords"
+  toPathPiece TYear     = "years"
+  toPathPiece TCamera   = "cameras"
+  toPathPiece TLens     = "lenses"
+  toPathPiece TProblem  = "problems"
+  toPathPiece TType     = "types"
+  toPathPiece TPath     = "paths"
+  toPathPiece TStatus   = "image-status"
+  fromPathPiece "countries"    = Just TCountry
+  fromPathPiece "provinces"    = Just TProvince
+  fromPathPiece "cities"       = Just TCity
+  fromPathPiece "locations"    = Just TLocation
+  fromPathPiece "people"       = Just TPerson
+  fromPathPiece "keywords"     = Just TKeyword
+  fromPathPiece "years"        = Just TYear
+  fromPathPiece "cameras"      = Just TCamera
+  fromPathPiece "lenses"       = Just TLens
+  fromPathPiece "problems"     = Just TProblem
+  fromPathPiece "types"        = Just TType
+  fromPathPiece "image-status" = Just TStatus
   -- TODO: hmm, what about paths?
-  fromPathPiece _           = Nothing
+  fromPathPiece _              = Nothing
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
 -- package, once the actual image metadata uses it too.
@@ -275,7 +287,7 @@ atomTypeDescriptions TLens     = "lenses"
 atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
 atomTypeDescriptions TPath     = "paths"
-atomTypeDescriptions TStatus   = "statuses"
+atomTypeDescriptions TStatus   = "image statuses"
 
 class (Show a) => ToText a where
   toText :: a -> Text
