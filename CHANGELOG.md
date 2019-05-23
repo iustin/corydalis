@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.4.0
+
+*unreleased*
+
+This is yet another major release, getting closer to a friendly UI
+than a hackish one.
+
+New features:
+
+Improvements:
+
+Bugs fixed:
+
+Miscellaneous:
+
 ## v0.3.0
 
 *Fri, 09 Mar 2018*
