@@ -43,12 +43,13 @@ regen-git-version: clean-git-version git-version
 # Incremental rebuild and installs in dist/ with the current settings
 # (vs. release which is clean build).
 dist:
-	stack install --local-bin-path dist/
+	stack --work-dir .stack-release install --local-bin-path dist/
 
 # An entire clean build and install in dist.
 release: clean lint doc regen-git-version
-	stack build --pedantic $(FLAGS)
-	stack install --local-bin-path dist/ $(FLAGS)
+	rm -rf .stack-release
+	stack --work-dir .stack-release build --pedantic $(FLAGS)
+	stack --work-dir .stack-release install --local-bin-path dist/ $(FLAGS)
 	rsync -a static dist/
 	rm -rf dist/static/tmp/
 
@@ -65,16 +66,15 @@ haddock:
 
 clean:
 	rm -rf site/ dist/
-	stack clean
 
 test:
-	stack test --coverage --flag corydalis:dev
+	stack --work-dir .stack-test test --coverage --flag corydalis:dev
 
 fast-tests:
-	stack test --file-watch --flag corydalis:dev
+	stack --work-dir .stack-test test --file-watch --flag corydalis:dev
 
 coverage-tests:
-	stack test --file-watch --coverage --flag corydalis:dev
+	stack --work-dir .stack-coverage test --file-watch --coverage --flag corydalis:dev
 
 lint:
 	@rm -f lint-report.html
