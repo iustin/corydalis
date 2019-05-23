@@ -39,6 +39,7 @@ module Indexer ( Symbol(..)
                , getAtoms
                , parseAtomParams
                , buildImageMap
+               , buildFolderMap
                , searchImages
                , genQuickSearchParams
                , atomFindsFiles
@@ -702,6 +703,11 @@ buildImageMap atom =
              Map.insert (imgParent img, imageTimeKey img) img m
          ) Map.empty .
   filterImagesBy (imageSearchFunction atom)
+
+-- | Build image map (with static sorting).
+buildFolderMap :: Atom -> Repository -> RepoDirs
+buildFolderMap atom =
+  filterFoldersBy (folderSearchFunction atom)
 
 searchImages :: Ctx -> Atom -> Repository -> IO SearchResults
 searchImages ctx atom pics = do

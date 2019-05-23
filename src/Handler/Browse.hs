@@ -37,7 +37,7 @@ import           Pics
 getBrowseFoldersR :: Handler Html
 getBrowseFoldersR = do
   (_, config, params, atom, search_string, pics) <- searchContext
-  let folders = filter (folderSearchFunction atom) . Map.elems . repoDirs $ pics
+  let folders = Map.elems $ buildFolderMap atom pics
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setHtmlTitle "searching folders"

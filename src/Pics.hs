@@ -38,6 +38,7 @@ module Pics ( PicDir(..)
             , Ctx
             , initContext
             , Exif(..)
+            , RepoDirs
             , repoDirs
             , repoStats
             , repoExif
@@ -75,6 +76,7 @@ module Pics ( PicDir(..)
             , filterDirsByClass
             , filterImagesByClass
             , filterImagesBy
+            , filterFoldersBy
             , computeRepoStats
             , repoGlobalExif
             , Stats(..)
@@ -1328,6 +1330,9 @@ filterImagesBy flt =
                                   then img:l
                                   else l) pics (pdImages folder)
          ) [] . Map.elems . repoDirs
+
+filterFoldersBy :: (PicDir -> Bool) -> Repository -> RepoDirs
+filterFoldersBy flt = Map.filter flt . repoDirs
 
 imageHasImages :: Image -> Bool
 imageHasImages Image{..} =
