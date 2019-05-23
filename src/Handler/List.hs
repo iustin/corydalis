@@ -33,7 +33,6 @@ module Handler.List
   ) where
 
 import qualified Data.Map        as Map
-import qualified Data.Text       as Text
 import qualified Data.Text.Lazy  as TextL
 
 import           Handler.Utils
@@ -52,14 +51,10 @@ getListItemsR atom = do
     $(widgetFile "listitems")
 
 
-getListFoldersR :: [FolderClass] -> Handler Html
-getListFoldersR kinds = do
-  config <- getConfig
-  pics <- getPics
-  (params, atom) <- getAtomParams
-  let kinds_string = Text.intercalate ", " . map fcName $ kinds
-      clsfolders = filterDirsByClass kinds pics
-      folders = filter (folderSearchFunction atom) clsfolders
+getListFoldersR :: Handler Html
+getListFoldersR = do
+  (_, config, params, atom, search_string, pics) <- searchContext
+  let folders = buildFolderMap atom pics
       stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
       allpics = sum . map numPics $ folders
       -- allraws = sum . map numRawPics $ folders
@@ -72,7 +67,7 @@ getListFoldersR kinds = do
                folders
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
-    setHtmlTitle $ "Listing folders of type " <> kinds_string
+    setHtmlTitle "Listing folders"
     $(widgetFile "listfolders")
 
 getListImagesR :: Handler TypedContent

@@ -9,7 +9,7 @@
 /reload ReloadR POST
 /folder/#Text FolderR GET
 /folder/#Text/images/#Text ImageR GET
-/search/folders/list/#[FolderClass] ListFoldersR GET
+/search/folders/list ListFoldersR GET
 /search/folders BrowseFoldersR GET
 /search/folders/by-year/#Integer SearchFoldersByYearR GET
 /search/folders/no-year SearchFoldersNoYearR GET

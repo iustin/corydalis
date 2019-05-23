@@ -107,7 +107,6 @@ getCurateR = do
       numfolders = Map.size $ repoDirs pics
       numLenses = Map.size bylens
       numCameras = Map.size bycamera
-      all_fc = [minBound..maxBound]
       buildTop10 m n = let allItems = sortBy (flip compare) $
                              Map.foldlWithKey' (\a k (Occurrence cnt sz _ _ _ _) ->
                                                   (cnt, sz, k):a) [] m
@@ -168,6 +167,7 @@ getCurateR = do
         Map.toList
       problems = topN 3 $ repoProblems pics
       imageFilter s = (ListImagesR, atomToParams (Status s))
+      folderFilter cs = (ListFoldersR, atomToParams (Any (map FClass cs)))
   let html = do
         setTitle "Corydalis: curate"
         addPlotly

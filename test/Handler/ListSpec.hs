@@ -37,9 +37,10 @@ spec = withApp $ do
     it "checks Paths are not listable" $ do
       login
       checkNotFound $ ListItemsR TPath
-  it "loads wrong folder browse page and checks it 404's" $ do
+  it "loads empty folder list page" $ do
     login
-    checkNotFound $ ListFoldersR []
+    checkRoute ListFoldersR
+    bodyContains "Nothing found"
   describe "checks that wrong filter image list shows search impossible" $
     forM_ [minBound..maxBound] $ \fclass ->
       it ("validates folder class " ++ show fclass) $ do

@@ -299,11 +299,8 @@ instance YesodBreadcrumbs App where
   breadcrumb (ImageInfoR _ image) = return ("Information for " <> image,
                                                   Nothing)
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)
-  breadcrumb (ListFoldersR kind) =
-    return ("Listing folders of type " <>
-            Text.intercalate ", " (map toPathPiece kind), Just CurateR)
-  breadcrumb (ListImagesR) =
-    return ("Listing images", Just CurateR)
+  breadcrumb ListFoldersR = return ("Listing folders", Nothing)
+  breadcrumb ListImagesR  = return ("Listing images", Nothing)
   breadcrumb BrowseFoldersR      = return ("Search folders",    Nothing)
   breadcrumb (BrowseImagesR _)   = return ("Search images",     Nothing)
   breadcrumb QuickSearchR        = return ("Quick search",      Nothing)

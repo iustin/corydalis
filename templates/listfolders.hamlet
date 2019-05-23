@@ -1,14 +1,14 @@
-<h1>Browsing folders #
-  <small>
-    of type
-    <i>#{kinds_string}
-    and with filter
-    <i>#{atomDescription atom}
+<h1>Listing folders
 
 <div .row>
  <div .col-12>
    $if null folders
-     <p .bg-warning>No folders found that match the requested types.
+       <div .card .border-warning>
+         <div .card-header>
+           Nothing found
+         <div .card-body>
+           The filter <i>#{search_string}</i>
+           doesn't match any folders.
    $else
      <div .card>
        <div .card-body>
