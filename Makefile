@@ -67,6 +67,10 @@ haddock:
 clean:
 	rm -rf site/ dist/
 
+.PHONY: really-clean
+really-clean: clean
+	rm -rf .stack-*
+
 test:
 	stack --work-dir .stack-test test --coverage --flag corydalis:dev
 
