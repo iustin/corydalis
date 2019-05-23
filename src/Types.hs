@@ -27,6 +27,8 @@ module Types ( Config(..)
              , reRegex
              , reString
              , FolderClass(..)
+             , showFolderClass
+             , parseFolderClass
              , ImageStatus(..)
              , showImageStatus
              , parseImageStatus
@@ -232,21 +234,27 @@ instance NFData FolderClass where
 
 $(makeStore ''FolderClass)
 
+showFolderClass :: FolderClass -> Text
+showFolderClass FolderEmpty       = "empty"
+showFolderClass FolderRaw         = "raw"
+showFolderClass FolderStandalone  = "standalone"
+showFolderClass FolderUnprocessed = "unprocessed"
+showFolderClass FolderProcessed   = "processed"
+showFolderClass FolderMixed       = "mixed"
+
+parseFolderClass :: Text -> Maybe FolderClass
+parseFolderClass "empty"       = Just FolderEmpty
+parseFolderClass "raw"         = Just FolderRaw
+parseFolderClass "standalone"  = Just FolderStandalone
+parseFolderClass "unprocessed" = Just FolderUnprocessed
+parseFolderClass "processed"   = Just FolderProcessed
+parseFolderClass "mixed"       = Just FolderMixed
+parseFolderClass _             = Nothing
+
 -- | Custom yesod instance for FolderClass. This really could use some TH.
 instance PathPiece FolderClass where
-  toPathPiece FolderEmpty       = "empty"
-  toPathPiece FolderRaw         = "raw"
-  toPathPiece FolderStandalone  = "standalone"
-  toPathPiece FolderUnprocessed = "unprocessed"
-  toPathPiece FolderProcessed   = "processed"
-  toPathPiece FolderMixed       = "mixed"
-  fromPathPiece "empty"       = Just FolderEmpty
-  fromPathPiece "raw"         = Just FolderRaw
-  fromPathPiece "standalone"  = Just FolderStandalone
-  fromPathPiece "unprocessed" = Just FolderUnprocessed
-  fromPathPiece "processed"   = Just FolderProcessed
-  fromPathPiece "mixed"       = Just FolderMixed
-  fromPathPiece _             = Nothing
+  toPathPiece = showFolderClass
+  fromPathPiece = parseFolderClass
 
 -- | Custom Path piece instance for [FolderClass].
 instance PathPiece [FolderClass] where
