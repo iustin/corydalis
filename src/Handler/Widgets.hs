@@ -59,7 +59,7 @@ imageBytes thumbsize params folder image =
   toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
                      <img
                        src="@{ImageBytesR folder image thumbsize}"
-                       style="width: #{thumbsize}px; height: #{thumbsize}px"
+                       width=#{thumbsize} height=#{thumbsize}
                        >|]
 
 -- | Generates srcset for an image based on all auto-built versions.
