@@ -625,41 +625,47 @@ parseAtomParams params =
   then Left "Too many search parameters. Maximum allowed is 50."
   else allAtom <$> foldM rpnParser [] params
 
-numOpToParam :: (ToText a) => Text -> NumOp a -> (Text, Text)
-numOpToParam s (OpEq v) = (s, toText v)
-numOpToParam s (OpLt v) = (s, '<' `Text.cons` toText v)
-numOpToParam s (OpGt v) = (s, '>' `Text.cons` toText v)
-numOpToParam s  OpNa    = ("no-" <> s, "")
+class OpParam a where
+  opToParam :: Text -> a -> (Text, Text)
 
-strOpToParam :: Text -> StrOp -> (Text, Text)
-strOpToParam s (OpEqual v) = (s, v)
-strOpToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
-strOpToParam s OpMissing   = ("no-" <> s, "")
+instance OpParam StrOp where
+  opToParam s (OpEqual v) = (s, v)
+  opToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
+  opToParam s OpMissing   = ("no-" <> s, "")
 
-typeOpToParam :: Text -> TypeOp -> (Text, Text)
-typeOpToParam s = (s, ) . showType
+instance (ToText a) => OpParam (NumOp a) where
+  opToParam s (OpEq v) = (s, toText v)
+  opToParam s (OpLt v) = (s, '<' `Text.cons` toText v)
+  opToParam s (OpGt v) = (s, '>' `Text.cons` toText v)
+  opToParam s  OpNa    = ("no-" <> s, "")
 
-statusOpToParam :: Text -> ImageStatus -> (Text, Text)
-statusOpToParam s = (s, ) . showImageStatus
+instance OpParam TypeOp where
+  opToParam s = (s, ) . showType
 
-fClassToParam :: Text -> FolderClass -> (Text, Text)
-fClassToParam s = (s, ) . showFolderClass
+instance OpParam ImageStatus where
+  opToParam s = (s, ) . showImageStatus
+
+instance OpParam FolderClass where
+  opToParam s = (s, ) . showFolderClass
+
+formatParam :: (OpParam a) => Symbol -> a -> (Text, Text)
+formatParam s = opToParam (symbolName s)
 
 atomToParams :: Atom -> [(Text, Text)]
-atomToParams (Country  v) = [strOpToParam (symbolName TCountry ) v]
-atomToParams (Province v) = [strOpToParam (symbolName TProvince) v]
-atomToParams (City     v) = [strOpToParam (symbolName TCity    ) v]
-atomToParams (Location v) = [strOpToParam (symbolName TLocation) v]
-atomToParams (Person   v) = [strOpToParam (symbolName TPerson  ) v]
-atomToParams (Keyword  v) = [strOpToParam (symbolName TKeyword ) v]
-atomToParams (Year     n) = [numOpToParam (symbolName TYear    ) n]
-atomToParams (Camera   v) = [strOpToParam (symbolName TCamera  ) v]
-atomToParams (Lens     v) = [strOpToParam (symbolName TLens    ) v]
-atomToParams (Problem  v) = [strOpToParam (symbolName TProblem ) v]
-atomToParams (Type     v) = [typeOpToParam (symbolName TType   ) v]
-atomToParams (Path     v) = [strOpToParam (symbolName TPath    ) v]
-atomToParams (Status   v) = [statusOpToParam (symbolName TStatus ) v]
-atomToParams (FClass   v) = [fClassToParam (symbolName TFClass) v]
+atomToParams (Country  v) = [formatParam TCountry  v]
+atomToParams (Province v) = [formatParam TProvince v]
+atomToParams (City     v) = [formatParam TCity     v]
+atomToParams (Location v) = [formatParam TLocation v]
+atomToParams (Person   v) = [formatParam TPerson   v]
+atomToParams (Keyword  v) = [formatParam TKeyword  v]
+atomToParams (Year     n) = [formatParam TYear     n]
+atomToParams (Camera   v) = [formatParam TCamera   v]
+atomToParams (Lens     v) = [formatParam TLens     v]
+atomToParams (Problem  v) = [formatParam TProblem  v]
+atomToParams (Type     v) = [formatParam TType     v]
+atomToParams (Path     v) = [formatParam TPath     v]
+atomToParams (Status   v) = [formatParam TStatus   v]
+atomToParams (FClass   v) = [formatParam TFClass   v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =
