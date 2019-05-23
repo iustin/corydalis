@@ -208,6 +208,14 @@ checkRouteIs route result = do
      get route
      statusIs result
 
+checkRouteIsWithParams :: Route App -> [(Text, Text)] -> Int -> YesodExample App ()
+checkRouteIsWithParams route params result = do
+     request $ do
+       setMethod "GET"
+       setUrl route
+       mapM_ (uncurry addGetParam) params
+     statusIs result
+
 checkRoute :: Route App -> YesodExample App ()
 checkRoute = (`checkRouteIs` 200)
 

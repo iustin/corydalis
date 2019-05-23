@@ -24,7 +24,7 @@ module Handler.ListSpec (spec) where
 
 import           TestImport
 
-import           Indexer    (Symbol (TPath))
+import           Indexer
 
 spec :: Spec
 spec = withApp $ do
@@ -40,5 +40,9 @@ spec = withApp $ do
   it "loads wrong folder browse page and checks it 404's" $ do
     login
     checkNotFound $ ListFoldersR []
-  it "loads wrong image list page and check it shows search impossible" $
-    const pending
+  describe "checks that wrong filter image list shows search impossible" $
+    forM_ [minBound..maxBound] $ \fclass ->
+      it ("validates folder class " ++ show fclass) $ do
+        login
+        checkRouteIsWithParams ListImagesR (atomToParams (FClass fclass)) 200
+        bodyContains "not able to match files"

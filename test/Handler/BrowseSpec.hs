@@ -24,6 +24,8 @@ module Handler.BrowseSpec (spec) where
 
 import           TestImport
 
+import           Indexer
+
 spec :: Spec
 spec = withApp $ do
   -- TODO: add search folders
@@ -45,3 +47,9 @@ spec = withApp $ do
       htmlAnyContain "div.card-body" "doesn&#39;t match any images"
       bodyContains "data-page-index=\"3\""
       bodyContains "data-initial-count=\"0\""
+  describe "checks that wrong filter image search shows search impossible" $
+    forM_ [minBound..maxBound] $ \fclass ->
+      it ("validates folder class " ++ show fclass) $ do
+        login
+        checkRouteIsWithParams (BrowseImagesR 0) (atomToParams (FClass fclass)) 200
+        bodyContains "not able to match files"
