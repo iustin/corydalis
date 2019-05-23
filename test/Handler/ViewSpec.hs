@@ -29,7 +29,7 @@ spec = withApp $ do
   describe "checks 404 results" $
     forM_ [ ViewR "foo" "bar"
           , ImageInfoR "foo" "bar"
-          , ImageBytesR "foo" "bar"
+          , ImageBytesR "foo" "bar" 0
           , MovieBytesR "foo" "bar"
           , RandomImageInfoR
           ] $ \ route ->

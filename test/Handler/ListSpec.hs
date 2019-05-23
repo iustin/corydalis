@@ -40,6 +40,5 @@ spec = withApp $ do
   it "loads wrong folder browse page and checks it 404's" $ do
     login
     checkNotFound $ ListFoldersR []
-  it "loads wrong image browse page and checks it 404's" $ do
-    login
-    checkNotFound $ ListImagesR []
+  it "loads wrong image list page and check it shows search impossible" $
+    const pending

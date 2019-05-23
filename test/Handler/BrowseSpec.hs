@@ -24,12 +24,6 @@ module Handler.BrowseSpec (spec) where
 
 import           TestImport
 
-checkRedirAndHeader :: YesodExample App ()
-checkRedirAndHeader = do
-  checkRedirect
-  statusIs 200
-  htmlAllContain "h1" "Searching folders"
-
 spec :: Spec
 spec = withApp $ do
   -- TODO: add search folders
