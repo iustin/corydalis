@@ -28,7 +28,7 @@ checkRedirAndHeader :: YesodExample App ()
 checkRedirAndHeader = do
   checkRedirect
   statusIs 200
-  htmlAllContain "h1" "Searching folders"
+  htmlAllContain "h1" "Displaying folders"
 
 spec :: Spec
 spec = withApp $ do

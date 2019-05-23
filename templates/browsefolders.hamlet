@@ -1,4 +1,11 @@
-<h1>Searching folders
+<h1>Displaying folders
+
+<div #boot
+  data-path-url="@?{(BrowseFoldersR 0, params)}"
+  data-page-index=#{page}
+  data-debug=#{debug}
+  data-initial-count=#{length folders}
+  />
 
 <div .row>
  <div .col-12>
@@ -8,7 +15,10 @@
      <div .card>
        <div .card-body>
          The filter <i>#{search_string}</i>
-         matches #{length folders} folders. #
+         matches #{length folders'} folders. #
+         Currently viewing <span id="howmany">#{pageSize}</span> folders starting at folder #{currentStart}. #
+         $if page > 0
+           Go back to the <a href="@?{(BrowseImagesR 0, params)}">first page</a>. #
          $if atomFindsFiles atom
            Go to the <a href="@?{(BrowseImagesR 0, params)}">image list</a>
            for this filter.
@@ -16,22 +26,11 @@
            Note: This filter cannot find files.
 
      <div .card>
-       <table #folderlist .tablesorter .table .table-sm .vmiddle>
-         <col style="width: #{thumbsize}px;">
-         <thead>
-           <tr>
-             <th .parser-false .sorter-false .filter-false>Icon
-             <th .sorter-text>Name
-             <th .sorter-false>Locations
-             <th .sorter-false>People
-             <th .sorter-false>Keywords
+       ^{folderGrid imagesize params atom folders}
 
-         <tbody>
-           $forall n <- folders
-             <tr>
-               <td>
-                  ^{folderCover thumbsize params atom n}
-               <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
-               <td>#{folderLocations n}
-               <td>#{folderPeople n}
-               <td>#{folderKeywords n}
+     <div .card .pagination>
+       <div .card-body>
+         $if null remFolders
+           No more folders
+         $else
+           <a .pagination-next href="@?{(BrowseFoldersR nextPage, params)}">load more folders</a>

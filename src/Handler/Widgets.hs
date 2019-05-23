@@ -42,17 +42,20 @@ showFile :: Pics.File -> Widget
 showFile f =
   $(widgetFile "showfile")
 
-folderCover :: Int -> UrlParams -> Atom -> PicDir -> Widget
-folderCover thumbsize params atom folder = do
+folderCover :: Int -> Bool -> UrlParams -> Atom -> PicDir -> Widget
+folderCover size browsing params atom folder = do
   let name = pdName folder
       all_images = Map.elems (pdImages folder)
       images =
         if atomFindsFiles atom
         then imageSearchFunction atom `filter` all_images
         else all_images
+      bytes_fn = if browsing
+        then imageBytesForFolder
+        else imageBytes
   case images of
     []    -> toWidget [hamlet|<span .disabled>N/A|]
-    img:_ -> imageBytes thumbsize params name (imgName img)
+    img:_ -> bytes_fn size params name (imgName img)
 
 imageBytes :: Int -> UrlParams -> Text -> Text -> Widget
 imageBytes thumbsize params folder image =
@@ -60,6 +63,14 @@ imageBytes thumbsize params folder image =
                      <img
                        src="@{ImageBytesR folder image thumbsize}"
                        width=#{thumbsize} height=#{thumbsize}
+                       >|]
+
+imageBytesForFolder :: Int -> UrlParams -> Text -> Text -> Widget
+imageBytesForFolder size params folder image =
+  toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
+                     <img
+                       .grid-item-image
+                       src="@{ImageBytesR folder image size}"
                        >|]
 
 -- | Generates srcset for an image based on all auto-built versions.
@@ -135,6 +146,16 @@ imageList thumbsize params showParent hideStatus images = do
 imageGrid :: Config -> Int -> UrlParams -> [Image] -> Widget
 imageGrid config imagesize params images =
   $(widgetFile "imagegrid")
+
+folderGrid :: Int -> UrlParams -> Atom -> [PicDir] -> Widget
+folderGrid imagesize params atom dirs =
+  [whamlet|
+    <div .grid>
+      <div .grid-sizer .col-12 .col-lg-6 .col-xl-4 .p-0>
+      $forall d <- dirs
+        <div .grid-item .col-12 .col-lg-6 .col-xl-4 .p-0>
+          ^{folderCover imagesize True params atom d}
+          |]
 
 showExif :: Exif -> Widget
 showExif Exif{..} = do

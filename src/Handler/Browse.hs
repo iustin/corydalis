@@ -32,16 +32,25 @@ import           Handler.Utils
 import           Handler.Widgets
 import           Import
 import           Indexer
-import           Pics
 
 getBrowseFoldersR :: Int -> Handler Html
 getBrowseFoldersR page = do
   when (page < 0) $
     invalidArgs ["Negative page index"]
   (_, config, params, atom, search_string, pics) <- searchContext
-  let folders = Map.elems $ buildFolderMap atom pics
-      thumbsize = cfgThumbnailSize config
+  let folders' = Map.elems $ buildFolderMap atom pics
+  let pageSize = cfgPageSize config
+      currentIdx = page * pageSize
+      currentStart = currentIdx + 1
+      (folders, remFolders) = splitAt pageSize . drop currentIdx $ folders'
+      imagesize = cfgBrowsingSize config
+      nextPage = page + 1
+  debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
+    addScript $ StaticR masonry_js_masonry_pkgd_js
+    addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
+    addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
+    addScript $ StaticR corydalis_js_imagegrid_js
     setHtmlTitle "searching folders"
     $(widgetFile "browsefolders")
 
@@ -57,8 +66,6 @@ getBrowseImagesR page = do
       (images, remImages) = splitAt pageSize . drop currentIdx $ images'
       imagesize = cfgBrowsingSize config
       nextPage = page + 1
-  -- TODO: allow switching between grid and list, so that people can
-  -- choose either [feature].
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addStylesheet $ StaticR fancybox_css_jquery_fancybox_css
