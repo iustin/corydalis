@@ -189,3 +189,15 @@ noImageSearchPossible search_string =
            The filter <i>#{search_string}</i>
            is not able to match files. How did you end up on this page?
            |]
+
+noItemsFound :: Text -> Bool -> Widget
+noItemsFound filter_desc images =
+  let what = if images then "images" else "folders"::Text
+  in toWidget [hamlet|
+       <div .card .border-warning>
+         <div .card-header>
+           Nothing found
+         <div .card-body>
+           The filter <i>#{filter_desc}</i>
+           doesn't match any #{what}.
+           |]

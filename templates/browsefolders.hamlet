@@ -3,12 +3,7 @@
 <div .row>
  <div .col-12>
    $if null folders
-     <div .card .border-warning>
-       <div .card-header>
-         Nothing found
-       <div .card-body>
-         The filter <i>#{search_string}</i>
-         doesn't match any folders.
+     ^{noItemsFound search_string False}
    $else
      <div .card>
        <div .card-body>

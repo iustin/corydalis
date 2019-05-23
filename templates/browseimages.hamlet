@@ -11,12 +11,7 @@
  <div .col-12>
    $if atomFindsFiles atom
      $if null images
-       <div .card .border-warning>
-         <div .card-header>
-           Nothing found
-         <div .card-body>
-           The filter <i>#{search_string}</i>
-           doesn't match any images.
+       ^{noItemsFound search_string True}
      $else
        <div .card>
          <div .card-body>
