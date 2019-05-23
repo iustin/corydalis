@@ -7,14 +7,20 @@
    $else
      <div .card>
        <div .card-body>
-         The selected filter matches #{length folders} folders, using #
+         The filter <i>#{search_string}</i> matches #{length folders} folders, using #
             #{showBinary $ sRawSize stats} for raw files, #
             #{showBinary $ sProcSize stats} for processed files, #
             #{showBinary $ sStandaloneSize stats} for standalone files and #
-            #{showBinary $ sUntrackedSize stats} for untracked files.
+            #{showBinary $ sUntrackedSize stats} for untracked files. #
+         Switch to the <a href="@?{(BrowseFoldersR 0, params)}">grid view</a>
+         $if atomFindsFiles atom
+           , or go to the <a href="@?{(ListImagesR, params)}">image list</a>
+           for this filter.
+         $else
+           ; note: this filter cannot find files.
 
      <div .card>
-       <table #folderlist .tablesorter .table .table-sm>
+       <table #folderlist .tablesorter .table .table-sm .vmiddle>
          <col style="width: #{thumbsize}px;">
          <thead>
            <tr>

@@ -19,11 +19,12 @@
          Currently viewing <span id="howmany">#{pageSize}</span> folders starting at folder #{currentStart}. #
          $if page > 0
            Go back to the <a href="@?{(BrowseImagesR 0, params)}">first page</a>. #
+         Switch to the <a href="@?{(ListFoldersR, params)}">list view</a>
          $if atomFindsFiles atom
-           Go to the <a href="@?{(BrowseImagesR 0, params)}">image list</a>
+           , or go to the <a href="@?{(BrowseImagesR 0, params)}">image view</a>
            for this filter.
          $else
-           Note: This filter cannot find files.
+           ; note: this filter cannot find files.
 
      <div .card>
        ^{folderGrid imagesize params atom folders}

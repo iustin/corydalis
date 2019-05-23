@@ -21,7 +21,7 @@
            $if page > 0
              Go back to the <a href="@?{(BrowseImagesR 0, params)}">first page</a>. #
            Switch to the <a href="@?{(ListImagesR, params)}">list view</a>, or
-           go to the <a href="@?{(BrowseFoldersR 0, params)}">folder list</a>
+           go to the <a href="@?{(BrowseFoldersR 0, params)}">folder view</a>
            for this filter.
 
        <div .card #fbox-container>
