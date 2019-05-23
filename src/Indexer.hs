@@ -149,7 +149,7 @@ data StatusOp
 statusToImageStatus :: StatusOp -> ImageStatus
 statusToImageStatus StatusOrphaned    = ImageOrphaned
 statusToImageStatus StatusStandalone  = ImageStandalone
-statusToImageStatus StatusUnprocessed = ImageRaw
+statusToImageStatus StatusUnprocessed = ImageUnprocessed
 statusToImageStatus StatusProcessed   = ImageProcessed
 
 data Atom = Country  StrOp

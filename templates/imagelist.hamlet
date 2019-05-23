@@ -33,8 +33,8 @@
                         <a href="@{LensInfoR (liName (exifLens e))}">
                           #{lensDisplayName (exifLens e) }
                     $if not hideStatus
-                      <td data-text="#{isShortName s}">
-                        <span title="#{isShortName s}">
+                      <td data-text="#{showImageStatus s}">
+                        <span title="#{showImageStatus s}">
                           $forall iclass <- isIcon s
                             <span class="#{iclass}">
               <tfoot>

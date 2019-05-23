@@ -351,7 +351,7 @@ mkImageStatus _ Nothing  []    Nothing   True  = ImageProcessed
 mkImageStatus _ Nothing  []    (Just _)  _     = ImageOrphaned
 mkImageStatus _ Nothing  (_:_) (Just _)  _     = ImageStandalone
   --error "imageStatus - orphaned + jpeg?"
-mkImageStatus _ (Just _) []    _         _     = ImageRaw
+mkImageStatus _ (Just _) []    _         _     = ImageUnprocessed
 mkImageStatus _ Nothing  (_:_) _         _     = ImageStandalone
 mkImageStatus _ (Just _) (_:_) _         _     = ImageProcessed
 
@@ -605,10 +605,10 @@ updateStatsWithPic orig img =
         MediaMovie   -> orig { sMovies    = sMovies orig    + 1 }
         MediaUnknown -> orig { sUntracked = sUntracked orig + 1 }
         MediaImage   -> case status of
-          ImageRaw        -> orig { sRaw        = sRaw orig        + 1 }
-          ImageStandalone -> orig { sStandalone = sStandalone orig + 1 }
-          ImageProcessed  -> orig { sProcessed  = sProcessed orig  + 1 }
-          ImageOrphaned   -> orig { sOrphaned   = sOrphaned orig   + 1 }
+          ImageUnprocessed -> orig { sRaw        = sRaw orig        + 1 }
+          ImageStandalone  -> orig { sStandalone = sStandalone orig + 1 }
+          ImageProcessed   -> orig { sProcessed  = sProcessed orig  + 1 }
+          ImageOrphaned    -> orig { sOrphaned   = sOrphaned orig   + 1 }
       rs = sRawSize stats
       rs' = case imgRawPath img of
               Nothing -> rs
@@ -818,7 +818,7 @@ numRawPics :: PicDir -> Int
 numRawPics = numPicsOfType (isJust . imgRawPath)
 
 isUnprocessed :: Image -> Bool
-isUnprocessed = (== ImageRaw ) . imgStatus
+isUnprocessed = (== ImageUnprocessed ) . imgStatus
 
 isProcessed :: Image -> Bool
 isProcessed = (== ImageProcessed) . imgStatus
@@ -1220,7 +1220,7 @@ scanFilesystem ctx newrepo = do
 
 -- | Computes the list of images that can be rendered.
 renderableImages :: Repository -> [Image]
-renderableImages = filterImagesByClass [ImageRaw, ImageProcessed, ImageStandalone]
+renderableImages = filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
 
 forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> IO Progress
 forceBuildThumbCaches config renderProgress repo = do

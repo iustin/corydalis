@@ -28,6 +28,8 @@ module Types ( Config(..)
              , reString
              , FolderClass(..)
              , ImageStatus(..)
+             , showImageStatus
+             , parseImageStatus
              , JSDiffTime(..)
              , UrlParams
              , pathSep
@@ -184,7 +186,7 @@ instance FromJSON Config where
 
 data ImageStatus = ImageOrphaned
                  | ImageStandalone
-                 | ImageRaw
+                 | ImageUnprocessed
                  | ImageProcessed
                    deriving (Show, Read, Eq, Ord, Enum, Bounded)
 
@@ -193,17 +195,23 @@ instance NFData ImageStatus where
 
 $(makeStore ''ImageStatus)
 
+showImageStatus :: ImageStatus -> Text
+showImageStatus ImageOrphaned    = "orphaned"
+showImageStatus ImageStandalone  = "standalone"
+showImageStatus ImageUnprocessed = "unprocessed"
+showImageStatus ImageProcessed   = "processed"
+
+parseImageStatus :: Text -> Maybe ImageStatus
+parseImageStatus "orphaned"    = Just ImageOrphaned
+parseImageStatus "unprocessed" = Just ImageUnprocessed
+parseImageStatus "standalone"  = Just ImageStandalone
+parseImageStatus "processed"   = Just ImageProcessed
+parseImageStatus _             = Nothing
+
 -- | Custom yesod instance for ImageStatus.
 instance PathPiece ImageStatus where
-  toPathPiece ImageOrphaned   = "orphaned"
-  toPathPiece ImageStandalone = "standalone"
-  toPathPiece ImageRaw        = "raw"
-  toPathPiece ImageProcessed  = "processed"
-  fromPathPiece "orphaned"   = Just ImageOrphaned
-  fromPathPiece "raw"        = Just ImageRaw
-  fromPathPiece "standalone" = Just ImageStandalone
-  fromPathPiece "processed"  = Just ImageProcessed
-  fromPathPiece _            = Nothing
+  toPathPiece = showImageStatus
+  fromPathPiece = parseImageStatus
 
 -- | Custom Path piece instance for [ImageStatus].
 instance PathPiece [ImageStatus] where
