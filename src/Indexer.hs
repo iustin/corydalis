@@ -28,6 +28,7 @@ module Indexer ( Symbol(..)
                , symbolNames
                , symbolName
                , negSymbolName
+               , symbolFindsFiles
                , atomTypeDescriptions
                , atomDescription
                , parseAtom
@@ -40,6 +41,7 @@ module Indexer ( Symbol(..)
                , buildImageMap
                , searchImages
                , genQuickSearchParams
+               , atomFindsFiles
                ) where
 
 import           Control.Monad  (foldM)
@@ -106,6 +108,10 @@ instance PathPiece Symbol where
   fromPathPiece "folder-class" = Just TFClass
   -- TODO: hmm, what about paths?
   fromPathPiece _              = Nothing
+
+symbolFindsFiles :: Symbol -> Bool
+symbolFindsFiles TFClass = False
+symbolFindsFiles _       = True
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
 -- package, once the actual image metadata uses it too.
@@ -468,6 +474,17 @@ imageSearchFunction (Any as) = \img ->
   any (`imageSearchFunction` img) as
 
 imageSearchFunction ConstTrue = const True
+
+-- | Computes whether a given atom can ever find files.
+atomFindsFiles :: Atom -> Bool
+atomFindsFiles (FClass _) = False
+atomFindsFiles (And a b)  = atomFindsFiles a && atomFindsFiles b
+atomFindsFiles (Or a b)   = atomFindsFiles a || atomFindsFiles b
+atomFindsFiles (Not a)    = atomFindsFiles a
+atomFindsFiles (All as)   = all atomFindsFiles as
+atomFindsFiles (Any as)   = any atomFindsFiles as
+atomFindsFiles ConstTrue  = True
+atomFindsFiles _          = True
 
 getAtoms :: Symbol -> Repository -> NameStats
 getAtoms TCountry  = gExifCountries . repoExif

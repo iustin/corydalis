@@ -13,9 +13,12 @@
      <div .card>
        <div .card-body>
          The filter <i>#{search_string}</i>
-         matches #{length folders} folders.
-         Go to the <a href="@?{(BrowseImagesR 0, params)}">image list</a>
-         for this filter.
+         matches #{length folders} folders. #
+         $if atomFindsFiles atom
+           Go to the <a href="@?{(BrowseImagesR 0, params)}">image list</a>
+           for this filter.
+         $else
+           Note: This filter cannot find files.
 
      <div .card>
        <table #folderlist .tablesorter .table .table-sm .vmiddle>

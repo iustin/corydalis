@@ -9,31 +9,34 @@
 
 <div .row>
  <div .col-12>
-   $if null images
-     <div .card .border-warning>
-       <div .card-header>
-         Nothing found
-       <div .card-body>
-         The filter <i>#{search_string}</i>
-         doesn't match any images.
+   $if atomFindsFiles atom
+     $if null images
+       <div .card .border-warning>
+         <div .card-header>
+           Nothing found
+         <div .card-body>
+           The filter <i>#{search_string}</i>
+           doesn't match any images.
+     $else
+       <div .card>
+         <div .card-body>
+           The filter <i>#{search_string}</i>
+           matches #{length images'} images.
+           Currently viewing <span id="howmany">#{pageSize}</span> images starting at image #{currentStart}. #
+           $if page > 0
+             Go back to the <a href="@?{(BrowseImagesR 0, params)}">first page</a>. #
+           Switch to the <a href="@?{(ListImagesR, params)}">list view</a>, or
+           go to the <a href="@?{(BrowseFoldersR, params)}">folder list</a>
+           for this filter.
+
+       <div .card #fbox-container>
+         ^{imageGrid config imagesize params images}
+
+       <div .card .pagination>
+         <div .card-body>
+           $if null remImages
+             No more images
+           $else
+             <a .pagination-next href="@?{(BrowseImagesR nextPage, params)}">load more images</a>
    $else
-     <div .card>
-       <div .card-body>
-         The filter <i>#{search_string}</i>
-         matches #{length images'} images.
-         Currently viewing <span id="howmany">#{pageSize}</span> images starting at image #{currentStart}. #
-         $if page > 0
-           Go back to the <a href="@?{(BrowseImagesR 0, params)}">first page</a>. #
-         Switch to the <a href="@?{(ListImagesR, params)}">list view</a>, or
-         go to the <a href="@?{(BrowseFoldersR, params)}">folder list</a>
-         for this filter.
-
-     <div .card #fbox-container>
-       ^{imageGrid config imagesize params images}
-
-     <div .card .pagination>
-       <div .card-body>
-         $if null remImages
-           No more images
-         $else
-           <a .pagination-next href="@?{(BrowseImagesR nextPage, params)}">load more images</a>
+     ^{noImageSearchPossible search_string}

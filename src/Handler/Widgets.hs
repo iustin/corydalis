@@ -178,3 +178,14 @@ showListWithHeader txt (x:xs) =
                     <tr>
                       <td>#{w}
             |]
+
+noImageSearchPossible :: Text -> Widget
+noImageSearchPossible search_string =
+  toWidget [hamlet|
+       <div .card .border-danger>
+         <div .card-header>
+           No image search possible
+         <div .card-body>
+           The filter <i>#{search_string}</i>
+           is not able to match files. How did you end up on this page?
+           |]

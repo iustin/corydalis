@@ -7,7 +7,7 @@
    $else
      <div .card>
        <div .card-body>
-         There are #{length items} #{description}.
+         There are #{length items} #{description}. Note: this item type doesn't match images, only folders.
 
      <div .card>
        <table #itemlist .tablesorter .table .table-sm>
@@ -21,7 +21,8 @@
              <tr>
                <td data-text=#{fromMaybe "" n}>
                  <a href="@?{(BrowseFoldersR,[atomAsParam atom n])}"><span class="far fa-folder-open">
-                 <a href="@?{(BrowseImagesR 0,[atomAsParam atom n])}"><span class="far fa-images">
+                 $if symbolFindsFiles atom
+                   <a href="@?{(BrowseImagesR 0,[atomAsParam atom n])}"><span class="far fa-images">
                  $maybe val <- n
                    #{val}
                  $nothing
