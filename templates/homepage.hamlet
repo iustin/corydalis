@@ -32,7 +32,7 @@ $maybe msg <- homeMessage
       <div .card-header .py-2>
         Other views
       <div .card-body>
-        $forall t <- [TCamera, TLens, TType, TProblem, TStatus]
+        $forall t <- [TCamera, TLens, TType, TProblem, TStatus, TFClass]
             <a href="@{ListItemsR t}" .btn .btn-light .py-1 .text-left>
               <span class="#{atomIcon t} fa-fw">
               #{symbolPlCap t}

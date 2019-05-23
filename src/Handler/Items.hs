@@ -51,6 +51,7 @@ symbolPlCap TLens     = "Lenses"
 symbolPlCap TType     = "Types"
 symbolPlCap TPath     = "Paths"
 symbolPlCap TStatus   = "Image status"
+symbolPlCap TFClass   = "Folder class"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"

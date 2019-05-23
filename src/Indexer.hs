@@ -73,6 +73,7 @@ data Symbol = TCountry
             | TType
             | TPath
             | TStatus
+            | TFClass
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -89,6 +90,7 @@ instance PathPiece Symbol where
   toPathPiece TType     = "types"
   toPathPiece TPath     = "paths"
   toPathPiece TStatus   = "image-status"
+  toPathPiece TFClass   = "folder-class"
   fromPathPiece "countries"    = Just TCountry
   fromPathPiece "provinces"    = Just TProvince
   fromPathPiece "cities"       = Just TCity
@@ -101,6 +103,7 @@ instance PathPiece Symbol where
   fromPathPiece "problems"     = Just TProblem
   fromPathPiece "types"        = Just TType
   fromPathPiece "image-status" = Just TStatus
+  fromPathPiece "folder-class" = Just TFClass
   -- TODO: hmm, what about paths?
   fromPathPiece _              = Nothing
 
@@ -164,6 +167,7 @@ data Atom = Country  StrOp
           | Type     TypeOp
           | Path     StrOp
           | Status   ImageStatus
+          | FClass   FolderClass
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -189,25 +193,27 @@ symbolName TProblem  = "problem"
 symbolName TType     = "type"
 symbolName TPath     = "path"
 symbolName TStatus   = "status"
+symbolName TFClass   = "folder-class"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
 
 parseSymbol :: Text -> Maybe Symbol
-parseSymbol "country"  = Just TCountry
-parseSymbol "province" = Just TProvince
-parseSymbol "city"     = Just TCity
-parseSymbol "location" = Just TLocation
-parseSymbol "person"   = Just TPerson
-parseSymbol "keyword"  = Just TKeyword
-parseSymbol "year"     = Just TYear
-parseSymbol "camera"   = Just TCamera
-parseSymbol "lens"     = Just TLens
-parseSymbol "problem"  = Just TProblem
-parseSymbol "type"     = Just TType
-parseSymbol "path"     = Just TPath
-parseSymbol "status"   = Just TStatus
-parseSymbol _          = Nothing
+parseSymbol "country"      = Just TCountry
+parseSymbol "province"     = Just TProvince
+parseSymbol "city"         = Just TCity
+parseSymbol "location"     = Just TLocation
+parseSymbol "person"       = Just TPerson
+parseSymbol "keyword"      = Just TKeyword
+parseSymbol "year"         = Just TYear
+parseSymbol "camera"       = Just TCamera
+parseSymbol "lens"         = Just TLens
+parseSymbol "problem"      = Just TProblem
+parseSymbol "type"         = Just TType
+parseSymbol "path"         = Just TPath
+parseSymbol "status"       = Just TStatus
+parseSymbol "folder-class" = Just TFClass
+parseSymbol _              = Nothing
 
 buildMissingAtom :: Symbol -> Atom
 buildMissingAtom s =
@@ -227,6 +233,7 @@ buildMissingAtom s =
     TPath     -> Path      OpMissing
     -- FIXME: what to return here?
     TStatus   -> error "No missing atom for status"
+    TFClass   -> error "No missing atom for folder class"
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -252,6 +259,7 @@ parseAtom a v = do
     TType     -> Type     <$> typ
     TPath     -> Path     <$> str
     TStatus   -> Status   <$> sta
+    TFClass   -> FClass   <$> parseFolderClass v
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -272,6 +280,7 @@ quickSearch s v =
     TType     -> Type <$> parseType v
     TPath     -> Just . Path . OpFuzzy $ f
     TStatus   -> Status <$> parseImageStatus v
+    TFClass   -> FClass <$> parseFolderClass v
   where f = makeFuzzy v
 
 atomTypeDescriptions :: Symbol -> Text
@@ -288,6 +297,7 @@ atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
 atomTypeDescriptions TPath     = "paths"
 atomTypeDescriptions TStatus   = "image statuses"
+atomTypeDescriptions TFClass   = "folder classes"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -354,6 +364,7 @@ atomDescription (Type TypeMovie)       = "is a movie"
 atomDescription (Type TypeUnknown)     = "is of unknown type"
 atomDescription (Path s)               = describeStr "path" s
 atomDescription (Status v)             = "image status is " <> showImageStatus v
+atomDescription (FClass v)             = "folder class is " <> showFolderClass v
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -387,6 +398,8 @@ folderSearchFunction ConstTrue = const True
 folderSearchFunction a@(Year OpNa) =
   \p -> imagesMatchAtom a (pdImages p) ||
         isNothing (pdYear p)
+folderSearchFunction (FClass c) =
+  ((== c) . folderClass)
 folderSearchFunction a = imagesMatchAtom a . pdImages
 
 imagesMatchAtom :: Atom -> Map.Map Text Image -> Bool
@@ -434,6 +447,9 @@ imageSearchFunction (Path p) =
 imageSearchFunction (Status v) =
   ((== v) . imgStatus)
 
+-- TODO: search based on parent folder status? Or something else?
+imageSearchFunction (FClass _) = const False
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -467,6 +483,7 @@ getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
 getAtoms TPath     = const Map.empty
 getAtoms TStatus   = statusStats
+getAtoms TFClass   = fClassStats
 
 -- | Media type to Type.
 mediaToType :: MediaType -> TypeOp
@@ -494,6 +511,12 @@ statusStats (rsPicStats . repoStats -> stats) =
   , (ImageUnprocessed, sRaw)
   , (ImageProcessed,   sProcessed)
   ]
+
+fClassStats :: Repository -> NameStats
+fClassStats =
+  Map.fromList . map (\(a, b) -> (Just $ showFolderClass a,
+                                  fromIntegral b)) .
+  Map.toList . rsFCStats . repoStats
 
 -- | Computes year statistics.
 yearStats :: Repository -> NameStats
@@ -619,6 +642,9 @@ typeOpToParam s = (s, ) . showType
 statusOpToParam :: Text -> ImageStatus -> (Text, Text)
 statusOpToParam s = (s, ) . showImageStatus
 
+fClassToParam :: Text -> FolderClass -> (Text, Text)
+fClassToParam s = (s, ) . showFolderClass
+
 atomToParams :: Atom -> [(Text, Text)]
 atomToParams (Country  v) = [strOpToParam (symbolName TCountry ) v]
 atomToParams (Province v) = [strOpToParam (symbolName TProvince) v]
@@ -633,6 +659,7 @@ atomToParams (Problem  v) = [strOpToParam (symbolName TProblem ) v]
 atomToParams (Type     v) = [typeOpToParam (symbolName TType   ) v]
 atomToParams (Path     v) = [strOpToParam (symbolName TPath    ) v]
 atomToParams (Status   v) = [statusOpToParam (symbolName TStatus ) v]
+atomToParams (FClass   v) = [fClassToParam (symbolName TFClass) v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =
