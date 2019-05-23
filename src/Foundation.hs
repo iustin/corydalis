@@ -301,7 +301,7 @@ instance YesodBreadcrumbs App where
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)
   breadcrumb ListFoldersR = return ("Listing folders", Nothing)
   breadcrumb ListImagesR  = return ("Listing images", Nothing)
-  breadcrumb BrowseFoldersR      = return ("Search folders",    Nothing)
+  breadcrumb (BrowseFoldersR _)  = return ("Search folders",    Nothing)
   breadcrumb (BrowseImagesR _)   = return ("Search images",     Nothing)
   breadcrumb QuickSearchR        = return ("Quick search",      Nothing)
   breadcrumb SettingsR           = return ("Settings",          Nothing)

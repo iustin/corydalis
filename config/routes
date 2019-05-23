@@ -10,7 +10,7 @@
 /folder/#Text FolderR GET
 /folder/#Text/images/#Text ImageR GET
 /search/folders/list ListFoldersR GET
-/search/folders BrowseFoldersR GET
+/search/folders/grid/#Int BrowseFoldersR GET
 /search/folders/by-year/#Integer SearchFoldersByYearR GET
 /search/folders/no-year SearchFoldersNoYearR GET
 /search/images/grid/#Int BrowseImagesR GET

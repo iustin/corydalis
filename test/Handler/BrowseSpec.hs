@@ -28,8 +28,11 @@ import           Indexer
 
 spec :: Spec
 spec = withApp $ do
-  -- TODO: add search folders
-  describe "checks image search" $ do
+  describe "checks foler browsing" $ do
+    it "checks invalid page request" $ do
+      login
+      checkRouteIs (BrowseFoldersR (-1)) 400
+  describe "checks image browsing" $ do
     it "checks invalid page request" $ do
       login
       checkRouteIs (BrowseImagesR (-1)) 400

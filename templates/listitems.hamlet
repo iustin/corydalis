@@ -20,7 +20,7 @@
            $forall (n, count) <- items
              <tr>
                <td data-text=#{fromMaybe "" n}>
-                 <a href="@?{(BrowseFoldersR,[atomAsParam atom n])}"><span class="far fa-folder-open">
+                 <a href="@?{(BrowseFoldersR 0,[atomAsParam atom n])}"><span class="far fa-folder-open">
                  $if symbolFindsFiles atom
                    <a href="@?{(BrowseImagesR 0,[atomAsParam atom n])}"><span class="far fa-images">
                  $maybe val <- n

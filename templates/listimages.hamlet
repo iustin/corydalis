@@ -11,7 +11,7 @@
            The filter <i>#{search_string}</i>
            matches #{length images} images.
            Switch to <a href="@?{(BrowseImagesR 0, params)}">grid view</a>, or
-           go to the <a href="@?{(BrowseFoldersR, params)}">folder list</a>
+           go to the <a href="@?{(BrowseFoldersR 0, params)}">folder list</a>
            for this filter.
 
        <div .card>

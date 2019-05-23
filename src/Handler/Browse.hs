@@ -34,8 +34,10 @@ import           Import
 import           Indexer
 import           Pics
 
-getBrowseFoldersR :: Handler Html
-getBrowseFoldersR = do
+getBrowseFoldersR :: Int -> Handler Html
+getBrowseFoldersR page = do
+  when (page < 0) $
+    invalidArgs ["Negative page index"]
   (_, config, params, atom, search_string, pics) <- searchContext
   let folders = Map.elems $ buildFolderMap atom pics
       thumbsize = cfgThumbnailSize config
