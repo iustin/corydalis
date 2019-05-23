@@ -40,7 +40,6 @@ module Indexer ( Symbol(..)
                , buildImageMap
                , searchImages
                , genQuickSearchParams
-               , StatusOp(..)
                ) where
 
 import           Control.Monad  (foldM)
@@ -58,7 +57,8 @@ import           Yesod          (PathPiece (..))
 
 import           Exif
 import           Pics
-import           Types          (ImageStatus (..))
+
+import           Types
 
 data Symbol = TCountry
             | TProvince
@@ -139,19 +139,6 @@ evalType TypeMovie   = (== MediaMovie) . imgType
 evalType TypeImage   = (== MediaImage) . imgType
 evalType TypeUnknown = (== MediaUnknown) . imgType
 
-data StatusOp
-  = StatusOrphaned
-  | StatusStandalone
-  | StatusUnprocessed
-  | StatusProcessed
-  deriving (Show, Eq)
-
-statusToImageStatus :: StatusOp -> ImageStatus
-statusToImageStatus StatusOrphaned    = ImageOrphaned
-statusToImageStatus StatusStandalone  = ImageStandalone
-statusToImageStatus StatusUnprocessed = ImageUnprocessed
-statusToImageStatus StatusProcessed   = ImageProcessed
-
 data Atom = Country  StrOp
           | Province StrOp
           | City     StrOp
@@ -164,7 +151,7 @@ data Atom = Country  StrOp
           | Problem  StrOp
           | Type     TypeOp
           | Path     StrOp
-          | Status   StatusOp
+          | Status   ImageStatus
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -238,7 +225,7 @@ parseAtom a v = do
   let dec = parseDecimal v
       str = parseString v
       typ = parseType v
-      sta = parseStatus v
+      sta = parseImageStatus v
   case s of
     TCountry  -> Country  <$> str
     TProvince -> Province <$> str
@@ -272,7 +259,7 @@ quickSearch s v =
         _              -> Nothing
     TType     -> Type <$> parseType v
     TPath     -> Just . Path . OpFuzzy $ f
-    TStatus   -> Status <$> parseStatus v
+    TStatus   -> Status <$> parseImageStatus v
   where f = makeFuzzy v
 
 atomTypeDescriptions :: Symbol -> Text
@@ -354,7 +341,7 @@ atomDescription (Type TypeImage)       = "is an image"
 atomDescription (Type TypeMovie)       = "is a movie"
 atomDescription (Type TypeUnknown)     = "is of unknown type"
 atomDescription (Path s)               = describeStr "path" s
-atomDescription (Status v)             = "image status is " <> showStatus v
+atomDescription (Status v)             = "image status is " <> showImageStatus v
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -433,7 +420,7 @@ imageSearchFunction (Path p) =
           (evalStr p  . Just . imgParent) img
 
 imageSearchFunction (Status v) =
-  \img -> imgStatus img == statusToImageStatus v
+  ((== v) . imgStatus)
 
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
@@ -488,11 +475,12 @@ typeStats =
 -- | Gets status stastics from repository statistics.
 statusStats :: Repository -> NameStats
 statusStats (rsPicStats . repoStats -> stats) =
-  Map.fromList . map (\(s, f) -> (Just $ showStatus s, fromIntegral $ f stats)) $
-  [ (StatusOrphaned,    sOrphaned)
-  , (StatusStandalone,  sStandalone)
-  , (StatusUnprocessed, sRaw)
-  , (StatusProcessed,   sProcessed)
+  Map.fromList . map (\(s, f) -> (Just $ showImageStatus s,
+                                  fromIntegral $ f stats)) $
+  [ (ImageOrphaned,    sOrphaned)
+  , (ImageStandalone,  sStandalone)
+  , (ImageUnprocessed, sRaw)
+  , (ImageProcessed,   sProcessed)
   ]
 
 -- | Computes year statistics.
@@ -596,19 +584,6 @@ showType TypeMovie   = "movie"
 showType TypeImage   = "image"
 showType TypeUnknown = "unknown"
 
-parseStatus :: Text -> Maybe StatusOp
-parseStatus "orphaned"    = Just StatusOrphaned
-parseStatus "standalone"  = Just StatusStandalone
-parseStatus "unprocessed" = Just StatusUnprocessed
-parseStatus "processed"   = Just StatusProcessed
-parseStatus _             = Nothing
-
-showStatus :: StatusOp -> Text
-showStatus StatusOrphaned    = "orphaned"
-showStatus StatusStandalone  = "standalone"
-showStatus StatusUnprocessed = "unprocessed"
-showStatus StatusProcessed   = "processed"
-
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params =
   if length params > 50
@@ -629,8 +604,8 @@ strOpToParam s OpMissing   = ("no-" <> s, "")
 typeOpToParam :: Text -> TypeOp -> (Text, Text)
 typeOpToParam s = (s, ) . showType
 
-statusOpToParam :: Text -> StatusOp -> (Text, Text)
-statusOpToParam s = (s, ) . showStatus
+statusOpToParam :: Text -> ImageStatus -> (Text, Text)
+statusOpToParam s = (s, ) . showImageStatus
 
 atomToParams :: Atom -> [(Text, Text)]
 atomToParams (Country  v) = [strOpToParam (symbolName TCountry ) v]
