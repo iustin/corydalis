@@ -45,7 +45,11 @@ showFile f =
 folderCover :: Int -> UrlParams -> Atom -> PicDir -> Widget
 folderCover thumbsize params atom folder = do
   let name = pdName folder
-      images = imageSearchFunction atom `filter` Map.elems (pdImages folder)
+      all_images = Map.elems (pdImages folder)
+      images =
+        if atomFindsFiles atom
+        then imageSearchFunction atom `filter` all_images
+        else all_images
   case images of
     []    -> toWidget [hamlet|<span .disabled>N/A|]
     img:_ -> imageBytes thumbsize params name (imgName img)
