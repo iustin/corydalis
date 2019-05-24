@@ -45,7 +45,7 @@ module Indexer ( Symbol(..)
                , atomFindsFiles
                ) where
 
-import           Control.Monad  (foldM)
+import           Control.Monad  (foldM, when)
 import           Data.List      (foldl', nub, partition)
 import qualified Data.Map       as Map
 import           Data.Maybe     (isNothing, mapMaybe)
@@ -811,6 +811,28 @@ searchImages ctx atom pics = do
   let lazyimages = buildImageMap atom pics
   getSearchResults ctx lazyimages (atomToParams atom)
 
+-- | Computs the right atoms for an input quick search element.
+--
+-- Algorithm:
+--
+-- * tries to parse the input as symbol:keyword, and build an atom
+--   based on these two (which might fail to)
+-- * if the above is successful, return this single atom
+-- * otherwise, return all atoms that are able to parse the input
+--   string, unmodified.
+getAtomsForQuickSearch :: Text -> [Atom]
+getAtomsForQuickSearch word =
+  let r = do
+        let (h, t) = Text.break (== ':') word
+        (p, t') <- Text.uncons t
+        when (p /= ':') $ Nothing
+        s <- parseSymbol h
+        quickSearch s t'
+  in case r of
+    Just a -> [a]
+    Nothing -> mapMaybe (`quickSearch` word)
+               [minBound..maxBound]
+
 -- | Generates a quick search atom.
 genQuickSearchParams :: Repository -> Text ->
                         Either Text ([Atom], Maybe [(Text, Text)])
@@ -823,19 +845,18 @@ genQuickSearchParams pics search =
       -- atom-values (e.g. a set with all defined cities, so on) where
       -- possible. [performance]
       findsAny a = not . null . filterImagesBy (imageSearchFunction a) $ pics
-      -- Algorithm: for each symbol, try all words (that can be
-      -- converted). Combine all words that find matches using the Any
-      -- atom, and at the end, combine all symbol findings with the
-      -- 'All' atom. This means that a search of type "2018 Spain"
-      -- finds correctly all pictures taken in Spain in the year 2018,
-      -- but a search of type "Italy England" won't find anything,
-      -- since no picture will have a location of both. It would be
-      -- possible to understand that in this case the likely meaning
-      -- is Italy *or* England, but with any complex filters it would
-      -- become a headache.
+      -- Algorithm: for each word, get the right list of atoms (per
+      -- getAtomsForQuickSearch). Combine the above list of atoms
+      -- using the Any atom, and at the end, combine all word findings
+      -- with the 'All' atom. This means that a search of type "2018
+      -- Spain" finds correctly all pictures taken in Spain in the
+      -- year 2018, but a search of type "Italy England" won't find
+      -- anything, since no picture will have a location of both. It
+      -- would be possible to understand that in this case the likely
+      -- meaning is Italy *or* England, but with any complex filters
+      -- it would become a headache.
       params = foldl' (\(pf, pm) w ->
-                         let allA = mapMaybe (`quickSearch` w)
-                                      [minBound..maxBound]
+                         let allA = getAtomsForQuickSearch w
                              -- allA is all atoms that were able to
                              -- parse from the input word.
                              (f, m) = partition findsAny allA

@@ -11,6 +11,10 @@ than a hackish one.
 
 ### Improvements
 
+Quick search atoms now can be prefixed with an atom keyword followed
+by a colon to restrict searches to that specific atom, and not try all
+atoms that match. E.g. 'year:2018 country:Italy'.
+
 ### Bugs fixed
 
 ### Miscellaneous

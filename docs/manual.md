@@ -174,10 +174,12 @@ The quick search interface, available from the navigation bar,
 provides a much simplified interface, with an accompanying reduction
 in capability:
 
-- the given string is split in words;
-- each word is tried as all possible atom types; if a single one
-  matches, that is used, if multiple match, they're combined with
-  `or`;
+- the given string is split in words; for each word:
+  - in case it contains a colon (':'), then it is split in two around
+    it, and the prefix is tried as a keyword; if successful, this is
+    the search element that will be used for the word
+  - if not, each atom type is tried; if a single one matches, that is
+    used, if multiple match, they're combined with `or`;
 - the tries mentioned above are fuzzy matches for string atoms, and
   equality matches for numerical atoms
 - the matches for words are combined with `and`, thus ensuring that
@@ -193,6 +195,15 @@ Assuming the usual case that *switzerland* matches only country and a
 keyword, and that 2018 is only a year, the result will be:
 
     (country switzerland or keyword switzerland) and year 2018
+
+In case the input is given as *province:zürich 2018", then this will
+be tried as
+
+    (province zürich and (year 2018 or country 2018 or location 2018
+    or …)
+
+in effect skipping the discovery of which atoms would match for
+"zürich" and directly using the province keyword.
 
 Further tweaks to the search parameters can be done by modifying the
 URL directly, per the previous section.
