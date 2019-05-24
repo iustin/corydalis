@@ -1,0 +1,39 @@
+<h1>Displaying #{elem_text}
+
+<div #boot
+  data-path-url="@?{(handler 0, params)}"
+  data-page-index=#{page}
+  data-debug=#{debug}
+  data-initial-count=#{length elems}
+  />
+
+<div .row>
+ <div .col-12>
+   $if can_find_elems
+     $if null elems
+       ^{noItemsFound search_string True}
+     $else
+       <div .card>
+         <div .card-body>
+           The filter <i>#{search_string}</i> matches #{length elems'} #{elem_text}.
+           Currently viewing <span id="howmany">#{pageSize}</span> #{elem_text} starting at index #{currentStart}. #
+           $if page > 0
+             Go back to the <a href="@?{(handler 0, params)}">first page</a>. #
+           Switch to the <a href="@?{(list_handler, params)}">list view</a>
+           $if show_alt_view
+             , or go to the <a href="@?{(alt_handler 0, params)}">#{alt_text} view</a>
+             for this filter.
+           $else
+             ; note: this filter cannot find #{alt_text}s.
+
+       <div .card #fbox-container>
+         ^{render config imagesize params atom elems}
+
+       <div .card .pagination>
+         <div .card-body>
+           $if null remElems
+             No more #{elem_text}
+           $else
+             <a .pagination-next href="@?{(handler nextPage, params)}">load more #{elem_text}</a>
+   $else
+     ^{noImageSearchPossible search_string}

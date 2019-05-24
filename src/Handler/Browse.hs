@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
 module Handler.Browse ( getBrowseFoldersR
@@ -32,49 +33,76 @@ import           Handler.Utils
 import           Handler.Widgets
 import           Import
 import           Indexer
+import           Pics
 
-addGridScripts :: Widget
-addGridScripts = do
-  addScript $ StaticR masonry_js_masonry_pkgd_js
-  addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
-  addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
-  addScript $ StaticR corydalis_js_imagegrid_js
+data GridItem a = GridItem
+  { handler      :: Int -> Route App
+  , alt_handler  :: Int -> Route App
+  , list_handler :: Route App
+  , retrieve     :: Ctx -> Atom -> Repository -> IO [a]
+  , render       :: Config -> Int -> UrlParams -> Atom -> [a] -> Widget
+  , elem_text    :: Text
+  , alt_text     :: Text
+  , do_fancybox  :: Bool
+  , check_imflt  :: Bool
+  }
 
-getBrowseFoldersR :: Int -> Handler Html
-getBrowseFoldersR page = do
-  when (page < 0) $
-    invalidArgs ["Negative page index"]
-  (_, config, params, atom, search_string, pics) <- searchContext
-  let folders' = Map.elems $ buildFolderMap atom pics
-  let pageSize = cfgPageSize config
-      currentIdx = page * pageSize
-      currentStart = currentIdx + 1
-      (folders, remFolders) = splitAt pageSize . drop currentIdx $ folders'
-      imagesize = cfgBrowsingSize config
-      nextPage = page + 1
-  debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
-  defaultLayout $ do
-    addGridScripts
-    setHtmlTitle "searching folders"
-    $(widgetFile "browsefolders")
+picDirGridItem :: GridItem PicDir
+picDirGridItem = GridItem
+  { handler = BrowseFoldersR
+  , alt_handler = BrowseImagesR
+  , list_handler = ListFoldersR
+  , retrieve = \_ atom pics -> return . Map.elems $ buildFolderMap atom pics
+  , render = \_ size params atom elems -> folderGrid size params atom elems
+  , elem_text = "folders"
+  , alt_text = "image"
+  , do_fancybox = False
+  , check_imflt = False
+  }
 
-getBrowseImagesR :: Int -> Handler Html
-getBrowseImagesR page = do
+imageGridItem :: GridItem Image
+imageGridItem = GridItem
+  { handler = BrowseImagesR
+  , alt_handler = BrowseFoldersR
+  , list_handler = ListImagesR
+  , retrieve = \ctx atom pics -> Map.elems <$> searchImages ctx atom pics
+  , render = \config size params _ elems -> imageGrid config size params elems
+  , elem_text = "images"
+  , alt_text = "folder"
+  , do_fancybox = True
+  , check_imflt = True
+  }
+
+browseHandler :: GridItem a -> Int -> Handler Html
+browseHandler GridItem{..} page = do
   when (page < 0) $
     invalidArgs ["Negative page index"]
   (ctx, config, params, atom, search_string, pics) <- searchContext
-  images' <- Map.elems <$> liftIO (searchImages ctx atom pics)
+  elems' <- liftIO $ retrieve ctx atom pics
   let pageSize = cfgPageSize config
       currentIdx = page * pageSize
       currentStart = currentIdx + 1
-      (images, remImages) = splitAt pageSize . drop currentIdx $ images'
+      (elems, remElems) = splitAt pageSize . drop currentIdx $ elems'
       imagesize = cfgBrowsingSize config
       nextPage = page + 1
+      show_alt_view = check_imflt || atomFindsFiles atom
+      can_find_elems = not (check_imflt) || atomFindsFiles atom
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    addStylesheet $ StaticR fancybox_css_jquery_fancybox_css
-    addGridScripts
-    addScript $ StaticR fancybox_js_jquery_fancybox_js
-    addScript $ StaticR corydalis_js_fancybox_js
-    setHtmlTitle "searching images"
-    $(widgetFile "browseimages")
+    when do_fancybox $
+      addStylesheet $ StaticR fancybox_css_jquery_fancybox_css
+    addScript $ StaticR masonry_js_masonry_pkgd_js
+    addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
+    addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
+    addScript $ StaticR corydalis_js_imagegrid_js
+    when do_fancybox $ do
+      addScript $ StaticR fancybox_js_jquery_fancybox_js
+      addScript $ StaticR corydalis_js_fancybox_js
+    setHtmlTitle $ "browsing " <> elem_text
+    $(widgetFile "browse")
+
+getBrowseFoldersR :: Int -> Handler Html
+getBrowseFoldersR = browseHandler picDirGridItem
+
+getBrowseImagesR :: Int -> Handler Html
+getBrowseImagesR = browseHandler imageGridItem
