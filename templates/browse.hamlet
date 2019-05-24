@@ -11,7 +11,7 @@
  <div .col-12>
    $if can_find_elems
      $if null elems
-       ^{noItemsFound search_string True}
+       ^{noItemsFound search_string is_images}
      $else
        <div .card>
          <div .card-body>

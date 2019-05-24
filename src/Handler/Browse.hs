@@ -43,8 +43,7 @@ data GridItem a = GridItem
   , render       :: Config -> Int -> UrlParams -> Atom -> [a] -> Widget
   , elem_text    :: Text
   , alt_text     :: Text
-  , do_fancybox  :: Bool
-  , check_imflt  :: Bool
+  , is_images    :: Bool
   }
 
 picDirGridItem :: GridItem PicDir
@@ -56,8 +55,7 @@ picDirGridItem = GridItem
   , render = \_ size params atom elems -> folderGrid size params atom elems
   , elem_text = "folders"
   , alt_text = "image"
-  , do_fancybox = False
-  , check_imflt = False
+  , is_images = False
   }
 
 imageGridItem :: GridItem Image
@@ -69,8 +67,7 @@ imageGridItem = GridItem
   , render = \config size params _ elems -> imageGrid config size params elems
   , elem_text = "images"
   , alt_text = "folder"
-  , do_fancybox = True
-  , check_imflt = True
+  , is_images = True
   }
 
 browseHandler :: GridItem a -> Int -> Handler Html
@@ -85,6 +82,8 @@ browseHandler GridItem{..} page = do
       (elems, remElems) = splitAt pageSize . drop currentIdx $ elems'
       imagesize = cfgBrowsingSize config
       nextPage = page + 1
+      check_imflt = is_images
+      do_fancybox = is_images
       show_alt_view = check_imflt || atomFindsFiles atom
       can_find_elems = not (check_imflt) || atomFindsFiles atom
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
