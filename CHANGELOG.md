@@ -32,6 +32,18 @@ A (desired) side effect of the change is that many searches are faster
 on folders now, since we can look at aggregate folder statistics in
 many cases, rather than look at each individual image in turn.
 
+#### 'Path' atom split into folder and filename
+
+Previously, the Path atom was searching on both the folder and image
+name. This had some drawbacks, most importantly its non-enumerability
+but also the lack of being able to restrict the search to either of
+its two components.
+
+Thus, the atom was renamed to Folder (which matches only on the folder
+name), and a new Filename atom FileName atom has been added that
+matches on (full) image name. By full, it means with any potential
+intermediate directories.
+
 ## v0.3.0
 
 *Fri, 09 Mar 2018*
