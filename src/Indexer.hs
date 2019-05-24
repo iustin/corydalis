@@ -69,6 +69,8 @@ data Symbol = TCountry
             | TLocation
             | TPerson
             | TKeyword
+            | TTitle
+            | TCaption
             | TYear
             | TCamera
             | TLens
@@ -87,6 +89,8 @@ instance PathPiece Symbol where
   toPathPiece TLocation = "locations"
   toPathPiece TPerson   = "people"
   toPathPiece TKeyword  = "keywords"
+  toPathPiece TTitle    = "title"
+  toPathPiece TCaption  = "caption"
   toPathPiece TYear     = "years"
   toPathPiece TCamera   = "cameras"
   toPathPiece TLens     = "lenses"
@@ -102,6 +106,8 @@ instance PathPiece Symbol where
   fromPathPiece "locations"    = Just TLocation
   fromPathPiece "people"       = Just TPerson
   fromPathPiece "keywords"     = Just TKeyword
+  fromPathPiece "title"        = Just TTitle
+  fromPathPiece "caption"      = Just TCaption
   fromPathPiece "years"        = Just TYear
   fromPathPiece "cameras"      = Just TCamera
   fromPathPiece "lenses"       = Just TLens
@@ -170,6 +176,8 @@ data Atom = Country  StrOp
           | Location StrOp
           | Person   StrOp
           | Keyword  StrOp
+          | Title    StrOp
+          | Caption  StrOp
           | Year     (NumOp Integer)
           | Camera   StrOp
           | Lens     StrOp
@@ -197,6 +205,8 @@ symbolName TCity     = "city"
 symbolName TLocation = "location"
 symbolName TPerson   = "person"
 symbolName TKeyword  = "keyword"
+symbolName TTitle    = "title"
+symbolName TCaption  = "caption"
 symbolName TYear     = "year"
 symbolName TCamera   = "camera"
 symbolName TLens     = "lens"
@@ -217,6 +227,8 @@ parseSymbol "city"         = Just TCity
 parseSymbol "location"     = Just TLocation
 parseSymbol "person"       = Just TPerson
 parseSymbol "keyword"      = Just TKeyword
+parseSymbol "title"        = Just TTitle
+parseSymbol "caption"      = Just TCaption
 parseSymbol "year"         = Just TYear
 parseSymbol "camera"       = Just TCamera
 parseSymbol "lens"         = Just TLens
@@ -237,6 +249,8 @@ buildMissingAtom s =
     TLocation -> Location  OpMissing
     TPerson   -> Person    OpMissing
     TKeyword  -> Keyword   OpMissing
+    TTitle    -> Title     OpMissing
+    TCaption  -> Caption   OpMissing
     TYear     -> Year      OpNa
     TCamera   -> Camera    OpMissing
     TLens     -> Lens      OpMissing
@@ -265,6 +279,8 @@ parseAtom a v = do
     TLocation -> Location <$> str
     TPerson   -> Person   <$> str
     TKeyword  -> Keyword  <$> str
+    TTitle    -> Title    <$> str
+    TCaption  -> Caption  <$> str
     TYear     -> Year     <$> dec
     TCamera   -> Camera   <$> str
     TLens     -> Lens     <$> str
@@ -284,6 +300,8 @@ quickSearch s v =
     TLocation -> fuzzer Location
     TPerson   -> fuzzer Person
     TKeyword  -> fuzzer Keyword
+    TTitle    -> fuzzer Title
+    TCaption  -> fuzzer Caption
     TCamera   -> fuzzer Camera
     TLens     -> fuzzer Lens
     TProblem  -> fuzzer Problem
@@ -306,6 +324,8 @@ atomTypeDescriptions TCity     = "cities"
 atomTypeDescriptions TLocation = "locations"
 atomTypeDescriptions TPerson   = "people"
 atomTypeDescriptions TKeyword  = "keywords"
+atomTypeDescriptions TTitle    = "image titles"
+atomTypeDescriptions TCaption  = "image captions"
 atomTypeDescriptions TYear     = "years"
 atomTypeDescriptions TCamera   = "cameras"
 atomTypeDescriptions TLens     = "lenses"
@@ -357,6 +377,8 @@ atomDescription (Keyword (OpEqual keyword)) =
 atomDescription (Keyword (OpFuzzy v)) =
   "tagged with a keyword containing " <> unFuzzy v
 atomDescription (Keyword OpMissing)   = "not tagged with any keywords"
+atomDescription (Title t)              = describeStr "title" t
+atomDescription (Caption t)            = describeStr "caption" t
 atomDescription (Year (OpEq year))    = "taken in the year " <> toText year
 atomDescription (Year (OpLt year))    = "taken before the year " <> toText year
 atomDescription (Year (OpGt year))    = "taken after the year " <> toText year
@@ -419,7 +441,7 @@ nameStatsSearch (OpEqual v) =
 nameStatsSearch (OpFuzzy f) =
   Map.foldrWithKey' (\k v a ->
                        let found = maybe False (fuzzyMatch f) k && v > 0
-                       in if found then True else a) False
+                       in found || a) False
 
 -- TODO: implement searching type=unknown after untracked merging into image.
 folderSearchFunction :: Atom -> PicDir -> Bool
@@ -440,6 +462,12 @@ folderSearchFunction (Person who) =
 
 folderSearchFunction (Keyword k) =
   nameStatsSearch k . gExifKeywords . pdExif
+
+folderSearchFunction (Title t) =
+  nameStatsSearch t . gExifTitles . pdExif
+
+folderSearchFunction (Caption c) =
+  nameStatsSearch c . gExifCaptions . pdExif
 
 -- Note: year is special because year is both property of an image and
 -- (potentially different) property of a folder. So eithe the folder
@@ -518,6 +546,12 @@ imageSearchFunction (Person who) =
 imageSearchFunction (Keyword keyword) =
   setSearch keyword . exifKeywords . imgExif
 
+imageSearchFunction (Title t) =
+  evalStr t . exifTitle . imgExif
+
+imageSearchFunction (Caption c) =
+  evalStr c . exifCaption . imgExif
+
 imageSearchFunction (Year year) =
   evalNum year . imageYear
 
@@ -583,6 +617,8 @@ getAtoms TCity     = gExifCities    . repoExif
 getAtoms TLocation = gExifLocations . repoExif
 getAtoms TPerson   = gExifPeople    . repoExif
 getAtoms TKeyword  = gExifKeywords  . repoExif
+getAtoms TTitle    = gExifTitles    . repoExif
+getAtoms TCaption  = gExifCaptions  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TLens     = gExifLenses    . repoExif
 getAtoms TYear     = yearStats
@@ -769,6 +805,8 @@ atomToParams (City     v) = [formatParam TCity     v]
 atomToParams (Location v) = [formatParam TLocation v]
 atomToParams (Person   v) = [formatParam TPerson   v]
 atomToParams (Keyword  v) = [formatParam TKeyword  v]
+atomToParams (Title    v) = [formatParam TTitle    v]
+atomToParams (Caption  v) = [formatParam TCaption  v]
 atomToParams (Year     n) = [formatParam TYear     n]
 atomToParams (Camera   v) = [formatParam TCamera   v]
 atomToParams (Lens     v) = [formatParam TLens     v]
@@ -825,7 +863,7 @@ getAtomsForQuickSearch word =
   let r = do
         let (h, t) = Text.break (== ':') word
         (p, t') <- Text.uncons t
-        when (p /= ':') $ Nothing
+        when (p /= ':') Nothing
         s <- parseSymbol h
         quickSearch s t'
   in case r of

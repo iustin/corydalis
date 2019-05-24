@@ -28,7 +28,7 @@ import           Indexer
 
 spec :: Spec
 spec = withApp $ do
-  describe "loads the list pages and checks it looks right" $ do
+  describe "loads the list pages and checks it looks right" $
     forM_ [minBound..maxBound] $ \symbol ->
       it ("validates symbol " ++ show symbol) $ do
         login

@@ -99,6 +99,8 @@ The search atoms are:
 - location (string)
 - person (set of strings)
 - keyword (set of string)
+- title (string)
+- caption (string)
 - year (numeric)
 - camera (string)
 - lens (string)

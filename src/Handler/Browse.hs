@@ -85,7 +85,7 @@ browseHandler GridItem{..} page = do
       check_imflt = is_images
       do_fancybox = is_images
       show_alt_view = check_imflt || atomFindsFiles atom
-      can_find_elems = not (check_imflt) || atomFindsFiles atom
+      can_find_elems = not check_imflt || atomFindsFiles atom
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     when do_fancybox $

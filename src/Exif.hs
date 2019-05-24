@@ -455,6 +455,8 @@ data GroupExif = GroupExif
   , gExifLocations :: !NameStats
   , gExifCameras   :: !NameStats
   , gExifLenses    :: !NameStats
+  , gExifTitles    :: !NameStats
+  , gExifCaptions  :: !NameStats
   -- TODO: add warnings?
   } deriving (Show)
 
@@ -466,10 +468,13 @@ instance NFData GroupExif where
                       rnf gExifCities    `seq`
                       rnf gExifLocations `seq`
                       rnf gExifCameras   `seq`
-                      rnf gExifLenses
+                      rnf gExifLenses    `seq`
+                      rnf gExifTitles    `seq`
+                      rnf gExifCaptions
 
 instance Default GroupExif where
-  def = GroupExif Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
+  def = GroupExif Map.empty Map.empty Map.empty Map.empty
+        Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
 
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
@@ -482,6 +487,8 @@ addExifToGroup g Exif{..} =
     , gExifLocations = count   (gExifLocations g) exifLocation
     , gExifCameras   = count   (gExifCameras   g) exifCamera
     , gExifLenses    = count   (gExifLenses    g) (Just $ liName exifLens)
+    , gExifTitles    = count   (gExifTitles    g) exifTitle
+    , gExifCaptions  = count   (gExifCaptions  g) exifCaption
     }
     where count m k = Map.insertWith (+) k 1 m
           foldSet m s = if Set.null s
@@ -499,6 +506,8 @@ instance Semigroup GroupExif where
     , gExifLocations = gExifLocations g1 `merge` gExifLocations g2
     , gExifCameras   = gExifCameras   g1 `merge` gExifCameras   g2
     , gExifLenses    = gExifLenses    g1 `merge` gExifLenses    g2
+    , gExifTitles    = gExifTitles    g1 `merge` gExifTitles    g2
+    , gExifCaptions  = gExifCaptions  g1 `merge` gExifCaptions  g2
     }
     where merge = Map.unionWith (+)
 

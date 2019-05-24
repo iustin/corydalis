@@ -77,6 +77,7 @@ so initial load (after task restart) is _much_ faster.
 
 More search atoms, which means higher chance of confusion. Anyway ☺
 
+* added title and caption (string) atoms
 * added folder (string) atom which allow usual searches on folder name
 * added filename (string) atom which allows searching on image name,
   including any intermediate directories (such as
