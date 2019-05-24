@@ -392,6 +392,7 @@ data PicDir = PicDir
   , pdYear     :: !(Maybe Integer)  -- ^ The approximate year of the
                                     -- earliest picture.
   , pdExif     :: !GroupExif
+  , pdStats    :: !Stats
   } deriving (Show)
 
 instance NFData PicDir where
@@ -400,8 +401,9 @@ instance NFData PicDir where
                    rnf pdSecPaths `seq`
                    rnf pdImages   `seq`
                    rnf pdShadows  `seq`
-                   rnf pdYear      `seq`
-                   rnf pdExif
+                   rnf pdYear     `seq`
+                   rnf pdExif     `seq`
+                   rnf pdStats
 
 type RepoDirs = Map Text PicDir
 
@@ -656,9 +658,12 @@ updateStatsWithPic orig img =
            , sByLens = Map.insertWith (<>) (liName lens) lensOcc(sByLens orig)
            }
 
+computeImagesStats :: Map Text Image -> Stats
+computeImagesStats = Map.foldl' updateStatsWithPic zeroStats
+
 computeFolderStats :: PicDir -> Stats
 computeFolderStats =
-  Map.foldl' updateStatsWithPic zeroStats . pdImages
+  computeImagesStats . pdImages
 
 data StrictPair a b = StrictPair !a !b
 
@@ -666,7 +671,7 @@ computeRepoStats :: RepoDirs -> RepoStats
 computeRepoStats =
   (\(StrictPair a b) -> RepoStats a b) .
   Map.foldl' (\(StrictPair picstats fcstats) dir ->
-                let stats = computeFolderStats dir
+                let stats = pdStats dir
                     fc = folderClassFromStats stats
                     picstats' = sumStats picstats stats
                     fcstats' = Map.insertWith (+) fc 1 fcstats
@@ -809,6 +814,11 @@ mergeFolders c x y =
                pdYear x <|>
                pdYear y
     , pdExif = buildGroupExif newimages
+    -- Note: here we can't sum the stats from x and y, since their
+    -- merge can change an image's type, thus throwing off the stats
+    -- completely (e.g. in x is unprocessed, in y is standalone, in
+    -- x+y is processed).
+    , pdStats = computeImagesStats newimages
     }
   where
     (bestMainPath, otherMainPath) =
@@ -1081,8 +1091,9 @@ loadFolder ctx name path isSource = do
       timesort = buildTimeSort images
       totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0
+      pstats = computeImagesStats images
   atomically $ modifyTVar' scanProgress (incProgress 0 noopexifs readexifs)
-  return $!! PicDir tname dirpath [] images timesort shadows year exif
+  return $!! PicDir tname dirpath [] images timesort shadows year exif pstats
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
