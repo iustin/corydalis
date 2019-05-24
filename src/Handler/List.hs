@@ -33,7 +33,6 @@ module Handler.List
   ) where
 
 import qualified Data.Map        as Map
-import qualified Data.Text.Lazy  as TextL
 
 import           Handler.Utils
 import           Handler.Widgets
@@ -73,19 +72,11 @@ getListFoldersR = do
     setHtmlTitle "Listing folders"
     $(widgetFile "listfolders")
 
-getListImagesR :: Handler TypedContent
+getListImagesR :: Handler Html
 getListImagesR = do
   (ctx, config, params, atom, search_string, pics) <- searchContext
   images <- Map.elems <$> liftIO (searchImages ctx atom pics)
   let thumbsize = cfgThumbnailSize config
-      allpaths = foldl' (\paths img ->
-                           let jpaths = map filePath . imgJpegPath $ img
-                               withJpegs = jpaths  ++ paths
-                           in case imgRawPath img of
-                             Nothing -> withJpegs
-                             Just r  -> filePath r:withJpegs) [] images
-  selectRep $ do
-    provideRep $ defaultLayout $ do
-      setHtmlTitle "Listing images"
-      $(widgetFile "listimages")
-    provideRep $ return $ "\n" `TextL.intercalate` allpaths
+  defaultLayout $ do
+    setHtmlTitle "Listing images"
+    $(widgetFile "listimages")
