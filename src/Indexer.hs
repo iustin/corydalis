@@ -278,25 +278,26 @@ parseAtom a v = do
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
   case s of
-    TCountry  -> Just . Country  . OpFuzzy $ f
-    TProvince -> Just . Province . OpFuzzy $ f
-    TCity     -> Just . City     . OpFuzzy $ f
-    TLocation -> Just . Location . OpFuzzy $ f
-    TPerson   -> Just . Person   . OpFuzzy $ f
-    TKeyword  -> Just . Keyword  . OpFuzzy $ f
-    TCamera   -> Just . Camera   . OpFuzzy $ f
-    TLens     -> Just . Lens     . OpFuzzy $ f
-    TProblem  -> Just . Problem  . OpFuzzy $ f
+    TCountry  -> fuzzer Country
+    TProvince -> fuzzer Province
+    TCity     -> fuzzer City
+    TLocation -> fuzzer Location
+    TPerson   -> fuzzer Person
+    TKeyword  -> fuzzer Keyword
+    TCamera   -> fuzzer Camera
+    TLens     -> fuzzer Lens
+    TProblem  -> fuzzer Problem
     TYear     ->
       case Text.decimal v of
         Right (w', "") -> Just . Year . OpEq $ w'
         _              -> Nothing
     TType     -> Type <$> parseType v
-    TFolder   -> Just . Folder . OpFuzzy $ f
-    TFileName -> Just . FileName . OpFuzzy $ f
+    TFolder   -> fuzzer Folder
+    TFileName -> fuzzer FileName
     TStatus   -> Status <$> parseImageStatus v
     TFClass   -> FClass <$> parseFolderClass v
   where f = makeFuzzy v
+        fuzzer c = Just . c . OpFuzzy $ f
 
 atomTypeDescriptions :: Symbol -> Text
 atomTypeDescriptions TCountry  = "countries"
