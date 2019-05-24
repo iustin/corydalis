@@ -399,6 +399,17 @@ setSearch (OpEqual v) = (v `Set.member`)
 setSearch (OpFuzzy f)=
   Set.foldr' (\a v -> v || fuzzyMatch f a) False
 
+-- | NameStats search function for either membership or null set checking.
+nameStatsSearch :: StrOp -> NameStats -> Bool
+nameStatsSearch OpMissing =
+  maybe False (> 0) . (Nothing `Map.lookup`)
+nameStatsSearch (OpEqual v) =
+  maybe False (> 0) . (Just v `Map.lookup`)
+nameStatsSearch (OpFuzzy f) =
+  Map.foldrWithKey' (\k v a ->
+                       let found = maybe False (fuzzyMatch f) k && v > 0
+                       in if found then True else a) False
+
 -- TODO: implement searching type=unknown after untracked merging into image.
 folderSearchFunction :: Atom -> PicDir -> Bool
 folderSearchFunction ConstTrue = const True
