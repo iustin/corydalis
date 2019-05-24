@@ -412,13 +412,75 @@ nameStatsSearch (OpFuzzy f) =
 
 -- TODO: implement searching type=unknown after untracked merging into image.
 folderSearchFunction :: Atom -> PicDir -> Bool
-folderSearchFunction ConstTrue = const True
-folderSearchFunction a@(Year OpNa) =
-  \p -> imagesMatchAtom a (pdImages p) ||
-        isNothing (pdYear p)
+folderSearchFunction (Country loc) =
+  nameStatsSearch loc . gExifCountries . pdExif
+
+folderSearchFunction (Province loc) =
+  nameStatsSearch loc . gExifProvinces . pdExif
+
+folderSearchFunction (City loc) =
+  nameStatsSearch loc . gExifCities . pdExif
+
+folderSearchFunction (Location loc) =
+  nameStatsSearch loc . gExifLocations . pdExif
+
+folderSearchFunction (Person who) =
+  nameStatsSearch who . gExifPeople . pdExif
+
+folderSearchFunction (Keyword k) =
+  nameStatsSearch k . gExifKeywords . pdExif
+
+-- Note: year is special because year is both property of an image and
+-- (potentially different) property of a folder. So eithe the folder
+-- year matches, or it contains images that match.
+folderSearchFunction a@(Year y) =
+  \p -> evalNum y (pdYear p) ||
+        imagesMatchAtom a (pdImages p)
+
+folderSearchFunction (Camera c) =
+  nameStatsSearch c . gExifCameras . pdExif
+
+folderSearchFunction (Lens l) =
+  nameStatsSearch l . gExifLenses . pdExif
+
+-- TODO: cache folder problems?
+folderSearchFunction a@(Problem _) =
+  imagesMatchAtom a . pdImages
+
+-- TODO: make something smarter here?
+folderSearchFunction a@(Type _) =
+  imagesMatchAtom a . pdImages
+
+-- TODO: replace this with match on folder name after image path
+-- semantics changed.
+folderSearchFunction a@(Path _) =
+  imagesMatchAtom a . pdImages
+
+-- TODO: make status smarter based on folder class?
+folderSearchFunction a@(Status _) =
+  imagesMatchAtom a . pdImages
+
 folderSearchFunction (FClass c) =
   (== c) . folderClass
-folderSearchFunction a = imagesMatchAtom a . pdImages
+
+folderSearchFunction (And a b) = \p ->
+  folderSearchFunction a p &&
+  folderSearchFunction b p
+
+folderSearchFunction (Or a b) = \p ->
+  folderSearchFunction a p ||
+  folderSearchFunction b p
+
+folderSearchFunction (Not a) =
+  not . folderSearchFunction a
+
+folderSearchFunction (All as) = \p ->
+  all (`folderSearchFunction` p) as
+
+folderSearchFunction (Any as) = \p ->
+  any (`folderSearchFunction` p) as
+
+folderSearchFunction ConstTrue = const True
 
 imagesMatchAtom :: Atom -> Map.Map Text Image -> Bool
 imagesMatchAtom a = any (imageSearchFunction a)

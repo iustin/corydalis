@@ -7,13 +7,30 @@
 This is yet another major release, getting closer to a friendly UI
 than a hackish one.
 
-New features:
+### New features
 
-Improvements:
+### Improvements
 
-Bugs fixed:
+### Bugs fixed
 
-Miscellaneous:
+### Miscellaneous
+
+#### Folder search semantics
+
+Changed semantics of folder search. Before, a folder search (almost)
+always meant "it contains at least one image that itself matches the
+exact filter". Now, a folder search for a composite filter (e.g. "A
+and B") means it contains an image matching "A" and also contains an
+image matching "B".
+
+The rationale for this change is that some atoms only have meaning at
+folder level (e.g. folder class), and other have different meaning at
+folder and image level (e.g. year), so the handling of atoms should be
+as well different.
+
+A (desired) side effect of the change is that many searches are faster
+on folders now, since we can look at aggregate folder statistics in
+many cases, rather than look at each individual image in turn.
 
 ## v0.3.0
 

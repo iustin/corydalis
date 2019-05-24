@@ -47,10 +47,8 @@ folderCover :: Int -> Bool -> UrlParams -> Atom -> PicDir -> Widget
 folderCover size browsing params atom folder = do
   let name = pdName folder
       all_images = Map.elems (pdImages folder)
-      images =
-        if atomFindsFiles atom
-        then imageSearchFunction atom `filter` all_images
-        else all_images
+      images = imageSearchFunction atom `filter` all_images ++
+               all_images
       bytes_fn = if browsing
         then imageBytesForFolder
         else imageBytes
