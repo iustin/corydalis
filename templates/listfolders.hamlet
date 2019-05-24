@@ -33,20 +33,20 @@
              <th .sorter-digit>Orphaned
              <th .sorter-digit>Processed
          <tbody>
-           $forall (n, classes) <- npairs
+           $forall (n, stats, fclass, icons) <- npairs
              <tr>
                <td>
                  ^{folderCover thumbsize False params atom n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
-               <td data-text="#{fcShortName (folderClass n)}">
-                 <span title="#{fcDescription (folderClass n)}">
-                   $forall iclass <- classes
+               <td data-text="#{fcShortName fclass}">
+                 <span title="#{fcDescription fclass}">
+                   $forall iclass <- icons
                      <span class="#{iclass}">
-               <td .number>#{numPics n}
-               <td .number>#{numUnprocessedPics n}
-               <td .number>#{numStandalonePics n}
-               <td .number>#{numOrphanedPics n}
-               <td .number>#{numProcessedPics n}
+               <td .number>#{allStatPics stats}
+               <td .number>#{sRaw stats}
+               <td .number>#{sStandalone stats}
+               <td .number>#{sOrphaned stats}
+               <td .number>#{sProcessed stats}
          <tfoot>
            <tr>
             <td colspan=3>Total files

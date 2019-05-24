@@ -11,6 +11,10 @@ than a hackish one.
 
 ### Improvements
 
+Some folder statistics are now pre-computed and cached, leading to
+significant speedups (up to one order of magnitude) in some cases
+(e.g. the folder list view).
+
 Quick search atoms now can be prefixed with an atom keyword followed
 by a colon to restrict searches to that specific atom, and not try all
 atoms that match. E.g. 'year:2018 country:Italy'.

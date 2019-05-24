@@ -55,16 +55,19 @@ getListFoldersR :: Handler Html
 getListFoldersR = do
   (_, config, params, atom, search_string, pics) <- searchContext
   let folders = buildFolderMap atom pics
-      stats = foldl' sumStats zeroStats . map computeFolderStats $ folders
-      allpics = sum . map numPics $ folders
-      -- allraws = sum . map numRawPics $ folders
-      allunproc = sum . map numUnprocessedPics $ folders
-      allprocessed = sum . map numProcessedPics $ folders
-      allstandalone = sum . map numStandalonePics $ folders
-      allorphaned = sum . map numOrphanedPics $ folders
-      npairs = map (\n -> let f_class = (fcIcon . folderClass) n
-                          in (n, f_class))
-               folders
+      fclass = map (\f -> (f, pdStats f)) folders
+      -- FIXME: this version changes output compared to before; movie
+      -- files and untracked were considered "processed". Review the
+      -- semantics here?
+      allStatPics s = sRaw s + sProcessed s + sStandalone s + sOrphaned s + sMovies s
+      stats = foldl' sumStats zeroStats $ map snd fclass
+      allpics = allunproc + allprocessed + allstandalone + allorphaned
+      allunproc = sRaw stats
+      allprocessed = sProcessed stats + sMovies stats
+      allstandalone = sStandalone stats
+      allorphaned = sOrphaned stats
+      npairs = map (\(n, s) -> let c = folderClassFromStats s
+                               in (n, s, c, fcIcon c)) fclass
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setHtmlTitle "Listing folders"
