@@ -15,7 +15,7 @@
        <table #itemlist .tablesorter .table .table-sm>
          <thead>
            <tr>
-             <th .empty-min>Name
+             <th .empty-min .sorter-text>Name
              <th .sorter-digit>Count
 
          <tbody>
