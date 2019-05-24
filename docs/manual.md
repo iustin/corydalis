@@ -13,12 +13,31 @@ there's not much to it:
   2017
 - or, browse by folder type (in the "Curate library" section)
 
-Once you open a folder, click on the thumbnail of any picture to start
-viewing from it. The controls are:
+Once you select a search (or category), you're by default in image
+browse mode (or, if the search you chose doesn't apply to images,
+you're in folder browse mode. You can now scroll up/down now, and:
+
+- in folder browse mode, clicking on a picture takes you to the
+  dedicated image viewer (see below)
+- in image browse mode, it opens up a "lightbox" with the image or
+  movie (with integrated player) and you can still switch between
+  images (left/right, via keyboard or swipe) for a limited while
+  (known bug)
+
+This "browse mode" is one of the three available modes for looking at
+things. The other two are:
+
+- folder/image listing, which is an old-school tabular view, mostly
+  for details on the files.
+- and the dedicated image viewer, designed for fast, sequential view
+  of images.
+
+In the dedicated viewer, you see one image age the time. Available
+controls:
 
 - left/right (keyboard keys, or swipe for touchscreens): move backward
   (previous) and forward (next) in the list of pictures; this switches
-  automatically to the next folder;
+  automatically to next folders, based on the current search;
 - space key: move forward (next picture);
 - `f` (key), or tap the image with two fingers: go full-screen, if the
   browser allows it;
@@ -107,13 +126,11 @@ String atoms (all others) allow:
 - fuzzy match (`~` prefix; does case-insensitive contains check, but
   not globs/regexes)
 
-The path atom is special; while it supports equality searches, this
-doesn't make much sense since if you know the full path you might as
-go select it directly from the image list. Also, no path doesn't make
-sense; for it the fuzzy match is the only real useful search.
-
 Both numeric and string atoms support the concept of a "missing"
-value, see later below.
+value, but with some quirks. A missing atom usually means "this atom
+is not available for this picture" (e.g. picture with no people in it,
+or with no declared city), not all string atoms support this
+meaningfully, for example the filename atom.
 
 On top of that, arbitrarily complex combinations of atoms can be made
 by operators such as:
@@ -153,13 +170,15 @@ Note: due to the RPN parser, the order is critical in the parameters.
 
 ### Atom searches on images versus folders
 
-Normally, a folder search will return all folders with at least one
-image matching the search filter. However, there are two exceptions to
-this case, in order to make the search concept more logical:
+Folder and image search differ in semantics as what a complex filter
+mean; they're mostly equivalent for simple filters, and a folder
+search for X means it contains at least an image that passes X.
+
+However, even for some simple cases this fails:
 
 - an empty search filter, meaning "match all" (technically, *all* with
   no parameters) will return also folders with no pictures; I consider
-  this the natural behaviour when wanting to list "all".
+  this the natural behaviour when wanting to list all _folders_.
 - a search for "no year information" will return the combination of
   the usual "folders containing pictures with no date information" and
   folders for which we can't determined the date at all (meaning no
@@ -167,8 +186,23 @@ this case, in order to make the search concept more logical:
   natural and allows cleaning mistakes in the repository.
 
 These two exceptions show that the mapping of the atom types
-between folders and images is not an exact `1:1`. It's possible that
-more exceptions will be added in the future.
+between folders and images is not an exact `1:1`, so starting with
+version 0.4 the meaning has changed significantly for complex
+searches. Folder search now means returning the folders which can
+satisfy the filter using a combination of their images, not via a
+single image.
+
+For example: _keyword=snow and year=2018_. For images, this means
+finding an image taken in 2018 with keyword _snow_. For folders, it
+means finding the folders with have both an image tagged with _snow_
+and an image taken in 2018, possibly but not necessarily the same
+image.
+
+The downside of not being able to restrict the search so much is
+mitigated by the fact that image searches, in both list and view mode,
+act as "virtual folders". A proper fix would be to expand the search
+language with more specific atoms, which is not a good solution
+either.
 
 ### Quick search
 
@@ -194,15 +228,16 @@ As an example, the search *switzerland 2018* will be transformed into:
     year 2018)
 
 Assuming the usual case that *switzerland* matches only country and a
-keyword, and that 2018 is only a year, the result will be:
+keyword, and that 2018 is only a year, the resulting simplified filter
+will actually be:
 
     (country switzerland or keyword switzerland) and year 2018
 
 In case the input is given as *province:zürich 2018", then this will
-be tried as
+be directly tried as:
 
     (province zürich and (year 2018 or country 2018 or location 2018
-    or …)
+    or …))
 
 in effect skipping the discovery of which atoms would match for
 "zürich" and directly using the province keyword.
@@ -212,9 +247,10 @@ URL directly, per the previous section.
 
 ## Image status
 
-The image "status" attribute is orthogonal to the search parameters,
-and is designed to help processing pictures. Just for image viewing,
-this section can be entirely ignored.
+The image "status" attribute is orthogonal to image viewing, and is
+designed to help processing pictures. Just for image viewing, this
+section can be entirely ignored. But the status atom reuses the same
+status value, so this applies for searches as well.
 
 Depending on what kinds of files are present for an image, it will
 categorised as follows:
@@ -224,6 +260,10 @@ categorised as follows:
   optional)
 * *standalone* if we have a processed file but no raw file
 * *orphaned* if we only have a sidecar file
+
+Note that movies are always considered processed; a proper fix would
+be to track their status as well, but it doesn't seem needed to me
+(given my workflow).
 
 A sidecar file is what image processing programs generate to store
 metadata and/or history of changes; usually these are `.xmp` files.

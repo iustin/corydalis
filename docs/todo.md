@@ -2,8 +2,9 @@
 
 ## Unit tests!
 
-The code is, practically, not tested today. There's a modicum of a
-test that checks the main web page gets a 200 OK, but nothing else.
+The coverage over the entire codebase is quite low. Most of the
+handlers are tested for very basic things, but the main logic of
+images scanning/merging/etc. is not.
 
 ## EXIF handling
 
@@ -23,8 +24,6 @@ test that checks the main web page gets a 200 OK, but nothing else.
 
 Camera/lens database:
 
-- first introduction
-- latest picture
 - pics/week average and median
 
 Stats:
@@ -41,23 +40,10 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 
 ## Folder cover image
 
-A number of issues:
-
-- doesn't show first valid image, but plain first one
-- even better, for consistency, should try to find a landscape image
-  first
+- for consistency, should try to find a landscape-oriented image first
+- and with a person, if possible
 
 ## Dependencies status
-
-### FontAwesome 5
-
-Version 5 moves to svg+js, but this seems somewhat cumbersome to me:
-either include a 600KiB JS file (non-min, non-compressed), or go
-through the trouble of selecting and maintaining the list of used
-icons.
-
-In comparison, v4 is 66KiB/82KiB for the entire fonts (woff/woff2),
-which allows using without any care of icon selection. Sigh.
 
 ## Bugs
 

@@ -26,7 +26,8 @@ some assumptions and I'm just not aware of it; its only requirement is
 that _ImageMagick_ (used to generate the downscaled images for web
 viewing) supports the "processed" image format (which in the vast
 majority of cases will be JPEG, so the point is moot), and that
-_exiftool_ can extract metadata from your images.
+_exiftool_ can extract metadata from your images. For movies, _ffmpeg_
+is used as well for some simple tasks.
 
 See [the installation guide](install.md) file for how to quickly
 run and see Corydalis' output; the application only writes to its own
