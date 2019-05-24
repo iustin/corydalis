@@ -124,6 +124,7 @@ atomIcon TLens     = "fas fa-camera" -- :(
 atomIcon TProblem  = "fas fa-bomb"
 atomIcon TType     = "fas fa-file"
 atomIcon TPath     = "fas fa-folder"
+atomIcon TFileName = "fas fa-file"
 atomIcon TStatus   = "fas fa-file-alt"
 atomIcon TFClass   = "fas fa-folder"
 

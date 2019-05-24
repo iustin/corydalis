@@ -50,6 +50,7 @@ symbolPlCap TCamera   = "Cameras"
 symbolPlCap TLens     = "Lenses"
 symbolPlCap TType     = "Types"
 symbolPlCap TPath     = "Paths"
+symbolPlCap TFileName = "File names"
 symbolPlCap TStatus   = "Image status"
 symbolPlCap TFClass   = "Folder class"
 

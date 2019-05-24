@@ -75,6 +75,7 @@ data Symbol = TCountry
             | TProblem
             | TType
             | TPath
+            | TFileName
             | TStatus
             | TFClass
             deriving (Enum, Bounded, Show, Read, Eq)
@@ -92,6 +93,7 @@ instance PathPiece Symbol where
   toPathPiece TProblem  = "problems"
   toPathPiece TType     = "types"
   toPathPiece TPath     = "paths"
+  toPathPiece TFileName = "filenames"
   toPathPiece TStatus   = "image-status"
   toPathPiece TFClass   = "folder-class"
   fromPathPiece "countries"    = Just TCountry
@@ -107,7 +109,8 @@ instance PathPiece Symbol where
   fromPathPiece "types"        = Just TType
   fromPathPiece "image-status" = Just TStatus
   fromPathPiece "folder-class" = Just TFClass
-  -- TODO: hmm, what about paths?
+  -- TODO: hmm, what about paths, filenames?
+  fromPathPiece "filenames"    = Just TFileName
   fromPathPiece _              = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
@@ -173,6 +176,7 @@ data Atom = Country  StrOp
           | Problem  StrOp
           | Type     TypeOp
           | Path     StrOp
+          | FileName StrOp
           | Status   ImageStatus
           | FClass   FolderClass
           | And Atom Atom
@@ -199,6 +203,7 @@ symbolName TLens     = "lens"
 symbolName TProblem  = "problem"
 symbolName TType     = "type"
 symbolName TPath     = "path"
+symbolName TFileName = "filename"
 symbolName TStatus   = "status"
 symbolName TFClass   = "folder-class"
 
@@ -218,6 +223,7 @@ parseSymbol "lens"         = Just TLens
 parseSymbol "problem"      = Just TProblem
 parseSymbol "type"         = Just TType
 parseSymbol "path"         = Just TPath
+parseSymbol "filename"     = Just TFileName
 parseSymbol "status"       = Just TStatus
 parseSymbol "folder-class" = Just TFClass
 parseSymbol _              = Nothing
@@ -239,6 +245,7 @@ buildMissingAtom s =
     -- FIXME: this should fail instead (using Maybe).
     TPath     -> Path      OpMissing
     -- FIXME: what to return here?
+    TFileName -> error "No missing atom for filename"
     TStatus   -> error "No missing atom for status"
     TFClass   -> error "No missing atom for folder class"
 
@@ -265,6 +272,7 @@ parseAtom a v = do
     TProblem  -> Problem  <$> str
     TType     -> Type     <$> typ
     TPath     -> Path     <$> str
+    TFileName -> FileName <$> str
     TStatus   -> Status   <$> sta
     TFClass   -> FClass   <$> parseFolderClass v
 
@@ -286,6 +294,7 @@ quickSearch s v =
         _              -> Nothing
     TType     -> Type <$> parseType v
     TPath     -> Just . Path . OpFuzzy $ f
+    TFileName -> Just . FileName . OpFuzzy $ f
     TStatus   -> Status <$> parseImageStatus v
     TFClass   -> FClass <$> parseFolderClass v
   where f = makeFuzzy v
@@ -303,6 +312,7 @@ atomTypeDescriptions TLens     = "lenses"
 atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
 atomTypeDescriptions TPath     = "paths"
+atomTypeDescriptions TFileName = "filenames"
 atomTypeDescriptions TStatus   = "image statuses"
 atomTypeDescriptions TFClass   = "folder classes"
 
@@ -370,6 +380,7 @@ atomDescription (Type TypeImage)       = "is an image"
 atomDescription (Type TypeMovie)       = "is a movie"
 atomDescription (Type TypeUnknown)     = "is of unknown type"
 atomDescription (Path s)               = describeStr "path" s
+atomDescription (FileName s)           = describeStr "filename" s
 atomDescription (Status v)             = "image status is " <> showImageStatus v
 atomDescription (FClass v)             = "folder class is " <> showFolderClass v
 atomDescription (And a b) =
@@ -456,6 +467,11 @@ folderSearchFunction a@(Type _) =
 folderSearchFunction a@(Path _) =
   imagesMatchAtom a . pdImages
 
+-- Note: unlikely, but do search on paths as recorderd in keys of
+-- pdImages?
+folderSearchFunction a@(FileName _) =
+  imagesMatchAtom a . pdImages
+
 -- TODO: make status smarter based on folder class?
 folderSearchFunction a@(Status _) =
   imagesMatchAtom a . pdImages
@@ -521,8 +537,11 @@ imageSearchFunction (Problem who) =
 imageSearchFunction (Type t) = evalType t
 
 imageSearchFunction (Path p) =
-  \img -> (evalStr p  . Just . imgName)   img ||
-          (evalStr p  . Just . imgParent) img
+  \img -> (evalStr p . Just . imgName)   img ||
+          (evalStr p . Just . imgParent) img
+
+imageSearchFunction (FileName f) =
+  evalStr f . Just . imgName
 
 imageSearchFunction (Status v) =
   (== v) . imgStatus
@@ -573,6 +592,9 @@ getAtoms TYear     = yearStats
 getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
 getAtoms TPath     = const Map.empty
+-- TODO: this is expensive. Disable (const Map.empty)?
+getAtoms TFileName =
+  foldl' (\a i -> Map.insertWith (+) (Just $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
 getAtoms TStatus   = statusStats
 getAtoms TFClass   = fClassStats
 
@@ -755,6 +777,7 @@ atomToParams (Lens     v) = [formatParam TLens     v]
 atomToParams (Problem  v) = [formatParam TProblem  v]
 atomToParams (Type     v) = [formatParam TType     v]
 atomToParams (Path     v) = [formatParam TPath     v]
+atomToParams (FileName v) = [formatParam TFileName v]
 atomToParams (Status   v) = [formatParam TStatus   v]
 atomToParams (FClass   v) = [formatParam TFClass   v]
 atomToParams (And a b)    =
