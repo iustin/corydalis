@@ -86,7 +86,9 @@ The search atoms are:
 - problem (this is what can be potentially errors; right now limited
   to exif metadata read issues)
 - type (set: movie, image, or unknown)
-- path (matches on the image or folder name)
+- folder (string): matches folder name
+- filename (string): matches image name (with any intermediate
+  sub-paths)
 
 Numeric atoms (currently only year) allow:
 

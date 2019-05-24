@@ -4,12 +4,110 @@
 
 *unreleased*
 
-This is yet another major release, getting closer to a friendly UI
-than a hackish one.
+This is yet another major release, getting closer to a friendly UI for
+photo viewing in parallel with the expansion of the library curation
+for people so interested.
 
 ### New features
 
-### Improvements
+A large number of new features, due to the long bake time. Will do
+better next time ☺
+
+#### Movie support
+
+It is now possible to view movies formats that are natively supported
+by the browser. This is not much, as many older cameras were creating
+things like `AVI` files, or some cameras still generate `MOV`s that
+are not well supported.
+
+Nevertheless, for the formats that are supported, it is possible to:
+
+- view them as such, in the image viewer and the new browsing mode
+- search for movies by type
+- see statistics (in the 'curate' module)
+
+When just looking at images (in the new browsing UI, or as thumbnails,
+etc.) the movie "cover" is taken either from an embedded thumbnail (if
+available), or from the first frame via `ffmpeg`, which is a new
+dependency.
+
+#### A new alternative UI for browsing pictures
+
+The existing image viewer, designed for fast sequential viewing, lack
+the ability to browse through images, without necessarily wanting to
+see them in detail. Furthermore, the existing image/folder views with
+their data-oriented tabular formats were really not user friendly, but
+more geared towards analysing the photo library.
+
+There's now a new, parallel "browse" mode that is grid based, which
+allows scrolling through the pictures. It deals much better with large
+results as it's paginated and incrementally loading, and applies the
+same to folder views and to image views.
+
+On the folder view, selecting an image leads into the image viewer for
+that folder, whereas for the image view, it just opens the image or
+the movie in a "lightbox", allowing to view the image in more detail
+(even at full resolution, which is better than the previous image
+view) without losing track of browsing position.
+
+It is also possible to switch between folder and image views and
+between the list-based and the browse-based view for either.
+
+#### Asynchronous repository scanning with progress report
+
+The previous synchronous-scanning done in the reload handler was, of
+course, a big kludge, and it was finally time to retire it. The reload
+handler now just triggers the scan, and it's possible to see
+progress statistics for both the scanning phase, and for the rendering
+phase, which was completely hidden before.
+
+The refactoring had a couple of nice side-effects:
+
+- the UI is fully usable during the scans; if this is a subsequent
+  scan, the previous results are kept until the in-progress scan is
+  finished, leading to no "down-time" of accessing the data;
+- rendering phase is better controlled and there's no significant
+  duplicate work; previous implementation was forgetting the rendering
+  thread and could lead to N parallel threads all doing the same work;
+
+On top of all this, the repository state is cached at end of scanning,
+so initial load (after task restart) is _much_ faster.
+
+#### New search atoms
+
+More search atoms, which means higher chance of confusion. Anyway ☺
+
+* added folder (string) atom which allow usual searches on folder name
+* added filename (string) atom which allows searching on image name,
+  including any intermediate directories (such as
+  `day1/dsc_0590.jpg`).
+* added image status (set) atom, which replaces the old by-status view.
+* added folder class (set) atom, which replaces the old by-folder-type
+  view.
+* added a lens (string) search atom.
+
+The addition of image status and folder class atoms allowed completely
+removing the old style "by-category" views, completing the unification
+of the search/browse/list paradigm onto searching (via filters).
+
+#### Expanded library statistics (curate module)
+
+Added camera statistics, including tracking of shutter count if
+available, and expanded the lens statistics. One can now look to see
+which cameras generate best keepers, or to track equipment use/last
+use, etc. Multiple cameras of the same model are handled now via
+serial info, which however breaks as many cameras don't store their
+serial in movie metadata, only in images.
+
+The over-time usage for both cameras and lenses now show graphs, but
+I'm not sure they're very readable, so it's more like raw v1.
+
+Improved handling of exif errors or (new) plain inconsistencies
+(e.g. location fields existing but empty). This should allow removing
+
+There is so much more data that could be shown here, but not yet…
+
+### Performance improvements
 
 Some folder statistics are now pre-computed and cached, leading to
 significant speedups (up to one order of magnitude) in some cases
@@ -19,11 +117,39 @@ Quick search atoms now can be prefixed with an atom keyword followed
 by a colon to restrict searches to that specific atom, and not try all
 atoms that match. E.g. 'year:2018 country:Italy'.
 
+As described above, repository state is cached, so application restart
+is much faster.
+
+There have also been some overall performance improvements by changing
+the used types (some `String`→`Text` migration, or list to sets,
+etc.), but with no hard data.
+
 ### Bugs fixed
 
 Folder cover display should now more consistently find an image to
 display, even if the first image(s) are not viewable or if the image
 filter doesn't actually select an image from the folder.
+
+Master (as in 'soft master') images that are not proper raw files, but
+instead something like png/tiff/etc. are now directly viewable. The
+logic for this is hard coded for now, but finally one can see master
+bitmaps.
+
+Quick searches for two (but exactly two) words which neither finds
+anything was triggering a but in the atom parser; this is was fixed by
+removing arbitrary-length operators in the parser.
+
+Images are now viewed in capture time order, not alphabetical
+order. This could be called an improvement as well, but it was IMO a
+bug in the first place.
+
+Full screen mode in the view library is now done via the `screenfull`
+javascript library, leading hopefully to expanded compatibility. On
+top of that, a fake full screen mode is there for browsers which don't
+support a native on - looking at you, Safari on iOS, why oh why?
+
+Relaxed the parsing of some exif fields, hopefully allowing parsing of
+metadata generated by more exotic writers.
 
 ### Miscellaneous
 
@@ -44,17 +170,17 @@ A (desired) side effect of the change is that many searches are faster
 on folders now, since we can look at aggregate folder statistics in
 many cases, rather than look at each individual image in turn.
 
-#### 'Path' atom split into folder and filename
+#### Internal changes
 
-Previously, the Path atom was searching on both the folder and image
-name. This had some drawbacks, most importantly its non-enumerability
-but also the lack of being able to restrict the search to either of
-its two components.
+The application state was moved from global variables (`MVar`s) to a
+context structure, which unblocked testing of minimal repositories. As
+such, there's a tiny bit of coverage improvement, but this serious
+testing remains for the future.
 
-Thus, the atom was renamed to Folder (which matches only on the folder
-name), and a new Filename atom FileName atom has been added that
-matches on (full) image name. By full, it means with any potential
-intermediate directories.
+Untracked files are now handled together with image files, which
+should lead hopefully to a better handling of files, but has potential
+for some bugs (e.g. one was found in list folder with regards to image
+statistics).
 
 ## v0.3.0
 
