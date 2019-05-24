@@ -40,20 +40,23 @@ getQuickSearchR = do
     Just "" -> invalidArgs ["Empty search parameter"]
     Just q' -> return q'
   pics <- getPics
-  (skipped, params) <- case genQuickSearchParams pics search of
+  (skipped, atom) <- case genQuickSearchParams pics search of
     Left err -> invalidArgs [err]
     Right p' -> return p'
-  case params of
+  case atom of
     Nothing -> defaultLayout $ do
       setHtmlTitle "quick search"
       $(widgetFile "quicksearchfail")
-    Just p -> do
+    Just atom' -> do
       unless (null skipped) $ do
         setMessage . toHtml $
           "The following filters had no results so they were skipped: " <>
           ", " `Text.intercalate` map atomDescription skipped <> "."
         setSession msgTypeKey msgWarning
-      redirect (BrowseImagesR 0, p)
+      let handler = if atomFindsFiles atom'
+                    then BrowseImagesR
+                    else BrowseFoldersR
+      redirect (handler 0, atomToParams atom')
 
 getSearchFoldersByYearR :: Integer -> Handler Html
 getSearchFoldersByYearR year =

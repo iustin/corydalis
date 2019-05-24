@@ -835,7 +835,7 @@ getAtomsForQuickSearch word =
 
 -- | Generates a quick search atom.
 genQuickSearchParams :: Repository -> Text ->
-                        Either Text ([Atom], Maybe [(Text, Text)])
+                        Either Text ([Atom], Maybe Atom)
 genQuickSearchParams _ "" = Left "Empty search parameter"
 genQuickSearchParams pics search =
   let swords = nub $ Text.words search
@@ -844,7 +844,8 @@ genQuickSearchParams pics search =
       -- repository. Improve by checking membership in sum of
       -- atom-values (e.g. a set with all defined cities, so on) where
       -- possible. [performance]
-      findsAny a = not . null . filterImagesBy (imageSearchFunction a) $ pics
+      findsAny a = (not . null . filterImagesBy (imageSearchFunction a) $ pics) ||
+                   (not . null . filterFoldersBy (folderSearchFunction a) $ pics)
       -- Algorithm: for each word, get the right list of atoms (per
       -- getAtomsForQuickSearch). Combine the above list of atoms
       -- using the Any atom, and at the end, combine all word findings
@@ -872,5 +873,5 @@ genQuickSearchParams pics search =
       (found, notfound) = params
       p' = if null found
              then Nothing
-             else Just . atomToParams . allAtom $ found
+             else Just . allAtom $ found
   in Right (notfound, p')
