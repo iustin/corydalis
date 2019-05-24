@@ -29,14 +29,11 @@ import           Indexer
 spec :: Spec
 spec = withApp $ do
   describe "loads the list pages and checks it looks right" $ do
-    forM_ [s | s <- [minBound..maxBound], s /= TPath] $ \symbol ->
+    forM_ [minBound..maxBound] $ \symbol ->
       it ("validates symbol " ++ show symbol) $ do
         login
         checkRoute $ ListItemsR symbol
         htmlAllContain "h1" "Listing"
-    it "checks Paths are not listable" $ do
-      login
-      checkNotFound $ ListItemsR TPath
   it "loads empty folder list page" $ do
     login
     checkRoute ListFoldersR

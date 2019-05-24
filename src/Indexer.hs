@@ -74,7 +74,7 @@ data Symbol = TCountry
             | TLens
             | TProblem
             | TType
-            | TPath
+            | TFolder
             | TFileName
             | TStatus
             | TFClass
@@ -92,7 +92,7 @@ instance PathPiece Symbol where
   toPathPiece TLens     = "lenses"
   toPathPiece TProblem  = "problems"
   toPathPiece TType     = "types"
-  toPathPiece TPath     = "paths"
+  toPathPiece TFolder   = "folders"
   toPathPiece TFileName = "filenames"
   toPathPiece TStatus   = "image-status"
   toPathPiece TFClass   = "folder-class"
@@ -107,10 +107,10 @@ instance PathPiece Symbol where
   fromPathPiece "lenses"       = Just TLens
   fromPathPiece "problems"     = Just TProblem
   fromPathPiece "types"        = Just TType
+  fromPathPiece "folders"      = Just TFolder
+  fromPathPiece "filenames"    = Just TFileName
   fromPathPiece "image-status" = Just TStatus
   fromPathPiece "folder-class" = Just TFClass
-  -- TODO: hmm, what about paths, filenames?
-  fromPathPiece "filenames"    = Just TFileName
   fromPathPiece _              = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
@@ -175,7 +175,7 @@ data Atom = Country  StrOp
           | Lens     StrOp
           | Problem  StrOp
           | Type     TypeOp
-          | Path     StrOp
+          | Folder   StrOp
           | FileName StrOp
           | Status   ImageStatus
           | FClass   FolderClass
@@ -202,7 +202,7 @@ symbolName TCamera   = "camera"
 symbolName TLens     = "lens"
 symbolName TProblem  = "problem"
 symbolName TType     = "type"
-symbolName TPath     = "path"
+symbolName TFolder   = "folder"
 symbolName TFileName = "filename"
 symbolName TStatus   = "status"
 symbolName TFClass   = "folder-class"
@@ -222,7 +222,7 @@ parseSymbol "camera"       = Just TCamera
 parseSymbol "lens"         = Just TLens
 parseSymbol "problem"      = Just TProblem
 parseSymbol "type"         = Just TType
-parseSymbol "path"         = Just TPath
+parseSymbol "folder"       = Just TFolder
 parseSymbol "filename"     = Just TFileName
 parseSymbol "status"       = Just TStatus
 parseSymbol "folder-class" = Just TFClass
@@ -242,9 +242,8 @@ buildMissingAtom s =
     TLens     -> Lens      OpMissing
     TProblem  -> Problem   OpMissing
     TType     -> Type      TypeUnknown
-    -- FIXME: this should fail instead (using Maybe).
-    TPath     -> Path      OpMissing
-    -- FIXME: what to return here?
+    -- FIXME: these should fail instead (using Maybe).
+    TFolder   -> error "No missing atom for folder"
     TFileName -> error "No missing atom for filename"
     TStatus   -> error "No missing atom for status"
     TFClass   -> error "No missing atom for folder class"
@@ -271,7 +270,7 @@ parseAtom a v = do
     TLens     -> Lens     <$> str
     TProblem  -> Problem  <$> str
     TType     -> Type     <$> typ
-    TPath     -> Path     <$> str
+    TFolder   -> Folder   <$> str
     TFileName -> FileName <$> str
     TStatus   -> Status   <$> sta
     TFClass   -> FClass   <$> parseFolderClass v
@@ -293,7 +292,7 @@ quickSearch s v =
         Right (w', "") -> Just . Year . OpEq $ w'
         _              -> Nothing
     TType     -> Type <$> parseType v
-    TPath     -> Just . Path . OpFuzzy $ f
+    TFolder   -> Just . Folder . OpFuzzy $ f
     TFileName -> Just . FileName . OpFuzzy $ f
     TStatus   -> Status <$> parseImageStatus v
     TFClass   -> FClass <$> parseFolderClass v
@@ -311,7 +310,7 @@ atomTypeDescriptions TCamera   = "cameras"
 atomTypeDescriptions TLens     = "lenses"
 atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
-atomTypeDescriptions TPath     = "paths"
+atomTypeDescriptions TFolder   = "folders"
 atomTypeDescriptions TFileName = "filenames"
 atomTypeDescriptions TStatus   = "image statuses"
 atomTypeDescriptions TFClass   = "folder classes"
@@ -379,7 +378,7 @@ atomDescription (Problem (OpFuzzy v))  =
 atomDescription (Type TypeImage)       = "is an image"
 atomDescription (Type TypeMovie)       = "is a movie"
 atomDescription (Type TypeUnknown)     = "is of unknown type"
-atomDescription (Path s)               = describeStr "path" s
+atomDescription (Folder s)             = describeStr "folder" s
 atomDescription (FileName s)           = describeStr "filename" s
 atomDescription (Status v)             = "image status is " <> showImageStatus v
 atomDescription (FClass v)             = "folder class is " <> showFolderClass v
@@ -462,12 +461,10 @@ folderSearchFunction a@(Problem _) =
 folderSearchFunction a@(Type _) =
   imagesMatchAtom a . pdImages
 
--- TODO: replace this with match on folder name after image path
--- semantics changed.
-folderSearchFunction a@(Path _) =
-  imagesMatchAtom a . pdImages
+folderSearchFunction (Folder f) =
+  evalStr f . Just . pdName
 
--- Note: unlikely, but do search on paths as recorderd in keys of
+-- Note: unlikely, but do search on paths as recorded in keys of
 -- pdImages?
 folderSearchFunction a@(FileName _) =
   imagesMatchAtom a . pdImages
@@ -536,9 +533,8 @@ imageSearchFunction (Problem who) =
 
 imageSearchFunction (Type t) = evalType t
 
-imageSearchFunction (Path p) =
-  \img -> (evalStr p . Just . imgName)   img ||
-          (evalStr p . Just . imgParent) img
+imageSearchFunction (Folder p) =
+  evalStr p . Just . imgParent
 
 imageSearchFunction (FileName f) =
   evalStr f . Just . imgName
@@ -591,7 +587,8 @@ getAtoms TLens     = gExifLenses    . repoExif
 getAtoms TYear     = yearStats
 getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
-getAtoms TPath     = const Map.empty
+getAtoms TFolder   =
+  foldl' (\a p -> Map.insertWith (+) (Just $ pdName p) 1 a) Map.empty . repoDirs
 -- TODO: this is expensive. Disable (const Map.empty)?
 getAtoms TFileName =
   foldl' (\a i -> Map.insertWith (+) (Just $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
@@ -776,7 +773,7 @@ atomToParams (Camera   v) = [formatParam TCamera   v]
 atomToParams (Lens     v) = [formatParam TLens     v]
 atomToParams (Problem  v) = [formatParam TProblem  v]
 atomToParams (Type     v) = [formatParam TType     v]
-atomToParams (Path     v) = [formatParam TPath     v]
+atomToParams (Folder   v) = [formatParam TFolder   v]
 atomToParams (FileName v) = [formatParam TFileName v]
 atomToParams (Status   v) = [formatParam TStatus   v]
 atomToParams (FClass   v) = [formatParam TFClass   v]
