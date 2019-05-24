@@ -47,12 +47,12 @@ folderCover :: Int -> Bool -> UrlParams -> Atom -> PicDir -> Widget
 folderCover size browsing params atom folder = do
   let name = pdName folder
       all_images = Map.elems (pdImages folder)
-      images = imageSearchFunction atom `filter` all_images ++
-               all_images
+      images = imageSearchFunction atom `filter` all_images ++ all_images
+      images' = filter (not . null . allViewableImageFiles) images ++ images
       bytes_fn = if browsing
         then imageBytesForFolder
         else imageBytes
-  case images of
+  case images' of
     []    -> if browsing
              then toWidget [hamlet|<div .card .mx-1 .my-1>
                                     <div .card-header>

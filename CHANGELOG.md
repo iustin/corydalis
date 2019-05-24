@@ -17,6 +17,10 @@ atoms that match. E.g. 'year:2018 country:Italy'.
 
 ### Bugs fixed
 
+Folder cover display should now more consistently find an image to
+display, even if the first image(s) are not viewable or if the image
+filter doesn't actually select an image from the folder.
+
 ### Miscellaneous
 
 #### Folder search semantics

@@ -87,6 +87,7 @@ module Pics ( PicDir(..)
             , loadCachedOrBuild
             , imageAtRes
             , allImageFiles
+            , allViewableImageFiles
             , allRepoFiles
             , imageHasImages
             , imageHasMovies
@@ -1350,6 +1351,12 @@ allImageFiles :: Image -> [File]
 allImageFiles Image{..} =
   catMaybes [imgRawPath, imgSidecarPath, imgMasterMov] ++
   imgJpegPath ++ imgMovs ++ imgUntracked
+
+-- | Returns the list of (likely, but not guaranteed) viewable files
+-- for an image.
+allViewableImageFiles :: Image -> [File]
+allViewableImageFiles Image{..} =
+  imgJpegPath ++ catMaybes [imgRawPath, imgMasterMov] ++ imgMovs
 
 addDirFiles :: PicDir -> [File] -> [File]
 addDirFiles dir =
