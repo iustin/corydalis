@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.Widgets where
 
 import qualified Data.Map      as Map
+import           Data.Ord
 import qualified Data.Set      as Set
 import qualified Data.Text     as Text
 import           Formatting
@@ -78,7 +79,7 @@ imageSrcSet :: Config -> (Route App -> Text) -> Text -> Text -> Int -> Text
 imageSrcSet config renderer folder image minsize =
   -- FIXME: this should filter out all sizes greater than actual image
   -- size; this needs knowing the image size in Image. [performance]
-  let allSizes = reverse . sort . filter (>= minsize) . cfgAutoImageSizes $ config
+  let allSizes = sortOn Down . filter (>= minsize) . cfgAutoImageSizes $ config
       sizes = map (\size -> sformat (stext % " " % int % "w")
                             (renderer (ImageBytesR folder image size))
                             size

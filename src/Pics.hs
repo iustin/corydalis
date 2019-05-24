@@ -1431,7 +1431,7 @@ previewTags = ["JpgFromRaw", "PreviewImage"]
 -- TODO: move to config.
 asIsViewableExtensions :: [Text]
 asIsViewableExtensions =
-  map ('.' `Text.cons`) $
+  map ('.' `Text.cons`)
   ["png", "jpg", "jpeg", "tiff", "tif"]
 
 -- | Minimum thumbnail size to consider it a valid image.

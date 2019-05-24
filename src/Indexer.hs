@@ -406,7 +406,7 @@ folderSearchFunction a@(Year OpNa) =
   \p -> imagesMatchAtom a (pdImages p) ||
         isNothing (pdYear p)
 folderSearchFunction (FClass c) =
-  ((== c) . folderClass)
+  (== c) . folderClass
 folderSearchFunction a = imagesMatchAtom a . pdImages
 
 imagesMatchAtom :: Atom -> Map.Map Text Image -> Bool
@@ -452,7 +452,7 @@ imageSearchFunction (Path p) =
           (evalStr p  . Just . imgParent) img
 
 imageSearchFunction (Status v) =
-  ((== v) . imgStatus)
+  (== v) . imgStatus
 
 -- TODO: search based on parent folder status? Or something else?
 imageSearchFunction (FClass _) = const False

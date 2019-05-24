@@ -33,6 +33,13 @@ import           Handler.Widgets
 import           Import
 import           Indexer
 
+addGridScripts :: Widget
+addGridScripts = do
+  addScript $ StaticR masonry_js_masonry_pkgd_js
+  addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
+  addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
+  addScript $ StaticR corydalis_js_imagegrid_js
+
 getBrowseFoldersR :: Int -> Handler Html
 getBrowseFoldersR page = do
   when (page < 0) $
@@ -47,10 +54,7 @@ getBrowseFoldersR page = do
       nextPage = page + 1
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    addScript $ StaticR masonry_js_masonry_pkgd_js
-    addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
-    addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
-    addScript $ StaticR corydalis_js_imagegrid_js
+    addGridScripts
     setHtmlTitle "searching folders"
     $(widgetFile "browsefolders")
 
@@ -69,11 +73,8 @@ getBrowseImagesR page = do
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     addStylesheet $ StaticR fancybox_css_jquery_fancybox_css
-    addScript $ StaticR masonry_js_masonry_pkgd_js
-    addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
-    addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
+    addGridScripts
     addScript $ StaticR fancybox_js_jquery_fancybox_js
-    addScript $ StaticR corydalis_js_imagegrid_js
     addScript $ StaticR corydalis_js_fancybox_js
     setHtmlTitle "searching images"
     $(widgetFile "browseimages")

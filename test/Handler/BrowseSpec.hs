@@ -28,7 +28,7 @@ import           Indexer
 
 spec :: Spec
 spec = withApp $ do
-  describe "checks foler browsing" $ do
+  describe "checks folder browsing" $
     it "checks invalid page request" $ do
       login
       checkRouteIs (BrowseFoldersR (-1)) 400
