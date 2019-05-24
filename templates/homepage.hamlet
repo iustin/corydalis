@@ -30,12 +30,24 @@ $maybe msg <- homeMessage
 
     <div .card>
       <div .card-header .py-2>
-        Other views
+        <span .fas .fa-cogs .fa-fw>
+        Specialised views
       <div .card-body>
-        $forall t <- [TCamera, TLens, TType, TProblem, TStatus, TFClass]
+        $forall t <- specialViews
             <a href="@{ListItemsR t}" .btn .btn-light .py-1 .text-left>
               <span class="#{atomIcon t} fa-fw">
               #{symbolPlCap t}
+
+    $if development
+      <div .card>
+        <div .card-header .py-2>
+          <span .fas .fa-crosshairs .fa-fw>
+          Debug views
+        <div .card-body>
+          $forall t <- debugViews
+              <a href="@{ListItemsR t}" .btn .btn-light .py-1 .text-left>
+                <span class="#{atomIcon t} fa-fw">
+                #{symbolPlCap t}
 
 <div .row>
   $# Sigh, how to do this nicely otherwise?

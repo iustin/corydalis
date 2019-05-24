@@ -42,6 +42,12 @@ import           Import
 import           Indexer
 import           Pics
 
+specialViews :: [Symbol]
+specialViews = [TCamera, TLens, TType, TProblem, TStatus, TFClass]
+
+debugViews :: [Symbol]
+debugViews = [TFolder, TFileName]
+
 getHomeR :: Handler Html
 getHomeR = do
   pics <- getPics
