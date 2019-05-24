@@ -55,7 +55,14 @@ folderCover size browsing params atom folder = do
         then imageBytesForFolder
         else imageBytes
   case images of
-    []    -> toWidget [hamlet|<span .disabled>N/A|]
+    []    -> if browsing
+             then toWidget [hamlet|<div .card .mx-1 .my-1>
+                                    <div .card-header>
+                                      #{name}
+                                    <div .card-body>
+                                      Folder '#{name}' contains no viewable images
+                                      |]
+             else toWidget [hamlet|<span .disabled>N/A|]
     img:_ -> bytes_fn size params name (imgName img)
 
 imageBytes :: Int -> UrlParams -> Text -> Text -> Widget
