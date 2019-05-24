@@ -17,7 +17,7 @@
            , or go to the <a href="@?{(ListImagesR, params)}">image list</a>
            for this filter.
          $else
-           ; note: this filter cannot find files.
+           ; note: this filter cannot find images.
 
      <div .card>
        <table #folderlist .tablesorter .table .table-sm .vmiddle>
