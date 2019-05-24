@@ -215,12 +215,6 @@ instance PathPiece ImageStatus where
   toPathPiece = showImageStatus
   fromPathPiece = parseImageStatus
 
--- | Custom Path piece instance for [ImageStatus].
-instance PathPiece [ImageStatus] where
-  toPathPiece = Text.intercalate "," . map toPathPiece
-  fromPathPiece "all" = Just [minBound..maxBound]
-  fromPathPiece v     = mapM fromPathPiece $ Text.split (==',') v
-
 data FolderClass = FolderEmpty
                  | FolderRaw
                  | FolderStandalone
@@ -255,12 +249,6 @@ parseFolderClass _             = Nothing
 instance PathPiece FolderClass where
   toPathPiece = showFolderClass
   fromPathPiece = parseFolderClass
-
--- | Custom Path piece instance for [FolderClass].
-instance PathPiece [FolderClass] where
-  toPathPiece = Text.intercalate "," . map toPathPiece
-  fromPathPiece "all" = Just [minBound..maxBound]
-  fromPathPiece v     = mapM fromPathPiece $ Text.split (==',') v
 
 -- | Type alias for query (URL) params.
 type UrlParams = [(Text, Text)]
