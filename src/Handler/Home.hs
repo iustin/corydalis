@@ -33,7 +33,7 @@ module Handler.Home
 
 import qualified Data.Map      as Map
 import qualified Data.Set      as Set
-import qualified Data.Text     as Text
+import           Formatting
 
 import           Exif
 import           Handler.Items
@@ -55,7 +55,7 @@ getHomeR = do
                                 maybe s (`Set.insert` s) . pdYear
                              ) Set.empty (repoDirs pics)
       topN' n f = topN n . f $ gexif
-      years = Set.toAscList all_years
+      years = map (sformat int) $ Set.toAscList all_years
       gexif = repoExif pics
       topCountries  = topN' 10 gExifCountries
       topProvinces  = topN'  7 gExifProvinces

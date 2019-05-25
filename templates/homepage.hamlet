@@ -7,11 +7,7 @@ $maybe msg <- homeMessage
 <div .row>
  <div .col-12>
   <div .card-columns>
-    <div .card>
-      ^{itemHeader (null years) TYear}
-      <div .card-body>
-         $forall year <- years
-          <a .btn .btn-light href="@?{(BrowseImagesR 0,[(symbolName TYear, Text.pack (show year))])}">#{year}
+    ^{itemDiv TYear True (years, [])}
 
     ^{itemDiv TPerson True topPeople}
 
