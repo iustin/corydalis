@@ -155,16 +155,6 @@ getCurateR = do
                  , xgdText = Just textdata
                  }::XGraphData Int64 Int64
            ]
-      topN n =
-        splitAt n .
-        -- sortBy + flip (compare `on`) = sortBy + reverse
-        sortBy (flip compare `on` snd) .
-        foldl' (\l (a, b) ->
-                  case a of
-                    Nothing -> l
-                    Just a' -> (a', b):l
-               ) [] .
-        Map.toList
       problems = topN 3 $ repoProblems pics
       imageFilter s = (ListImagesR, atomToParams (Status s))
       folderFilter cs = (ListFoldersR, atomToParams (Any (map FClass cs)))

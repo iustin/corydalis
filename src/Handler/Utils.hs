@@ -414,3 +414,16 @@ searchContext = do
   let search_string = atomDescription atom
   pics <- getPics
   return (ctx, ctxConfig ctx, atomToParams atom, atom, search_string, pics)
+
+-- | Gets the top N and the rest of non-"unknown" items from a
+-- NameStats.
+topN :: Int -> NameStats -> ([(Text, Integer)], [(Text, Integer)])
+topN n =
+  splitAt n .
+  sortBy (flip compare `on` snd) .
+  foldl' (\l (a, b) ->
+             case a of
+               Nothing -> l
+               Just a' -> (a', b):l
+         ) [] .
+  Map.toList
