@@ -18,11 +18,11 @@ browse mode (or, if the search you chose doesn't apply to images,
 you're in folder browse mode. You can now scroll up/down now, and:
 
 - in folder browse mode, clicking on a picture takes you to the
-  dedicated image viewer (see below)
+  dedicated image viewer (see below);
 - in image browse mode, it opens up a "lightbox" with the image or
-  movie (with integrated player) and you can still switch between
-  images (left/right, via keyboard or swipe) for a limited while
-  (known bug)
+  movie (with integrated player) and you can switch between
+  images (left/right, via keyboard or swipe) while the lightbox is
+  open, in effect providing another infinite scroll experience.
 
 This "browse mode" is one of the three available modes for looking at
 things. The other two are:

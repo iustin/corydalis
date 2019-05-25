@@ -21,6 +21,8 @@ $(document).ready(function() {
     $.fancybox.defaults.transitionEffect = "false";
     // Disable hashing since masonry controls the URL.
     $.fancybox.defaults.hash = false;
+    // We know we act on a grid, which has infinite scroll enabled.
+    var $grid = $('.grid');
 
     // Custom after show to scroll the background item into view, in
     // order to trigger infinite scroll to load more images.
@@ -28,12 +30,22 @@ $(document).ready(function() {
         if (!current) {
             return;
         }
-        // FIXME: new elements being loaded doesn't actually trigger
-        // updating the current gallery, need to fix. Stack overflow
-        // question at
-        // <https://stackoverflow.com/questions/49532246/next-image-doesnt-work-when-page-content-updated-by-infinite-scroll>
-        // has some information but doesn't seem up-to-date.
-        current.opts.$orig.get(0).scrollIntoView();
+        if (current.index  >=  instance.group.length - 10) {
+            $grid.infiniteScroll('loadNextPage');
+        }
+        // Object containing references to interface elements
+        // (background, buttons, caption, etc)
+        // console.info( instance.$refs );
+
+        // Current slide options
+        // console.info( current.opts );
+
+        // Clicked element
+        // console.info( current.opts.$orig );
+
+        // Reference to DOM element of the slide
+        // console.info( current.$slide );
+
     }
 
     // Custom view item button.
@@ -86,6 +98,21 @@ $(document).ready(function() {
         'zoom',
         'close',
     ];
+
+    // Listen to grid expansion and update any in-progress slideshow.
+    $('.grid').on( 'append.infiniteScroll', function( event, response, path, items ) {
+        // console.log( 'Loaded: ', path );
+        // console.info(items);
+        var instance = $.fancybox.getInstance(),
+            current = instance.current || null;
+        if (!current) {
+            return;
+        }
+        var imgs = Array.from(items, d => d.firstChild);
+        // console.log( 'Adding items: ', imgs);
+
+        instance.addContent(imgs);
+    });
 
     // Trigger fancybox.
     $().fancybox({
