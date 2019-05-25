@@ -79,7 +79,7 @@ itemHeader nolink symbol =
               #{symbolPlCap symbol}
           |]
 
-itemDiv :: Symbol -> Bool -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
+itemDiv :: Symbol -> Bool -> ([Text], [Text]) -> Widget
 itemDiv symbol buttons (items, length -> rcount) = do
   let dclass = if null items
                then divClassForNoAtom

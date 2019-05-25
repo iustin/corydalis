@@ -417,9 +417,10 @@ searchContext = do
 
 -- | Gets the top N and the rest of non-"unknown" items from a
 -- NameStats.
-topN :: Int -> NameStats -> ([(Text, Integer)], [(Text, Integer)])
+topN :: Int -> NameStats -> ([Text], [Text])
 topN n =
   splitAt n .
+  map fst .
   sortBy (flip compare `on` snd) .
   foldl' (\l (a, b) ->
              case a of

@@ -12,7 +12,7 @@
         ^{itemHeader False symbol}
         $if buttons
          <div .card-body>
-           $forall (p, _) <- items
+           $forall p <- items
             $with searchParams <- [(symbolName symbol, p)]
              <a .btn .btn-light href="@?{(BrowseImagesR 0,searchParams)}">#{formatter symbol p}
 
@@ -21,7 +21,7 @@
                <i>(#{rcount} more)
         $else
            <ul .list-group .list-group-flush>
-            $forall (p, _) <- items
+            $forall p <- items
              $with searchParams <- [(symbolName symbol, p)]
               <li .list-group-item>
                <a .text-dark href="@?{(BrowseImagesR 0,searchParams)}">#{formatter symbol p}
