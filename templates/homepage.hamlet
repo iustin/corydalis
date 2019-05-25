@@ -8,10 +8,7 @@ $maybe msg <- homeMessage
  <div .col-12>
   <div .card-columns>
     <div .card>
-      <div .card-header .py-2>
-        <a href="@{ListItemsR TYear}" .btn .btn-light .py-1 .w-100 .text-left>
-          <span class="#{atomIcon TYear} fa-fw">
-          #{symbolPlCap TYear}
+      ^{itemHeader (null years) TYear}
       <div .card-body>
          $forall year <- years
           <a .btn .btn-light href="@?{(BrowseImagesR 0,[(symbolName TYear, Text.pack (show year))])}">#{year}

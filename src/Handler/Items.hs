@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP                 #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TupleSections         #-}
@@ -29,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Items
   ( itemDiv
+  , itemHeader
   , symbolPlCap
   ) where
 
@@ -68,6 +70,18 @@ formatter :: Symbol -> (Text -> Text)
 formatter TPerson = formatPerson True
 formatter _       = id
 
+itemHeader :: Bool -> Symbol -> Widget
+itemHeader nolink symbol =
+  [whamlet|
+          <div .card-header .py-2>
+            <a href="@{ListItemsR symbol}" .btn .btn-light .py-1 .w-100 .text-left :nolink:.disabled>
+              <span class="#{atomIcon symbol} fa-fw">
+              #{symbolPlCap symbol}
+          |]
+
 itemDiv :: Symbol -> Bool -> ([(Text, Integer)], [(Text, Integer)]) -> Widget
-itemDiv symbol buttons (items, length -> rcount) =
+itemDiv symbol buttons (items, length -> rcount) = do
+  let dclass = if null items
+               then divClassForNoAtom
+               else divClassForAtom
   $(widgetFile "itemdiv")

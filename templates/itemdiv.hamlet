@@ -1,6 +1,6 @@
-    $if null items
-      <div .card class="#{divClassForNoAtom symbol}">
-        <div .card-header>#{symbolPlCap symbol}
+  <div .card class="#{dclass symbol}">
+     $if null items
+        ^{itemHeader True symbol}
         <div .card-body>
           $case symbol
             $of TProblem
@@ -9,11 +9,7 @@
             $of k
               No pictures have a #{symbolName k} defined ☹
     $else
-      <div .card class="#{divClassForAtom symbol}">
-        <div .card-header .py-2>
-            <a href="@{ListItemsR symbol}" .btn .btn-light .py-1 .w-100 .text-left>
-              <span class="#{atomIcon symbol} fa-fw">
-              #{symbolPlCap symbol}
+        ^{itemHeader False symbol}
         $if buttons
          <div .card-body>
            $forall (p, _) <- items
