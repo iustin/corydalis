@@ -151,7 +151,13 @@ imageList thumbsize params showParent hideStatus images = do
 
 imageGrid :: Config -> Int -> UrlParams -> [Image] -> Widget
 imageGrid config imagesize params images =
-  $(widgetFile "imagegrid")
+  [whamlet|
+     <div .grid>
+       <div .grid-sizer .col-12 .col-lg-6 .col-xl-4 .p-0>
+       $forall img@Image{imgParent=p} <- images
+         <div .grid-item .col-12 .col-lg-6 .col-xl-4 .p-0>
+           ^{imageBytesNoStyle config imagesize params p img}
+      |]
 
 folderGrid :: Int -> UrlParams -> Atom -> [PicDir] -> Widget
 folderGrid imagesize params atom dirs =
