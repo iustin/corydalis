@@ -2,11 +2,12 @@
 
 ## v0.4.0
 
-*unreleased*
+*Sun, 26 May 2019*
 
 This is yet another major release, getting closer to a friendly UI for
 photo viewing in parallel with the expansion of the library curation
-for people so interested.
+for people so interested. Around 380 commits, so even bigger than
+v0.3…
 
 ### New features
 
