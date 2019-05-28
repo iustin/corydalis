@@ -59,21 +59,15 @@ module Pics ( PicDir(..)
             , scanAll
             , launchScanFileSystem
             , waitForScan
-            , isProcessed
-            , isUnprocessed
-            , isStandalone
             , folderClass
             , folderClassFromStats
             , computeFolderStats
-            , computeStandaloneDirs
             , numPics
             , numRawPics
             , numUnprocessedPics
             , numStandalonePics
-            , numOrphanedPics
             , hasViewablePics
             , numProcessedPics
-            , filterDirsByClass
             , filterImagesByClass
             , filterImagesBy
             , filterFoldersBy
@@ -827,48 +821,22 @@ mergeFolders c x y =
                                      _  -> (y, x)
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
 
+-- | Compute the number of pictures with an associated raw file.
 numRawPics :: PicDir -> Int
-numRawPics = numPicsOfType (isJust . imgRawPath)
-
-isUnprocessed :: Image -> Bool
-isUnprocessed = (== ImageUnprocessed ) . imgStatus
-
-isProcessed :: Image -> Bool
-isProcessed = (== ImageProcessed) . imgStatus
-
-isOrphaned :: Image -> Bool
-isOrphaned = (== ImageOrphaned) . imgStatus
+numRawPics (pdStats -> s) =
+  sRaw s + sProcessed s
 
 numPics :: PicDir -> Int
 numPics = Map.size . pdImages
 
-numPicsOfType :: (Image -> Bool) -> PicDir -> Int
-numPicsOfType criterion =
-  Map.foldl go 0 . pdImages
-    where go a i = if criterion i then a + 1 else a
-
 numUnprocessedPics :: PicDir -> Int
-numUnprocessedPics = numPicsOfType isUnprocessed
+numUnprocessedPics = sRaw . pdStats
 
 numProcessedPics :: PicDir -> Int
-numProcessedPics = numPicsOfType isProcessed
-
-isStandalone :: Image -> Bool
-isStandalone = (== ImageStandalone) . imgStatus
-
-computeStandalonePics :: PicDir -> [Image]
-computeStandalonePics =
-  filter isStandalone . Map.elems . pdImages
+numProcessedPics = sProcessed . pdStats
 
 numStandalonePics :: PicDir -> Int
-numStandalonePics = numPicsOfType isStandalone
-
-hasStandalonePics :: PicDir -> Bool
-hasStandalonePics =
-  not . null . computeStandalonePics
-
-numOrphanedPics :: PicDir -> Int
-numOrphanedPics = numPicsOfType isOrphaned
+numStandalonePics = sStandalone . pdStats
 
 hasViewablePics :: PicDir -> Bool
 hasViewablePics folder =
@@ -1321,15 +1289,6 @@ scanAll :: Ctx -> IO Repository
 scanAll ctx = do
   current <- getRepo ctx
   loadCacheOrScan ctx current
-
-computeStandaloneDirs :: Repository -> [PicDir]
-computeStandaloneDirs =
-  filter hasStandalonePics . Map.elems . repoDirs
-
-filterDirsByClass :: [FolderClass] -> Repository -> [PicDir]
-filterDirsByClass classes =
-  filter ((`elem` classes) . folderClass) .
-  Map.elems . repoDirs
 
 filterImagesByClass :: [ImageStatus] -> Repository -> [Image]
 filterImagesByClass classes =
