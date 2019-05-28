@@ -157,11 +157,6 @@ data NumOp a where
 deriving instance Show a => Show (NumOp a)
 deriving instance Eq   a => Eq   (NumOp a)
 
-data TypeOp = TypeImage
-            | TypeMovie
-            | TypeUnknown
-            deriving (Show, Eq)
-
 data SeasonOp
   = Spring
   | Summer
@@ -216,11 +211,6 @@ evalNum (OpLt a) = maybe False (< a)
 evalNum (OpGt a) = maybe False (> a)
 evalNum OpNa     = isNothing
 
-evalType :: TypeOp -> Image -> Bool
-evalType TypeMovie   = (== MediaMovie) . imgType
-evalType TypeImage   = (== MediaImage) . imgType
-evalType TypeUnknown = (== MediaUnknown) . imgType
-
 data Atom = Country  StrOp
           | Province StrOp
           | City     StrOp
@@ -236,7 +226,7 @@ data Atom = Country  StrOp
           | Camera   StrOp
           | Lens     StrOp
           | Problem  StrOp
-          | Type     TypeOp
+          | Type     MediaType
           | Folder   StrOp
           | FileName StrOp
           | Status   ImageStatus
@@ -318,7 +308,7 @@ buildMissingAtom s =
     TCamera   -> Camera    OpMissing
     TLens     -> Lens      OpMissing
     TProblem  -> Problem   OpMissing
-    TType     -> Type      TypeUnknown
+    TType     -> Type      MediaUnknown
     -- FIXME: these should fail instead (using Maybe).
     TFolder   -> error "No missing atom for folder"
     TFileName -> error "No missing atom for filename"
@@ -488,9 +478,9 @@ atomDescription (Problem (OpEqual "")) = "has an empty problem description"
 atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
 atomDescription (Problem (OpFuzzy v))  =
   "has a problem that matches " <> unFuzzy v
-atomDescription (Type TypeImage)       = "is an image"
-atomDescription (Type TypeMovie)       = "is a movie"
-atomDescription (Type TypeUnknown)     = "is of unknown type"
+atomDescription (Type MediaImage)      = "is an image"
+atomDescription (Type MediaMovie)      = "is a movie"
+atomDescription (Type MediaUnknown)    = "is of unknown type"
 atomDescription (Folder s)             = describeStr "folder" s
 atomDescription (FileName s)           = describeStr "filename" s
 atomDescription (Status v)             = "image status is " <> showImageStatus v
@@ -691,7 +681,8 @@ imageSearchFunction (Lens lens) =
 imageSearchFunction (Problem who) =
   setSearch who . imgProblems
 
-imageSearchFunction (Type t) = evalType t
+imageSearchFunction (Type t) =
+  (== t) . imgType
 
 imageSearchFunction (Folder p) =
   evalStr p . Just . imgParent
@@ -760,18 +751,12 @@ getAtoms TFileName =
 getAtoms TStatus   = statusStats
 getAtoms TFClass   = fClassStats
 
--- | Media type to Type.
-mediaToType :: MediaType -> TypeOp
-mediaToType MediaImage   = TypeImage
-mediaToType MediaMovie   = TypeMovie
-mediaToType MediaUnknown = TypeUnknown
-
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats
 typeStats =
   foldl' (\stats ->
             Map.foldl' (\l img ->
-                          l `incM` (showType . mediaToType . imgType $ img)
+                          l `incM` (showMedia . imgType $ img)
                        ) stats . pdImages
          ) Map.empty . Map.elems . repoDirs
     where incM m t = Map.insertWith (+) (Just t) 1 m
@@ -974,17 +959,17 @@ parseDecimal v =
             Right (w',"") -> Just w'
             _             -> Nothing
 
-parseType :: Text -> Maybe TypeOp
+parseType :: Text -> Maybe MediaType
 parseType v
-  | v == "movie"    = Just TypeMovie
-  | v == "image"    = Just TypeImage
-  | v == "unknown"  = Just TypeUnknown
+  | v == "movie"    = Just MediaMovie
+  | v == "image"    = Just MediaImage
+  | v == "unknown"  = Just MediaUnknown
   | otherwise       = Nothing
 
-showType :: TypeOp -> Text
-showType TypeMovie   = "movie"
-showType TypeImage   = "image"
-showType TypeUnknown = "unknown"
+showMedia :: MediaType -> Text
+showMedia MediaMovie   = "movie"
+showMedia MediaImage   = "image"
+showMedia MediaUnknown = "unknown"
 
 parseSeason :: Text -> Maybe SeasonOp
 parseSeason (Text.toLower -> s)
@@ -1114,8 +1099,8 @@ instance (ToText a) => OpParam (NumOp a) where
   opToParam s (OpGt v) = (s, '>' `Text.cons` toText v)
   opToParam s  OpNa    = formatNo s
 
-instance OpParam TypeOp where
-  opToParam s = (s, ) . showType
+instance OpParam MediaType where
+  opToParam s = (s, ) . showMedia
 
 instance OpParam ImageStatus where
   opToParam s = (s, ) . showImageStatus
