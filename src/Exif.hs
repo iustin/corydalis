@@ -301,6 +301,7 @@ data RawExif = RawExif
   , rExifSSpeedVal    :: Maybe Double
   , rExifShutterCount :: Maybe Integer
   , rExifMimeType     :: Maybe Text
+  , rExifRating       :: Maybe Int
   , rExifRaw          :: Object
   , rExifWarning      :: Maybe Text
   } deriving (Show)
@@ -349,9 +350,12 @@ instance FromJSON RawExif where
     rExifSSpeedVal   <- o .!:? "ShutterSpeed"
     rExifShutterCount <- o .~:? "ShutterCount"
     rExifMimeType    <- o .~:? "MIMEType"
+    rExifRating      <- o .~:? "Rating"
     rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
     return RawExif{..}
+
+-- TODO: Replace exifRating Int with a proper rating type? [question]
 
 data Exif = Exif
   { exifPeople       :: !(Set Text)
@@ -376,6 +380,7 @@ data Exif = Exif
   , exifSSpeedVal    :: !(Maybe Double)
   , exifShutterCount :: !(Maybe Integer)
   , exifMimeType     :: !(Maybe Text)
+  , exifRating       :: !(Maybe Int)
   , exifWarning      :: !(Set Text)
   } deriving (Show, Eq)
 
@@ -401,6 +406,7 @@ instance NFData Exif where
                  rnf exifSSpeedVal    `seq`
                  rnf exifShutterCount `seq`
                  rnf exifMimeType     `seq`
+                 rnf exifRating       `seq`
                  rnf exifWarning
 
 instance Default Exif where
@@ -426,6 +432,7 @@ instance Default Exif where
              , exifSSpeedVal    = Nothing
              , exifShutterCount = Nothing
              , exifMimeType     = Nothing
+             , exifRating       = Nothing
              , exifWarning      = Set.empty
              }
 
@@ -650,6 +657,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
       exifSSpeedDesc   = rExifSSpeedDesc
       exifSSpeedVal    = rExifSSpeedVal
       exifMimeType     = rExifMimeType
+      exifRating       = rExifRating
   exifModel        <- checkNull "model" rExifModel
   exifSerial       <- checkNull "serial" rExifSerial
   exifTitle        <- checkNull "title" rExifTitle
@@ -713,13 +721,14 @@ promoteFileExif re se je mm me =
       exifISO'          = fjust  exifISO
       exifSSpeedDesc'   = fjust  exifSSpeedDesc
       exifSSpeedVal'    = fjust  exifSSpeedVal
-      exifShutterCount' = fjust exifShutterCount
+      exifShutterCount' = fjust  exifShutterCount
       -- TODO: both title and caption (and other fields) could differ
       -- between various versions. How to expose this in viewer?
       exifTitle'        = fjust  exifTitle
       exifCaption'      = fjust  exifCaption
       -- Mime type cannot be promoted, since various component _will_ have various types.
       exifMimeType'     = Nothing
+      exifRating'       = fjust  exifRating
       exifWarning'      = setmerge exifWarning
   in Exif { exifPeople       = exifPeople'
           , exifKeywords     = exifKeywords'
@@ -743,6 +752,7 @@ promoteFileExif re se je mm me =
           , exifSSpeedVal    = exifSSpeedVal'
           , exifShutterCount = exifShutterCount'
           , exifMimeType     = exifMimeType'
+          , exifRating       = exifRating'
           , exifWarning      = exifWarning'
           }
 

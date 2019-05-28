@@ -4,6 +4,11 @@
 
 *unreleased*
 
+### Exif changes
+
+Now parses the rating as written by (at least) Lightroom. Value '0' is
+unrated, otherwise the explicit rating.
+
 ### Search changes
 
 Added new search atoms _season_, _month_, _day_.

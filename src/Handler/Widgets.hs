@@ -185,6 +185,10 @@ showExif Exif{..} = do
       sspeed = fromMaybe "?" exifSSpeedDesc <> "s"
       shutterCount = Text.pack . show <$> exifShutterCount
       iso = "ISO " ++ maybe "unknown" show exifISO
+      rating = maybe "unrated" (\v -> if v == 0
+                                 then "unrated"
+                                 else sformat ("rated " % int % " stars") v
+                               ) exifRating
   -- TODO: serial field, links to camera/lens?, move capture time earlier.
   $(widgetFile "exif")
 
