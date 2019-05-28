@@ -86,6 +86,7 @@ data Symbol = TCountry
             | TFileName
             | TStatus
             | TFClass
+            | TRating
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -109,6 +110,7 @@ instance PathPiece Symbol where
   toPathPiece TFileName = "filenames"
   toPathPiece TStatus   = "image-status"
   toPathPiece TFClass   = "folder-class"
+  toPathPiece TRating   = "rating"
   fromPathPiece "countries"    = Just TCountry
   fromPathPiece "provinces"    = Just TProvince
   fromPathPiece "cities"       = Just TCity
@@ -129,6 +131,7 @@ instance PathPiece Symbol where
   fromPathPiece "filenames"    = Just TFileName
   fromPathPiece "image-status" = Just TStatus
   fromPathPiece "folder-class" = Just TFClass
+  fromPathPiece "rating"       = Just TRating
   fromPathPiece _              = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
@@ -231,6 +234,7 @@ data Atom = Country  StrOp
           | FileName StrOp
           | Status   ImageStatus
           | FClass   FolderClass
+          | Rating   (NumOp Int)
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -263,6 +267,7 @@ symbolName TFolder   = "folder"
 symbolName TFileName = "filename"
 symbolName TStatus   = "status"
 symbolName TFClass   = "folder-class"
+symbolName TRating   = "rating"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -288,6 +293,7 @@ parseSymbol "folder"       = Just TFolder
 parseSymbol "filename"     = Just TFileName
 parseSymbol "status"       = Just TStatus
 parseSymbol "folder-class" = Just TFClass
+parseSymbol "rating"       = Just TRating
 parseSymbol _              = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -309,6 +315,7 @@ buildMissingAtom s =
     TLens     -> Lens      OpMissing
     TProblem  -> Problem   OpMissing
     TType     -> Type      MediaUnknown
+    TRating   -> Rating    OpNa
     -- FIXME: these should fail instead (using Maybe).
     TFolder   -> error "No missing atom for folder"
     TFileName -> error "No missing atom for filename"
@@ -346,6 +353,7 @@ parseAtom a v = do
     TFileName -> FileName <$> str
     TStatus   -> Status   <$> sta
     TFClass   -> FClass   <$> parseFolderClass v
+    TRating   -> Rating   <$> parseDecimal v
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -373,6 +381,7 @@ quickSearch s v =
     TFileName -> fuzzer FileName
     TStatus   -> Status <$> parseImageStatus v
     TFClass   -> FClass <$> parseFolderClass v
+    TRating   -> Rating . OpEq <$> either (const Nothing) Just (parseDecimalPlain v)
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
 
@@ -397,6 +406,7 @@ atomTypeDescriptions TFolder   = "folders"
 atomTypeDescriptions TFileName = "filenames"
 atomTypeDescriptions TStatus   = "image statuses"
 atomTypeDescriptions TFClass   = "folder classes"
+atomTypeDescriptions TRating   = "ratings"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -406,6 +416,8 @@ instance ToText Text where
   toText = id
 
 instance ToText Integer
+
+instance ToText Int
 
 instance ToText SeasonOp where
   toText = showSeason
@@ -488,6 +500,10 @@ atomDescription (Folder s)             = describeStr "folder" s
 atomDescription (FileName s)           = describeStr "filename" s
 atomDescription (Status v)             = "image status is " <> showImageStatus v
 atomDescription (FClass v)             = "folder class is " <> showFolderClass v
+atomDescription (Rating OpNa)          = "unrated"
+atomDescription (Rating (OpLt v))      = sformat ("rated with less than " % int % " stars") v
+atomDescription (Rating (OpGt v))      = sformat ("rated with more than " % int % " stars") v
+atomDescription (Rating (OpEq v))      = sformat ("rated with " % int % " stars") v
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -597,6 +613,9 @@ folderSearchFunction a@(Status _) =
 folderSearchFunction (FClass c) =
   (== c) . folderClass
 
+folderSearchFunction a@(Rating _) =
+  imagesMatchAtom a . pdImages
+
 folderSearchFunction (And a b) = \p ->
   folderSearchFunction a p &&
   folderSearchFunction b p
@@ -699,6 +718,9 @@ imageSearchFunction (Status v) =
 -- TODO: search based on parent folder status? Or something else?
 imageSearchFunction (FClass _) = const False
 
+imageSearchFunction (Rating r) =
+  evalNum r . exifRating . imgExif
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -753,6 +775,7 @@ getAtoms TFileName =
   foldl' (\a i -> Map.insertWith (+) (Just $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
 getAtoms TStatus   = statusStats
 getAtoms TFClass   = fClassStats
+getAtoms TRating   = ratingStats
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats
@@ -810,6 +833,9 @@ dayStats =
                                md = picMonthDay pic
                            in [ d , wd , md ]
                   )
+-- | Rating statistics.
+ratingStats :: Repository -> NameStats
+ratingStats = computePicStats $ (:[]) . exifRating . imgExif
 
 -- | Computes the weekday of a picture.
 picDay :: Image -> Maybe DayOp
@@ -1141,6 +1167,7 @@ atomToParams (Folder   v) = [formatParam TFolder   v]
 atomToParams (FileName v) = [formatParam TFileName v]
 atomToParams (Status   v) = [formatParam TStatus   v]
 atomToParams (FClass   v) = [formatParam TFClass   v]
+atomToParams (Rating   v) = [formatParam TRating   v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =

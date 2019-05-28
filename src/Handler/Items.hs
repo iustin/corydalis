@@ -59,6 +59,7 @@ symbolPlCap TFolder   = "Folders"
 symbolPlCap TFileName = "File names"
 symbolPlCap TStatus   = "Image status"
 symbolPlCap TFClass   = "Folder class"
+symbolPlCap TRating   = "Image ratings"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"

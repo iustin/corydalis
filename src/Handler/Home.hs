@@ -42,8 +42,22 @@ import           Import
 import           Indexer
 import           Pics
 
+-- FIXME: cleanup this list, it has become too big…
 specialViews :: [Symbol]
-specialViews = [TCamera, TLens, TType, TProblem, TStatus, TFClass, TTitle, TCaption, TSeason, TMonth, TDay]
+specialViews =
+  [ TCamera
+  , TLens
+  , TType
+  , TProblem
+  , TStatus
+  , TFClass
+  , TTitle
+  , TCaption
+  , TSeason
+  , TMonth
+  , TDay
+  , TRating
+  ]
 
 debugViews :: [Symbol]
 debugViews = [TFolder, TFileName]
