@@ -810,12 +810,7 @@ computePicStats helper =
 
 -- | Computes year statistics.
 yearStats :: Repository -> NameStats
-yearStats =
-  foldl' (\stats folder ->
-            Map.insertWith (+)
-              (Text.pack . show <$> pdYear folder)
-              1 stats
-         ) Map.empty . Map.elems . repoDirs
+yearStats = computePicStats $ \i -> [imageYear i]
 
 -- | Season statistics.
 seasonStats :: Repository -> NameStats
