@@ -416,6 +416,9 @@ instance ToText MonthOp where
 instance ToText DayOp where
   toText = showDay
 
+instance ToText MediaType where
+  toText = showMedia
+
 describeEq :: (ToText a) => Text -> a -> Text
 describeEq a v = a <> " is " <> toText v <> ""
 
@@ -753,13 +756,7 @@ getAtoms TFClass   = fClassStats
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats
-typeStats =
-  foldl' (\stats ->
-            Map.foldl' (\l img ->
-                          l `incM` (showMedia . imgType $ img)
-                       ) stats . pdImages
-         ) Map.empty . Map.elems . repoDirs
-    where incM m t = Map.insertWith (+) (Just t) 1 m
+typeStats = computePicStats $ \i -> [Just $ imgType i]
 
 -- | Gets status stastics from repository statistics.
 statusStats :: Repository -> NameStats
