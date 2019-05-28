@@ -102,6 +102,12 @@ The search atoms are:
 - title (string)
 - caption (string)
 - year (numeric)
+- season (set): the English words for the season
+- month (set): the English words for the months
+- day (set): the English words for the days of the week, or 'weekday'
+  (equivalent to Mon-Fri), 'weekend' (Sat/Sun), or the numerical day
+  of the month (e.g. 10, or even '10th' - this helps with targeting
+  searches more precisely
 - camera (string)
 - lens (string)
 - problem (this is what can be potentially errors; right now limited
@@ -167,6 +173,9 @@ represented by the query:
 
 Example 2: *keyword mountains and keyword not snow*:
 `keyword=mountains&keyword=snow&not&and`.
+
+Example 3: searching for all pictures taken on somebody's birthday,
+e.g. *February 29th*: `month=february&day=29th&and`.
 
 Note: due to the RPN parser, the order is critical in the parameters.
 

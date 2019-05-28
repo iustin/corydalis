@@ -43,7 +43,7 @@ import           Indexer
 import           Pics
 
 specialViews :: [Symbol]
-specialViews = [TCamera, TLens, TType, TProblem, TStatus, TFClass, TTitle, TCaption]
+specialViews = [TCamera, TLens, TType, TProblem, TStatus, TFClass, TTitle, TCaption, TSeason, TMonth, TDay]
 
 debugViews :: [Symbol]
 debugViews = [TFolder, TFileName]

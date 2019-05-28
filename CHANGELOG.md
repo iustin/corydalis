@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4.1
+
+*unreleased*
+
+### Search changes
+
+Added new search atoms _season_, _month_, _day_.
+
+Season is usual *English* name for season, i.e. _winter_, _spring_,
+_summer_, _autumn_, and the season computation is based on month
+boundaries: winter lasts from December to January, and the rest
+follow.
+
+Month is usual *English* name for the month, or alternatively the
+numeric value (1-12).
+
+Day is a bit more complex. It can take any of: day-of-week (English
+names), 'weekday', 'weekend', or numerical month day (e.g. '10th').
+
 ## v0.4.0
 
 *Sun, 26 May 2019*

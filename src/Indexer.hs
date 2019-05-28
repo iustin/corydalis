@@ -45,18 +45,21 @@ module Indexer ( Symbol(..)
                , atomFindsFiles
                ) where
 
-import           Control.Monad  (foldM, when)
-import           Data.List      (foldl', nub, partition)
-import qualified Data.Map       as Map
-import           Data.Maybe     (isNothing, mapMaybe)
-import           Data.Semigroup ((<>))
-import           Data.Set       (Set)
-import qualified Data.Set       as Set
-import           Data.Text      (Text)
-import qualified Data.Text      as Text
-import qualified Data.Text.Read as Text
+import           Control.Monad               (foldM, when)
+import           Data.List                   (foldl', nub, partition)
+import qualified Data.Map                    as Map
+import           Data.Maybe                  (isNothing, mapMaybe)
+import           Data.Semigroup              ((<>))
+import           Data.Set                    (Set)
+import qualified Data.Set                    as Set
+import           Data.Text                   (Text)
+import qualified Data.Text                   as Text
+import qualified Data.Text.Read              as Text
+import           Data.Time.Calendar
+import           Data.Time.Calendar.WeekDate
+import           Data.Time.LocalTime
 import           Formatting
-import           Yesod          (PathPiece (..))
+import           Yesod                       (PathPiece (..))
 
 import           Exif
 import           Pics
@@ -72,6 +75,9 @@ data Symbol = TCountry
             | TTitle
             | TCaption
             | TYear
+            | TSeason
+            | TMonth
+            | TDay
             | TCamera
             | TLens
             | TProblem
@@ -92,6 +98,9 @@ instance PathPiece Symbol where
   toPathPiece TTitle    = "title"
   toPathPiece TCaption  = "caption"
   toPathPiece TYear     = "years"
+  toPathPiece TSeason   = "seasons"
+  toPathPiece TMonth    = "months"
+  toPathPiece TDay      = "days"
   toPathPiece TCamera   = "cameras"
   toPathPiece TLens     = "lenses"
   toPathPiece TProblem  = "problems"
@@ -109,6 +118,9 @@ instance PathPiece Symbol where
   fromPathPiece "title"        = Just TTitle
   fromPathPiece "caption"      = Just TCaption
   fromPathPiece "years"        = Just TYear
+  fromPathPiece "seasons"      = Just TSeason
+  fromPathPiece "months"       = Just TMonth
+  fromPathPiece "days"         = Just TDay
   fromPathPiece "cameras"      = Just TCamera
   fromPathPiece "lenses"       = Just TLens
   fromPathPiece "problems"     = Just TProblem
@@ -150,6 +162,45 @@ data TypeOp = TypeImage
             | TypeUnknown
             deriving (Show, Eq)
 
+data SeasonOp
+  = Spring
+  | Summer
+  | Autumn
+  | Winter
+  | SeasonUnknown
+    deriving (Show, Eq)
+
+data MonthOp
+  = January
+  | February
+  | March
+  | April
+  | May
+  | June
+  | July
+  | August
+  | September
+  | October
+  | November
+  | December
+  | MonthUnknown
+  deriving (Show, Eq)
+
+data DayOp
+  = Monday
+  | Tuesday
+  | Wednesday
+  | Thursday
+  | Friday
+  | Saturday
+  | Sunday
+  | Weekday
+  | Weekend
+  | MonthDay Int
+  | DayUnknown
+  deriving (Show, Eq)
+
+
 fuzzyMatch :: FuzzyText -> Text -> Bool
 fuzzyMatch fz =
   (unFuzzy fz `Text.isInfixOf`) . Text.toCaseFold
@@ -179,6 +230,9 @@ data Atom = Country  StrOp
           | Title    StrOp
           | Caption  StrOp
           | Year     (NumOp Integer)
+          | Season   SeasonOp
+          | Month    MonthOp
+          | Day      DayOp
           | Camera   StrOp
           | Lens     StrOp
           | Problem  StrOp
@@ -208,6 +262,9 @@ symbolName TKeyword  = "keyword"
 symbolName TTitle    = "title"
 symbolName TCaption  = "caption"
 symbolName TYear     = "year"
+symbolName TSeason   = "season"
+symbolName TMonth    = "month"
+symbolName TDay      = "day"
 symbolName TCamera   = "camera"
 symbolName TLens     = "lens"
 symbolName TProblem  = "problem"
@@ -230,6 +287,9 @@ parseSymbol "keyword"      = Just TKeyword
 parseSymbol "title"        = Just TTitle
 parseSymbol "caption"      = Just TCaption
 parseSymbol "year"         = Just TYear
+parseSymbol "season"       = Just TSeason
+parseSymbol "month"        = Just TMonth
+parseSymbol "day"          = Just TDay
 parseSymbol "camera"       = Just TCamera
 parseSymbol "lens"         = Just TLens
 parseSymbol "problem"      = Just TProblem
@@ -252,6 +312,9 @@ buildMissingAtom s =
     TTitle    -> Title     OpMissing
     TCaption  -> Caption   OpMissing
     TYear     -> Year      OpNa
+    TSeason   -> Season    SeasonUnknown
+    TMonth    -> Month     MonthUnknown
+    TDay      -> Day       DayUnknown
     TCamera   -> Camera    OpMissing
     TLens     -> Lens      OpMissing
     TProblem  -> Problem   OpMissing
@@ -282,6 +345,9 @@ parseAtom a v = do
     TTitle    -> Title    <$> str
     TCaption  -> Caption  <$> str
     TYear     -> Year     <$> dec
+    TSeason   -> Season   <$> parseSeason v
+    TMonth    -> Month    <$> parseMonth v
+    TDay      -> Day      <$> parseDay v
     TCamera   -> Camera   <$> str
     TLens     -> Lens     <$> str
     TProblem  -> Problem  <$> str
@@ -309,7 +375,10 @@ quickSearch s v =
       case Text.decimal v of
         Right (w', "") -> Just . Year . OpEq $ w'
         _              -> Nothing
-    TType     -> Type <$> parseType v
+    TSeason   -> Season <$> parseSeason v
+    TMonth    -> Month  <$> parseMonth v
+    TDay      -> Day    <$> parseDay v
+    TType     -> Type   <$> parseType v
     TFolder   -> fuzzer Folder
     TFileName -> fuzzer FileName
     TStatus   -> Status <$> parseImageStatus v
@@ -327,6 +396,9 @@ atomTypeDescriptions TKeyword  = "keywords"
 atomTypeDescriptions TTitle    = "image titles"
 atomTypeDescriptions TCaption  = "image captions"
 atomTypeDescriptions TYear     = "years"
+atomTypeDescriptions TSeason   = "seasons"
+atomTypeDescriptions TMonth    = "months"
+atomTypeDescriptions TDay      = "days"
 atomTypeDescriptions TCamera   = "cameras"
 atomTypeDescriptions TLens     = "lenses"
 atomTypeDescriptions TProblem  = "problems"
@@ -338,12 +410,21 @@ atomTypeDescriptions TFClass   = "folder classes"
 
 class (Show a) => ToText a where
   toText :: a -> Text
-  toText = Text.pack . show
+  toText = sformat shown
 
 instance ToText Text where
   toText = id
 
 instance ToText Integer
+
+instance ToText SeasonOp where
+  toText = showSeason
+
+instance ToText MonthOp where
+  toText = showMonth
+
+instance ToText DayOp where
+  toText = showDay
 
 describeEq :: (ToText a) => Text -> a -> Text
 describeEq a v = a <> " is " <> toText v <> ""
@@ -383,6 +464,15 @@ atomDescription (Year (OpEq year))    = "taken in the year " <> toText year
 atomDescription (Year (OpLt year))    = "taken before the year " <> toText year
 atomDescription (Year (OpGt year))    = "taken after the year " <> toText year
 atomDescription (Year OpNa)           = "does not have date information"
+atomDescription (Season SeasonUnknown) = "taken in an unknown season"
+atomDescription (Season s)            = "taken in " <> toText s
+atomDescription (Month MonthUnknown)  = "taken in an unknown month"
+atomDescription (Day Weekday)         = "taken on an weekday"
+atomDescription (Day Weekend)         = "taken on an weekend"
+atomDescription (Day (MonthDay d))    = "taken on a " <> showOrdinal d <> " day of the month"
+atomDescription (Day DayUnknown)      = "taken on an unknown day"
+atomDescription (Day d)               = "taken on a " <> toText d
+atomDescription (Month m)             = "taken in " <> toText m
 atomDescription (Camera OpMissing)    = "has no camera information"
 atomDescription (Camera (OpEqual "")) = "has defined but empty camera information"
 atomDescription (Camera (OpEqual v))  = "shot with a " <> v <> " camera"
@@ -476,6 +566,15 @@ folderSearchFunction a@(Year y) =
   \p -> evalNum y (pdYear p) ||
         imagesMatchAtom a (pdImages p)
 
+folderSearchFunction a@(Season _) =
+  imagesMatchAtom a . pdImages
+
+folderSearchFunction a@(Month _) =
+  imagesMatchAtom a . pdImages
+
+folderSearchFunction a@(Day _) =
+  imagesMatchAtom a . pdImages
+
 folderSearchFunction (Camera c) =
   nameStatsSearch c . gExifCameras . pdExif
 
@@ -555,6 +654,32 @@ imageSearchFunction (Caption c) =
 imageSearchFunction (Year year) =
   evalNum year . imageYear
 
+imageSearchFunction (Season SeasonUnknown) =
+  isNothing . picSeason
+
+imageSearchFunction (Season s) =
+  (== Just s) . picSeason
+
+imageSearchFunction (Month MonthUnknown) =
+  isNothing . picMonth
+
+imageSearchFunction (Month m) =
+  (== Just m) . picMonth
+
+imageSearchFunction (Day DayUnknown) =
+  isNothing . picMonthDay
+
+imageSearchFunction (Day md@(MonthDay _)) =
+  (== Just md) . picMonthDay
+
+imageSearchFunction (Day Weekday) = \img ->
+  (== Just Weekday) $ weekdayToEnd <$> picDay img
+imageSearchFunction (Day Weekend) = \img ->
+  (== Just Weekend) $ weekdayToEnd <$> picDay img
+
+imageSearchFunction (Day d) =
+  (== Just d) . picDay
+
 imageSearchFunction (Camera camera) =
   evalStr camera . exifCamera . imgExif
 
@@ -622,6 +747,9 @@ getAtoms TCaption  = gExifCaptions  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TLens     = gExifLenses    . repoExif
 getAtoms TYear     = yearStats
+getAtoms TSeason   = seasonStats
+getAtoms TDay      = dayStats
+getAtoms TMonth    = monthStats
 getAtoms TProblem  = repoProblems
 getAtoms TType     = typeStats
 getAtoms TFolder   =
@@ -665,6 +793,21 @@ fClassStats =
                                   fromIntegral b)) .
   Map.toList . rsFCStats . repoStats
 
+-- | Helper to increase a count in a NameStats.
+bumpCount :: (ToText a) => Maybe a -> NameStats -> NameStats
+bumpCount a = Map.insertWith (+) (toText <$> a) 1
+
+-- | Computes namestats of a repository.
+computePicStats :: (ToText a)
+                => (Image -> [Maybe a]) -- ^ Computes what entries need to be bumped up.
+                -> Repository           -- ^ Input repository
+                -> NameStats
+computePicStats helper =
+  foldl' (\stats ->
+            Map.foldl' (\stats' -> foldr bumpCount stats' . helper)
+            stats . pdImages
+         ) Map.empty . Map.elems . repoDirs
+
 -- | Computes year statistics.
 yearStats :: Repository -> NameStats
 yearStats =
@@ -673,6 +816,69 @@ yearStats =
               (Text.pack . show <$> pdYear folder)
               1 stats
          ) Map.empty . Map.elems . repoDirs
+
+-- | Season statistics.
+seasonStats :: Repository -> NameStats
+seasonStats = computePicStats $ \i -> [picSeason i]
+
+-- | Month statistics.
+monthStats :: Repository -> NameStats
+monthStats = computePicStats $ \i -> [picMonth i]
+
+-- | Day statistics.
+dayStats :: Repository -> NameStats
+dayStats =
+  computePicStats (\pic -> let d = picDay pic
+                               wd = weekdayToEnd <$> d
+                               md = picMonthDay pic
+                           in [ d , wd , md ]
+                  )
+
+-- | Computes the weekday of a picture.
+picDay :: Image -> Maybe DayOp
+picDay img = do
+  d <- exifCreateDate $ imgExif img
+  let (_, _, wd) = toWeekDate $ localDay d
+  intToWeekDay wd
+
+-- | Computes the month-day of a picture.
+picMonthDay :: Image -> Maybe DayOp
+picMonthDay img = do
+  d <- exifCreateDate $ imgExif img
+  let (_, _, md) = toGregorian $ localDay d
+  return $ MonthDay md
+
+-- | Converts a Day into another Day representing weekend or not.
+--
+-- Ordinal month days will be classified as weekday, sadly. This
+-- points to some lack of soundness in the argument.
+weekdayToEnd :: DayOp -> DayOp
+weekdayToEnd Saturday = Weekend
+weekdayToEnd Sunday   = Weekend
+weekdayToEnd _        = Weekday
+
+-- | Returns the month of a picture.
+picMonth :: Image -> Maybe MonthOp
+picMonth img = do
+  d <- exifCreateDate $ imgExif img
+  let (_, m, _) = toGregorian $ localDay d
+  intToMonth m
+
+-- | Returns the season of a picture.
+picSeason :: Image -> Maybe SeasonOp
+picSeason img = picMonth img >>= monthToSeason
+
+-- | Computes the season based on a month.
+--
+-- Note that the definition of season is currently hardcoded to
+-- month-boundaries, not based on equinox, etc.
+monthToSeason :: MonthOp -> Maybe SeasonOp
+monthToSeason m
+  | m == December || m == January || m == February = Just Winter
+  | m == March || m == April || m == May = Just Spring
+  | m == June || m == July || m == August = Just Summer
+  | m == September || m == October || m == November = Just Autumn
+  | otherwise = Nothing -- FIXME: is this needed?
 
 -- | Builder for all atom.
 --
@@ -702,6 +908,25 @@ parseDecimalPlain :: (Integral a) => Text -> Either Text a
 parseDecimalPlain w =
   case Text.decimal w of
     Right (w', "") -> Right w'
+    Right (w', leftover) ->
+      Left $ sformat ("Parsed " % int % " decimal but with leftover text '" %
+                      stext % "'") w' leftover
+    Left msg ->
+      Left $ sformat ("Failed to parse integer from '" % stext % "': " %
+                      string) w msg
+
+-- | Simpler Text to ordinal parsing with error handling.
+--
+-- It accepts usual prefixes such as 'th', 'st', 'nd', 'rd', as long as they're valid.
+parseOrdinal :: (Integral a) => Text -> Either Text a
+parseOrdinal w =
+  case Text.decimal w of
+    Right (w', "") -> Right w'
+    Right (w', suff) | w == showOrdinal w' &&
+                       (suff == "th" ||
+                        suff == "st" ||
+                        suff == "nd" ||
+                        suff == "rd") -> Right w'
     Right (w', leftover) ->
       Left $ sformat ("Parsed " % int % " decimal but with leftover text '" %
                       stext % "'") w' leftover
@@ -766,11 +991,119 @@ showType TypeMovie   = "movie"
 showType TypeImage   = "image"
 showType TypeUnknown = "unknown"
 
+parseSeason :: Text -> Maybe SeasonOp
+parseSeason (Text.toLower -> s)
+  | s == "winter" = Just Winter
+  | s == "spring" = Just Spring
+  | s == "summer" = Just Summer
+  | s == "autumn" = Just Autumn
+  | otherwise     = Nothing
+
+showSeason :: SeasonOp -> Text
+showSeason Winter        = "winter"
+showSeason Spring        = "spring"
+showSeason Summer        = "summer"
+showSeason Autumn        = "autumn"
+showSeason SeasonUnknown = "unknown"
+
+intToMonth :: Int -> Maybe MonthOp
+intToMonth 1  = Just January
+intToMonth 2  = Just February
+intToMonth 3  = Just March
+intToMonth 4  = Just April
+intToMonth 5  = Just May
+intToMonth 6  = Just June
+intToMonth 7  = Just July
+intToMonth 8  = Just August
+intToMonth 9  = Just September
+intToMonth 10 = Just October
+intToMonth 11 = Just November
+intToMonth 12 = Just December
+intToMonth _  = Nothing
+
+parseMonth :: Text -> Maybe MonthOp
+parseMonth (Text.toLower -> m)
+  | m == "january"   = Just January
+  | m == "february"  = Just February
+  | m == "march"     = Just March
+  | m == "april"     = Just April
+  | m == "may"       = Just May
+  | m == "june"      = Just June
+  | m == "july"      = Just July
+  | m == "august"    = Just August
+  | m == "september" = Just September
+  | m == "october"   = Just October
+  | m == "november"  = Just November
+  | m == "december"  = Just December
+  | otherwise =
+      either (const Nothing) intToMonth $ parseDecimalPlain m
+
+showMonth :: MonthOp -> Text
+showMonth MonthUnknown = "unknown"
+showMonth s            = sformat shown s
+
+parseDay :: Text -> Maybe DayOp
+parseDay (Text.toLower -> d)
+  | d == "monday"    = Just Monday
+  | d == "tuesday"   = Just Tuesday
+  | d == "wednesday" = Just Wednesday
+  | d == "thursday"  = Just Thursday
+  | d == "friday"    = Just Friday
+  | d == "saturday"  = Just Saturday
+  | d == "sunday"    = Just Sunday
+  | d == "weekday"   = Just Weekday
+  | d == "weekend"   = Just Weekend
+  | otherwise =
+      case parseOrdinal d of
+        Right v | v >= 1 && v <= 31 -> Just $ MonthDay v
+        _       -> Nothing
+
+showDay :: DayOp -> Text
+showDay Monday       = "Monday"
+showDay Tuesday      = "Tuesday"
+showDay Wednesday    = "Wednesday"
+showDay Thursday     = "Thursday"
+showDay Friday       = "Friday"
+showDay Saturday     = "Saturday"
+showDay Sunday       = "Sunday"
+showDay Weekday      = "weekday"
+showDay Weekend      = "weekend"
+showDay (MonthDay d) = showOrdinal d
+showDay DayUnknown   = "unknown"
+
+-- FIXME: replace with ords when newer formatting library (no longer
+-- .0 bug) [dependency].
+showOrdinal :: (Integral a) => a -> Text
+showOrdinal n
+  | n < 0 = sformat int n
+  | tens > 3 && tens < 21 = sformat int n <> "th"
+  | otherwise =
+      sformat int n <>
+      case n `mod` 10 of
+        1 -> "st"
+        2 -> "nd"
+        3 -> "rd"
+        _ -> "th"
+  where tens = n `mod` 100
+
+intToWeekDay :: Int -> Maybe DayOp
+intToWeekDay 1 = Just Monday
+intToWeekDay 2 = Just Tuesday
+intToWeekDay 3 = Just Wednesday
+intToWeekDay 4 = Just Thursday
+intToWeekDay 5 = Just Friday
+intToWeekDay 6 = Just Saturday
+intToWeekDay 7 = Just Sunday
+intToWeekDay _ = Nothing
+
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params =
   if length params > 50
   then Left "Too many search parameters. Maximum allowed is 50."
   else allAtom <$> foldM rpnParser [] params
+
+formatNo :: Text -> (Text, Text)
+formatNo s = ("no-" <> s, "")
 
 class OpParam a where
   opToParam :: Text -> a -> (Text, Text)
@@ -778,13 +1111,13 @@ class OpParam a where
 instance OpParam StrOp where
   opToParam s (OpEqual v) = (s, v)
   opToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
-  opToParam s OpMissing   = ("no-" <> s, "")
+  opToParam s OpMissing   = formatNo s
 
 instance (ToText a) => OpParam (NumOp a) where
   opToParam s (OpEq v) = (s, toText v)
   opToParam s (OpLt v) = (s, '<' `Text.cons` toText v)
   opToParam s (OpGt v) = (s, '>' `Text.cons` toText v)
-  opToParam s  OpNa    = ("no-" <> s, "")
+  opToParam s  OpNa    = formatNo s
 
 instance OpParam TypeOp where
   opToParam s = (s, ) . showType
@@ -794,6 +1127,18 @@ instance OpParam ImageStatus where
 
 instance OpParam FolderClass where
   opToParam s = (s, ) . showFolderClass
+
+instance OpParam SeasonOp where
+  opToParam s SeasonUnknown = formatNo s
+  opToParam s v             = (s, showSeason v)
+
+instance OpParam MonthOp where
+  opToParam s MonthUnknown = formatNo s
+  opToParam s v            = (s, showMonth v)
+
+instance OpParam DayOp where
+  opToParam s DayUnknown = formatNo s
+  opToParam s v          = (s, showDay v)
 
 formatParam :: (OpParam a) => Symbol -> a -> (Text, Text)
 formatParam s = opToParam (symbolName s)
@@ -808,6 +1153,9 @@ atomToParams (Keyword  v) = [formatParam TKeyword  v]
 atomToParams (Title    v) = [formatParam TTitle    v]
 atomToParams (Caption  v) = [formatParam TCaption  v]
 atomToParams (Year     n) = [formatParam TYear     n]
+atomToParams (Season   s) = [formatParam TSeason   s]
+atomToParams (Month    m) = [formatParam TMonth    m]
+atomToParams (Day      d) = [formatParam TDay      d]
 atomToParams (Camera   v) = [formatParam TCamera   v]
 atomToParams (Lens     v) = [formatParam TLens     v]
 atomToParams (Problem  v) = [formatParam TProblem  v]
