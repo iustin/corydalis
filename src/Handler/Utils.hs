@@ -29,20 +29,19 @@ import           Import
 import           Indexer
 import           Pics
 
-import qualified Data.Map                   as Map
+import qualified Data.Map              as Map
 import           Data.Prefix.Units
-import qualified Data.Text                  as Text
-import qualified Data.Text.Lazy             as TL
+import qualified Data.Text             as Text
+import qualified Data.Text.Lazy        as TL
 import           Data.Time
 import           Data.Time.Clock.POSIX
-import qualified Formatting.ShortFormatters as F
-import           Text.Blaze                 (Markup, ToMarkup, string, toMarkup)
+import           Text.Blaze            (Markup, ToMarkup, string, toMarkup)
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
 formatPercent :: Double -> Maybe TL.Text
 formatPercent v | isNaN v = Nothing
-                | otherwise = Just $ format (F.f 2) v
+                | otherwise = Just $ format (fixed 2) v
 
 showBinary :: (Integral a) => a -> String
 showBinary = (++ "B") . showValue FormatBinary . convert
@@ -224,17 +223,18 @@ buildTopNItems d m n =
 showLensAperture :: Maybe LensAperture -> TL.Text
 showLensAperture Nothing = "?"
 showLensAperture (Just (FixedAperture f)) =
-  format ("f/" % F.f 1 % " (" <> F.f 3 % ")") f
+  format ("f/" % fixed 1 % " (" <> fixed 3 % ")") f
 showLensAperture (Just (VariableAperture min' max')) =
-  format ("f/" % F.f 1 % "-" % F.f 1 % " (" % F.f 3 % "-" % F.f 3 % ")")
+  format
+    ("f/" % fixed 1 % "-" % fixed 1 % " (" % fixed 3 % "-" % fixed 3 % ")")
     min' max' min' max'
 
 showLensFL :: Maybe LensFocalLength -> TL.Text
 showLensFL Nothing = "?"
 showLensFL (Just (Prime fl)) =
-  format (F.f 0 % "mm (" <> F.f 3 % ")") fl
+  format (fixed 0 % "mm (" <> fixed 3 % ")") fl
 showLensFL (Just (Zoom min' max')) =
-  format (F.f 0 % "-" % F.f 0 % "mm (" % F.f 3 % "-" % F.f 3 % ")")
+  format (fixed 0 % "-" % fixed 0 % "mm (" % fixed 3 % "-" % fixed 3 % ")")
     min' max' min' max'
 
 countItems :: (Ord a) => [a] -> [(a, Int64)]
