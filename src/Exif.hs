@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
@@ -49,8 +50,7 @@ module Exif ( Exif(..)
 
 import           Control.Applicative
 import           Control.DeepSeq
-import           Control.Exception.Base
-import           Control.Monad
+import           Control.Monad              (msum)
 import           Control.Monad.Trans.State
 import           Data.Aeson
 import           Data.Aeson.Types           (Parser, modifyFailure, parseEither,
@@ -58,10 +58,8 @@ import           Data.Aeson.Types           (Parser, modifyFailure, parseEither,
 import           Data.Bifunctor
 import qualified Data.ByteString            as BS (ByteString, readFile)
 import           Data.Default
-import           Data.List
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict            as Map
-import           Data.Maybe
 import           Data.Scientific            (toBoundedInteger)
 import           Data.Semigroup
 import           Data.Set                   (Set)
@@ -75,14 +73,11 @@ import           Data.Time.Format
 import           Data.Time.LocalTime
 import           Formatting                 (sformat, (%))
 import qualified Formatting.ShortFormatters as F
-import           Prelude
-import           System.IO.Temp
 import           System.Process.Typed
 
 import           Cache
 import           Compat.Orphans             ()
-import           Settings.Development
-import           Types
+import           Import.NoFoundation        hiding (get)
 
 -- | Shutter counts this high are unlikely, but they do appear in
 -- corrupted/wrong exif data.
@@ -481,19 +476,19 @@ addExifToGroup :: GroupExif -> Exif -> GroupExif
 addExifToGroup g Exif{..} =
   g { gExifPeople    = foldSet (gExifPeople    g) exifPeople
     , gExifKeywords  = foldSet (gExifKeywords  g) exifKeywords
-    , gExifCountries = count   (gExifCountries g) exifCountry
-    , gExifProvinces = count   (gExifProvinces g) exifProvince
-    , gExifCities    = count   (gExifCities    g) exifCity
-    , gExifLocations = count   (gExifLocations g) exifLocation
-    , gExifCameras   = count   (gExifCameras   g) exifCamera
-    , gExifLenses    = count   (gExifLenses    g) (Just $ liName exifLens)
-    , gExifTitles    = count   (gExifTitles    g) exifTitle
-    , gExifCaptions  = count   (gExifCaptions  g) exifCaption
+    , gExifCountries = count1  (gExifCountries g) exifCountry
+    , gExifProvinces = count1  (gExifProvinces g) exifProvince
+    , gExifCities    = count1  (gExifCities    g) exifCity
+    , gExifLocations = count1  (gExifLocations g) exifLocation
+    , gExifCameras   = count1  (gExifCameras   g) exifCamera
+    , gExifLenses    = count1  (gExifLenses    g) (Just $ liName exifLens)
+    , gExifTitles    = count1  (gExifTitles    g) exifTitle
+    , gExifCaptions  = count1  (gExifCaptions  g) exifCaption
     }
-    where count m k = Map.insertWith (+) k 1 m
+    where count1 m k = Map.insertWith (+) k 1 m
           foldSet m s = if Set.null s
-                          then m `count` Nothing
-                          else foldl' count m (Set.map Just s)
+                          then m `count1` Nothing
+                          else foldl' count1 m (Set.map Just s)
 
 instance Semigroup GroupExif where
   g1 <> g2 =
@@ -813,9 +808,8 @@ getExif config dir paths = do
                -- https://github.com/yesodweb/wai/issues/351 for
                -- example.
                exifs <- (parseExifs <$> extractExifs dir m2) `catch`
-                 (\e -> let e' = show (e :: SomeException)
-                            e''= Text.pack e'
-                        in putStrLn ("Error: " ++ e') >> return (Left e''))
+                 (\e -> let e' = sformat shown (e :: SomeException)
+                        in putStrLn ("Error: " ++ e') >> return (Left e'))
                return $ case exifs of
                           Left msg -> map (\p ->
                                              let freFilePath = p
