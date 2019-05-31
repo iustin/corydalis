@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
@@ -64,7 +65,7 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Default             (Default, def)
 import           Data.Function            (on)
-import           Data.List                (nub, sort)
+import           Data.List                (nub)
 import           Data.Set                 (Set)
 import qualified Data.Set                 as Set
 import           Data.Store
@@ -74,12 +75,13 @@ import qualified Data.Text                as Text
 import qualified Data.Text.Lazy           as TextL
 import           Data.Time.Clock
 import           Data.Time.LocalTime
-import           Prelude
 import           System.FilePath          (pathSeparator)
 import           System.Log.FastLogger    (LogStr)
 import qualified Text.Regex.TDFA          as TDFA
 import           Yesod
 
+-- Note: Can't import Import, cycle. So directly import ClassyPrelude.
+import           ClassyPrelude
 import           Compat.Orphans           ()
 
 data Regex = Regex
