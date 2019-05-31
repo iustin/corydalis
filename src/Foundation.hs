@@ -61,7 +61,6 @@ import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
 
 import qualified Data.Map              as Map
 import qualified Data.Set              as Set
-import qualified Data.Text             as Text
 
 import           Indexer
 import           Pics
@@ -285,7 +284,7 @@ instance YesodBreadcrumbs App where
                                 Nothing -> SearchFoldersNoYearR
                                 Just y  -> SearchFoldersByYearR y
     return (name, r)
-  breadcrumb (SearchFoldersByYearR year) = return (Text.pack $ show year, Nothing)
+  breadcrumb (SearchFoldersByYearR year) = return (sformat int year, Nothing)
   breadcrumb SearchFoldersNoYearR = return ("?", Nothing)
 
   breadcrumb (ImageR folder image) = return (image,
