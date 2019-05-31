@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Cache ( cachedBasename
@@ -26,14 +27,14 @@ module Cache ( cachedBasename
 
 import qualified Data.ByteString       as BS (ByteString, readFile, writeFile)
 import qualified Data.ByteString.Lazy  as BSL (ByteString, writeFile)
+import           Data.List.NonEmpty    hiding (zip)
 import           Data.Time.Clock.POSIX
-import           Prelude
 import           System.Directory      (createDirectoryIfMissing)
 import           System.FilePath       (splitFileName)
 import           System.IO.Error
 import           System.Posix.Files
 
-import           Types
+import           Import.NoFoundation   hiding (path, tail, toList)
 
 cachedBasename :: Config -> FilePath -> String -> String
 cachedBasename config path suffix =
@@ -85,10 +86,11 @@ lastTouch path =
                                                                then return 0
                                                                else ioError e)
 
-pathsSorted :: [FilePath] -> IO Bool
+pathsSorted :: NonEmpty FilePath -> IO Bool
 pathsSorted paths = do
   ts <- mapM lastTouch paths
-  return $ all (uncurry (<=)) . zip ts $ tail ts
+  let tpairs = (zip (toList ts) (tail ts))
+  return $ all (uncurry (<=)) tpairs
 
 readCacheFile :: (ReadableContent a) =>
                  Config
@@ -101,7 +103,7 @@ readCacheFile config path fn validate extras = do
   let rpath = fn config path
   stale <- if validate
            then do
-               let all_paths = path:extras++[rpath]
+               let all_paths = path :| (extras++[rpath])
                not <$> pathsSorted all_paths
            else return False
   if stale
