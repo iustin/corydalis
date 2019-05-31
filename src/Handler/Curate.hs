@@ -129,8 +129,8 @@ getCurateR = do
                ([]::[XGraphData Int64 Int64]) top10c
       top10l = buildTopNItems (unknownLens { liName = "others", liSpec = "others" })
                  bylens 12
-      top10l' = map (\(a,b,text,d, t) ->
-                       let w = Text.words text
+      top10l' = map (\(a,b,txt,d, t) ->
+                       let w = Text.words txt
                            w' = filter (not . (`Set.member` hideLensWords)) w
                        in (a, b, Text.unwords w', d, t)) top10l
       jsonl = foldl' (\a (cnt, _, k, li, _) ->

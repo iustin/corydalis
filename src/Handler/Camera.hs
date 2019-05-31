@@ -42,7 +42,6 @@ import qualified Data.Map            as Map
 import qualified Data.Text.Lazy      as LT
 import           Data.Time.Calendar
 import           Data.Time.LocalTime
-import           Formatting
 
 getByCamera :: Repository -> Map Text (Occurrence CameraInfo)
 getByCamera = sByCamera . rsPicStats . repoStats

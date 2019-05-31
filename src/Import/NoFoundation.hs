@@ -25,6 +25,7 @@ module Import.NoFoundation
 
 import           ClassyPrelude.Yesod   as Import
 import           Data.Default          as Import (Default (..))
+import           Formatting            as Import hiding (now)
 import           Model                 as Import
 import           Settings              as Import
 import           Settings.Development  as Import

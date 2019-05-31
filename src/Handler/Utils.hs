@@ -35,7 +35,6 @@ import qualified Data.Text                  as Text
 import qualified Data.Text.Lazy             as TL
 import           Data.Time
 import           Data.Time.Clock.POSIX
-import           Formatting                 hiding (string)
 import qualified Formatting.ShortFormatters as F
 import           Text.Blaze                 (Markup, ToMarkup, string, toMarkup)
 
@@ -191,7 +190,7 @@ getImage folder iname = do
 -- | Quotes content such that copy-paste is easier if within a span.
 quoteMarkup :: (ToMarkup a) => a -> Markup
 quoteMarkup element = toMarkup [quote, toMarkup element, quote]
-  where quote = string "'"
+  where quote = Text.Blaze.string "'"
 
 folderLocations :: PicDir -> Text
 folderLocations =
