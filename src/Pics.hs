@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE MultiWayIf          #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -108,51 +109,44 @@ module Pics ( PicDir(..)
             ) where
 
 import           Control.Applicative
-import           Control.Concurrent.Async
-import           Control.Concurrent.STM.TVar
 import           Control.DeepSeq
-import           Control.Monad
-import           Control.Monad.STM
-import qualified Data.ByteString.Lazy        as BSL (append, length, writeFile)
-import           Data.Default                (Default, def)
-import           Data.Function               (on)
-import           Data.Int                    (Int64)
-import           Data.List
-import           Data.LruCache               (LruCache)
-import qualified Data.LruCache               as LRU
-import           Data.Map.Strict             (Map)
-import qualified Data.Map.Strict             as Map
-import           Data.Maybe
+import qualified Data.ByteString.Lazy    as BSL (append, length, writeFile)
+import           Data.Default            (Default, def)
+import           Data.Function           (on)
+import           Data.Int                (Int64)
+import           Data.LruCache           (LruCache)
+import qualified Data.LruCache           as LRU
+import           Data.Map.Strict         (Map)
+import qualified Data.Map.Strict         as Map
 import           Data.Semigroup
-import           Data.Set                    (Set)
-import qualified Data.Set                    as Set
+import           Data.Set                (Set)
+import qualified Data.Set                as Set
 import qualified Data.Store
 import           Data.Store.TH
-import           Data.Text                   (Text)
-import qualified Data.Text                   as Text
-import qualified Data.Text.Lazy              as TextL
-import qualified Data.Text.Lazy.Encoding     as Text (decodeUtf8)
+import           Data.Text               (Text)
+import qualified Data.Text               as Text
+import qualified Data.Text.Lazy          as TextL
+import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)
+import qualified Data.Text.Read          as Text
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
-import           Prelude
 import           System.Directory
 import           System.Exit
 import           System.FilePath
 import           System.IO.Error
-import           System.Log.FastLogger       (toLogStr)
-import           System.Posix.Files          hiding (fileSize)
-import qualified System.Posix.Files          (fileSize)
+import           System.Log.FastLogger   (toLogStr)
+import           System.Posix.Files      hiding (fileSize)
+import qualified System.Posix.Files      (fileSize)
 import           System.Posix.Types
 import           System.Process.Typed
-import qualified Text.Regex.TDFA             as TDFA
+import qualified Text.Regex.TDFA         as TDFA
 import           UnliftIO.Exception
 
 import           Cache
-import           Compat.Orphans              ()
+import           Compat.Orphans          ()
 import           Exif
-import           Settings.Development
-import           Types
+import           Import.NoFoundation     hiding (fileName, fileSize)
 
 type Ctx = Context Repository SearchCache
 
@@ -174,16 +168,18 @@ dropCopySuffix cfg name =
     [_:b:_] -> b
     _       -> name
 
-maybeRead :: (Read a) => String -> Maybe a
-maybeRead s = case reads s of
-                [(i, [])] -> Just i
-                _         -> Nothing
+-- FIXME: duplication with Indexer.
+parseDecimal :: (Integral a) => String -> Maybe a
+parseDecimal (Text.pack -> w) =
+  case Text.decimal w of
+    Right (w', "") -> Just w'
+    _              -> Nothing
 
 expandRangeFile :: Config -> String -> [String]
 expandRangeFile cfg name =
   case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
-    [[_, root, begin, end]] -> let ib = maybeRead begin::Maybe Int
-                                   ie = maybeRead end
+    [[_, root, begin, end]] -> let ib = parseDecimal begin::Maybe Int
+                                   ie = parseDecimal end
                                    expand s = if length s >= length begin
                                                 then s
                                                 else expand ('0':s)
@@ -1055,9 +1051,9 @@ loadFolder ctx name path isSource = do
             jpeg_file = [file_obj | is_jpeg && not isSource]
             p_mov = [file_obj | is_mov && not isSource]
             snames = expandRangeFile config base_name
-            range = case snames of
-                      [] -> Nothing
-                      _  -> Just (Text.pack $ head snames, Text.pack $ last snames)
+            range = case fromNullable snames of
+                      Nothing -> Nothing
+                      Just s  -> Just (Text.pack $ head s, Text.pack $ last s)
             flags = Flags {
               flagsSoftMaster = isSoftMaster
               }
