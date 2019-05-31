@@ -171,8 +171,8 @@ isOKDir cfg = TDFA.match (reRegex $ cfgDirRegex cfg)
 dropCopySuffix :: Config -> String -> String
 dropCopySuffix cfg name =
   case TDFA.match (reRegex $ cfgCopyRegex cfg) name of
-    [_:base:_] -> base
-    _          -> name
+    [_:b:_] -> b
+    _       -> name
 
 maybeRead :: (Read a) => String -> Maybe a
 maybeRead s = case reads s of
@@ -182,14 +182,14 @@ maybeRead s = case reads s of
 expandRangeFile :: Config -> String -> [String]
 expandRangeFile cfg name =
   case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
-    [[_, base, begin, end]] -> let ib = maybeRead begin::Maybe Int
+    [[_, root, begin, end]] -> let ib = maybeRead begin::Maybe Int
                                    ie = maybeRead end
                                    expand s = if length s >= length begin
                                                 then s
                                                 else expand ('0':s)
                                in case (ib, ie) of
                                     (Just b, Just e) ->
-                                      [base ++ expand (show i) | i <- [b..e]]
+                                      [root ++ expand (show i) | i <- [b..e]]
                                     _ -> []
     _ -> []
 
@@ -693,12 +693,12 @@ updateRepo ctx new = atomically $ do
   let rc = ctxRepo ctx
   -- TODO: replace this with stateTVar when LTS 13.
   current <- readTVar rc
-  let update = repoSerial current <= repoSerial new
+  let do_update = repoSerial current <= repoSerial new
   -- TODO: add logging for prevented overwrites.
-  when update $ do
+  when do_update $ do
     writeTVar rc $! new
     flushSearchCache (ctxSearchCache ctx)
-  return update
+  return do_update
 
 tryUpdateRepo :: Ctx -> Repository -> IO Repository
 tryUpdateRepo ctx new = do
@@ -913,13 +913,13 @@ folderClassFromStats stats@Stats {..} =
                     ++ ", conditions=" ++ show conditions
 
 getDirContents :: Config -> FilePath -> IO ([FilePath], [InodeInfo])
-getDirContents config base = do
-  contents <- getDirectoryContents base
+getDirContents config root = do
+  contents <- getDirectoryContents root
   let blkdirs = blacklistedDirs config
       allowed_names = filter (`notElem` blkdirs) contents
   paths <-
     foldM (\acc path -> do
-             stat <- getSymbolicLinkStatus $ base </> path
+             stat <- getSymbolicLinkStatus $ root </> path
              let !ii = InodeInfo { inodeName  = path
                                  , inodeDir   = isDirectory stat
                                  , inodeMTime = modificationTimeHiRes stat
@@ -937,9 +937,9 @@ scanBaseDir :: Ctx
             -> String
             -> Bool
             -> IO [PicDir]
-scanBaseDir ctx base isSource = do
-  (dirs, _) <- getDirContents (ctxConfig ctx) base
-  concat <$> mapConcurrently (\p -> scanSubDir ctx (base </> p) isSource) dirs
+scanBaseDir ctx root isSource = do
+  (dirs, _) <- getDirContents (ctxConfig ctx) root
+  concat <$> mapConcurrently (\p -> scanSubDir ctx (root </> p) isSource) dirs
 
 -- | Scans a directory one level below a base dir. The actual
 -- subdirectory name is currently discarded and will not appear in the
@@ -977,10 +977,10 @@ recursiveScanPath :: Config
                   -> FilePath
                   -> (FilePath -> FilePath)
                   -> IO [InodeInfo]
-recursiveScanPath config base prepender = do
-  (!dirs, !files) <- getDirContents config base
+recursiveScanPath config root prepender = do
+  (!dirs, !files) <- getDirContents config root
   let with_prefix = map (\ii -> ii { inodeName = prepender (inodeName ii) }) files
-  subdirs <- mapM (\p -> recursiveScanPath config (base </> p)
+  subdirs <- mapM (\p -> recursiveScanPath config (root </> p)
                            (prepender . (p </>))) dirs
   return $ with_prefix ++ concat subdirs
 
@@ -1241,7 +1241,7 @@ forceBuildThumbCaches config renderProgress repo = do
   atomically $ writeTVar renderProgress def
   -- throwString "boo"
   let images = renderableImages repo
-      builder i = mapM_ (\size -> do
+      thbuild i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size
                             let modifier = case res of
                                   Left _              -> incErrors
@@ -1250,7 +1250,7 @@ forceBuildThumbCaches config renderProgress repo = do
                             atomically $ modifyTVar renderProgress modifier
                         )
                     (cfgAutoImageSizes config)
-  mapM_ builder images
+  mapM_ thbuild images
   readTVarIO renderProgress
 
 repoDiskFile :: String
@@ -1285,13 +1285,13 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
        logfn "No cache data or data incompatible, scanning filesystem"
        launchScanFileSystem ctx
        return rescanning
-     Just cached@(repoStatus -> RepoFinished {}) -> do
+     Just cached_r@(repoStatus -> RepoFinished {}) -> do
        logfn "Cached data available, skipping scan"
        -- Note: this shouldn't fail, since an empty repo happens only
        -- upon initial load, and (initial) empty repos have a serial
        -- number of zero while any valid cache will have a positive
        -- serial.
-       tryUpdateRepo ctx cached
+       tryUpdateRepo ctx cached_r
      Just unfinished -> do
        logfn . toLogStr $ "Unfinished cache found, state: " ++ show (repoStatus unfinished)
        logfn "Restarting scan"
@@ -1420,7 +1420,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
       let geom = show res' ++ "x" ++ show res'
           fpath = scaledImagePath config origPath res'
           isThumb = res' <= cfgThumbnailSize config
-          format = if isThumb then "png" else "jpg"
+          fmt = if isThumb then "png" else "jpg"
       -- Note: this calls getFileStatus not getSymbolicLinkStatus
       -- since this is a file, not a directory, so symlinks to
       -- somewhere else are OK-ish; we do not recurse into the target
@@ -1434,11 +1434,11 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
                           then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
                           else ["-resize", geom]
             (parent, _) = splitFileName fpath
-            outFile = format ++ ":" ++ fpath
+            outFile = fmt ++ ":" ++ fpath
         createDirectoryIfMissing True parent
         (exitCode, out, err) <- readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])
         when (exitCode /= ExitSuccess) . throwIO . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
-      return (needsGen, Text.pack $ "image/" ++ format, fpath)
+      return (needsGen, Text.pack $ "image/" ++ fmt, fpath)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]
