@@ -89,7 +89,7 @@ lastTouch path =
 pathsSorted :: NonEmpty FilePath -> IO Bool
 pathsSorted paths = do
   ts <- mapM lastTouch paths
-  let tpairs = (zip (toList ts) (tail ts))
+  let tpairs = zip (toList ts) (tail ts)
   return $ all (uncurry (<=)) tpairs
 
 readCacheFile :: (ReadableContent a) =>
