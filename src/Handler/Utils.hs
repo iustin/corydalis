@@ -326,7 +326,8 @@ buildLensApFL images =
       (x, y) = unzip xys
       allApertures = sort y
       hoverFmt ((fl', ap'), cnt') =
-        show fl'++"mm @ f/" ++ show ap' ++ ": " ++ show cnt' ++ " images"
+        sformat (fixed 1 % "mm @ f/" % fixed 1 % ": " % int % " images")
+        fl' ap' cnt'
       jsonl = def { gdName = ""
                   , gdType = "scatter"
                   , gdMode = Just "markers"
@@ -364,7 +365,7 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
               ([]::[GraphData Text Int64 Int64]) top1
       jsont = foldl' (\a (_, _, _, li, tr) ->
                         let (d, c) = unzip $ Map.assocs tr
-                            d' = map (\(y, m) -> show y ++ "-" ++ show m) d
+                            d' = map (uncurry $ sformat (int % "-" % int)) d
                             c' = map fromIntegral c
                         in
                         def { gdName = nameFn2 li
@@ -376,7 +377,7 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
                                         , ("stackgroup", toJSON ("one"::String))
                                         ]
                             }:a)
-              ([]::[GraphData String Int64 Int64]) top2
+              ([]::[GraphData Text Int64 Int64]) top2
   in object [ "imagecount" .= jsonl
             , "trends"     .= jsont
             ]
