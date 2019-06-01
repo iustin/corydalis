@@ -77,6 +77,9 @@ test:
 fast-tests:
 	stack --work-dir .stack-test test --file-watch --flag corydalis:dev
 
+fast-build:
+	stack --work-dir .stack-test build --file-watch --flag corydalis:dev
+
 coverage-tests:
 	stack --work-dir .stack-coverage test --file-watch --coverage --flag corydalis:dev
 
