@@ -17,16 +17,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE CPP             #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Settings.Development where
 
-import           Data.Text
+import           ClassyPrelude
+import           Data.Text                  hiding (unpack)
 import           Data.Text.IO
 import           Language.Haskell.TH
 import           Language.Haskell.TH.Syntax
-import           Prelude
 
 development :: Bool
 development =
@@ -56,7 +57,8 @@ devSuffix =
 gitVersion :: String
 gitVersion =
   $(addDependentFile "git-version" >>
-    runIO (unpack . strip <$> Data.Text.IO.readFile "git-version") >>=
+    runIO (unpack . strip <$>
+           Data.Text.IO.readFile "git-version") >>=
     stringE)
 
 buildDate :: String
