@@ -50,34 +50,32 @@ module Exif ( Exif(..)
 
 import           Control.Applicative
 import           Control.DeepSeq
-import           Control.Monad              (msum)
+import           Control.Monad             (msum)
 import           Control.Monad.Trans.State
 import           Data.Aeson
-import           Data.Aeson.Types           (Parser, modifyFailure, parseEither,
-                                             parseMaybe, typeMismatch)
+import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
+                                            parseMaybe, typeMismatch)
 import           Data.Bifunctor
-import qualified Data.ByteString            as BS (ByteString, readFile)
+import qualified Data.ByteString           as BS (ByteString, readFile)
 import           Data.Default
-import           Data.Map.Strict            (Map)
-import qualified Data.Map.Strict            as Map
-import           Data.Scientific            (toBoundedInteger)
+import           Data.Map.Strict           (Map)
+import qualified Data.Map.Strict           as Map
+import           Data.Scientific           (toBoundedInteger)
 import           Data.Semigroup
-import           Data.Set                   (Set)
-import qualified Data.Set                   as Set
+import           Data.Set                  (Set)
+import qualified Data.Set                  as Set
 import           Data.Store
-import           Data.Store.TH              (makeStore)
-import           Data.Text                  (Text)
-import qualified Data.Text                  as Text
-import qualified Data.Text.Read             as Text
+import           Data.Store.TH             (makeStore)
+import           Data.Text                 (Text)
+import qualified Data.Text                 as Text
+import qualified Data.Text.Read            as Text
 import           Data.Time.Format
 import           Data.Time.LocalTime
-import           Formatting                 (sformat, (%))
-import qualified Formatting.ShortFormatters as F
 import           System.Process.Typed
 
 import           Cache
-import           Compat.Orphans             ()
-import           Import.NoFoundation        hiding (get)
+import           Compat.Orphans            ()
+import           Import.NoFoundation       hiding (get)
 
 -- | Shutter counts this high are unlikely, but they do appear in
 -- corrupted/wrong exif data.
@@ -110,8 +108,10 @@ instance FromJSON Orientation where
       Just 6  -> return OrientationRightTop
       Just 7  -> return OrientationRightBot
       Just 8  -> return OrientationLeftBot
-      Just v  -> fail $ "Invalid orientation value '" ++ show v ++ "'"
-      Nothing -> fail $ "Non-integer orientation value '" ++ show n ++ "'"
+      Just v  ->
+        fail $ formatToString ("Invalid orientation value '" % int % "'") v
+      Nothing ->
+        fail $ formatToString ("Non-integer orientation value '" % shown % "'") n
 
 $(makeStore ''Orientation)
 
@@ -270,7 +270,7 @@ parseStrOrNum (Number n) =
   maybe (showfn n) showfn (toBoundedInteger n::Maybe Int)
   where
     showfn :: (Show a) => a -> Parser Text
-    showfn = pure . Text.pack . show
+    showfn = pure . sformat shown
 parseStrOrNum v          = typeMismatch "string or number" v
 
 data RawExif = RawExif
@@ -654,7 +654,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   exifCity         <- checkNull "city" rExifCity
   exifLocation     <- checkNull "location" rExifLocation
   exifShutterCount <- evalV (> tooHighShutterCount)
-                      (sformat ("Unlikely shutter count: " % F.d))
+                      (sformat ("Unlikely shutter count: " % int))
                       rExifShutterCount
   errs <- get
   let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
