@@ -27,13 +27,13 @@ $with smf <- showMaybeField "?"
       ^{smf exifCamera} + #{lensShortName exifLens}
   <tr>
     <td>Capture time
-    <td>^{smf createDate}
+    <td>^{smf create_date}
   <tr>
     <td>Exposure info
     <td>#{sspeed} @ #{aperture}, #{iso}
   <tr>
     <td>Focal length
-    <td>#{fl}
+    <td>#{focal_length}
   <tr>
     <td>Shutter count
     <td>^{showMaybeField "unknown" shutterCount}

@@ -170,20 +170,21 @@ folderGrid imagesize params atom dirs =
           |]
 
 showExif :: Exif -> Widget
-showExif Exif{..} = do
-  let createDate = Text.pack . show <$> exifCreateDate
-      fl = case (exifFocalLength, exifFL35mm) of
-             (Nothing, Nothing) -> "unknown focal length"
-             (Just fn, Nothing) -> show fn ++ "mm (unknown equiv.)"
-             (Nothing, Just ff) -> show ff ++ "mm (FF)"
-             (Just fn, Just ff) -> if fn == ff
-                                   then show fn ++ "mm (FF)"
-                                   else show fn ++ "mm (" ++ show ff ++ "mm equiv.)"
-      aperture = case exifAperture of
-                   Nothing -> "f/?"
-                   Just v  -> "f/" ++ show v
+showExif Exif {..} = do
+  let create_date = sformat shown <$> exifCreateDate
+      f1 = fixed 1
+      focal_length =
+        case (exifFocalLength, exifFL35mm) of
+          (Nothing, Nothing) -> "unknown focal length"
+          (Just fn, Nothing) -> sformat (f1 % "mm (unknown equiv.)") fn
+          (Nothing, Just ff) -> sformat (f1 % "mm (FF)") ff
+          (Just fn, Just ff) ->
+            if fn == ff
+              then sformat (f1 % "mm (FF)") fn
+              else sformat (f1 % "mm (" % f1 % "mm equiv.)") fn ff
+      aperture = maybe "f/?" (sformat ("f/" % f1)) exifAperture
       sspeed = fromMaybe "?" exifSSpeedDesc <> "s"
-      shutterCount = Text.pack . show <$> exifShutterCount
+      shutterCount = sformat int <$> exifShutterCount
       iso = "ISO " ++ maybe "unknown" show exifISO
   -- TODO: serial field, links to camera/lens?, move capture time earlier.
   $(widgetFile "exif")
