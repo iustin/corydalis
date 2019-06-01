@@ -338,7 +338,7 @@ atomTypeDescriptions TFClass   = "folder classes"
 
 class (Show a) => ToText a where
   toText :: a -> Text
-  toText = Text.pack . show
+  toText = sformat shown
 
 instance ToText Text where
   toText = id
@@ -670,7 +670,7 @@ yearStats :: Repository -> NameStats
 yearStats =
   foldl' (\stats folder ->
             Map.insertWith (+)
-              (Text.pack . show <$> pdYear folder)
+              (sformat int <$> pdYear folder)
               1 stats
          ) Map.empty . Map.elems . repoDirs
 
@@ -737,7 +737,7 @@ rpnParser xs (an, av) =
     Just v' -> Right $ v':xs
     Nothing -> Left $ "Failed to parse the atom " <>
                an <> "=" <> av <>
-               " with stack " <> Text.pack (show $ map atomDescription xs)
+               " with stack " <> sformat shown (map atomDescription xs)
 
 parseString :: Text -> Maybe StrOp
 parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy (makeFuzzy v)

@@ -1168,7 +1168,8 @@ scanFSWrapper ctx newrepo = do
   scanner <- async $ scanFilesystem ctx newrepo
   result <- waitCatch scanner
   case result of
-    Left err -> tryUpdateRepo ctx newrepo { repoStatus = RepoError (Text.pack $ show err) }
+    Left err ->
+      tryUpdateRepo ctx newrepo {repoStatus = RepoError (sformat shown err)}
     Right r -> return r
 
 scanFilesystem :: Ctx -> Repository -> IO Repository
@@ -1434,7 +1435,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
         createDirectoryIfMissing True parent
         (exitCode, out, err) <- readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])
         when (exitCode /= ExitSuccess) . throwIO . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
-      return (needsGen, Text.pack $ "image/" ++ fmt, fpath)
+      return (needsGen, sformat ("image/" % string) fmt, fpath)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]

@@ -60,7 +60,7 @@ getQuickSearchR = do
 
 getSearchFoldersByYearR :: Integer -> Handler Html
 getSearchFoldersByYearR year =
-  redirect (BrowseFoldersR 0, [(symbolName TYear, Text.pack $ show year)])
+  redirect (BrowseFoldersR 0, [(symbolName TYear, sformat int year)])
 
 getSearchFoldersNoYearR :: Handler Html
 getSearchFoldersNoYearR =
