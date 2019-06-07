@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.4.1
+
+*unreleased*
+
+### Exif changes
+
+Now parses the rating as written by (at least) Lightroom. Value '0' is
+unrated, otherwise the explicit rating.
+
+### Search changes
+
+Added new search atoms _season_, _month_, _day_, _rating_.
+
+Season is usual *English* name for season, i.e. _winter_, _spring_,
+_summer_, _autumn_, and the season computation is based on month
+boundaries: winter lasts from December to January, and the rest
+follow.
+
+Month is usual *English* name for the month, or alternatively the
+numeric value (1-12).
+
+Day is a bit more complex. It can take any of: day-of-week (English
+names), 'weekday', 'weekend', or numerical month day (e.g. '10th').
+
+Rating is the exif rating as written by camera or image processing
+tools, usually using the values 1-5, with 0 being unrated.
+
 ## v0.4.0
 
 *Sun, 26 May 2019*
