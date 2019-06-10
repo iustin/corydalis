@@ -41,34 +41,40 @@ module Application
     , db
     ) where
 
-import           Control.Monad.Logger                 (liftLoc, runLoggingT)
-import           Database.Persist.Sqlite              (createSqlitePool,
-                                                       runSqlPool, sqlDatabase,
-                                                       sqlPoolSize)
+import           Control.Monad.Logger                      (liftLoc,
+                                                            runLoggingT)
+import           Database.Persist.Sqlite                   (createSqlitePool,
+                                                            runSqlPool,
+                                                            sqlDatabase,
+                                                            sqlPoolSize)
 import           Import
-import           Language.Haskell.TH.Syntax           (qLocation)
-import           Network.Wai                          (Middleware)
-import           Network.Wai.Handler.Warp             (Settings,
-                                                       defaultSettings,
-                                                       defaultShouldDisplayException,
-                                                       getPort, runSettings,
-                                                       setHost, setOnException,
-                                                       setPort)
-import           Network.Wai.Handler.WarpTLS          (OnInsecure (..),
-                                                       TLSSettings, onInsecure,
-                                                       runTLS, tlsSettings)
-import           Network.Wai.Middleware.RequestLogger (Destination (Logger),
-                                                       IPAddrSource (..),
-                                                       OutputFormat (..),
-                                                       destination,
-                                                       mkRequestLogger,
-                                                       outputFormat)
-import           System.Log.FastLogger                (defaultBufSize,
-                                                       newStdoutLoggerSet,
-                                                       toLogStr)
-import           Yesod.Core.Types                     (loggerPutStr)
+import           Language.Haskell.TH.Syntax                (qLocation)
+import           Network.Wai                               (Middleware)
+import           Network.Wai.Handler.Warp                  (Settings,
+                                                            defaultSettings,
+                                                            defaultShouldDisplayException,
+                                                            getPort,
+                                                            runSettings,
+                                                            setHost,
+                                                            setOnException,
+                                                            setPort)
+import           Network.Wai.Handler.WarpTLS               (OnInsecure (..),
+                                                            TLSSettings,
+                                                            onInsecure, runTLS,
+                                                            tlsSettings)
+import           Network.Wai.Middleware.MethodOverridePost
+import           Network.Wai.Middleware.RequestLogger      (Destination (Logger),
+                                                            IPAddrSource (..),
+                                                            OutputFormat (..),
+                                                            destination,
+                                                            mkRequestLogger,
+                                                            outputFormat)
+import           System.Log.FastLogger                     (defaultBufSize,
+                                                            newStdoutLoggerSet,
+                                                            toLogStr)
+import           Yesod.Core.Types                          (loggerPutStr)
 
-import           Pics                                 (initContext)
+import           Pics                                      (initContext)
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -76,6 +82,7 @@ import           Handler.Browse
 import           Handler.Camera
 import           Handler.Common
 import           Handler.Curate
+import           Handler.FlaggedImages
 import           Handler.Folder
 import           Handler.Home
 import           Handler.Image
@@ -143,7 +150,7 @@ makeApplication foundation = do
     logWare <- makeLogWare foundation
     -- Create the WAI application and apply middlewares
     appPlain <- toWaiAppPlain foundation
-    return $ logWare $ defaultMiddlewaresNoLogging appPlain
+    return $ logWare $ (defaultMiddlewaresNoLogging . methodOverridePost) appPlain
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =

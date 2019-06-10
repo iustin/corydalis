@@ -243,3 +243,12 @@ noItemsFound filter_desc images =
            The filter <i>#{filter_desc}</i>
            doesn't match any #{what}.
            |]
+
+imageFlagActions :: Text -> Text -> Bool -> Widget
+imageFlagActions folder image flag =
+  toWidget [hamlet|
+            <form action=@{ImageFlagR folder image} method=post style="display:inline-block">
+              $if flag
+                <button .btn .btn-light type="submit" name="_method" value="PUT">Flag
+              <button .btn .btn-light type="submit" name="_method" value="DELETE">Un-flag
+              |]

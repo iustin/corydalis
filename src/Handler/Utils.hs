@@ -190,6 +190,11 @@ getImage folder iname = do
   dir <- getFolder folder
   getFolderImage dir iname
 
+lookupImage :: Repository -> Text -> Text -> Maybe Image
+lookupImage (repoDirs -> pics) folder image = do
+  dir <- Map.lookup folder pics
+  Map.lookup image (pdImages dir)
+
 -- | Quotes content such that copy-paste is easier if within a span.
 quoteMarkup :: (ToMarkup a) => a -> Markup
 quoteMarkup element = toMarkup [quote, toMarkup element, quote]

@@ -129,6 +129,7 @@ library:
     - Handler.Camera
     - Handler.Common
     - Handler.Curate
+    - Handler.FlaggedImages
     - Handler.Folder
     - Handler.Home
     - Handler.Image
@@ -219,6 +220,7 @@ tests:
     - corydalis
     - hspec >=2.0.0
     - hspec-expectations-lifted
+    - http-types
     - yesod-test
     ghc-options:
     - -threaded

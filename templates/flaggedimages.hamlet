@@ -1,0 +1,42 @@
+<h1>Flagged images
+
+<div .row>
+  <div .col-12 .col-md-3>
+    <div .card>
+      <div .card-header>Information
+      <div .card-body>
+        There are #{length flagged} flagged images.
+
+  <div .col-12 .col-md-4>
+    <div .card>
+      <div .card-header>Download
+      <ul .list-group .list-group-flush>
+        <li .list-group-item><a href="@{FlaggedImagesListR}">download text file with processed image paths</a>
+        <li .list-group-item>download text file with raw image paths
+        <li .list-group-item>download processed images
+      $if null flagged
+        <div .card-footer .text-muted>
+          Note: no flagged images, the above downloads will be empty.
+
+$if not $ null flagged'
+  <div .row .my-1>
+    <div .col-12>
+      <div .card>
+        <table #imagelist .tablesorter .table .table-sm .vmiddle>
+           <thead>
+             <tr>
+               <th>Status
+               <th>Image
+               <th>Action
+           <tbody>
+             $forall (FlaggedImage{flaggedImageFolder = folder, flaggedImageName = image}, mimg) <- flagged'
+               <tr>
+               $maybe img <- mimg
+                 <td>#{show $ imgStatus img}
+                 <td><a href="@{ImageR folder image}">#{folder}/#{image}</a>
+               $nothing
+                 <td .text-muted><i>Unknown image</i>
+                 <td>#{folder}/#{image}
+               <td>
+                 ^{imageFlagActions folder image False}
+           <tfoot>

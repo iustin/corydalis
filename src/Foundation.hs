@@ -310,6 +310,9 @@ instance YesodBreadcrumbs App where
   breadcrumb (CameraInfoR image) = return (image,               Just CameraStatsR)
   breadcrumb (ListItemsR atom)   =
     return ("Listing " <> atomTypeDescriptions atom, Nothing)
+  breadcrumb FlaggedImagesR = return ("Flagged images" , Just CurateR)
+  breadcrumb FlaggedImagesListR = return ("Flagged images list" , Just FlaggedImagesR)
+  breadcrumb (ImageFlagR folder image) = return ("Update image flag", Just (ImageR folder image))
   breadcrumb AboutR = return ("About", Nothing)
 
 -- How to run database actions.

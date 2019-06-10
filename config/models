@@ -3,3 +3,9 @@ User
     password Text Maybe
     UniqueUser name
     deriving Typeable
+
+FlaggedImage
+    folder Text
+    name Text
+    authorId UserId
+    UniqueFlaggedImage folder name

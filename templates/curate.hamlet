@@ -24,6 +24,8 @@ $if allpics > 0
             $if untracked > 0
               <li>#{untracked} untracked files
 
+          See the <a href=@{FlaggedImagesR}>flagged images</a>.
+
     <div .col-12 .col-md-4>
       <div .card>
         <div .card-header>Folders

@@ -19,6 +19,10 @@
           <td>Parent folder
           <td>
             <a href=@{FolderR (imgParent img)}>#{imgParent img}
+        <tr>
+          <td>Flag image for review
+          <td>
+            ^{imageFlagActions (imgParent img) (imgName img) True}
         $maybe (begin, end) <- imgRange img
           <tr>
            <td>Image is a composition based on
