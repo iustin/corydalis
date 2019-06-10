@@ -10,7 +10,7 @@ config/client_session_key.aes
 *.sqlite3-wal
 .hsenv*
 cabal-dev/
-.stack-work/
+.stack-*/
 yesod-devel/
 /db/
 /site/
@@ -32,4 +32,6 @@ TAGS
 *.aux
 *.pdf
 *.prof
+*.tix
 *.html
+*.ps
