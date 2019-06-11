@@ -123,6 +123,143 @@ msgValidTypes = Set.fromList [msgSuccess, msgInfo, msgWarning, msgDanger]
 sessionTimeout :: Int
 sessionTimeout = 120
 
+data PageStyle
+  = PageBasic  -- ^ Only the most basic CSS/JS.
+  | PageTable  -- ^ A page with tablesorter.
+  | PageView   -- ^ A page with our viewer.
+  | PagePlot   -- ^ A page with plotly and tableviewer.
+  | PageGrid   -- ^ A page with masonry/infinitescroll.
+  | PageFBox   -- ^ A page with grid view and fancy box.
+
+
+pageCSSResources :: PageStyle -> Widget
+pageCSSResources PageBasic =
+  $(combineStylesheets 'StaticR
+     [ bootstrap_css_bootstrap_css
+     , font_awesome_css_fontawesome_css
+     , font_awesome_css_regular_css
+     , font_awesome_css_solid_css
+     , corydalis_css_basic_css
+     ])
+
+pageCSSResources PageTable =
+  $(combineStylesheets 'StaticR
+     [ bootstrap_css_bootstrap_css
+     , tablesorter_css_theme_bootstrap_css
+     , font_awesome_css_fontawesome_css
+     , font_awesome_css_regular_css
+     , font_awesome_css_solid_css
+     , corydalis_css_basic_css
+     ])
+
+pageCSSResources PageView = pageCSSResources PageBasic
+pageCSSResources PagePlot = pageCSSResources PageTable
+pageCSSResources PageGrid = pageCSSResources PageBasic
+pageCSSResources PageFBox =
+  $(combineStylesheets 'StaticR
+     [ bootstrap_css_bootstrap_css
+     , font_awesome_css_fontawesome_css
+     , font_awesome_css_regular_css
+     , font_awesome_css_solid_css
+     , corydalis_css_basic_css
+     , fancybox_css_jquery_fancybox_css
+     ])
+
+pageJSResources :: PageStyle -> Widget
+pageJSResources PageBasic =
+  $(combineScripts 'StaticR
+     [ jquery_js_jquery_js
+     , bootstrap_js_bootstrap_bundle_js
+     ])
+
+pageJSResources PageTable =
+  $(combineScripts 'StaticR
+     [ jquery_js_jquery_js
+     , tablesorter_js_jquery_tablesorter_js
+     , tablesorter_js_widgets_widget_uitheme_js
+     , tablesorter_js_widgets_widget_filter_js
+     , bootstrap_js_bootstrap_bundle_js
+     , corydalis_js_tablesorter_uitheme_simple_js
+     , corydalis_js_tablesorter_config_js
+     ])
+
+pageJSResources PageView =
+  $(combineScripts 'StaticR
+     [ jquery_js_jquery_js
+     , bootstrap_js_bootstrap_bundle_js
+     , corydalis_js_viewer_js
+     , hammer_js_hammer_js
+     , screenfull_js_screenfull_js
+     ])
+
+pageJSResources PagePlot =
+  $(combineScripts 'StaticR
+     [ jquery_js_jquery_js
+     , tablesorter_js_jquery_tablesorter_js
+     , tablesorter_js_widgets_widget_uitheme_js
+     , tablesorter_js_widgets_widget_filter_js
+     , bootstrap_js_bootstrap_bundle_js
+     , corydalis_js_tablesorter_uitheme_simple_js
+     , corydalis_js_tablesorter_config_js
+     , plotly_js_plotly_cartesian_js
+     ])
+
+pageJSResources PageGrid =
+  $(combineScripts 'StaticR
+     [ jquery_js_jquery_js
+     , bootstrap_js_bootstrap_bundle_js
+     , masonry_js_masonry_pkgd_js
+     , imagesloaded_js_imagesloaded_pkgd_js
+     , infinite_scroll_js_infinite_scroll_pkgd_js
+     , corydalis_js_imagegrid_js
+     ])
+
+pageJSResources PageFBox =
+  $(combineScripts 'StaticR
+     [ jquery_js_jquery_js
+     , bootstrap_js_bootstrap_bundle_js
+     , masonry_js_masonry_pkgd_js
+     , imagesloaded_js_imagesloaded_pkgd_js
+     , infinite_scroll_js_infinite_scroll_pkgd_js
+     , corydalis_js_imagegrid_js
+     , fancybox_js_jquery_fancybox_js
+     , corydalis_js_fancybox_js
+     ])
+
+routeStyle :: Route App -> PageStyle
+routeStyle AboutR                 = PageBasic
+routeStyle AuthR{}                = PageBasic
+routeStyle BrowseFoldersR{}       = PageGrid
+routeStyle BrowseImagesR{}        = PageFBox
+routeStyle CameraInfoR{}          = PagePlot
+routeStyle CameraStatsR           = PagePlot
+routeStyle CurateR                = PagePlot
+routeStyle FaviconR               = PageBasic
+routeStyle FlaggedImagesListR     = PageBasic
+routeStyle FlaggedImagesR         = PageTable
+routeStyle FolderR{}              = PageTable
+routeStyle HomeR                  = PageBasic
+routeStyle ImageBytesR{}          = PageBasic
+routeStyle ImageFlagR{}           = PageBasic
+routeStyle ImageInfoR{}           = PageBasic
+routeStyle ImageR{}               = PageBasic
+routeStyle LensInfoR{}            = PagePlot
+routeStyle LensStatsR             = PagePlot
+routeStyle ListFoldersR           = PageTable
+routeStyle ListImagesR            = PageTable
+routeStyle ListItemsR{}           = PageTable
+routeStyle MovieBytesR{}          = PageBasic
+routeStyle QuickSearchR           = PageBasic
+routeStyle RandomImageInfoR       = PageBasic
+routeStyle ReloadR                = PageBasic
+routeStyle RobotsR                = PageBasic
+routeStyle SearchFoldersByYearR{} = PageBasic
+routeStyle SearchFoldersNoYearR   = PageBasic
+routeStyle SettingsR              = PageBasic
+routeStyle StaticR{}              = PageBasic
+routeStyle StatusR                = PageBasic
+routeStyle ViewR{}                = PageView
+
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
@@ -184,28 +321,16 @@ instance Yesod App where
         -- you to use normal widget features in default-layout.
 
         pc <- widgetToPageContent $ do
-          -- Combine all CSS files, in order to eliminate page
-          -- jumps/flicker on load as the various style sheets
-          -- override each other in sequence, or simply adjust UI
-          -- elements style. By having a single style-sheet, it's
-          -- guaranteed that rendering adjustment happens in a single
-          -- step (and this results for me in clean reloads).
-          $(combineStylesheets 'StaticR [ bootstrap_css_bootstrap_css
-                                        , tablesorter_css_theme_bootstrap_css
-                                        , font_awesome_css_fontawesome_css
-                                        , font_awesome_css_regular_css
-                                        , font_awesome_css_solid_css
-                                        , corydalis_css_basic_css
-                                        ])
-
-          $(combineScripts 'StaticR [ jquery_js_jquery_js
-                                    , tablesorter_js_jquery_tablesorter_js
-                                    , tablesorter_js_widgets_widget_uitheme_js
-                                    , tablesorter_js_widgets_widget_filter_js
-                                    , bootstrap_js_bootstrap_bundle_js
-                                    , corydalis_js_tablesorter_uitheme_simple_js
-                                    , corydalis_js_tablesorter_config_js
-                                    ])
+          -- Compute and ship the page-specific CSS and JS
+          -- resources. In production mode, these will be even
+          -- combined, so one CSS and one JS bundle.
+          route <- getCurrentRoute
+          case route of
+            Nothing -> return ()
+            Just r -> do
+              let style = routeStyle r
+              pageCSSResources style
+              pageJSResources style
 
           $(widgetFile "default-layout")
         let inflist = [1..]::[Int]

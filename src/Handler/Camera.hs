@@ -90,7 +90,6 @@ getCameraInfoR cameraname = do
       obj = buildLensApFL images
       html = do
         setTitle "Corydalis: camera information"
-        addPlotly
         $(widgetFile "camerainfo")
   defaultLayoutJson html (return obj)
 
@@ -103,6 +102,5 @@ getCameraStatsR = do
       obj = buildCamLensStats others 30 10 ciName ciName bycamera
   let html = do
         setTitle "Corydalis: camera statistics"
-        addPlotly
         $(widgetFile "camerastats")
   defaultLayoutJson html (return obj)

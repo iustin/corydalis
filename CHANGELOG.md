@@ -4,6 +4,12 @@
 
 *unreleased*
 
+### Performance changes
+
+Slight performance change for loading pages due to reduced and
+combined CSS/JS resource serving. This can lead to 10-20% page loaded
+speed-ups, depending on the page type and complexity.
+
 ### Exif changes
 
 Now parses the rating as written by (at least) Lightroom. Value '0' is

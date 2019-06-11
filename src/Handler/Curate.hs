@@ -160,7 +160,6 @@ getCurateR = do
       folderFilter cs = (ListFoldersR, atomToParams (Any (map FClass cs)))
   let html = do
         setTitle "Corydalis: curate"
-        addPlotly
         $(widgetFile "curate")
   defaultLayoutJson html (return $ object [ "global" .= json
                                           , "folders" .= j2

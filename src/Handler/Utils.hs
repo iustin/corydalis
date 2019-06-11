@@ -277,9 +277,6 @@ atomAsParam s Nothing  = (negSymbolName s, "")
 setHtmlTitle :: Text -> Widget
 setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)
 
-addPlotly :: Widget
-addPlotly = addScript (StaticR plotly_js_plotly_cartesian_js)
-
 counterOne :: Int64
 counterOne = 1
 

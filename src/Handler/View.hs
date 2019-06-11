@@ -126,9 +126,6 @@ getViewR folder iname = do
       isMovie = encodeToLazyText . isJust . bestMovie $ img
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    addScript $ StaticR corydalis_js_viewer_js
-    addScript $ StaticR hammer_js_hammer_js
-    addScript $ StaticR screenfull_js_screenfull_js
     setHtmlTitle $ "image " <> folder <> "/" <> imgName img
     $(widgetFile "view")
 

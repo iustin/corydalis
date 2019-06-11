@@ -83,20 +83,10 @@ browseHandler GridItem{..} page = do
       imagesize = cfgBrowsingSize config
       nextPage = page + 1
       check_imflt = is_images
-      do_fancybox = is_images
       show_alt_view = check_imflt || atomFindsFiles atom
       can_find_elems = not check_imflt || atomFindsFiles atom
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    when do_fancybox $
-      addStylesheet $ StaticR fancybox_css_jquery_fancybox_css
-    addScript $ StaticR masonry_js_masonry_pkgd_js
-    addScript $ StaticR imagesloaded_js_imagesloaded_pkgd_js
-    addScript $ StaticR infinite_scroll_js_infinite_scroll_pkgd_js
-    addScript $ StaticR corydalis_js_imagegrid_js
-    when do_fancybox $ do
-      addScript $ StaticR fancybox_js_jquery_fancybox_js
-      addScript $ StaticR corydalis_js_fancybox_js
     setHtmlTitle $ "browsing " <> elem_text
     $(widgetFile "browse")
 

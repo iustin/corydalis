@@ -72,7 +72,6 @@ getLensInfoR lensname = do
       obj = buildLensApFL images
       html = do
         setTitle "Corydalis: lens information"
-        addPlotly
         $(widgetFile "lensinfo")
   defaultLayoutJson html (return obj)
 
@@ -85,6 +84,5 @@ getLensStatsR = do
       obj = buildCamLensStats others 30 10 lensShortName liName bylens
   let html = do
         setTitle "Corydalis: lens statistics"
-        addPlotly
         $(widgetFile "lensstats")
   defaultLayoutJson html (return obj)
