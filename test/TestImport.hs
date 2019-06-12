@@ -29,10 +29,8 @@ import           Application                    (makeFoundation, makeLogWare)
 import           ClassyPrelude                  as X hiding (Handler, delete,
                                                       deleteBy)
 import           Database.Persist               as X hiding (get)
-import           Database.Persist.Sql           (SqlBackend, SqlPersistM,
-                                                 connEscapeName, rawExecute,
-                                                 rawSql, runSqlPersistMPool,
-                                                 unSingle)
+import           Database.Persist.Sql           (SqlPersistM,
+                                                 runSqlPersistMPool)
 import           Foundation                     as X
 import           Model                          as X
 import           Pics                           (Ctx, initContext,
@@ -47,20 +45,15 @@ import           Yesod.Default.Config2          (loadYamlSettings, useEnv)
 import           Yesod.Test                     as X
 
 import qualified Control.Exception              as E
-import           Control.Monad.Logger           (runLoggingT)
 import qualified Data.ByteString.Char8          as BS8
 import           Data.Either
-import qualified Data.Text                      as T
-import           Database.Persist.Sqlite        (SqliteConf (..), createSqlPool,
-                                                 sqlDatabase, wrapConnection)
-import qualified Database.Sqlite                as Sqlite
+import           Database.Persist.Sqlite        (SqliteConf (..))
 import           Settings                       (AppSettings (..),
                                                  appDatabaseConf)
 import           System.Directory               (createDirectory,
                                                  removeDirectoryRecursive)
 import           System.IO.Temp
 import           System.Log.FastLogger          (fromLogStr)
-import           Yesod.Core                     (messageLoggerSource)
 
 runDB :: SqlPersistM a -> YesodExample App a
 runDB query = do
@@ -84,11 +77,8 @@ setTempDir settings = do
   rootTempDir <- getCanonicalTemporaryDirectory
   tempDir <- createTempDirectory rootTempDir "corydalis-test"
   let inTemp = (tempDir </>)
-      dbDir = inTemp "db"
-      dbPath = dbDir </> "test-db.sqlite3"
       rawDir = inTemp "raw"
       jpgDir = inTemp "jpg"
-  createDirectory dbDir
   createDirectory rawDir
   createDirectory jpgDir
   let config = appConfig settings
@@ -96,7 +86,7 @@ setTempDir settings = do
                        , cfgSourceDirs = [rawDir]
                        , cfgOutputDirs = [jpgDir]
                        }
-      db = SqliteConf (T.pack dbPath) 10
+      db = SqliteConf ":memory:" 1
       settings' = settings { appConfig = config', appDatabaseConf = db }
       -- FIXME: use a proper logger? replace with one from yesod?
       logger = BS8.putStrLn . fromLogStr
@@ -123,7 +113,6 @@ openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
   (tempDir, (settings, _)) <- loadSettings >>= setTempDir
   foundation <- makeFoundation settings
-  wipeDB foundation
   logWare <- liftIO $ makeLogWare foundation
   return (tempDir, (foundation, logWare))
 
@@ -133,43 +122,6 @@ withApp =
 
 withContext :: SpecWith Ctx -> Spec
 withContext = around withTempContext
-
--- This function will truncate all of the tables in your database.
--- 'withApp' calls it before each test, creating a clean environment for each
--- spec to run in.
-wipeDB :: App -> IO ()
-wipeDB app = do
-    -- In order to wipe the database, we need to temporarily disable foreign key checks.
-    -- Unfortunately, disabling FK checks in a transaction is a noop in SQLite.
-    -- Normal Persistent functions will wrap your SQL in a transaction,
-    -- so we create a raw SQLite connection to disable foreign keys.
-    -- Foreign key checks are per-connection, so this won't effect queries outside this function.
-
-    -- Aside: SQLite by default *does not enable foreign key checks*
-    -- (disabling foreign keys is only necessary for those who specifically enable them).
-    let settings = appSettings app
-    sqliteConn <- rawConnection (sqlDatabase $ appDatabaseConf settings)
-    disableForeignKeys sqliteConn
-
-    let logFunc = messageLoggerSource app (appLogger app)
-    pool <- runLoggingT (createSqlPool (wrapConnection sqliteConn) 1) logFunc
-
-    flip runSqlPersistMPool pool $ do
-        tables <- getTables
-        sqlBackend <- ask
-        let queries = map (\t -> "DELETE FROM " ++ connEscapeName sqlBackend (DBName t)) tables
-        forM_ queries (\q -> rawExecute q [])
-
-rawConnection :: Text -> IO Sqlite.Connection
-rawConnection = Sqlite.open
-
-disableForeignKeys :: Sqlite.Connection -> IO ()
-disableForeignKeys conn = Sqlite.prepare conn "PRAGMA foreign_keys = OFF;" >>= void . Sqlite.step
-
-getTables :: MonadIO m => ReaderT SqlBackend m [Text]
-getTables =
-    fmap unSingle <$>
-        rawSql "SELECT name FROM sqlite_master WHERE type = 'table';" []
 
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in
