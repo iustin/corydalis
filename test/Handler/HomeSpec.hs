@@ -25,7 +25,7 @@ module Handler.HomeSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   it "asserts redirect on access to home for anonymous users" $
     checkRouteIs HomeR 303
 

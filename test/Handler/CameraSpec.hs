@@ -25,7 +25,7 @@ module Handler.CameraSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   it "loads the camera stats page and checks it looks right" $ do
     login
     checkRoute CameraStatsR

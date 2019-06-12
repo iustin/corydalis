@@ -25,7 +25,7 @@ module Handler.ReloadSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   it "loads the reload page and checks GET doesn't work" $ do
     login
     checkRouteIs ReloadR 405

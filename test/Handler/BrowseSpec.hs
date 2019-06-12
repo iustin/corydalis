@@ -27,7 +27,7 @@ import           TestImport
 import           Indexer
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   describe "checks folder browsing" $
     it "checks invalid page request" $ do
       login

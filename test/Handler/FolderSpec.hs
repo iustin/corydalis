@@ -25,7 +25,7 @@ module Handler.FolderSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $
+spec = parallel $ withApp $
   it "loads a folder page and checks it looks right" $ do
     login
     checkNotFound $ FolderR "foo"

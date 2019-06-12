@@ -25,7 +25,7 @@ module Handler.ImageSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $
+spec = parallel $ withApp $
   it "loads an image page and checks it looks right" $ do
     login
     checkNotFound $ ImageR "foo" "bar"

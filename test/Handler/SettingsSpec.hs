@@ -25,7 +25,7 @@ module Handler.SettingsSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $
+spec = parallel $ withApp $
   it "loads the settings page and checks it looks right" $ do
     login
     checkRoute SettingsR

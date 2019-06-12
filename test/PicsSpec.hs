@@ -36,7 +36,7 @@ simpleImage config =
              Nothing [] [] Nothing MediaImage def
 
 spec :: Spec
-spec = withContext $
+spec = parallel $ withContext $
   describe "search cache" $ do
     it "caches a search result" $ \ctx -> do
       let image = simpleImage (ctxConfig ctx)

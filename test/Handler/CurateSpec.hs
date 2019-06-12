@@ -25,7 +25,7 @@ module Handler.CurateSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $
+spec = parallel $ withApp $
   it "loads the empty curate page and checks it looks right" $ do
     login
     checkRoute CurateR

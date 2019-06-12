@@ -25,7 +25,7 @@ module Handler.LensSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   it "loads the lens page and checks it looks right" $ do
     login
     checkRoute LensStatsR

@@ -27,7 +27,7 @@ import           Network.HTTP.Types.Header
 import           TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   it "loads the flagged image page and checks it looks right" $ do
     login
     checkRoute FlaggedImagesR

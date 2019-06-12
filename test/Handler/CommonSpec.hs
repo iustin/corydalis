@@ -22,7 +22,7 @@ module Handler.CommonSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   describe "robots.txt" $ do
     it "gives a 200" $
       checkRoute RobotsR

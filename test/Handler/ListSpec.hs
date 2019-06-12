@@ -27,7 +27,7 @@ import           TestImport
 import           Indexer
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   describe "loads the list pages and checks it looks right" $
     forM_ [minBound..maxBound] $ \symbol ->
       it ("validates symbol " ++ show symbol) $ do

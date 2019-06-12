@@ -31,7 +31,7 @@ checkRedirAndHeader = do
   htmlAllContain "h1" "Displaying folders"
 
 spec :: Spec
-spec = withApp $ do
+spec = parallel $ withApp $ do
   -- TODO: add folders by year
   -- TODO: add quick search
   describe "checks the per-year handlers" $ do
