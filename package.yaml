@@ -225,7 +225,7 @@ tests:
     - -Wall
     - -threaded
     - -rtsopts
-    - -with-rtsopts=-N
+    - '"-with-rtsopts=-N -qg"'
 
 # Define flags used by "yesod devel" to make compilation faster
 flags:
