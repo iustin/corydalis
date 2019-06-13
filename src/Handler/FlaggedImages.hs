@@ -59,36 +59,56 @@ getFlaggedImagesListR = do
   let flagged' = map entityVal flagged
   return . Text.unlines . map flaggedImageFolder $ flagged'
 
-putImageFlagR :: Text -> Text -> Handler Html
-putImageFlagR folder iname = do
-  _ <- getImage folder iname
+flagImageMsg :: Bool -> Text
+flagImageMsg True  = "Image flagged"
+flagImageMsg False = "Image already flagged!"
+
+unFlagImageMsg :: Bool -> Text
+unFlagImageMsg True  = "Image flag removed"
+unFlagImageMsg False = "Image was not flagged!"
+
+flagImage :: Text -> Text -> Handler Bool
+flagImage folder iname = do
+  _     <- getImage folder iname
   cuser <- requireAuthId
-  r <- runDB $
-    insertUnique $ FlaggedImage folder iname cuser
-  case r of
-    Just _ -> do
-      setMessage "Image flagged"
-      setSession msgTypeKey msgSuccess
-    Nothing -> do
-      setMessage "Image already flagged!"
-      setSession msgTypeKey msgWarning
+  r     <- runDB $ insertUnique $ FlaggedImage folder iname cuser
+  return $ isJust r
+
+unFlagImage :: Text -> Text -> Handler Bool
+unFlagImage folder iname = runDB $ do
+  let u = UniqueFlaggedImage folder iname
+  fi <- getBy u
+  case fi of
+    Just (Entity fii _) -> delete fii >> return True
+    Nothing             -> return False
+
+flagHtml :: Text -> Text -> Text -> Text -> Handler Html
+flagHtml folder iname msg kind = do
+  setMessage $ toHtml msg
+  setSession msgTypeKey kind
   setUltDestReferer
   redirectUltDest $ ImageR folder iname
 
-deleteImageFlagR :: Text -> Text -> Handler Html
-deleteImageFlagR folder iname = do
-  r <- runDB $ do
-    let u = UniqueFlaggedImage folder iname
-    fi <- getBy u
-    case fi of
-      Just (Entity fii _) -> delete fii >> return True
-      Nothing             -> return False
-  if r
-    then do
-      setMessage "Image flag removed"
-      setSession msgTypeKey msgSuccess
-    else do
-      setMessage "Image was not flagged!"
-      setSession msgTypeKey msgWarning
-  setUltDestReferer
-  redirectUltDest $ ImageR folder iname
+flagJson :: Text -> Handler Value
+flagJson msg = return $ object ["text" .= msg]
+
+flagHandler
+  :: (Text -> Text -> Handler Bool)
+  -> (Bool -> Text)
+  -> Text
+  -> Text
+  -> Handler TypedContent
+flagHandler action msggen folder iname = do
+  r <- action folder iname
+  let msg  = msggen r
+      kind = if r then msgSuccess else msgWarning
+  selectRep $ do
+    provideRep $ flagJson msg
+    provideRep $ flagHtml folder iname msg kind
+
+putImageFlagR :: Text -> Text -> Handler TypedContent
+putImageFlagR = flagHandler flagImage flagImageMsg
+
+deleteImageFlagR :: Text -> Text -> Handler TypedContent
+deleteImageFlagR = do
+  flagHandler unFlagImage unFlagImageMsg

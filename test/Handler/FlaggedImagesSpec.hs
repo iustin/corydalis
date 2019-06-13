@@ -26,6 +26,17 @@ import           Network.HTTP.Types.Header
 
 import           TestImport
 
+deleteWithType :: ByteString -> YesodExample App ()
+deleteWithType kind = do
+  login
+  checkRoute FlaggedImagesR
+  bodyContains "0 flagged images"
+  request $ do
+    setMethod "DELETE"
+    setUrl $ ImageFlagR "a" "b"
+    addRequestHeader (hReferer, "/")
+    addRequestHeader (hAccept, kind)
+
 spec :: Spec
 spec = parallel $ withApp $ do
   it "loads the flagged image page and checks it looks right" $ do
@@ -39,6 +50,7 @@ spec = parallel $ withApp $ do
     performMethod "PUT" $ ImageFlagR "a" "b"
     statusIs 404
   it "checks that flagging an image results in 1 image flagged" $ do
+    -- TODO: also add json checks when having image
     liftIO $ pendingWith "Needs repository with images"
     login
     checkRoute FlaggedImagesR
@@ -48,15 +60,14 @@ spec = parallel $ withApp $ do
     checkRedirect
     statusIs 200
     bodyContains "1 flagged images"
-  it "checks that de-flagging a non-existing image does not error out" $ do
-    login
-    checkRoute FlaggedImagesR
-    bodyContains "0 flagged images"
-    request $ do
-      setMethod "DELETE"
-      setUrl $ ImageFlagR "a" "b"
-      addRequestHeader (hReferer, "/")
-    statusIs 303
-    checkRedirect
-    statusIs 200
-    bodyContains "Image was not flagged!"
+  describe "checks that de-flagging a non-existing image does not error out" $ do
+    it "checks html" $ do
+      deleteWithType "text/html"
+      statusIs 303
+      checkRedirect
+      statusIs 200
+      bodyContains "Image was not flagged!"
+    it "checks json" $ do
+      deleteWithType "application/json"
+      statusIs 200
+      bodyContains "Image was not flagged!"

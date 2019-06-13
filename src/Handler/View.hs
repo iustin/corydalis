@@ -54,6 +54,7 @@ data ImageInfo = ImageInfo
   , iiBytesUrl  :: Text
   , iiMovieUrl  :: Maybe Text
   , iiViewUrl   :: Text
+  , iiFlagUrl   :: Text
   , iiName      :: Text
   , iiTransform :: (Int, Bool, Bool)
   , iiMatrix    :: (Double, Double, Double, Double)
@@ -65,6 +66,7 @@ instance ToJSON ImageInfo where
            , "bytes"     .= iiBytesUrl
            , "movie"     .= iiMovieUrl
            , "view"      .= iiViewUrl
+           , "flag"      .= iiFlagUrl
            , "name"      .= iiName
            , "transform" .= iiTransform
            , "matrix"    .= iiMatrix
@@ -77,6 +79,7 @@ mkImageInfo folder iname movie render params t =
             (render (ImageBytesR folder iname 0) [])
             (if movie then Just (render (MovieBytesR folder iname) []) else Nothing)
             (render (ViewR folder iname) params)
+            (render (ImageFlagR folder iname) [])
             iname (transformParams t) (transformMatrix t)
 
 data ViewInfo = ViewInfo

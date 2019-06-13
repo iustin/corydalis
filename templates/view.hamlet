@@ -3,6 +3,7 @@
   data-image="#{imgName img}"
   data-bytes-url="@{ImageBytesR (imgParent img) (imgName img) 0}"
   data-info-url="@?{(ImageInfoR (imgParent img) (imgName img), params)}"
+  data-flag-url="@{ImageFlagR (imgParent img) (imgName img)}"
   data-random-url="@?{(RandomImageInfoR, params)}"
   data-initial-transform="#{initialTransform}"
   data-initial-matrix="#{initialMatrix}"

@@ -19,6 +19,7 @@ $(document).ready(function() {
     'use strict';
     var bootdiv = $("#boot");
     var booturl = bootdiv.data("bytes-url");
+    var bootflagurl = bootdiv.data("flag-url");
     var infourl = bootdiv.data("info-url");
     var boottrans = bootdiv.data("initial-transform");
     var bootmatrix = bootdiv.data("initial-matrix");
@@ -45,6 +46,7 @@ $(document).ready(function() {
     // message".
     var bootfakeinfo = {
         movie: bootdiv.data("movie"),
+        flag: bootdiv.data("flag-url"),
     };
     LOG("boot fake info", bootfakeinfo);
 
@@ -353,6 +355,17 @@ $(document).ready(function() {
         }
     }
 
+    function flagImage(flag) {
+        $.ajax({url: cory.info.current.flag,
+                type: flag ? "PUT" : "DELETE",
+                dataType: "json",
+               }).done(function(json) {
+                   writeMessage(json.text, 2000);
+               }).fail(function(xhr, status, details) {
+                   writeMessage("Error flagging image: " + status + ", details: " + details);
+               });
+    }
+
     function setupHammer() {
         var mc = new Hammer.Manager(canvas, {});
         mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
@@ -389,6 +402,12 @@ $(document).ready(function() {
             break;
         case 85: // 'u'
             gotoFolder();
+            break;
+        case 88: // 'x'
+            flagImage(true);
+            break;
+        case 78: // 'n'
+            flagImage(false);
             break;
         case 37: // left arrow
             advanceImage(false);
