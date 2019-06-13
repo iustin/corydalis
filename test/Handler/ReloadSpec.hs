@@ -32,7 +32,5 @@ spec = parallel $ withApp $ do
   it "loads the reload page and checks redirect message" $ do
     login
     post ReloadR
-    statusIs 303
-    checkRedirect
-    statusIs 200
+    followRedirectOK
     htmlAllContain "span#corydalis-app-message" "Rescan triggered"

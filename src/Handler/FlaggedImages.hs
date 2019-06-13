@@ -110,5 +110,4 @@ putImageFlagR :: Text -> Text -> Handler TypedContent
 putImageFlagR = flagHandler flagImage flagImageMsg
 
 deleteImageFlagR :: Text -> Text -> Handler TypedContent
-deleteImageFlagR = do
-  flagHandler unFlagImage unFlagImageMsg
+deleteImageFlagR = flagHandler unFlagImage unFlagImageMsg

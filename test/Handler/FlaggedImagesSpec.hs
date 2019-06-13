@@ -28,44 +28,39 @@ import           TestImport
 
 deleteWithType :: ByteString -> YesodExample App ()
 deleteWithType kind = do
-  login
-  checkRoute FlaggedImagesR
-  bodyContains "0 flagged images"
+  loginAndCheckFlagged
   request $ do
     setMethod "DELETE"
     setUrl $ ImageFlagR "a" "b"
     addRequestHeader (hReferer, "/")
     addRequestHeader (hAccept, kind)
 
+loginAndCheckFlagged :: YesodExample App ()
+loginAndCheckFlagged = do
+  login
+  checkRoute FlaggedImagesR
+  bodyContains "0 flagged images"
+
+
 spec :: Spec
 spec = parallel $ withApp $ do
-  it "loads the flagged image page and checks it looks right" $ do
-    login
-    checkRoute FlaggedImagesR
-    bodyContains "0 flagged images"
+  it "loads the flagged image page and checks it looks right"
+    loginAndCheckFlagged
   it "checks that flagging a non-existing image fails" $ do
-    login
-    checkRoute FlaggedImagesR
-    bodyContains "0 flagged images"
+    loginAndCheckFlagged
     performMethod "PUT" $ ImageFlagR "a" "b"
     statusIs 404
   it "checks that flagging an image results in 1 image flagged" $ do
     -- TODO: also add json checks when having image
     liftIO $ pendingWith "Needs repository with images"
-    login
-    checkRoute FlaggedImagesR
-    bodyContains "0 flagged images"
+    loginAndCheckFlagged
     performMethod "PUT" $ ImageFlagR "a" "b"
-    statusIs 303
-    checkRedirect
-    statusIs 200
+    followRedirectOK
     bodyContains "1 flagged images"
   describe "checks that de-flagging a non-existing image does not error out" $ do
     it "checks html" $ do
       deleteWithType "text/html"
-      statusIs 303
-      checkRedirect
-      statusIs 200
+      followRedirectOK
       bodyContains "Image was not flagged!"
     it "checks json" $ do
       deleteWithType "application/json"

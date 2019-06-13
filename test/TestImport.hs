@@ -178,3 +178,9 @@ checkRedirect :: YesodExample App ()
 checkRedirect = do
     redir <- followRedirect
     redir `shouldSatisfy` isRight
+
+followRedirectOK :: YesodExample App ()
+followRedirectOK = do
+    statusIs 303
+    checkRedirect
+    statusIs 200
