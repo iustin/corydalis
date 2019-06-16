@@ -334,6 +334,7 @@ instance Yesod App where
 
           $(widgetFile "default-layout")
         let inflist = [1..]::[Int]
+        is_auth <- isJust <$> maybeAuthId
         withUrlRenderer $(hamletFile "templates/layout-wrapper.hamlet")
 
     -- The page to be redirected to when authentication is required.

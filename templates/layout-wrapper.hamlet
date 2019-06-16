@@ -63,10 +63,16 @@ $doctype 5
               <span .fas .fa-question>
               <span .d-none .d-lg-inline>
                 About
-            <a .nav-item .nav-link href=@{AuthR LogoutR}>
-                <span .fas .fa-sign-out-alt>
-                <span .d-none .d-lg-inline>
-                  Logout
+            $if is_auth
+              <a .nav-item .nav-link href=@{AuthR LogoutR}>
+                  <span .fas .fa-sign-out-alt>
+                  <span .d-none .d-lg-inline>
+                    Logout
+            $else
+              <a .nav-item .nav-link href=@{AuthR LoginR}>
+                  <span .fas .fa-sign-in-alt>
+                  <span .d-none .d-lg-inline>
+                    Login
 
     <div .container-fluid #main role="main">
         ^{pageBody pc}
