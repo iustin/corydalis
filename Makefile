@@ -72,7 +72,7 @@ really-clean: clean
 	rm -rf .stack-*
 
 test:
-	stack --work-dir .stack-test test --coverage --flag corydalis:dev
+	stack --work-dir .stack-coverage test --coverage --flag corydalis:dev
 
 fast-tests:
 	stack --work-dir .stack-test test --file-watch --flag corydalis:dev
