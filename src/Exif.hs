@@ -50,7 +50,7 @@ module Exif ( Exif(..)
 
 import           Control.Applicative
 import           Control.DeepSeq
-import           Control.Monad             (msum)
+import           Control.Monad             (fail, msum)
 import           Control.Monad.Trans.State
 import           Data.Aeson
 import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
