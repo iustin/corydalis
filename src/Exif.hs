@@ -17,11 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TupleSections      #-}
 
 module Exif ( Exif(..)
             , GroupExif(..)
@@ -77,8 +78,7 @@ import           Import.NoFoundation       hiding (get)
 -- | Shutter counts this high are unlikely, but they do appear in
 -- corrupted/wrong exif data.
 tooHighShutterCount :: Integer
-tooHighShutterCount = 10000000  -- TODO: use NumericUnderscores when
-                                -- available…
+tooHighShutterCount = 10_000_000
 
 data Orientation
   = OrientationTopLeft
