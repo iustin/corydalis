@@ -35,8 +35,7 @@ module Settings
   ) where
 
 import           ClassyPrelude.Yesod
-import           Data.Aeson                 (parseJSON, withObject, (.!=), (.:),
-                                             (.:?))
+import           Data.Aeson                 (withObject, (.!=), (.:?))
 import           Database.Persist.Sqlite    (SqliteConf)
 import           Language.Haskell.TH.Syntax (Exp, Name, Q)
 import           Network.Wai.Handler.Warp   (HostPreference)

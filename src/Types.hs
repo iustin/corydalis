@@ -64,13 +64,10 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
 import           Data.Default             (Default, def)
-import           Data.Function            (on)
 import           Data.List                (nub)
-import           Data.Set                 (Set)
 import qualified Data.Set                 as Set
 import           Data.Store
 import           Data.Store.TH            (makeStore)
-import           Data.Text                (Text)
 import qualified Data.Text                as Text
 import qualified Data.Text.Lazy           as TextL
 import           Data.Time.Clock

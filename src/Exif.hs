@@ -58,15 +58,12 @@ import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
 import           Data.Bifunctor
 import qualified Data.ByteString           as BS (ByteString, readFile)
 import           Data.Default
-import           Data.Map.Strict           (Map)
 import qualified Data.Map.Strict           as Map
 import           Data.Scientific           (toBoundedInteger)
 import           Data.Semigroup
-import           Data.Set                  (Set)
 import qualified Data.Set                  as Set
 import           Data.Store
 import           Data.Store.TH             (makeStore)
-import           Data.Text                 (Text)
 import qualified Data.Text                 as Text
 import qualified Data.Text.Read            as Text
 import           Data.Time.Format

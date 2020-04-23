@@ -105,19 +105,13 @@ module Pics ( PicDir(..)
 import           Control.Applicative
 import           Control.DeepSeq
 import qualified Data.ByteString.Lazy    as BSL (append, length, writeFile)
-import           Data.Default            (Default, def)
-import           Data.Function           (on)
-import           Data.Int                (Int64)
 import           Data.LruCache           (LruCache)
 import qualified Data.LruCache           as LRU
-import           Data.Map.Strict         (Map)
 import qualified Data.Map.Strict         as Map
 import           Data.Semigroup
-import           Data.Set                (Set)
 import qualified Data.Set                as Set
 import qualified Data.Store
 import           Data.Store.TH
-import           Data.Text               (Text)
 import qualified Data.Text               as Text
 import qualified Data.Text.Lazy          as TextL
 import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)

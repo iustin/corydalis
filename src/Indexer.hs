@@ -49,7 +49,6 @@ import           Control.Monad               (foldM, when)
 import           Data.List                   (foldl', nub, partition)
 import qualified Data.Map                    as Map
 import           Data.Maybe                  (isNothing, mapMaybe)
-import           Data.Semigroup              ((<>))
 import           Data.Set                    (Set)
 import qualified Data.Set                    as Set
 import           Data.Text                   (Text)

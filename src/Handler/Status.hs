@@ -33,7 +33,6 @@ module Handler.Status
 
 import           Data.Time.Clock
 import           Data.Time.LocalTime
-import           Formatting                 (Buildable, groupInt, sformat)
 import qualified Formatting.ShortFormatters as F
 import qualified Formatting.Time            as FT
 
