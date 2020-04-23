@@ -1,61 +1,72 @@
 <h1>Settings
 
-Current configuration:
+<div .row>
+  <div .col-12 .col-md-6>
+     <div .card>
+      <div .card-header>Input configuration
+      <div .card-body>
+        <ul>
+          $if null (cfgSourceDirs config)
+            <li>no source directories defined!
+          $else
+            <li>scanning source directories under:
+              <ul>
+                $forall dir <- sort $ cfgSourceDirs config
+                  <li>
+                    <span .monolight>#{quoteMarkup dir}
+          $if null (cfgOutputDirs config)
+            <li>no output directories defined!
+          $else
+            <li>scanning output directories under:
+              <ul>
+                $forall dir <- sort $ cfgOutputDirs config
+                  <li>
+                    <span .monolight>#{quoteMarkup dir}
+          <li>directory match regex:
+            <span .monolight>#{quoteMarkup $ reString $ cfgDirRegex config}
+          $if null (cfgBlacklistedDirs config)
+            <li>not ignoring any subdirectories
+          $else
+            <li>prunning the search at any subdirectories named:
+              <ul>
+                $forall dir <- sort $ cfgBlacklistedDirs config
+                  <li>
+                    <span .monolight>#{quoteMarkup dir}
+          <li>extensions considered raw <span class="#{iconRaw}"></span> files (in priority order):
+            <ul>
+              $forall ext <- cfgRawExts config
+                <li>
+                  <span .monolight>#{quoteMarkup ext}
+          <li>extensions considered <span class="#{iconPlainFile}"></span> sidecar files:
+            <ul>
+              $forall ext <- Set.toAscList $ cfgSidecarExts config
+                <li>
+                  <span .monolight>#{quoteMarkup ext}
+          <li>extensions considered jpeg <span class="#{iconProcessed}"></span> files:
+            <ul>
+              $forall ext <- Set.toAscList $ cfgJpegExts config
+                <li>
+                  <span .monolight>#{quoteMarkup ext}
+          <li>extensions considered movie <span class="#{iconMovie}"></span> files:
+            <ul>
+              $forall ext <- Set.toAscList $ cfgJpegExts config
+                <li>
+                  <span .monolight>#{quoteMarkup ext}
 
-<ul>
-  $if null (cfgSourceDirs config)
-    <li>no source directories defined!
-  $else
-    <li>scanning source directories under:
-      <ul>
-        $forall dir <- sort $ cfgSourceDirs config
-          <li>
-            <span .monolight>#{quoteMarkup dir}
-  $if null (cfgOutputDirs config)
-    <li>no output directories defined!
-  $else
-    <li>scanning output directories under:
-      <ul>
-        $forall dir <- sort $ cfgOutputDirs config
-          <li>
-            <span .monolight>#{quoteMarkup dir}
-  <li>directory match regex:
-    <span .monolight>#{quoteMarkup $ reString $ cfgDirRegex config}
-  $if null (cfgBlacklistedDirs config)
-    <li>not ignoring any subdirectories
-  $else
-    <li>prunning the search at any subdirectories named:
-      <ul>
-        $forall dir <- sort $ cfgBlacklistedDirs config
-          <li>
-            <span .monolight>#{quoteMarkup dir}
-  <li>extensions considered raw <span class="#{iconRaw}"></span> files (in priority order):
-    <ul>
-      $forall ext <- cfgRawExts config
-        <li>
-          <span .monolight>#{quoteMarkup ext}
-  <li>extensions considered <span class="#{iconPlainFile}"></span> sidecar files:
-    <ul>
-      $forall ext <- Set.toAscList $ cfgSidecarExts config
-        <li>
-          <span .monolight>#{quoteMarkup ext}
-  <li>extensions considered jpeg <span class="#{iconProcessed}"></span> files:
-    <ul>
-      $forall ext <- Set.toAscList $ cfgJpegExts config
-        <li>
-          <span .monolight>#{quoteMarkup ext}
-  <li>extensions considered movie <span class="#{iconMovie}"></span> files:
-    <ul>
-      $forall ext <- Set.toAscList $ cfgJpegExts config
-        <li>
-          <span .monolight>#{quoteMarkup ext}
-  <li>Pre/auto-generated image sizes:
-    <ul>
-      $forall sz <- cfgAutoImageSizes config
-        <li>
-          <span .monolight>#{sz}
-  <li>All generated/saves image sizes:
-    <ul>
-      $forall sz <- cfgAllImageSizes config
-        <li>
-          <span .monolight>#{sz}
+  <div .col-12 .col-md-6>
+     <div .card>
+      <div .card-header>Output configuration
+      <div .card-body>
+        <ul>
+          <li>Cache directory:
+            <ul><li><span .monolight>#{cfgCacheDir config}
+          <li>Pre/auto-generated image sizes:
+            <ul>
+              $forall sz <- cfgAutoImageSizes config
+                <li>
+                  <span .monolight>#{sz}
+          <li>All allowed/on-demand-generated image sizes:
+            <ul>
+              $forall sz <- cfgAllImageSizes config
+                <li>
+                  <span .monolight>#{sz}
