@@ -80,7 +80,7 @@ getCameraInfoR cameraname = do
       imgTopBot = let cds =
                         sort .
                         foldl' (\a i -> let e = imgExif i
-                                            cd = exifCreateDate e
+                                            cd = exifLocalCreateDate e
                                             lens = liName $ exifLens e
                                         in case cd of
                                              Nothing  -> a

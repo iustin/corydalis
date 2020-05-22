@@ -35,6 +35,7 @@ module Exif ( Exif(..)
             , NameStats
             , EExif
             , getExif
+            , exifLocalCreateDate
             , promoteFileExif
             , addExifToGroup
             , affineTransform
@@ -282,7 +283,7 @@ data RawExif = RawExif
   , rExifProvince     :: Maybe Text
   , rExifCity         :: Maybe Text
   , rExifLocation     :: Maybe Text
-  , rExifCreateDate   :: Maybe LocalTime
+  , rExifCreateDate   :: Maybe ZonedTime
   , rExifTitle        :: Maybe Text
   , rExifCaption      :: Maybe Text
   , rExifAperture     :: Maybe Double
@@ -361,7 +362,7 @@ data Exif = Exif
   , exifSerial       :: !(Maybe Text)
   , exifLens         :: !LensInfo
   , exifOrientation  :: !Orientation
-  , exifCreateDate   :: !(Maybe LocalTime)
+  , exifCreateDate   :: !(Maybe ZonedTime)
   , exifTitle        :: !(Maybe Text)
   , exifCaption      :: !(Maybe Text)
   , exifAperture     :: !(Maybe Double)
@@ -374,7 +375,7 @@ data Exif = Exif
   , exifMimeType     :: !(Maybe Text)
   , exifRating       :: !(Maybe Int)
   , exifWarning      :: !(Set Text)
-  } deriving (Show, Eq)
+  } deriving (Show)
 
 instance NFData Exif where
   rnf Exif{..} = rnf exifPeople       `seq`
@@ -474,6 +475,9 @@ instance NFData GroupExif where
 instance Default GroupExif where
   def = GroupExif Map.empty Map.empty Map.empty Map.empty
         Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
+
+exifLocalCreateDate :: Exif -> Maybe LocalTime
+exifLocalCreateDate = (zonedTimeToLocalTime <$>) . exifCreateDate
 
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
@@ -887,7 +891,7 @@ parseExif val =
                 Right r  -> Just $ Right r
 
 -- | Tries to compute the date the image was taken.
-parseCreateDate :: Object -> Parser (Maybe LocalTime)
+parseCreateDate :: Object -> Parser (Maybe ZonedTime)
 parseCreateDate o = do
   dto  <- msum $ map (o .!:) [ "SubSecDateTimeOriginal"
                              , "DateTimeOriginal"
@@ -897,9 +901,6 @@ parseCreateDate o = do
   -- Note: Aeson does have parsing of time itself, but only support
   -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
   -- %Y:%m:%d format, so we have to parse the time manually.
-  --
-  -- TODO: %Z accepts time zone information, and nowadays it requires
-  -- it. This code can be changed to use ZonedTime now.
   let dto' = do -- in Maybe monad
         dateinfo <- dto
         msum $ map (\fmt -> parseTimeM True defaultTimeLocale fmt dateinfo)

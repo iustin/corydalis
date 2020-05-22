@@ -88,7 +88,6 @@ module Pics ( PicDir(..)
             , imageHasMovies
             , imageHasUntracked
             , imageYear
-            , imageDate
             , imageTimeKey
             , SearchResults
             , getSearchResults
@@ -187,7 +186,7 @@ data File = File
   , fileSize  :: !FileOffset
   , fileDir   :: !Text
   , fileExif  :: !Exif
-  } deriving (Show, Eq)
+  } deriving (Show)
 
 instance NFData File where
   rnf File{..} = rnf fileName   `seq`
@@ -249,7 +248,7 @@ data Image = Image
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
-    } deriving (Show, Eq)
+    } deriving (Show)
 
 instance NFData Image where
   rnf Image{..} = rnf imgName        `seq`
@@ -301,8 +300,8 @@ filePathLastTouch p = do
 imageYear :: Image -> Maybe Integer
 imageYear img = do
   let exif = imgExif img
-  date <- exifCreateDate exif
-  let day = localDay date
+  date <- exifLocalCreateDate exif
+  let day = localDay  date
       (y, _, _) = toGregorian day
   return y
 
@@ -310,19 +309,19 @@ imageYear img = do
 imageYearMonth :: Image -> Maybe (Int, Int)
 imageYearMonth img = do
   let exif = imgExif img
-  date <- exifCreateDate exif
+  date <- exifLocalCreateDate exif
   let day = localDay date
       (y, m, _) = toGregorian day
   -- Let's hope the year/month stay sane here.
   return (fromIntegral y, fromIntegral m)
 
-imageDate :: Image -> Maybe LocalTime
-imageDate = exifCreateDate . imgExif
+imageLocalDate :: Image -> Maybe LocalTime
+imageLocalDate = exifLocalCreateDate . imgExif
 
 type ImageTimeKey = (Maybe LocalTime, Text)
 
 imageTimeKey :: Image -> ImageTimeKey
-imageTimeKey img = (imageDate img, imgName img)
+imageTimeKey img = (imageLocalDate img, imgName img)
 
 -- | Computes the status of an image given the files that back it
 -- (raw, jpeg, sidecar).
@@ -623,7 +622,9 @@ updateStatsWithPic orig img =
                             _   -> 0
       doubleUp x = (x, x)
       shutterCount = doubleUp <$> exifShutterCount exif
-      captureDate = doubleUp <$> exifCreateDate exif
+      -- TODO: do we want local time here, or to push forward the zone
+      -- as well?
+      captureDate = doubleUp <$> exifLocalCreateDate exif
       ocBuilder i = ocFromSize xsize i ymdate captureDate
       lens = exifLens exif
       lensOcc = ocBuilder lens

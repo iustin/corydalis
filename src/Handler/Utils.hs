@@ -134,12 +134,12 @@ atomIcon TRating   = "fas fa-star"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =
-  showLocalTime . utcToLocalTime utc . posixSecondsToUTCTime
+  showLocalTime . utcToZonedTime utc . posixSecondsToUTCTime
 
-showLocalTime :: LocalTime -> Text
+showLocalTime :: ZonedTime -> Text
 showLocalTime ts =
   Text.pack $ ft ++ pico
-    where pico = take 4 $ formatTime defaultTimeLocale "%q" ts
+    where pico = take 4 $ formatTime defaultTimeLocale "%q %Z" ts
           ft = formatTime defaultTimeLocale "%F %T." ts
 
 showLocalDate :: LocalTime -> Text

@@ -839,14 +839,14 @@ ratingStats = computePicStats $ (:[]) . exifRating . imgExif
 -- | Computes the weekday of a picture.
 picDay :: Image -> Maybe DayOp
 picDay img = do
-  d <- exifCreateDate $ imgExif img
+  d <- exifLocalCreateDate $ imgExif img
   let (_, _, wd) = toWeekDate $ localDay d
   intToWeekDay wd
 
 -- | Computes the month-day of a picture.
 picMonthDay :: Image -> Maybe DayOp
 picMonthDay img = do
-  d <- exifCreateDate $ imgExif img
+  d <- exifLocalCreateDate $ imgExif img
   let (_, _, md) = toGregorian $ localDay d
   return $ MonthDay md
 
@@ -862,7 +862,7 @@ weekdayToEnd _        = Weekday
 -- | Returns the month of a picture.
 picMonth :: Image -> Maybe MonthOp
 picMonth img = do
-  d <- exifCreateDate $ imgExif img
+  d <- exifLocalCreateDate $ imgExif img
   let (_, m, _) = toGregorian $ localDay d
   intToMonth m
 
