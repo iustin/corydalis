@@ -898,13 +898,15 @@ parseCreateDate o = do
   -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
   -- %Y:%m:%d format, so we have to parse the time manually.
   --
-  -- TODO: %Z accepts time zone information (without requiring it),
-  -- but since this is parsed as LocalTime, the information is
-  -- dropped. On the other hand, ZonedTime will default to UTC if
-  -- there's no time zone information, which is even worse. Find a way
-  -- to do proper parsing so that TZ info is preserved, but otherwise
-  -- local time is assumed.
-  let dto' = dto >>= parseTimeM True defaultTimeLocale "%Y:%m:%d %T%Q%Z"
+  -- TODO: %Z accepts time zone information, and nowadays it requires
+  -- it. This code can be changed to use ZonedTime now.
+  let dto' = do -- in Maybe monad
+        dateinfo <- dto
+        msum $ map (\fmt -> parseTimeM True defaultTimeLocale fmt dateinfo)
+               [ "%Y:%m:%d %T%Q%Z"
+               , "%Y:%m:%d %T%Q"
+               , "%Y:%m:%d %T"
+               ]
   return dto'
 
 $(makeStore ''Exif)
