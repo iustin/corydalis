@@ -183,10 +183,11 @@ instance NFData LensAperture where
   rnf (VariableAperture x y) = rnf x `seq` rnf y
 
 data LensInfo = LensInfo
-  { liName :: !Text
-  , liSpec :: !Text
-  , liFL   :: !(Maybe LensFocalLength)
-  , liAp   :: !(Maybe LensAperture)
+  { liName   :: !Text
+  , liSpec   :: !Text
+  , liFL     :: !(Maybe LensFocalLength)
+  , liAp     :: !(Maybe LensAperture)
+  , liSerial :: !(Maybe Text)
   } deriving (Show, Eq, Ord)
 
 -- FIXME: should we error out instead?
@@ -199,13 +200,14 @@ instance NFData LensInfo where
   rnf LensInfo{..} = rnf liName `seq`
                      rnf liSpec `seq`
                      rnf liFL   `seq`
-                     rnf liAp
+                     rnf liAp   `seq`
+                     rnf liSerial
 
 instance Default LensInfo where
   def = unknownLens
 
 unknownLens :: LensInfo
-unknownLens = LensInfo unknown unknown Nothing Nothing
+unknownLens = LensInfo unknown unknown Nothing Nothing Nothing
 
 data LensType = LensPrime
               | LensConstantApertureZoom
@@ -247,6 +249,15 @@ lensInfoFromObject o = do
                                   then Just $ FixedAperture a1
                                   else Just $ VariableAperture a1 a2
           _ -> Nothing
+  serial <- o .~:? "LensSerialNumber"
+  -- TODO: merge this with camera serial parsing
+  liSerial <- case serial of
+                Nothing -> pure Nothing
+                -- Theory: if the camera supports this fiels, but the
+                -- lens doesn't report it (to the body), it gets
+                -- recorded as empty string.
+                Just "" -> pure Nothing
+                Just v  -> Just <$> parseStrOrNum v
   return LensInfo{..}
 
 lensDisplayName :: LensInfo -> Text
@@ -258,9 +269,11 @@ lensDisplayName LensInfo{..} =
 
 lensShortName :: LensInfo -> Text
 lensShortName LensInfo{..} =
-  if Text.length liSpec < Text.length liName
-     then liSpec
-     else liName
+  let name = if Text.length liSpec < Text.length liName
+        then liSpec
+        else liName
+  -- TODO: merge with camera name
+  in maybe name (\s -> Text.concat [name, " (#", s, ")"]) liSerial
 
 parseStrOrNum :: Value -> Parser Text
 parseStrOrNum (String f) = pure f
@@ -734,9 +747,10 @@ promoteFileExif re se je mm me =
       liName''          = if "Unknown" `Text.isPrefixOf` liName' && liSpec' /= unknown
                           then liSpec'
                           else liName'
-      liFL'             = fjust (liFL   <$> exifLens)
-      liAperture'       = fjust (liAp   <$> exifLens)
-      exifLens'         = LensInfo liName'' liSpec' liFL' liAperture'
+      liFL'             = fjust (liFL     <$> exifLens)
+      liAperture'       = fjust (liAp     <$> exifLens)
+      liSerial'         = fjust (liSerial <$> exifLens)
+      exifLens'         = LensInfo liName'' liSpec' liFL' liAperture' liSerial'
       exifOrientation'  = fjust' exifOrientation OrientationTopLeft
       exifCreateDate'   = fjust  exifCreateDate
       exifAperture'     = fjust  exifAperture

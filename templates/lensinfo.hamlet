@@ -21,6 +21,9 @@
         <tr>
           <td>Maximum aperture
           <td>#{showLensAperture $ liAp lens}
+        <tr>
+          <td>Serial number
+          <td>#{fromMaybe "unknown" $ liSerial lens}
 
  <div .col-12 .col-sm-4>
    <div .card>
