@@ -149,8 +149,8 @@ showLocalDate=
 showExifDate :: Image -> Text
 showExifDate (imgExif -> e) =
   case exifCreateDate e of
-    Just lt -> showLocalTime lt
-    Nothing -> "?"
+    Just (ExifTime lt) -> showLocalTime lt
+    Nothing            -> "?"
 
 showFileTimestamp :: Maybe File -> Text
 showFileTimestamp = maybe "" (showTimestamp . fileMTime)

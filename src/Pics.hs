@@ -186,7 +186,7 @@ data File = File
   , fileSize  :: !FileOffset
   , fileDir   :: !Text
   , fileExif  :: !Exif
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 instance NFData File where
   rnf File{..} = rnf fileName   `seq`
@@ -248,7 +248,7 @@ data Image = Image
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 instance NFData Image where
   rnf Image{..} = rnf imgName        `seq`

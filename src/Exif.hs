@@ -32,6 +32,7 @@ module Exif ( Exif(..)
             , LensFocalLength(..)
             , LensAperture(..)
             , LensType(..)
+            , ExifTime(..)
             , NameStats
             , EExif
             , getExif
@@ -271,6 +272,33 @@ parseStrOrNum (Number n) =
     showfn = pure . sformat shown
 parseStrOrNum v          = typeMismatch "string or number" v
 
+-- | Time type used in (our) exif structures.
+--
+-- It's just an alias to ZonedTime, but with Eq (and thus Ord)
+-- instances.
+newtype ExifTime = ExifTime { etTime :: ZonedTime }
+  deriving (Show)
+
+instance NFData ExifTime where
+  rnf = rnf . etTime
+
+-- | Custom Eq instance that checks UTC time equality.
+--
+-- It could be that this fails in some cases - one versio of an image
+-- has correct TZ information, another not, but at least will be
+-- self-consistent.
+instance Eq ExifTime where
+  ExifTime a == ExifTime b =
+    -- TODO: check on time + zone instead?
+    zonedTimeToUTC a == zonedTimeToUTC b
+
+-- | Custom Ord instance that orders on UTC time.
+--
+-- See comment on Eq instance.
+instance Ord ExifTime where
+  ExifTime a `compare` ExifTime b =
+    zonedTimeToUTC a `compare` zonedTimeToUTC b
+
 data RawExif = RawExif
   { rExifSrcFile      :: Text
   , rExifModel        :: Maybe Text
@@ -283,7 +311,7 @@ data RawExif = RawExif
   , rExifProvince     :: Maybe Text
   , rExifCity         :: Maybe Text
   , rExifLocation     :: Maybe Text
-  , rExifCreateDate   :: Maybe ZonedTime
+  , rExifCreateDate   :: Maybe ExifTime
   , rExifTitle        :: Maybe Text
   , rExifCaption      :: Maybe Text
   , rExifAperture     :: Maybe Double
@@ -362,7 +390,7 @@ data Exif = Exif
   , exifSerial       :: !(Maybe Text)
   , exifLens         :: !LensInfo
   , exifOrientation  :: !Orientation
-  , exifCreateDate   :: !(Maybe ZonedTime)
+  , exifCreateDate   :: !(Maybe ExifTime)
   , exifTitle        :: !(Maybe Text)
   , exifCaption      :: !(Maybe Text)
   , exifAperture     :: !(Maybe Double)
@@ -375,7 +403,7 @@ data Exif = Exif
   , exifMimeType     :: !(Maybe Text)
   , exifRating       :: !(Maybe Int)
   , exifWarning      :: !(Set Text)
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 instance NFData Exif where
   rnf Exif{..} = rnf exifPeople       `seq`
@@ -477,7 +505,7 @@ instance Default GroupExif where
         Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
 
 exifLocalCreateDate :: Exif -> Maybe LocalTime
-exifLocalCreateDate = (zonedTimeToLocalTime <$>) . exifCreateDate
+exifLocalCreateDate = (zonedTimeToLocalTime . etTime <$>) . exifCreateDate
 
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
@@ -891,7 +919,7 @@ parseExif val =
                 Right r  -> Just $ Right r
 
 -- | Tries to compute the date the image was taken.
-parseCreateDate :: Object -> Parser (Maybe ZonedTime)
+parseCreateDate :: Object -> Parser (Maybe ExifTime)
 parseCreateDate o = do
   dto  <- msum $ map (o .!:) [ "SubSecDateTimeOriginal"
                              , "DateTimeOriginal"
@@ -908,7 +936,8 @@ parseCreateDate o = do
                , "%Y:%m:%d %T%Q"
                , "%Y:%m:%d %T"
                ]
-  return dto'
+  return $ ExifTime <$> dto'
 
+$(makeStore ''ExifTime)
 $(makeStore ''Exif)
 $(makeStore ''GroupExif)
