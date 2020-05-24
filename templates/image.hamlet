@@ -45,6 +45,14 @@
       <div .card-header>Equipment
       <table .table>
         <tr>
+          <td>Camera
+          <td>
+            $maybe camera <- exifCamera exif
+              <a href=@{CameraInfoR camera}>
+                #{camera}
+            $nothing
+              <i>unknown
+        <tr>
           <td>Lens
           <td>
             <a href=@{LensInfoR (liName lens)}>

@@ -46,7 +46,8 @@ getImageR folder iname = do
       flags = if flagsSoftMaster (imgFlags img)
                  then "soft master"::Text
                  else "(none)"
-      lens = exifLens . imgExif $ img
+      lens = exifLens exif
+      exif = imgExif img
   defaultLayout $ do
     setHtmlTitle $ "image " <> folder <> "/" <> imgName img
     $(widgetFile "image")
