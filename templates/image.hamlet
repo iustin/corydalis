@@ -46,12 +46,7 @@
       <table .table>
         <tr>
           <td>Camera
-          <td>
-            $maybe camera <- exifCamera exif
-              <a href=@{CameraInfoR camera}>
-                #{camera}
-            $nothing
-              <i>unknown
+          <td>^{showCameraLink (exifCamera exif)}
         <tr>
           <td>Lens
           <td>

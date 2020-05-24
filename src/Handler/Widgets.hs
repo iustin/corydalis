@@ -252,3 +252,9 @@ imageFlagActions folder image flag =
                 <button .btn .btn-light type="submit" name="_method" value="PUT">Flag
               <button .btn .btn-light type="submit" name="_method" value="DELETE">Un-flag
               |]
+
+showCameraLink :: Maybe Text -> Widget
+showCameraLink (Just camera) =
+  toWidget [hamlet|<a href=@{CameraInfoR camera}>#{camera}|]
+showCameraLink Nothing =
+  toWidget [hamlet|#{unknown}|]
