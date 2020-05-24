@@ -180,18 +180,18 @@ getPicsAndFolder folder = do
 getFolder :: Text -> Handler PicDir
 getFolder = fmap snd . getPicsAndFolder
 
-getFolderImage :: PicDir -> Text -> Handler Image
+getFolderImage :: PicDir -> ImageName -> Handler Image
 getFolderImage dir iname =
   case Map.lookup iname (pdImages dir) of
     Nothing  -> notFound
     Just img -> return img
 
-getImage :: Text -> Text -> Handler Image
+getImage :: Text -> ImageName -> Handler Image
 getImage folder iname = do
   dir <- getFolder folder
   getFolderImage dir iname
 
-lookupImage :: Repository -> Text -> Text -> Maybe Image
+lookupImage :: Repository -> Text -> ImageName -> Maybe Image
 lookupImage (repoDirs -> pics) folder image = do
   dir <- Map.lookup folder pics
   Map.lookup image (pdImages dir)

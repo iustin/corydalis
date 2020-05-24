@@ -6,6 +6,6 @@ User
 
 FlaggedImage
     folder Text
-    name Text
+    name ImageName
     authorId UserId
     UniqueFlaggedImage folder name

@@ -413,15 +413,15 @@ instance YesodBreadcrumbs App where
   breadcrumb (SearchFoldersByYearR year) = return (sformat int year, Nothing)
   breadcrumb SearchFoldersNoYearR = return ("?", Nothing)
 
-  breadcrumb (ImageR folder image) = return (image,
+  breadcrumb (ImageR folder imname) = return (unImageName imname,
                                              Just (FolderR folder))
   breadcrumb (ViewR folder image) = return ("Viewer",
                                              Just (ImageR folder image))
-  breadcrumb (ImageBytesR _ image _) = return ("Bytes of " <> image,
+  breadcrumb (ImageBytesR _ image _) = return ("Bytes of " <> (unImageName image),
                                                 Nothing)
-  breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> image,
+  breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> (unImageName image),
                                               Nothing)
-  breadcrumb (ImageInfoR _ image) = return ("Information for " <> image,
+  breadcrumb (ImageInfoR _ image) = return ("Information for " <> (unImageName image),
                                                   Nothing)
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)
   breadcrumb ListFoldersR = return ("Listing folders", Nothing)

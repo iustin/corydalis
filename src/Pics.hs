@@ -235,7 +235,7 @@ instance NFData MediaType where
   rnf _ = ()
 
 data Image = Image
-    { imgName        :: !Text
+    { imgName        :: !ImageName
     , imgParent      :: !Text
     , imgRawPath     :: !(Maybe File)
     , imgSidecarPath :: !(Maybe File)
@@ -243,7 +243,7 @@ data Image = Image
     , imgMasterMov   :: !(Maybe File)
     , imgMovs        :: ![File]
     , imgUntracked   :: ![File]
-    , imgRange       :: !(Maybe (Text, Text))
+    , imgRange       :: !(Maybe (ImageName, ImageName))
     , imgExif        :: !Exif
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
@@ -318,7 +318,7 @@ imageYearMonth img = do
 imageLocalDate :: Image -> Maybe LocalTime
 imageLocalDate = exifLocalCreateDate . imgExif
 
-type ImageTimeKey = (Maybe LocalTime, Text)
+type ImageTimeKey = (Maybe LocalTime, ImageName)
 
 imageTimeKey :: Image -> ImageTimeKey
 imageTimeKey img = (imageLocalDate img, imgName img)
@@ -342,7 +342,7 @@ mkImageStatus _ Nothing  (_:_) _         _     = ImageStandalone
 mkImageStatus _ (Just _) (_:_) _         _     = ImageProcessed
 
 mkImage :: Config
-        -> Text               -- ^ Name
+        -> ImageName          -- ^ Name
         -> Text               -- ^ Parent
         -> Maybe File         -- ^ Raw path
         -> Maybe File         -- ^ Sidecar path
@@ -350,7 +350,7 @@ mkImage :: Config
         -> Maybe File         -- ^ Master movie
         -> [File]             -- ^ Movies
         -> [File]             -- ^ Untracked files
-        -> Maybe (Text, Text) -- ^ Range
+        -> Maybe (ImageName, ImageName) -- ^ Range
         -> MediaType          -- ^ Media type
         -> Flags              -- ^ Flags
         -> Image
@@ -369,9 +369,9 @@ data PicDir = PicDir
   { pdName     :: !Text
   , pdMainPath :: !Text
   , pdSecPaths :: ![Text]
-  , pdImages   :: !(Map Text Image)
+  , pdImages   :: !(Map ImageName Image)
   , pdTimeSort :: !(Set ImageTimeKey)
-  , pdShadows  :: !(Map Text Image)
+  , pdShadows  :: !(Map ImageName Image)
   , pdYear     :: !(Maybe Integer)  -- ^ The approximate year of the
                                     -- earliest picture.
   , pdExif     :: !GroupExif
@@ -643,7 +643,7 @@ updateStatsWithPic orig img =
            , sByLens = Map.insertWith (<>) (liName lens) lensOcc(sByLens orig)
            }
 
-computeImagesStats :: Map Text Image -> Stats
+computeImagesStats :: Map ImageName Image -> Stats
 computeImagesStats = Map.foldl' updateStatsWithPic zeroStats
 
 computeFolderStats :: PicDir -> Stats
@@ -948,17 +948,17 @@ recursiveScanPath config root prepender = do
 strictJust :: a -> Maybe a
 strictJust !a = Just a
 
-addImgs :: Config -> Map Text Image -> [Image] -> Map Text Image
+addImgs :: Config -> Map ImageName Image -> [Image] -> Map ImageName Image
 addImgs config = foldl' (addImg config)
 
-addImg :: Config -> Map Text Image -> Image -> Map Text Image
+addImg :: Config -> Map ImageName Image -> Image -> Map ImageName Image
 addImg config m i = Map.insertWith (mergePictures config) (imgName i) i m
 
-buildGroupExif :: Map Text Image -> GroupExif
+buildGroupExif :: Map ImageName Image -> GroupExif
 buildGroupExif =
   Map.foldl' (\e img -> addExifToGroup e (imgExif img)) def
 
-buildTimeSort :: Map Text Image -> Set ImageTimeKey
+buildTimeSort :: Map ImageName Image -> Set ImageTimeKey
 buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
@@ -976,6 +976,7 @@ loadFolder ctx name path isSource = do
       tname = Text.pack name
       ewarn txt = def { exifWarning = Set.singleton txt }
       dirpath = Text.pack path
+      buildName = ImageName . Text.pack
       loadImage ii  =
         let file_name = inodeName ii
             file_text = Text.pack file_name
@@ -1016,12 +1017,12 @@ loadFolder ctx name path isSource = do
             snames = expandRangeFile config base_name
             range = case fromNullable snames of
                       Nothing -> Nothing
-                      Just s  -> Just (Text.pack $ head s, Text.pack $ last s)
+                      Just s  -> Just (buildName $ head s, buildName $ last s)
             flags = Flags {
               flagsSoftMaster = isSoftMaster
               }
             simgs = map (\expname ->
-                           mkImage config (Text.pack expname) tname
+                           mkImage config (buildName expname) tname
                                    Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
                         ) snames
             onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
@@ -1032,7 +1033,7 @@ loadFolder ctx name path isSource = do
               (Nothing, [], Nothing, Nothing, []) -> [file_obj]
               _                                   -> []
             img = force $
-              mkImage config (Text.pack base_name) tname
+              mkImage config (buildName base_name) tname
               raw_file sidecar_file jpeg_file m_mov p_mov
               untrk range mtype flags
         in (img, if onlySidecar then [] else simgs)

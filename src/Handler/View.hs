@@ -55,7 +55,7 @@ data ImageInfo = ImageInfo
   , iiMovieUrl  :: Maybe Text
   , iiViewUrl   :: Text
   , iiFlagUrl   :: Text
-  , iiName      :: Text
+  , iiName      :: ImageName
   , iiTransform :: (Int, Bool, Bool)
   , iiMatrix    :: (Double, Double, Double, Double)
   }
@@ -72,7 +72,7 @@ instance ToJSON ImageInfo where
            , "matrix"    .= iiMatrix
            ]
 
-mkImageInfo :: Text -> Text -> Bool -> Hamlet.Render (Route App)
+mkImageInfo :: Text -> ImageName -> Bool -> Hamlet.Render (Route App)
             -> UrlParams -> Transform -> ImageInfo
 mkImageInfo folder iname movie render params t =
   ImageInfo (render (ImageInfoR folder iname) params)
@@ -87,7 +87,7 @@ data ViewInfo = ViewInfo
   , viYearUrl :: Text
   , viFolder  :: Text
   , viFldUrl  :: Text
-  , viImage   :: Text
+  , viImage   :: ImageName
   , viImgUrl  :: Text
   , viFirst   :: ImageInfo
   , viPrev    :: Maybe ImageInfo
@@ -112,14 +112,14 @@ instance ToJSON ViewInfo where
            ]
 
 -- | Ensure that requested image is present in the (filtered) map.
-locateCurrentImage :: Text -> Text -> SearchResults -> Handler Image
+locateCurrentImage :: Text -> ImageName -> SearchResults -> Handler Image
 locateCurrentImage fname iname images = do
   unfiltered <- getImage fname iname
   case Map.lookup (fname, imageTimeKey unfiltered) images of
     Just img -> return img
     Nothing  -> notFound
 
-getViewR :: Text -> Text -> Handler Html
+getViewR :: Text -> ImageName -> Handler Html
 getViewR folder iname = do
   (params, _, images) <- getAtomAndSearch
   img <- locateCurrentImage folder iname images
@@ -129,7 +129,7 @@ getViewR folder iname = do
       isMovie = encodeToLazyText . isJust . bestMovie $ img
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    setHtmlTitle $ "image " <> folder <> "/" <> imgName img
+    setHtmlTitle $ "image " <> folder <> "/" <> unImageName (imgName img)
     $(widgetFile "view")
 
 basicSvg :: Text -> Svg
@@ -149,7 +149,7 @@ imageError :: Text -> TypedContent
 imageError msg =
   TypedContent typeSvg . toContent $ basicSvg ("Error: " <> msg)
 
-getImageBytesR :: Text -> Text -> Int -> Handler ()
+getImageBytesR :: Text -> ImageName -> Int -> Handler ()
 getImageBytesR folder iname res = do
   config <- getConfig
   img <- getImage folder iname
@@ -163,7 +163,7 @@ getImageBytesR folder iname res = do
     Right (_, ctype, rpath) ->
       sendFile (Text.encodeUtf8 ctype) rpath
 
-getMovieBytesR :: Text -> Text -> Handler ()
+getMovieBytesR :: Text -> ImageName -> Handler ()
 getMovieBytesR folder iname = do
   img <- getImage folder iname
   case bestMovie img of
@@ -179,7 +179,7 @@ randomPick images = do
   -- well...
   return . snd . Map.elemAt idx $ images
 
-getImageInfoR :: Text -> Text -> Handler Value
+getImageInfoR :: Text -> ImageName -> Handler Value
 getImageInfoR folder iname = do
   (params, _, images) <- getAtomAndSearch
   img <- locateCurrentImage folder iname images

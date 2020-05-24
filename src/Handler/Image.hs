@@ -36,7 +36,7 @@ import           Handler.Widgets
 import           Import
 import           Pics
 
-getImageR :: Text -> Text -> Handler Html
+getImageR :: Text -> ImageName -> Handler Html
 getImageR folder iname = do
   dir <- getFolder folder
   img <- getFolderImage dir iname
@@ -49,5 +49,5 @@ getImageR folder iname = do
       lens = exifLens exif
       exif = imgExif img
   defaultLayout $ do
-    setHtmlTitle $ "image " <> folder <> "/" <> imgName img
+    setHtmlTitle $ "image " <> folder <> "/" <> unImageName (imgName img)
     $(widgetFile "image")

@@ -67,14 +67,14 @@ unFlagImageMsg :: Bool -> Text
 unFlagImageMsg True  = "Image flag removed"
 unFlagImageMsg False = "Image was not flagged!"
 
-flagImage :: Text -> Text -> Handler Bool
+flagImage :: Text -> ImageName -> Handler Bool
 flagImage folder iname = do
   _     <- getImage folder iname
   cuser <- requireAuthId
   r     <- runDB $ insertUnique $ FlaggedImage folder iname cuser
   return $ isJust r
 
-unFlagImage :: Text -> Text -> Handler Bool
+unFlagImage :: Text -> ImageName -> Handler Bool
 unFlagImage folder iname = runDB $ do
   let u = UniqueFlaggedImage folder iname
   fi <- getBy u
@@ -82,7 +82,7 @@ unFlagImage folder iname = runDB $ do
     Just (Entity fii _) -> delete fii >> return True
     Nothing             -> return False
 
-flagHtml :: Text -> Text -> Text -> Text -> Handler Html
+flagHtml :: Text -> ImageName -> Text -> Text -> Handler Html
 flagHtml folder iname msg kind = do
   setMessage $ toHtml msg
   setSession msgTypeKey kind
@@ -93,10 +93,10 @@ flagJson :: Text -> Handler Value
 flagJson msg = return $ object ["text" .= msg]
 
 flagHandler
-  :: (Text -> Text -> Handler Bool)
+  :: (Text -> ImageName -> Handler Bool)
   -> (Bool -> Text)
   -> Text
-  -> Text
+  -> ImageName
   -> Handler TypedContent
 flagHandler action msggen folder iname = do
   r <- action folder iname
@@ -106,8 +106,8 @@ flagHandler action msggen folder iname = do
     provideRep $ flagJson msg
     provideRep $ flagHtml folder iname msg kind
 
-putImageFlagR :: Text -> Text -> Handler TypedContent
+putImageFlagR :: Text -> ImageName -> Handler TypedContent
 putImageFlagR = flagHandler flagImage flagImageMsg
 
-deleteImageFlagR :: Text -> Text -> Handler TypedContent
+deleteImageFlagR :: Text -> ImageName -> Handler TypedContent
 deleteImageFlagR = flagHandler unFlagImage unFlagImageMsg

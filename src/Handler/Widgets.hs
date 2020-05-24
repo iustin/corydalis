@@ -63,7 +63,7 @@ folderCover size browsing params atom folder = do
              else toWidget [hamlet|<span .disabled>N/A|]
     img:_ -> bytes_fn size params name (imgName img)
 
-imageBytes :: Int -> UrlParams -> Text -> Text -> Widget
+imageBytes :: Int -> UrlParams -> Text -> ImageName -> Widget
 imageBytes thumbsize params folder image =
   toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
                      <img
@@ -71,7 +71,7 @@ imageBytes thumbsize params folder image =
                        width=#{thumbsize} height=#{thumbsize}
                        >|]
 
-imageBytesForFolder :: Int -> UrlParams -> Text -> Text -> Widget
+imageBytesForFolder :: Int -> UrlParams -> Text -> ImageName -> Widget
 imageBytesForFolder size params folder image =
   toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
                      <img
@@ -80,7 +80,7 @@ imageBytesForFolder size params folder image =
                        >|]
 
 -- | Generates srcset for an image based on all auto-built versions.
-imageSrcSet :: Config -> (Route App -> Text) -> Text -> Text -> Int -> Text
+imageSrcSet :: Config -> (Route App -> Text) -> Text -> ImageName -> Int -> Text
 imageSrcSet config renderer folder image minsize =
   -- FIXME: this should filter out all sizes greater than actual image
   -- size; this needs knowing the image size in Image. [performance]
@@ -244,7 +244,7 @@ noItemsFound filter_desc images =
            doesn't match any #{what}.
            |]
 
-imageFlagActions :: Text -> Text -> Bool -> Widget
+imageFlagActions :: Text -> ImageName -> Bool -> Widget
 imageFlagActions folder image flag =
   toWidget [hamlet|
             <form action=@{ImageFlagR folder image} method=post style="display:inline-block">

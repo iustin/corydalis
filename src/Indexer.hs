@@ -634,7 +634,7 @@ folderSearchFunction (Any as) = \p ->
 
 folderSearchFunction ConstTrue = const True
 
-imagesMatchAtom :: Atom -> Map.Map Text Image -> Bool
+imagesMatchAtom :: Atom -> Map.Map ImageName Image -> Bool
 imagesMatchAtom a = any (imageSearchFunction a)
 
 imageSearchFunction :: Atom -> (Image -> Bool)
@@ -709,7 +709,7 @@ imageSearchFunction (Folder p) =
   evalStr p . Just . imgParent
 
 imageSearchFunction (FileName f) =
-  evalStr f . Just . imgName
+  evalStr f . Just . unImageName . imgName
 
 imageSearchFunction (Status v) =
   (== v) . imgStatus
@@ -771,7 +771,7 @@ getAtoms TFolder   =
   foldl' (\a p -> Map.insertWith (+) (Just $ pdName p) 1 a) Map.empty . repoDirs
 -- TODO: this is expensive. Disable (const Map.empty)?
 getAtoms TFileName =
-  foldl' (\a i -> Map.insertWith (+) (Just $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
+  foldl' (\a i -> Map.insertWith (+) (Just . unImageName $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
 getAtoms TStatus   = statusStats
 getAtoms TFClass   = fClassStats
 getAtoms TRating   = ratingStats

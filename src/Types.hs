@@ -17,11 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Types ( Config(..)
              , Regex
@@ -33,6 +34,7 @@ module Types ( Config(..)
              , ImageStatus(..)
              , showImageStatus
              , parseImageStatus
+             , ImageName(..)
              , JSDiffTime(..)
              , UrlParams
              , pathSep
@@ -72,8 +74,10 @@ import qualified Data.Text                as Text
 import qualified Data.Text.Lazy           as TextL
 import           Data.Time.Clock
 import           Data.Time.LocalTime
+import           Database.Persist.Sql     (PersistFieldSql)
 import           System.FilePath          (pathSeparator)
 import           System.Log.FastLogger    (LogStr)
+import           Text.Blaze               (ToMarkup)
 import qualified Text.Regex.TDFA          as TDFA
 import           Yesod
 
@@ -213,6 +217,17 @@ parseImageStatus _             = Nothing
 instance PathPiece ImageStatus where
   toPathPiece = showImageStatus
   fromPathPiece = parseImageStatus
+
+-- | Newtype wrapper for image names.
+newtype ImageName = ImageName { unImageName :: Text }
+  deriving (Show, Read, Eq, Ord, IsString, NFData,
+            ToMarkup, ToJSON, PersistField, PersistFieldSql)
+
+instance PathPiece ImageName where
+  toPathPiece = toPathPiece . unImageName
+  fromPathPiece = (ImageName <$>) . fromPathPiece
+
+$(makeStore ''ImageName)
 
 data FolderClass = FolderEmpty
                  | FolderRaw
