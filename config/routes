@@ -18,7 +18,7 @@
 /search/images/grid/#Int BrowseImagesR GET
 /search/images/list ListImagesR GET
 /view/#Text/#ImageName ViewR GET
-/image/bytes/#Text/#ImageName/#Int ImageBytesR GET
+/image/bytes/#Text/#ImageName ImageBytesR GET
 /image/movie/#Text/#ImageName MovieBytesR GET
 /image/info/#Text/#ImageName ImageInfoR GET
 /image/flag/#Text/#ImageName ImageFlagR PUT DELETE

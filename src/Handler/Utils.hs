@@ -275,6 +275,26 @@ atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
 atomAsParam s (Just t) = (symbolName s, t)
 atomAsParam s Nothing  = (negSymbolName s, "")
 
+resolutionParam :: Text
+resolutionParam = "res"
+
+makeResParam :: Int -> [(Text, Text)]
+makeResParam res = [(resolutionParam, sformat shown res)]
+
+getResParam :: Handler (Maybe ImageSize)
+getResParam = do
+  res <- lookupGetParam resolutionParam
+  case res of
+    Nothing -> return Nothing
+    Just v -> case parseDecimalPlain v of
+      Left msg   -> invalidArgs [msg]
+      Right res' -> return . Just . ImageSize $ res'
+
+-- | Helper to build an image bytes URL for a specific resolution.
+imageBytesAtRes :: Text -> ImageName -> Int -> (Route App, [(Text, Text)])
+imageBytesAtRes folder iname res =
+  (ImageBytesR folder iname, makeResParam res)
+
 setHtmlTitle :: Text -> Widget
 setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)
 

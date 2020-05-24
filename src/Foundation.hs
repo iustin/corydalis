@@ -417,8 +417,8 @@ instance YesodBreadcrumbs App where
                                              Just (FolderR folder))
   breadcrumb (ViewR folder image) = return ("Viewer",
                                              Just (ImageR folder image))
-  breadcrumb (ImageBytesR _ image _) = return ("Bytes of " <> (unImageName image),
-                                                Nothing)
+  breadcrumb (ImageBytesR _ image) = return ("Bytes of " <> (unImageName image),
+                                              Nothing)
   breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> (unImageName image),
                                               Nothing)
   breadcrumb (ImageInfoR _ image) = return ("Information for " <> (unImageName image),

@@ -76,7 +76,7 @@ mkImageInfo :: Text -> ImageName -> Bool -> Hamlet.Render (Route App)
             -> UrlParams -> Transform -> ImageInfo
 mkImageInfo folder iname movie render params t =
   ImageInfo (render (ImageInfoR folder iname) params)
-            (render (ImageBytesR folder iname 0) [])
+            (render (ImageBytesR folder iname) [])
             (if movie then Just (render (MovieBytesR folder iname) []) else Nothing)
             (render (ViewR folder iname) params)
             (render (ImageFlagR folder iname) [])
@@ -149,12 +149,12 @@ imageError :: Text -> TypedContent
 imageError msg =
   TypedContent typeSvg . toContent $ basicSvg ("Error: " <> msg)
 
-getImageBytesR :: Text -> ImageName -> Int -> Handler ()
-getImageBytesR folder iname res = do
+getImageBytesR :: Text -> ImageName -> Handler ()
+getImageBytesR folder iname = do
   config <- getConfig
   img <- getImage folder iname
-  let res' = if res == 0 then Nothing else Just (ImageSize res)
-  imgbytes <- liftIO $ imageAtRes config img res'
+  res <- getResParam
+  imgbytes <- liftIO $ imageAtRes config img res
   case imgbytes of
     Left ImageNotViewable ->
       sendResponse imageNotViewable

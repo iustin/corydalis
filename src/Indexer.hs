@@ -43,6 +43,8 @@ module Indexer ( Symbol(..)
                , searchImages
                , genQuickSearchParams
                , atomFindsFiles
+               -- TODO: move to some more basic module, unify with pics
+               , parseDecimalPlain
                ) where
 
 import           Control.Monad               (foldM, when)
