@@ -137,10 +137,8 @@ showTimestamp =
   showLocalTime . utcToZonedTime utc . posixSecondsToUTCTime
 
 showLocalTime :: ZonedTime -> Text
-showLocalTime ts =
-  Text.pack $ ft ++ pico
-    where pico = take 4 $ formatTime defaultTimeLocale "%q %Z" ts
-          ft = formatTime defaultTimeLocale "%F %T." ts
+showLocalTime =
+  Text.pack . formatTime defaultTimeLocale "%F %T%4Q %EZ"
 
 showExifTime :: ExifTime -> Text
 showExifTime = showLocalTime . etTime
