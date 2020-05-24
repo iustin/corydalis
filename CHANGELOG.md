@@ -33,6 +33,15 @@ names), 'weekday', 'weekend', or numerical month day (e.g. '10th').
 Rating is the exif rating as written by camera or image processing
 tools, usually using the values 1-5, with 0 being unrated.
 
+### Internal changes
+
+The way image name URLs are built for multi-level paths changed;
+instead of encoded '%2F' elements in the path, with the image being a
+single path element, now image names are multi-path elements:
+`a%2Fb%2Fc` becomes `a/b/c`. This should help with reverse-proxying
+corydalis, and in general is a cleaner way to represent file-system
+paths in URLS.
+
 ## v0.4.0
 
 *Sun, 26 May 2019*

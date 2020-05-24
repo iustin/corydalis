@@ -223,9 +223,9 @@ newtype ImageName = ImageName { unImageName :: Text }
   deriving (Show, Read, Eq, Ord, IsString, NFData,
             ToMarkup, ToJSON, PersistField, PersistFieldSql)
 
-instance PathPiece ImageName where
-  toPathPiece = toPathPiece . unImageName
-  fromPathPiece = (ImageName <$>) . fromPathPiece
+instance PathMultiPiece ImageName where
+  fromPathMultiPiece = Just . ImageName . Text.intercalate "/"
+  toPathMultiPiece = Text.splitOn "/" . unImageName
 
 $(makeStore ''ImageName)
 
