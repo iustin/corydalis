@@ -65,12 +65,12 @@
        $maybe ((dmin, cmin), (dmax, cmax)) <-  imgTopBot
            <tr>
              <td>Earliest image
-             <td>#{show dmin}
+             <td>#{showExifTime dmin}
                $if numLenses > 1
                  \ (#{cmin})
            <tr>
              <td>Latest image
-             <td>#{show dmax}
+             <td>#{showExifTime dmax}
                $if numLenses > 1
                  \ (#{cmax})
        $nothing

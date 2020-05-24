@@ -171,7 +171,7 @@ folderGrid imagesize params atom dirs =
 
 showExif :: Exif -> Widget
 showExif Exif {..} = do
-  let create_date = sformat shown <$> exifCreateDate
+  let create_date = showExifTime <$> exifCreateDate
       f1 = fixed 1
       focal_length =
         case (exifFocalLength, exifFL35mm) of

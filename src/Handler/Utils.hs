@@ -142,6 +142,9 @@ showLocalTime ts =
     where pico = take 4 $ formatTime defaultTimeLocale "%q %Z" ts
           ft = formatTime defaultTimeLocale "%F %T." ts
 
+showExifTime :: ExifTime -> Text
+showExifTime = showLocalTime . etTime
+
 showLocalDate :: LocalTime -> Text
 showLocalDate=
   Text.pack . formatTime defaultTimeLocale "%F"
@@ -149,8 +152,8 @@ showLocalDate=
 showExifDate :: Image -> Text
 showExifDate (imgExif -> e) =
   case exifCreateDate e of
-    Just (ExifTime lt) -> showLocalTime lt
-    Nothing            -> "?"
+    Just et -> showExifTime et
+    Nothing -> "?"
 
 showFileTimestamp :: Maybe File -> Text
 showFileTimestamp = maybe "" (showTimestamp . fileMTime)
