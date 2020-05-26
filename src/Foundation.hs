@@ -39,6 +39,7 @@ module Foundation
   , getConfig
   , getPics
   , getContext
+  , getLastViewMode
   ) where
 
 import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
@@ -62,6 +63,7 @@ import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
 import qualified Data.Map              as Map
 import qualified Data.Set              as Set
 
+import           Handler.Cookies
 import           Indexer
 import           Pics
 
@@ -260,6 +262,22 @@ routeStyle StaticR{}              = PageBasic
 routeStyle StatusR                = PageBasic
 routeStyle ViewR{}                = PageView
 
+viewMode :: Route App -> Maybe ViewMode
+viewMode ListFoldersR      = Just $ ViewFolders PresentationList
+viewMode ListImagesR       = Just $ ViewImages PresentationList
+viewMode BrowseFoldersR {} = Just $ ViewFolders PresentationGrid
+viewMode BrowseImagesR {}  = Just $ ViewImages PresentationGrid
+viewMode _                 = Nothing
+
+getLastViewMode :: Handler (Maybe ViewMode)
+getLastViewMode = do
+  cookie <- lookupCookie viewCookieName
+  return $ cookie >>= parseViewMode
+
+setViewMode :: ViewMode -> Handler ()
+setViewMode vm =
+  setCookie $ lastViewCookie vm
+
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
@@ -320,19 +338,24 @@ instance Yesod App where
         -- passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
 
+        route <- getCurrentRoute
+
         pc <- widgetToPageContent $ do
           -- Compute and ship the page-specific CSS and JS
           -- resources. In production mode, these will be even
           -- combined, so one CSS and one JS bundle.
-          route <- getCurrentRoute
           case route of
             Nothing -> return ()
             Just r -> do
               let style = routeStyle r
               pageCSSResources style
               pageJSResources style
-
           $(widgetFile "default-layout")
+
+        case route >>= viewMode of
+          Nothing -> return ()
+          Just v  -> setViewMode v
+
         let inflist = [1..]::[Int]
         is_auth <- isJust <$> maybeAuthId
         withUrlRenderer $(hamletFile "templates/layout-wrapper.hamlet")

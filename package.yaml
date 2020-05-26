@@ -66,6 +66,7 @@ dependencies:
   - clock
   - conduit
   - containers
+  - cookie
   - data-default
   - deepseq
   - directory
@@ -128,6 +129,7 @@ library:
     - Handler.Browse
     - Handler.Camera
     - Handler.Common
+    - Handler.Cookies
     - Handler.Curate
     - Handler.FlaggedImages
     - Handler.Folder
