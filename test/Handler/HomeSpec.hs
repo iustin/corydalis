@@ -26,27 +26,33 @@ import           TestImport
 
 spec :: Spec
 spec = parallel $ withApp $ do
-  it "asserts redirect on access to home for anonymous users" $
-    checkRouteIs HomeR 303
+  describe "Homepage" $ do
+    it "asserts redirect on access to home for anonymous users" $
+      checkRouteIs HomeR 303
 
-  it "checks that login page works un-authenticated" $ do
-    checkRoute $ AuthR LoginR
-    htmlAnyContain "div#info" "Hello user!"
+    it "checks that login page works un-authenticated" $ do
+      checkRoute $ AuthR LoginR
+      htmlAnyContain "div#info" "Hello user!"
 
-  it "checks that login page shows info message" $ do
-    get $ AuthR LoginR
-    htmlAnyContain "div#info" "Hello user!"
+    it "checks that login page shows info message" $ do
+      get $ AuthR LoginR
+      htmlAnyContain "div#info" "Hello user!"
 
-  it "asserts access to home for authenticated users" $ do
-    login
-    checkRoute HomeR
+    it "asserts access to home for authenticated users" $ do
+      login
+      checkRoute HomeR
 
-  it "loads the index and checks it looks right" $ do
-    login
-    checkRoute HomeR
-    htmlAllContain "h1" "Corydalis"
-    htmlAnyContain "div#main" "Years"
-    htmlAnyContain "div#main" "Countries"
-    htmlAnyContain "div#main" "Locations"
-    htmlAnyContain "div#main" "People"
-    htmlAnyContain "div#main" "Keywords"
+    it "loads the index and checks it looks right" $ do
+      login
+      checkRoute HomeR
+      htmlAllContain "h1" "Corydalis"
+      htmlAnyContain "div#main" "Years"
+      htmlAnyContain "div#main" "Countries"
+      htmlAnyContain "div#main" "Locations"
+      htmlAnyContain "div#main" "People"
+      htmlAnyContain "div#main" "Keywords"
+  describe "About" $ do
+    it "checks about page" $ do
+      login
+      checkRoute AboutR
+      bodyContains "About Corydalis"

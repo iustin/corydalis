@@ -31,5 +31,4 @@ spec = parallel $ withApp $ do
       bodyContains "User-agent: *"
   describe "favicon.ico" $
     it "gives a 200" $ do
-      get FaviconR
-      statusIs 200
+      checkRoute FaviconR
