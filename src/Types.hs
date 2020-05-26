@@ -57,6 +57,10 @@ module Types ( Config(..)
              , ctxSearchCache
              , ctxLogger
              , newContext
+             , ViewPresentation(..)
+             , ViewMode(..)
+             , formatViewMode
+             , parseViewMode
              ) where
 
 import           Control.Applicative
@@ -364,3 +368,27 @@ newContext config logfn a b = do
 
 $(makeStore ''WorkStart)
 $(makeStore ''WorkResults)
+
+-- | View presentation.
+data ViewPresentation = PresentationGrid | PresentationList
+  deriving (Eq, Show)
+
+-- | View mode type.
+data ViewMode = ViewImages ViewPresentation
+              | ViewFolders ViewPresentation
+  deriving (Eq, Show)
+
+-- | Poor man's view mode encoding.
+formatViewMode :: ViewMode -> ByteString
+formatViewMode (ViewImages PresentationGrid)  = "images-grid"
+formatViewMode (ViewImages PresentationList)  = "images-list"
+formatViewMode (ViewFolders PresentationGrid) = "folders-grid"
+formatViewMode (ViewFolders PresentationList) = "folders-list"
+
+-- | Poor man's view mode decoding.
+parseViewMode :: Text -> Maybe ViewMode
+parseViewMode "images-grid"  = Just $ ViewImages PresentationGrid
+parseViewMode "images-list"  = Just $ ViewImages PresentationList
+parseViewMode "folders-grid" = Just $ ViewFolders PresentationGrid
+parseViewMode "folders-list" = Just $ ViewFolders PresentationList
+parseViewMode _              = Nothing
