@@ -257,6 +257,7 @@ routeStyle ReloadR                = PageBasic
 routeStyle RobotsR                = PageBasic
 routeStyle SearchFoldersByYearR{} = PageBasic
 routeStyle SearchFoldersNoYearR   = PageBasic
+routeStyle SearchR                = PageBasic
 routeStyle SettingsR              = PageBasic
 routeStyle StaticR{}              = PageBasic
 routeStyle StatusR                = PageBasic
@@ -452,6 +453,7 @@ instance YesodBreadcrumbs App where
   breadcrumb (BrowseFoldersR _)  = return ("Search folders",    Nothing)
   breadcrumb (BrowseImagesR _)   = return ("Search images",     Nothing)
   breadcrumb QuickSearchR        = return ("Quick search",      Nothing)
+  breadcrumb SearchR             = return ("Search redirector", Nothing)
   breadcrumb SettingsR           = return ("Settings",          Nothing)
   breadcrumb LensStatsR          = return ("Lens statistics",   Just CurateR)
   breadcrumb CameraStatsR        = return ("Camera statistics", Just CurateR)

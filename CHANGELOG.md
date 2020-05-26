@@ -33,6 +33,19 @@ names), 'weekday', 'weekend', or numerical month day (e.g. '10th').
 Rating is the exif rating as written by camera or image processing
 tools, usually using the values 1-5, with 0 being unrated.
 
+### UI interaction changes
+
+Previously, searching for things, or clicking to various links was
+always going to either an image grid browsing view or folder grid
+browsing view, based on static conditions. Now, the preference of how
+to display search results has moved to a per-browser sticky
+(long-lived) cookies, so that multiple searches will remain on last
+view. The preference is updated whenever the view is manually changed
+(via the alternate links in the page).
+
+In case of missing preferences, the default is same as before, image
+or folder grid.
+
 ### Internal changes
 
 The way image name URLs are built for multi-level paths changed;

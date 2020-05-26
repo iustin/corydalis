@@ -14,7 +14,7 @@
          <div .card-body>
            $forall p <- items
             $with searchParams <- [(symbolName symbol, p)]
-             <a .btn .btn-light href="@?{(BrowseImagesR 0,searchParams)}">#{formatter symbol p}
+             <a .btn .btn-light href="@?{(SearchR,searchParams)}">#{formatter symbol p}
 
            $if rcount > 0
              <a .btn .btn-light href="@{ListItemsR symbol}">
@@ -24,7 +24,7 @@
             $forall p <- items
              $with searchParams <- [(symbolName symbol, p)]
               <li .list-group-item>
-               <a .text-dark href="@?{(BrowseImagesR 0,searchParams)}">#{formatter symbol p}
+               <a .text-dark href="@?{(SearchR,searchParams)}">#{formatter symbol p}
 
             $if rcount > 0
              <li .list-group-item>

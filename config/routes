@@ -17,6 +17,7 @@
 /search/folders/no-year SearchFoldersNoYearR GET
 /search/images/grid/#Int BrowseImagesR GET
 /search/images/list ListImagesR GET
+/search SearchR GET
 /view/#Text/+ImageName ViewR GET
 /image/bytes/#Text/+ImageName ImageBytesR GET
 /image/movie/#Text/+ImageName MovieBytesR GET

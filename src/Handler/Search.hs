@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.Search ( getQuickSearchR
                       , getSearchFoldersByYearR
                       , getSearchFoldersNoYearR
+                      , getSearchR
                       ) where
 
 import qualified Data.Text     as Text
@@ -31,6 +32,35 @@ import qualified Data.Text     as Text
 import           Handler.Utils
 import           Import
 import           Indexer
+
+-- | Default presentation when no preference is found.
+defaultPresentation :: ViewPresentation
+defaultPresentation = PresentationGrid
+
+-- | Dispatch for folders.
+handlerFolders :: ViewPresentation -> Route App
+handlerFolders PresentationGrid = BrowseFoldersR 0
+handlerFolders PresentationList = ListFoldersR
+
+-- | Dispatch for images.
+handlerImages :: ViewPresentation -> Route App
+handlerImages PresentationGrid = BrowseImagesR 0
+handlerImages PresentationList = ListImagesR
+
+-- | Computes the best handler, given a potential view mode and
+-- presence of files in the results.
+getBestHandler :: Maybe ViewMode -> Bool -> Route App
+getBestHandler Nothing True                = handlerImages defaultPresentation
+getBestHandler Nothing False               = handlerFolders defaultPresentation
+getBestHandler (Just (ViewFolders p)) _    = handlerFolders p
+getBestHandler (Just (ViewImages p)) False = handlerFolders p
+getBestHandler (Just (ViewImages p)) True  = handlerImages p
+
+-- | Computes best folder presentation, based on existing preference.
+getBestFolderHandler :: Maybe ViewMode -> Route App
+getBestFolderHandler Nothing                = handlerFolders defaultPresentation
+getBestFolderHandler (Just (ViewFolders p)) = handlerFolders p
+getBestFolderHandler (Just (ViewImages p))  = handlerFolders p
 
 getQuickSearchR :: Handler Html
 getQuickSearchR = do
@@ -53,15 +83,24 @@ getQuickSearchR = do
           "The following filters had no results so they were skipped: " <>
           ", " `Text.intercalate` map atomDescription skipped <> "."
         setSession msgTypeKey msgWarning
-      let handler = if atomFindsFiles atom'
-                    then BrowseImagesR
-                    else BrowseFoldersR
-      redirect (handler 0, atomToParams atom')
+      viewMode <- getLastViewMode
+      let handler = getBestHandler viewMode (atomFindsFiles atom')
+      redirect (handler, atomToParams atom')
 
 getSearchFoldersByYearR :: Integer -> Handler Html
-getSearchFoldersByYearR year =
-  redirect (BrowseFoldersR 0, [(symbolName TYear, sformat int year)])
+getSearchFoldersByYearR year = do
+  viewMode <- getLastViewMode
+  redirect (getBestFolderHandler viewMode, [(symbolName TYear, sformat int year)])
 
 getSearchFoldersNoYearR :: Handler Html
-getSearchFoldersNoYearR =
-  redirect (BrowseFoldersR 0, [(negSymbolName TYear, "")])
+getSearchFoldersNoYearR = do
+  viewMode <- getLastViewMode
+  redirect (getBestFolderHandler viewMode, [(negSymbolName TYear, "")])
+
+getSearchR :: Handler Html
+getSearchR = do
+  (_, _, params, atom, _, _) <- searchContext
+  viewMode <- getLastViewMode
+  let findsImages = atomFindsFiles atom
+      handler = getBestHandler viewMode findsImages
+  redirect (handler, params)

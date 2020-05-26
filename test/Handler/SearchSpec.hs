@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.SearchSpec (spec) where
 
+import           Formatting
 import           TestImport
 
 checkRedirAndHeader :: YesodExample App ()
@@ -34,7 +35,7 @@ spec :: Spec
 spec = parallel $ withApp $ do
   -- TODO: add folders by year
   -- TODO: add quick search
-  describe "checks the per-year handlers" $ do
+  describe "SearchYears" $ do
     it "loads the folders no year page and checks it looks right" $ do
       login
       get SearchFoldersNoYearR
@@ -45,7 +46,7 @@ spec = parallel $ withApp $ do
       checkRedirAndHeader
       htmlAnyContain "div.card-header" "Nothing found"
       htmlAnyContain "div.card-body" "doesn&#39;t match any folders"
-  describe "checks quick search" $ do
+  describe "QuickSearch" $ do
     it "checks for missing search parameter" $ do
       login
       checkRouteIs QuickSearchR 400
@@ -57,3 +58,14 @@ spec = parallel $ withApp $ do
       login
       get (QuickSearchR, [("q", "1900")])
       checkRedirect
+  describe "Search" $ do
+    forM_ [ListFoldersR, ListImagesR, BrowseFoldersR 0, BrowseImagesR 0] $ \route -> do
+      it (formatToString ("checks redirect for route " % shown) route) $ do
+        login
+        checkRoute route
+        get SearchR
+        --location <- getLocation
+        --liftIO $ print loc
+        --liftIO $ location `shouldBe` Right route
+        followRedirectOK
+        liftIO $ pendingWith "route parsing is broken"
