@@ -340,6 +340,7 @@ instance Yesod App where
         -- you to use normal widget features in default-layout.
 
         route <- getCurrentRoute
+        forM_ (route >>= viewMode) setViewMode
 
         pc <- widgetToPageContent $ do
           -- Compute and ship the page-specific CSS and JS
@@ -352,10 +353,6 @@ instance Yesod App where
               pageCSSResources style
               pageJSResources style
           $(widgetFile "default-layout")
-
-        case route >>= viewMode of
-          Nothing -> return ()
-          Just v  -> setViewMode v
 
         let inflist = [1..]::[Int]
         is_auth <- isJust <$> maybeAuthId
@@ -428,12 +425,9 @@ instance YesodBreadcrumbs App where
   breadcrumb StatusR        = return ("Status"       , Nothing)
   breadcrumb (FolderR name) = do
     pics <- getPics
-    let r = case Map.lookup name (repoDirs pics) of
-           Nothing  -> Just SearchFoldersNoYearR
-           Just dir -> Just $ case pdYear dir of
-                                Nothing -> SearchFoldersNoYearR
-                                Just y  -> SearchFoldersByYearR y
-    return (name, r)
+    let r = maybe SearchFoldersNoYearR SearchFoldersByYearR $
+            Map.lookup name (repoDirs pics) >>= pdYear
+    return (name, Just r)
   breadcrumb (SearchFoldersByYearR year) = return (sformat int year, Nothing)
   breadcrumb SearchFoldersNoYearR = return ("?", Nothing)
 
@@ -441,11 +435,11 @@ instance YesodBreadcrumbs App where
                                              Just (FolderR folder))
   breadcrumb (ViewR folder image) = return ("Viewer",
                                              Just (ImageR folder image))
-  breadcrumb (ImageBytesR _ image) = return ("Bytes of " <> (unImageName image),
+  breadcrumb (ImageBytesR _ image) = return ("Bytes of " <> unImageName image,
                                               Nothing)
-  breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> (unImageName image),
+  breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> unImageName image,
                                               Nothing)
-  breadcrumb (ImageInfoR _ image) = return ("Information for " <> (unImageName image),
+  breadcrumb (ImageInfoR _ image) = return ("Information for " <> unImageName image,
                                                   Nothing)
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)
   breadcrumb ListFoldersR = return ("Listing folders", Nothing)

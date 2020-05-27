@@ -62,9 +62,7 @@ getCameraInfoR :: Text -> Handler TypedContent
 getCameraInfoR cameraname = do
   pics <- getPics
   let bycamera = getByCamera pics
-  camera <- case cameraname `Map.lookup` bycamera of
-              Nothing -> notFound
-              Just c  -> return c
+  camera <- maybe notFound return $ cameraname `Map.lookup` bycamera
   let cameraExif = if cameraname == unknown
                    then Nothing
                    else Just cameraname

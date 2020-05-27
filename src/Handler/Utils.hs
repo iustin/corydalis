@@ -148,10 +148,8 @@ showLocalDate=
   Text.pack . formatTime defaultTimeLocale "%F"
 
 showExifDate :: Image -> Text
-showExifDate (imgExif -> e) =
-  case exifCreateDate e of
-    Just et -> showExifTime et
-    Nothing -> "?"
+showExifDate =
+  maybe "?" showExifTime . exifCreateDate . imgExif
 
 showFileTimestamp :: Maybe File -> Text
 showFileTimestamp = maybe "" (showTimestamp . fileMTime)
@@ -182,9 +180,7 @@ getFolder = fmap snd . getPicsAndFolder
 
 getFolderImage :: PicDir -> ImageName -> Handler Image
 getFolderImage dir iname =
-  case Map.lookup iname (pdImages dir) of
-    Nothing  -> notFound
-    Just img -> return img
+  maybe notFound return $ Map.lookup iname (pdImages dir)
 
 getImage :: Text -> ImageName -> Handler Image
 getImage folder iname = do

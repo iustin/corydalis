@@ -115,9 +115,7 @@ instance ToJSON ViewInfo where
 locateCurrentImage :: Text -> ImageName -> SearchResults -> Handler Image
 locateCurrentImage fname iname images = do
   unfiltered <- getImage fname iname
-  case Map.lookup (fname, imageTimeKey unfiltered) images of
-    Just img -> return img
-    Nothing  -> notFound
+  maybe notFound return $ Map.lookup (fname, imageTimeKey unfiltered) images
 
 getViewR :: Text -> ImageName -> Handler Html
 getViewR folder iname = do
@@ -197,9 +195,7 @@ getImageInfoR folder iname = do
       mk i = mkImageInfo (imgParent i) (imgName i) (isJust $ bestMovie i)
                render params (transformForImage i)
       y = maybe "?" (Text.pack . show) $ pdYear picdir
-      yurl = case pdYear picdir of
-               Nothing -> SearchFoldersNoYearR
-               Just v  -> SearchFoldersByYearR v
+      yurl = maybe SearchFoldersNoYearR SearchFoldersByYearR $ pdYear picdir
   return . toJSON $
     ViewInfo y (render yurl [])
       folder (render (FolderR folder) params)
