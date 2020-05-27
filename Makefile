@@ -86,12 +86,10 @@ coverage-tests:
 lint:
 	@rm -f lint-report.html
 	hlint \
-	  --ignore "Use first" \
-	  --ignore "Use &&&" \
+	  --ignore 'Use =<<' \
 	  --report=lint-report.html -c \
-	  --cross \
 	  --cpp-define=DEVELOPMENT=1 \
-	  .
+	  src/ test/
 
 lentil:
 	lentil src static/corydalis templates test
