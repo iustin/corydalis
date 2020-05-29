@@ -2,7 +2,8 @@
 
 Current list of embedded libraries:
 
-- bootstrap v4.3.1, updated 2019-04-19
+- bootstrap v4.5.0, updated 2020-05-30,
+  <https://getbootstrap.com/>
 - jquery v3.5.1, updated 2020-05-30,
   <https://jquery.com/download/>
 - font-awesome v5.13.0, updated 2020-05-30,
