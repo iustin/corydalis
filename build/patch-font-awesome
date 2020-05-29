@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd static/font-awesome/css
+sed -i -e '/src: .*\.\.\/webfonts\/fa-.*;$/d' regular.css solid.css
+sed -i -e 's^src: .*; }^src: url("/static/font-awesome/webfonts/fa-regular-400.woff2") format("woff2"), url("/static/font-awesome/webfonts/fa-regular-400.woff") format("woff"); }^' regular.css
+sed -i -e 's^src: .*; }^src: url("/static/font-awesome/webfonts/fa-solid-900.woff2") format("woff2"), url("/static/font-awesome//webfonts/fa-solid-900.woff") format("woff"); }^' solid.css
