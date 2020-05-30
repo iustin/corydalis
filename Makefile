@@ -53,6 +53,10 @@ release: clean lint doc regen-git-version
 	rsync -a static dist/
 	rm -rf dist/static/tmp/
 
+.PHONY: demo-release
+demo-release:
+	$(MAKE) release FLAGS="--flag corydalis:public-site"
+
 doc:
 	mkdocs build -s
 
