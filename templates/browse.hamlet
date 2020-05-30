@@ -21,7 +21,8 @@
              Go back to the <a href="@?{(handler 0, params)}">first page</a>. #
            Switch to the <a href="@?{(list_handler, params)}">list view</a>
            $if show_alt_view
-             , or go to the <a href="@?{(alt_handler 0, params)}">#{alt_text} view</a>
+             , or go to the <a href="@?{(alt_handler 0, params)}">#{alt_text} grid</a> or
+             <a href="@?{(alt_listh, params)}">#{alt_text} list</a> view
              for this filter.
            $else
              ; note: this filter cannot find #{alt_text}s.

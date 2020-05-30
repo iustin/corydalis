@@ -37,8 +37,9 @@ import           Pics
 
 data GridItem a = GridItem
   { handler      :: Int -> Route App
-  , alt_handler  :: Int -> Route App
   , list_handler :: Route App
+  , alt_handler  :: Int -> Route App
+  , alt_listh    :: Route App
   , retrieve     :: Ctx -> Atom -> Repository -> IO [a]
   , render       :: Config -> Int -> UrlParams -> Atom -> [a] -> Widget
   , elem_text    :: Text
@@ -49,8 +50,9 @@ data GridItem a = GridItem
 picDirGridItem :: GridItem PicDir
 picDirGridItem = GridItem
   { handler = BrowseFoldersR
-  , alt_handler = BrowseImagesR
   , list_handler = ListFoldersR
+  , alt_handler = BrowseImagesR
+  , alt_listh = ListImagesR
   , retrieve = \_ atom pics -> return . Map.elems $ buildFolderMap atom pics
   , render = \_ size params atom elems -> folderGrid size params atom elems
   , elem_text = "folders"
@@ -61,8 +63,9 @@ picDirGridItem = GridItem
 imageGridItem :: GridItem Image
 imageGridItem = GridItem
   { handler = BrowseImagesR
-  , alt_handler = BrowseFoldersR
   , list_handler = ListImagesR
+  , alt_handler = BrowseFoldersR
+  , alt_listh = ListFoldersR
   , retrieve = \ctx atom pics -> Map.elems <$> searchImages ctx atom pics
   , render = \config size params _ elems -> imageGrid config size params elems
   , elem_text = "images"
