@@ -35,11 +35,13 @@ import           Import
 import           Indexer
 import           Pics
 
+type ViewHandler = Int -> Route App
+
 data GridItem a = GridItem
-  { handler      :: Int -> Route App
-  , list_handler :: Route App
-  , alt_handler  :: Int -> Route App
-  , alt_listh    :: Route App
+  { handler      :: ViewHandler
+  , list_handler :: ViewHandler
+  , alt_handler  :: ViewHandler
+  , alt_listh    :: ViewHandler
   , retrieve     :: Ctx -> Atom -> Repository -> IO [a]
   , render       :: Config -> Int -> UrlParams -> Atom -> [a] -> Widget
   , elem_text    :: Text
@@ -50,9 +52,9 @@ data GridItem a = GridItem
 picDirGridItem :: GridItem PicDir
 picDirGridItem = GridItem
   { handler = BrowseFoldersR
-  , list_handler = ListFoldersR
+  , list_handler = const ListFoldersR
   , alt_handler = BrowseImagesR
-  , alt_listh = ListImagesR
+  , alt_listh = const ListImagesR
   , retrieve = \_ atom pics -> return . Map.elems $ buildFolderMap atom pics
   , render = \_ size params atom elems -> folderGrid size params atom elems
   , elem_text = "folders"
@@ -63,9 +65,9 @@ picDirGridItem = GridItem
 imageGridItem :: GridItem Image
 imageGridItem = GridItem
   { handler = BrowseImagesR
-  , list_handler = ListImagesR
+  , list_handler = const ListImagesR
   , alt_handler = BrowseFoldersR
-  , alt_listh = ListFoldersR
+  , alt_listh = const ListFoldersR
   , retrieve = \ctx atom pics -> Map.elems <$> searchImages ctx atom pics
   , render = \config size params _ elems -> imageGrid config size params elems
   , elem_text = "images"
