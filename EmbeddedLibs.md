@@ -16,10 +16,10 @@ Current list of embedded libraries:
   <https://github.com/sindresorhus/screenfull.js>
 - tablesorter v2.31.3, updated 2020-05-30,
   <https://mottie.github.io/tablesorter/docs/#Download>
-- imagesloaded v4.1.4, updated 2019-04-26,
+- imagesloaded v4.1.4, latest release as of 2020-05-30,
   <https://imagesloaded.desandro.com/>
-- masonry v4.2.2, updated 2019-04-26,
-  <https://imagesloaded.desandro.com/>
+- masonry v4.2.2, latest release as of 2020-05-30,
+  <https://masonry.desandro.com/>
 - infinite-scroll v3.0.5, updated 2019-04-26,
   <https://infinite-scroll.com/>
 - fancyBox v3.5.7, updated 2019-05-18,
