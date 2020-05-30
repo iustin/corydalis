@@ -10,7 +10,8 @@ Current list of embedded libraries:
   <https://fontawesome.com/download>
 - hammer v2.0.8, latest release as of 2020-05-30,
   <https://hammerjs.github.io/>
-- plotly (cartesian) v1.47.3, updated 2019-04-19
+- plotly (cartesian) v1.54.1, updated 2020-05-30,
+  <https://github.com/plotly/plotly.js/releases>
 - screenfull v4.2.0, updated 2019-04-19
 - tablesorter v2.31.1, updated 2019-04-19
 - imagesloaded v4.1.4, updated 2019-04-26,
