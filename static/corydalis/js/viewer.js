@@ -214,7 +214,7 @@ $(document).ready(function() {
     function enterFullScreen() {
         cory.state.fullscreen = true;
         var div = divMain[0];
-        if (screenfull.enabled) {
+        if (screenfull.isEnabled) {
             screenfull.request(div);
         } else {
             LOG("entering fake full screen");
@@ -226,7 +226,7 @@ $(document).ready(function() {
 
     function leaveFullScreen() {
         cory.state.fullscreen = false;
-        if (screenfull.enabled) {
+        if (screenfull.isEnabled) {
             screenfull.exit();
         } else {
             LOG("exiting fake full screen");
