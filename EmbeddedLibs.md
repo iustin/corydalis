@@ -8,7 +8,8 @@ Current list of embedded libraries:
   <https://jquery.com/download/>
 - font-awesome v5.13.0, updated 2020-05-30,
   <https://fontawesome.com/download>
-- hammer v2.0.8, latest release as of 2019-04-19
+- hammer v2.0.8, latest release as of 2020-05-30,
+  <https://hammerjs.github.io/>
 - plotly (cartesian) v1.47.3, updated 2019-04-19
 - screenfull v4.2.0, updated 2019-04-19
 - tablesorter v2.31.1, updated 2019-04-19
