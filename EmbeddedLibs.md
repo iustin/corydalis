@@ -20,7 +20,7 @@ Current list of embedded libraries:
   <https://imagesloaded.desandro.com/>
 - masonry v4.2.2, latest release as of 2020-05-30,
   <https://masonry.desandro.com/>
-- infinite-scroll v3.0.5, updated 2019-04-26,
+- infinite-scroll v3.0.6, updated 2020-05-30,
   <https://infinite-scroll.com/>
 - fancyBox v3.5.7, updated 2019-05-18,
   <http://fancyapps.com/fancybox/>
