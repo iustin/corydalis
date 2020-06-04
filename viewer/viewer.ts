@@ -43,9 +43,11 @@ type ViewInfo = {
     image: string,
     imageurl: Url,
     first: ImageInfo,
+    prevfolder?: ImageInfo,
     prev?: ImageInfo,
     current: ImageInfo,
     next?: ImageInfo,
+    nextfolder?: ImageInfo,
     last: ImageInfo,
 }
 
@@ -441,6 +443,16 @@ $(document).ready(function() {
         updateInfo(info.info);
     }
 
+    function advanceFolder(forward: boolean) {
+        let info = forward ? cory.info.nextfolder : cory.info.prevfolder;
+        let kind = forward ? 'next folder' : 'previous folder';
+        if (!info) {
+            writeMessage(`No ${kind} available`);
+        } else {
+            switchToImage(info);
+        }
+    }
+
     function gotoRandomImage() {
         $.ajax({url: bootdiv.data("random-url"),
                 type: "GET",
@@ -539,6 +551,12 @@ $(document).ready(function() {
             case 39: // right arrow
                 advanceImage(true);
                 break;
+            case 33: // pg up
+                advanceFolder(false);
+                break;
+            case 34: // pg down
+                advanceFolder(true);
+                break;
             case 36: // home key
                 switchToImage(cory.info.first);
                 break;
@@ -595,6 +613,8 @@ $(document).ready(function() {
         });
         $("#imagePrev").click(function(ev) { advanceImage(false); });
         $("#imageNext").click(function(ev) { advanceImage(true); });
+        $("#folderPrev").click(function(ev) { advanceFolder(false); });
+        $("#folderNext").click(function(ev) { advanceFolder(true); });
     }
 
     mainToFixed();

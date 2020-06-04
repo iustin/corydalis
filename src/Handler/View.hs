@@ -83,17 +83,19 @@ mkImageInfo folder iname movie render params t =
             iname (transformParams t) (transformMatrix t)
 
 data ViewInfo = ViewInfo
-  { viYear    :: Text
-  , viYearUrl :: Text
-  , viFolder  :: Text
-  , viFldUrl  :: Text
-  , viImage   :: ImageName
-  , viImgUrl  :: Text
-  , viFirst   :: ImageInfo
-  , viPrev    :: Maybe ImageInfo
-  , viCurrent :: ImageInfo
-  , viNext    :: Maybe ImageInfo
-  , viLast    :: ImageInfo
+  { viYear       :: Text
+  , viYearUrl    :: Text
+  , viFolder     :: Text
+  , viFldUrl     :: Text
+  , viImage      :: ImageName
+  , viImgUrl     :: Text
+  , viFirst      :: ImageInfo
+  , viPrevFolder :: Maybe ImageInfo
+  , viPrev       :: Maybe ImageInfo
+  , viCurrent    :: ImageInfo
+  , viNext       :: Maybe ImageInfo
+  , viNextFolder :: Maybe ImageInfo
+  , viLast       :: ImageInfo
   }
 
 instance ToJSON ViewInfo where
@@ -105,9 +107,11 @@ instance ToJSON ViewInfo where
            , "image"       .= viImage
            , "imageurl"    .= viImgUrl
            , "first"       .= viFirst
+           , "prevfolder"  .= viPrevFolder
            , "prev"        .= viPrev
            , "current"     .= viCurrent
            , "next"        .= viNext
+           , "nextfolder"  .= viNextFolder
            , "last"        .= viLast
            ]
 
@@ -188,6 +192,8 @@ viewInfoForImage params (images, folders) folder img = do
       imgPrev  = snd <$> Map.lookupLT (folder, tkey) images
       imgNext  = snd <$> Map.lookupGT (folder, tkey) images
       imgLast  = snd  $  Map.findMax images
+      fldPrev  = snd <$> Map.lookupLT folder folders
+      fldNext  = snd <$> Map.lookupGT folder folders
       mk i = mkImageInfo (imgParent i) (imgName i) (isJust $ bestMovie i)
                render params (transformForImage i)
       y = maybe "?" (Text.pack . show) $ pdYear picdir
@@ -196,7 +202,8 @@ viewInfoForImage params (images, folders) folder img = do
     ViewInfo y (render yurl [])
       folder (render (FolderR folder) params)
       (imgName img) (render (ImageR folder (imgName img)) params)
-      (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)
+      (mk imgFirst) (mk <$> fldPrev) (mk <$> imgPrev) (mk img)
+      (mk <$> imgNext) (mk <$> fldNext)(mk imgLast)
 
 getImageInfoR :: Text -> ImageName -> Handler Value
 getImageInfoR folder iname = do

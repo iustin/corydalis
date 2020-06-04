@@ -9,7 +9,7 @@
 <canvas id="persistCanvas" width="96%" height="1em" style="height: 2em; left: 1em; width: 90%; top: 3em; position: absolute;">
 
 <div #imageNav .btn-group role="group" aria="Navigation buttons">
-    <button type="button" .btn .btn-light #folderPref
+    <button type="button" .btn .btn-light #folderPrev
       title="Go to the first image in the previous folder">
       <span .fas .fa-2x .fa-angle-double-left>
     <button type="button" .btn .btn-light #imagePrev
