@@ -487,10 +487,7 @@ $(document).ready(function() {
         //mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
         mc.add( new Hammer.Pan({direction: Hammer.DIRECTION_HORIZONTAL}));
         const singleTap = new Hammer.Tap({event: "singletap"});
-        const doubleTap = new Hammer.Tap({event: "doubletap", pointers: 2});
-        mc.add([singleTap, doubleTap]);
-        doubleTap.recognizeWith(singleTap);
-        singleTap.requireFailure(doubleTap);
+        mc.add(singleTap);
         //mc.on("swiperight", function(ev) {advanceImage(false);});
         //mc.on("swipeleft", function(ev) {advanceImage(true);});
         mc.on("panend", function(ev) {
