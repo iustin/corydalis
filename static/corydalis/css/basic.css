@@ -107,3 +107,15 @@ div#imageNav {
     right: 0.5em;
     opacity: 0.5;
 }
+
+span#messageBox {
+    font-size: x-large;
+    background-color: rgb(200,200,200,0.5);
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+}
+
+span#persistBox {
+    font-style: italic;
+    font-size: large;
+}

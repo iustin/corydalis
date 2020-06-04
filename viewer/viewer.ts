@@ -101,10 +101,8 @@ $(document).ready(function() {
 
     const canvas = <HTMLCanvasElement> $('#imageCanvas')[0];
     const context = canvas.getContext('2d');
-    const msgCanvas = <HTMLCanvasElement> $('#messageCanvas')[0];
-    const msgCtx = msgCanvas.getContext('2d');
-    const persistCanvas = <HTMLCanvasElement> $('#persistCanvas')[0];
-    const persistCtx = persistCanvas.getContext('2d');
+    const msgBox = $('#messageBox');
+    const persistBox = $('#persistBox');
 
     // Virtual (not-in-DOM) canvas that is used to for pre-rendering
     // images. The alternative would be to use putImageData() instead,
@@ -115,10 +113,6 @@ $(document).ready(function() {
 
     if (canvas == null ||
         context == null ||
-        msgCanvas == null ||
-        msgCtx == null ||
-        persistCanvas == null ||
-        persistCtx == null ||
         offCanvas == null ||
         offContext == null) {
         LOG("Initialising canvas elements failed!");
@@ -223,26 +217,6 @@ $(document).ready(function() {
         // to set the model (coordinate) dimension.
         context.canvas.width = width;
         context.canvas.height = height;
-        if (msgCtx != null) {
-            let w = $(msgCtx.canvas).width();
-            if (w != null) {
-              msgCtx.canvas.width = w;
-            }
-            let h = $(msgCtx.canvas).height();
-            if (h != null) {
-                msgCtx.canvas.height = h;
-            }
-        }
-        if (persistCtx != null) {
-            let w = $(persistCtx.canvas).width();
-            if (w != null) {
-                persistCtx.canvas.width = w;
-            }
-            let h = $(persistCtx.canvas).height();
-            if (h != null) {
-                persistCtx.canvas.height = h;
-            }
-        }
     };
 
     function resizeCanvasAndRedraw() {
@@ -352,7 +326,7 @@ $(document).ready(function() {
             setImageState(image, true);
             drawImage(image, info.view, info.transform, info.matrix, info.name);
         };
-        writeMessage("Loading " + info.name + "...");
+        writeMessage(`Loading ${info.name}...`);
         maybeWriteIsMovie(info);
         image.src = info.bytes;
         updateInfo(info.info);
@@ -362,35 +336,13 @@ $(document).ready(function() {
         if (cory.state.msgTimeId > 0) {
             window.clearTimeout(cory.state.msgTimeId);
         }
-        if (msgCtx != null) {
-            clearCanvasContext(msgCanvas, msgCtx);
-        }
+        msgBox.css('visibility', 'hidden');
     }
 
-    function clearCanvasContext(canv: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
-        ctx.clearRect(0, 0, canv.width, canv.height);
-    }
-
-    // Prepares a canvas context for writing text to it.
-    function writeText(text: string, canv: HTMLCanvasElement, ctx: CanvasRenderingContext2D, font: string) {
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-        ctx.shadowBlur = 2;
-        ctx.shadowColor = 'rgba(255, 255, 255, 1)';
-
-        ctx.fillStyle = 'Black';
-        ctx.textBaseline = 'top';
-        ctx.font = font;
-
-        ctx.fillText(text, 0, 0);
-    }
-
-    function writeMessage(text: string, timeout?: number) {
+    function writeMessage(message: string, timeout?: number) {
         clearMessageAndTimeout();
-        if (msgCanvas != null && msgCtx != null) {
-            writeText(text, msgCanvas, msgCtx, 'x-large Sans');
-        }
-
+        msgBox.text(message);
+        msgBox.css('visibility', 'visible');
         if (timeout == null) {
             timeout = 2000;
         }
@@ -401,21 +353,14 @@ $(document).ready(function() {
             }, timeout);
         }
     }
-    function writePersistent(text: string) {
-        if (persistCanvas == null || persistCtx == null) {
-            return;
-        }
-        clearCanvasContext(persistCanvas, persistCtx);
-        writeText(text, persistCanvas, persistCtx, 'italic large Sans');
+    function writePersistent(message: string) {
+        persistBox.text(message);
     }
 
     function maybeWriteIsMovie(info: { movie?: Url }) {
-        if (persistCtx != null) {
-            clearCanvasContext(persistCanvas, persistCtx);
-        }
-        if(info.movie != null) {
-            writePersistent("This is a movie. Press 'p', click or touch to play.");
-        }
+        writePersistent(info.movie != null
+                        ? "This is a movie. Press 'p', click or touch to play."
+                        : '');
     }
 
     function updateNavbar(topinfo: ViewInfo) {
@@ -619,7 +564,8 @@ $(document).ready(function() {
     const image = new Image();
     image.onload = function() {
         setImageState(image, true);
-        drawImage(image, location.href, bootinfo.current.transform, bootinfo.current.matrix);
+        const c = bootinfo.current;
+        drawImage(image, location.href, c.transform, c.matrix, c.name);
     };
     image.src = imageUrlScaled(bootinfo.current.bytes);
 
