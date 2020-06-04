@@ -7,3 +7,23 @@
 <canvas id="imageCanvas" width="100" height="100" style="height: 100%; width: 100%;"/>
 <canvas id="messageCanvas" width="96%" height="1em" style="height: 2em; left: 1em; width: 90%; top: 1em; position: absolute;">
 <canvas id="persistCanvas" width="96%" height="1em" style="height: 2em; left: 1em; width: 90%; top: 3em; position: absolute;">
+
+<div #imageNav .btn-group role="group" aria="Navigation buttons">
+    <button type="button" .btn .btn-light #folderPref
+      title="Go to the first image in the previous folder">
+      <span .fas .fa-2x .fa-angle-double-left>
+    <button type="button" .btn .btn-light #imagePrev
+      title="Go to the previous image">
+      <span .fas .fa-2x .fa-angle-left>
+    <button type="button" .btn .btn-light #imageFull
+      title="Toggle full-screen state">
+      <span .fas .fa-2x .fa-arrows-alt>
+    <button type="button" .btn .btn-light #imageRand
+      title="Go to a random image">
+      <span .fas .fa-2x .fa-random>
+    <button type="button" .btn .btn-light #imageNext
+      title="Go to the next image">
+      <span .fas .fa-2x .fa-angle-right>
+    <button type="button" .btn .btn-light #folderNext
+      title="Go to the first image in the next folder">
+      <span .fas .fa-2x .fa-angle-double-right>

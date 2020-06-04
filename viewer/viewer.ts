@@ -588,6 +588,10 @@ $(document).ready(function() {
             "left": 0,
             "right": 0
         });
+        $("#imageFull").click(function(ev) { toggleFullScreen(); });
+        $("#imageRand").click(function(ev) { gotoRandomImage(); });
+        $("#imagePrev").click(function(ev) { advanceImage(false); });
+        $("#imageNext").click(function(ev) { advanceImage(true); });
     }
 
     mainToFixed();

@@ -99,3 +99,11 @@ html {
     color: white;
     opacity: 0.9;
 }
+
+div#imageNav {
+    z-index: 2;
+    position: absolute;
+    bottom: 0.5em;
+    right: 0.5em;
+    opacity: 0.5;
+}
