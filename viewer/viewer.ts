@@ -513,41 +513,41 @@ $(document).ready(function() {
         }
         var handled = true;
         switch (e.keyCode) {
-        case 40: // up arrow
-        case 70: // 'f'
-            toggleFullScreen();
-            break;
-        case 80: // 'p'
-            launchMovie();
-            break;
-        case 82: // 'r'
-            gotoRandomImage();
-            break;
-        case 85: // 'u'
-            gotoFolder();
-            break;
-        case 88: // 'x'
-            flagImage(true);
-            break;
-        case 78: // 'n'
-            flagImage(false);
-            break;
-        case 37: // left arrow
-            advanceImage(false);
-            break;
-        case 32: // space
-        case 39: // right arrow
-            advanceImage(true);
-            break;
-        case 36: // home key
-            switchToImage(cory.info.first);
-            break;
-        case 35: // end key
-            switchToImage(cory.info.last);
-            break;
-        default:
-            handled = false;
-            break;
+            case 40: // up arrow
+            case 70: // 'f'
+                toggleFullScreen();
+                break;
+            case 80: // 'p'
+                launchMovie();
+                break;
+            case 82: // 'r'
+                gotoRandomImage();
+                break;
+            case 85: // 'u'
+                gotoFolder();
+                break;
+            case 88: // 'x'
+                flagImage(true);
+                break;
+            case 78: // 'n'
+                flagImage(false);
+                break;
+            case 37: // left arrow
+                advanceImage(false);
+                break;
+            case 32: // space
+            case 39: // right arrow
+                advanceImage(true);
+                break;
+            case 36: // home key
+                switchToImage(cory.info.first);
+                break;
+            case 35: // end key
+                switchToImage(cory.info.last);
+                break;
+            default:
+                handled = false;
+                break;
         }
         if (handled) {
             e.preventDefault();
