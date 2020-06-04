@@ -115,7 +115,7 @@ instance ToJSON ViewInfo where
 locateCurrentImage :: Text -> ImageName -> SearchResults -> Handler Image
 locateCurrentImage fname iname images = do
   unfiltered <- getImage fname iname
-  maybe notFound return $ Map.lookup (fname, imageTimeKey unfiltered) images
+  maybe notFound return $ Map.lookup (fname, imageTimeKey unfiltered) (fst images)
 
 getViewR :: Text -> ImageName -> Handler Html
 getViewR folder iname = do
@@ -168,7 +168,7 @@ getMovieBytesR folder iname = do
                 (TextL.unpack $ filePath f)
     _      -> sendResponse imageNotViewable
 
-randomPick :: SearchResults -> IO Image
+randomPick :: Map (Text, ImageTimeKey) Image -> IO Image
 randomPick images = do
   idx <- getStdRandom $ randomR (0, Map.size images - 1)
   -- This _should_ be safe, since idx in the right range. If not,
@@ -176,7 +176,7 @@ randomPick images = do
   return . snd . Map.elemAt idx $ images
 
 viewInfoForImage :: UrlParams -> SearchResults -> Text -> Image -> Handler ViewInfo
-viewInfoForImage params images folder img = do
+viewInfoForImage params (images, folders) folder img = do
   picdir <- getFolder folder
   render <- getUrlRenderParams
   let -- since we have an image, it follows that min/max must exist
@@ -207,7 +207,7 @@ getImageInfoR folder iname = do
 
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
-  (_, _, images) <- getAtomAndSearch
+  (_, _, (images, _)) <- getAtomAndSearch
   when (null images) notFound
   image <- liftIO $ randomPick images
   getImageInfoR (imgParent image) (imgName image)

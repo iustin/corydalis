@@ -1181,12 +1181,19 @@ atomToParams (Any xs)     =
   concatMap atomToParams xs ++ [("any", sformat int $ length xs)]
 atomToParams ConstTrue    = atomToParams (All [])
 
+earliestImage :: Image -> Image -> Image
+earliestImage a b =
+  if imageTimeKey a < imageTimeKey b
+  then a
+  else b
+
 -- | Build image map (with static sorting).
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
-  foldl' (\m img ->
-             Map.insert (imgParent img, imageTimeKey img) img m
-         ) Map.empty .
+  foldl' (\(mimg, mfld) img ->
+             (Map.insert (imgParent img, imageTimeKey img) img mimg,
+              Map.insertWith earliestImage (imgParent img) img mfld)
+         ) (Map.empty, Map.empty) .
   filterImagesBy (imageSearchFunction atom)
 
 -- | Build image map (with static sorting).

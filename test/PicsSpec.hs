@@ -40,15 +40,17 @@ spec = parallel $ withContext $
   describe "search cache" $ do
     it "caches a search result" $ \ctx -> do
       let image = simpleImage (ctxConfig ctx)
-          m1 = Map.singleton ("a", (Nothing, "b")) image
+          m1 = (Map.singleton ("a", (Nothing, "b")) image,
+                Map.singleton "a" image)
       getSearchResults ctx m1 [] `shouldReturn` m1
       getSearchResults ctx (error "Failed to cache") [] `shouldReturn` m1
 
 
     it "flushes the search cache on rescan" $ \ctx -> do
       let image = simpleImage (ctxConfig ctx)
-          m1 = Map.singleton ("a", (Nothing, "b")) image
-          m2 = Map.empty
+          m1 = (Map.singleton ("a", (Nothing, "b")) image,
+                Map.singleton "a" image)
+          m2 = (Map.empty, Map.empty)
       launchScanFileSystem ctx
       _ <- waitForScan ctx
       getSearchResults ctx m1 [] `shouldReturn` m1

@@ -668,7 +668,7 @@ repoGlobalExif =
   Map.foldl' (\e f -> e <> pdExif f) def
 
 -- | Type alias for search results, weakly capture-time-sorted.
-type SearchResults = Map (Text, ImageTimeKey) Image
+type SearchResults = (Map (Text, ImageTimeKey) Image, Map Text Image)
 
 -- | Type of the search cache.
 type SearchCache = LruCache UrlParams SearchResults
