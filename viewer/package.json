@@ -6,7 +6,7 @@
   "dependencies": {
     "@types/hammerjs": "^2.0.36",
     "@types/jquery": "^3.3.38",
-    "@types/screenfull": "^4.1.0"
+    "screenfull": "^5.0.2"
   },
   "devDependencies": {},
   "scripts": {
