@@ -489,14 +489,27 @@ $(document).ready(function() {
 
     function setupHammer() {
         var mc = new Hammer.Manager(canvas, {});
-        mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
+        //mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
+        mc.add( new Hammer.Pan({direction: Hammer.DIRECTION_HORIZONTAL}));
         var singleTap = new Hammer.Tap({event: "singletap"});
         var doubleTap = new Hammer.Tap({event: "doubletap", pointers: 2});
         mc.add([singleTap, doubleTap]);
         doubleTap.recognizeWith(singleTap);
         singleTap.requireFailure(doubleTap);
-        mc.on("swiperight", function(ev) {advanceImage(false);});
-        mc.on("swipeleft", function(ev) {advanceImage(true);});
+        //mc.on("swiperight", function(ev) {advanceImage(false);});
+        //mc.on("swipeleft", function(ev) {advanceImage(true);});
+        mc.on("panend", function(ev) {
+            LOG("end pan, direction ", ev.direction);
+            switch(ev.direction) {
+                case Hammer.DIRECTION_LEFT:
+                    advanceImage(true);
+                    break;
+                case Hammer.DIRECTION_RIGHT:
+                    advanceImage(false);
+                    break;
+                default: return;
+            }
+        });
         //mc.on("swipedown", function(ev) {toggleFullScreen();});
         //mc.on("swipeup", function(ev) {gotoRandomImage();});
         mc.on("doubletap", function(ev) {toggleFullScreen();});
