@@ -15,15 +15,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-type Transform = [number, boolean, boolean];
-const DEF_TRANSFORM : Transform = [0, false, false];
-
-type AffineMatrix = [number, number, number, number];
-const DEF_MATRIX : AffineMatrix = [1.0, 0.0, 0.0, 1.0];
-
-type Url = string
 
 // The Haskell types.
+
+type Transform = [number, boolean, boolean];
+
+type AffineMatrix = [number, number, number, number];
+
+type Url = string
 
 type ImageInfo = {
     info: Url,
@@ -57,14 +56,14 @@ type State = {
     img: HTMLImageElement,
     lastX: number,
     msgTimeId: number,
-    info?: ImageInfo,
+    info: ImageInfo,
     transform: Transform,
     matrix: AffineMatrix,
     url: string,
 }
 
 type Cory = {
-    info: any,
+    info: ViewInfo,
     prev: HTMLImageElement,
     next: HTMLImageElement,
     state: State,
@@ -73,20 +72,16 @@ type Cory = {
 
 $(document).ready(function() {
     var bootdiv = $("#boot");
-    var booturl = bootdiv.data("bytes-url");
-    var bootflagurl = bootdiv.data("flag-url");
-    var infourl = bootdiv.data("info-url");
-    var boottrans = bootdiv.data("initial-transform");
-    var bootmatrix = bootdiv.data("initial-matrix");
+    var bootinfo = bootdiv.data("view-info");
     var debug = bootdiv.data("debug");
     var LOG = debug ? console.log.bind(console) : function () {};
     var T_START = debug ? console.time.bind(console) : function () {};
     var T_STOP =  debug ? console.timeEnd.bind(console) : function () {};
 
-    LOG("booturl", booturl, "infourl", infourl, "boottrans", boottrans);
+    LOG("bootinfo ", bootinfo);
 
     var cory : Cory = {
-        info: undefined,
+        info: bootinfo,
         prev: new Image(),
         next: new Image(),
         state: {
@@ -94,20 +89,12 @@ $(document).ready(function() {
             img: new Image(),
             lastX: 0,
             msgTimeId: 0,
-            info: undefined,
-            transform: DEF_TRANSFORM,
-            matrix: DEF_MATRIX,
+            info: bootinfo.current,
+            transform: bootinfo.current.transform,
+            matrix: bootinfo.current.matrix,
             url: location.href,
         }
     };
-
-    // Used in the initial image load to display the "is movie
-    // message".
-    var bootfakeinfo = {
-        movie: bootdiv.data("movie") ? "fake-url" : undefined,
-        flag: bootdiv.data("flag-url"),
-    };
-    LOG("boot fake info", bootfakeinfo);
 
     var divMain = $('#main');
     var navMenu = $('#nav');
@@ -301,8 +288,8 @@ $(document).ready(function() {
         return url.toString();
     }
 
-    function requestImage(img: HTMLImageElement, info: ImageInfo, text: string) {
-        if (info) {
+    function requestImage(img: HTMLImageElement, info: ImageInfo | undefined, text: string) {
+        if (info != null) {
             img.onload = function() {
                 handleImageLoad(img, text);
             };
@@ -607,16 +594,18 @@ $(document).ready(function() {
 
     mainToFixed();
     resizeCanvas();
-    maybeWriteIsMovie(bootfakeinfo);
-
-    updateInfo(infourl);
+    maybeWriteIsMovie(bootinfo.current);
 
     var image = new Image();
     image.onload = function() {
         setImageState(image, true);
-        drawImage(image, location.href, boottrans, bootmatrix);
+        drawImage(image, location.href, bootinfo.current.transform, bootinfo.current.matrix);
     };
-    image.src = imageUrlScaled(booturl);
+    image.src = imageUrlScaled(bootinfo.current.bytes);
+
+    // Process the rest of info (load prev/next images) only after the
+    // current image loading has been triggered, for faster startup.
+    onInfoReceived(bootinfo);
 
     window.addEventListener('resize', resizeCanvasAndRedraw, false);
     window.addEventListener('orientationchange', resizeCanvasAndRedraw, false);

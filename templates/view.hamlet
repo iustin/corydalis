@@ -1,14 +1,7 @@
 <div #boot
-  data-folder="#{imgParent img}"
-  data-image="#{imgName img}"
-  data-bytes-url="@{ImageBytesR (imgParent img) (imgName img)}"
-  data-info-url="@?{(ImageInfoR (imgParent img) (imgName img), params)}"
-  data-flag-url="@{ImageFlagR (imgParent img) (imgName img)}"
   data-random-url="@?{(RandomImageInfoR, params)}"
-  data-initial-transform="#{initialTransform}"
-  data-initial-matrix="#{initialMatrix}"
+  data-view-info="#{viewInfo}"
   data-debug=#{debug}
-  data-movie=#{isMovie}
   />
 
 <canvas id="imageCanvas" width="100" height="100" style="height: 100%; width: 100%;"/>

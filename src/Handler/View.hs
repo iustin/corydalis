@@ -121,10 +121,8 @@ getViewR :: Text -> ImageName -> Handler Html
 getViewR folder iname = do
   (params, _, images) <- getAtomAndSearch
   img <- locateCurrentImage folder iname images
-  let tr@(Transform r fx fy) = transformForImage img
-      initialTransform = encodeToLazyText (rotateToJSON r, fx, fy)
-      initialMatrix = encodeToLazyText (transformMatrix tr)
-      isMovie = encodeToLazyText . isJust . bestMovie $ img
+  vi <- viewInfoForImage params images folder img
+  let viewInfo = encodeToLazyText (toJSON vi)
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     setHtmlTitle $ "image " <> folder <> "/" <> unImageName (imgName img)
