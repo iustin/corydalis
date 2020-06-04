@@ -15,7 +15,9 @@
          Switch to the <a href="@?{(BrowseFoldersR 0, params)}">grid view</a>
          $if atomFindsFiles atom
            , or go to the
-           or <a href="@?{(BrowseImagesR 0, params)}">image grid</a> for this filter.
+           or <a href="@?{(BrowseImagesR 0, params)}">image grid</a>
+           or <a href="@?{(ListImagesR, params)}">image list</a>
+           for this filter.
          $else
            ; note: this filter cannot find images.
 
