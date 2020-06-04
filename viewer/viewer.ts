@@ -15,10 +15,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-import * as $ from "jquery";
-import * as screenfull from "screenfull";
-import "hammerjs";
-
 type Transform = [number, boolean, boolean];
 const DEF_TRANSFORM : Transform = [0, false, false];
 
@@ -333,7 +329,9 @@ $(document).ready(function() {
         cory.state.fullscreen = true;
         var div = divMain[0];
         if (screenfull.isEnabled) {
-            screenfull.request(div);
+            LOG("entering full screen via screenfull");
+            // Sigh, why is the full type not seen correctly?
+            (screenfull as screenfull.Screenfull).request(div);
         } else {
             LOG("entering fake full screen");
             navMenu.addClass("nav-hidden");
@@ -345,7 +343,8 @@ $(document).ready(function() {
     function leaveFullScreen() {
         cory.state.fullscreen = false;
         if (screenfull.isEnabled) {
-            screenfull.exit();
+            LOG("exiting full screen via screenfull");
+            (screenfull as screenfull.Screenfull).exit();
         } else {
             LOG("exiting fake full screen");
             navMenu.removeClass("nav-hidden");
