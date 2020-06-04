@@ -590,6 +590,9 @@ $(document).ready(function() {
         });
         $("#imageFull").click(function(ev) { toggleFullScreen(); });
         $("#imageRand").click(function(ev) { gotoRandomImage(); });
+        $("#imageUp").click(function(ev) {
+            window.location.href = cory.info.folderurl;
+        });
         $("#imagePrev").click(function(ev) { advanceImage(false); });
         $("#imageNext").click(function(ev) { advanceImage(true); });
     }

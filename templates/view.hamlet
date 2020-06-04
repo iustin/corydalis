@@ -15,6 +15,9 @@
     <button type="button" .btn .btn-light #imagePrev
       title="Go to the previous image">
       <span .fas .fa-2x .fa-angle-left>
+    <button type="button" .btn .btn-light #imageUp
+      title="Go to the parent folder">
+      <span .fas .fa-2x .fa-angle-up>
     <button type="button" .btn .btn-light #imageFull
       title="Toggle full-screen state">
       <span .fas .fa-2x .fa-arrows-alt>
