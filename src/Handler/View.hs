@@ -177,10 +177,8 @@ randomPick images = do
   -- well...
   return . snd . Map.elemAt idx $ images
 
-getImageInfoR :: Text -> ImageName -> Handler Value
-getImageInfoR folder iname = do
-  (params, _, images) <- getAtomAndSearch
-  img <- locateCurrentImage folder iname images
+viewInfoForImage :: UrlParams -> SearchResults -> Text -> Image -> Handler ViewInfo
+viewInfoForImage params images folder img = do
   picdir <- getFolder folder
   render <- getUrlRenderParams
   let -- since we have an image, it follows that min/max must exist
@@ -196,11 +194,18 @@ getImageInfoR folder iname = do
                render params (transformForImage i)
       y = maybe "?" (Text.pack . show) $ pdYear picdir
       yurl = maybe SearchFoldersNoYearR SearchFoldersByYearR $ pdYear picdir
-  return . toJSON $
+  return $
     ViewInfo y (render yurl [])
       folder (render (FolderR folder) params)
-      (imgName img) (render (ImageR folder iname) params)
+      (imgName img) (render (ImageR folder (imgName img)) params)
       (mk imgFirst) (mk <$> imgPrev) (mk img) (mk <$> imgNext) (mk imgLast)
+
+getImageInfoR :: Text -> ImageName -> Handler Value
+getImageInfoR folder iname = do
+  (params, _, images) <- getAtomAndSearch
+  img <- locateCurrentImage folder iname images
+  vi <- viewInfoForImage params images folder img
+  return $ toJSON vi
 
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
