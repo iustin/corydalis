@@ -509,6 +509,10 @@ $(document).ready(function() {
         if (e.altKey || e.ctrlKey) {
             return;
         }
+        const active = document.activeElement;
+        if (active != null && active.id === 'entry') {
+            return;
+        }
         var handled = true;
         switch (e.keyCode) {
         case 40: // up arrow
