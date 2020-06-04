@@ -1,0 +1,25 @@
+{
+  "name": "viewer",
+  "version": "0.0.1",
+  "description": "Image viewer for corydalis",
+  "main": "viewer.js",
+  "dependencies": {
+    "@types/hammerjs": "^2.0.36",
+    "@types/jquery": "^3.3.38",
+    "@types/screenfull": "^4.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iustin/corydalis.git"
+  },
+  "author": "Iustin Pop",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/iustin/corydalis/issues"
+  },
+  "homepage": "https://github.com/iustin/corydalis#readme"
+}

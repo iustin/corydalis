@@ -1,0 +1,11 @@
+{
+   "compilerOptions": {
+       "strict" : true,
+       "target" : "es5",
+       "baseUrl": "./",
+       "outDir": "../static/corydalis/js/",
+       "paths": {
+           "*" : ["node_modules/*"],
+       },
+   }
+}

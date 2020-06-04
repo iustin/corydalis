@@ -15,8 +15,67 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+import * as $ from "jquery";
+import * as screenfull from "screenfull";
+import "hammerjs";
+
+type Transform = [number, boolean, boolean];
+const DEF_TRANSFORM : Transform = [0, false, false];
+
+type AffineMatrix = [number, number, number, number];
+const DEF_MATRIX : AffineMatrix = [1.0, 0.0, 0.0, 1.0];
+
+type Url = string
+
+// The Haskell types.
+
+type ImageInfo = {
+    info: Url,
+    bytes: Url,
+    movie?: Url,
+    view: Url,
+    flag: Url,
+    name: string,
+    transform: Transform,
+    matrix: AffineMatrix,
+}
+
+type ViewInfo = {
+    year: string,
+    yearurl: Url,
+    folder: string,
+    folderurl: Url,
+    image: string,
+    imageurl: Url,
+    first: ImageInfo,
+    prev?: ImageInfo,
+    current: ImageInfo,
+    next?: ImageInfo,
+    last: ImageInfo,
+}
+
+// Internal state
+
+type State = {
+    fullscreen: boolean,
+    img: HTMLImageElement,
+    lastX: number,
+    msgTimeId: number,
+    info?: ImageInfo,
+    transform: Transform,
+    matrix: AffineMatrix,
+    url: string,
+}
+
+type Cory = {
+    info: any,
+    prev: HTMLImageElement,
+    next: HTMLImageElement,
+    state: State,
+}
+
+
 $(document).ready(function() {
-    'use strict';
     var bootdiv = $("#boot");
     var booturl = bootdiv.data("bytes-url");
     var bootflagurl = bootdiv.data("flag-url");
@@ -30,22 +89,26 @@ $(document).ready(function() {
 
     LOG("booturl", booturl, "infourl", infourl, "boottrans", boottrans);
 
-    var cory = {
-        info: null,
+    var cory : Cory = {
+        info: undefined,
+        prev: new Image(),
+        next: new Image(),
         state: {
             fullscreen: false,
-            img: null,
+            img: new Image(),
             lastX: 0,
-            msgTimeId: null,
-            info: null,
-            movie: null
+            msgTimeId: 0,
+            info: undefined,
+            transform: DEF_TRANSFORM,
+            matrix: DEF_MATRIX,
+            url: location.href,
         }
     };
 
     // Used in the initial image load to display the "is movie
     // message".
     var bootfakeinfo = {
-        movie: bootdiv.data("movie"),
+        movie: bootdiv.data("movie") ? "fake-url" : undefined,
         flag: bootdiv.data("flag-url"),
     };
     LOG("boot fake info", bootfakeinfo);
@@ -53,11 +116,11 @@ $(document).ready(function() {
     var divMain = $('#main');
     var navMenu = $('#nav');
 
-    var canvas = $('#imageCanvas')[0];
+    var canvas = <HTMLCanvasElement> $('#imageCanvas')[0];
     var context = canvas.getContext('2d');
-    var msgCanvas = $('#messageCanvas')[0];
+    var msgCanvas = <HTMLCanvasElement> $('#messageCanvas')[0];
     var msgCtx = msgCanvas.getContext('2d');
-    var persistCanvas = $('#persistCanvas')[0];
+    var persistCanvas = <HTMLCanvasElement> $('#persistCanvas')[0];
     var persistCtx = persistCanvas.getContext('2d');
 
     // Virtual (not-in-DOM) canvas that is used to for pre-rendering
@@ -67,7 +130,20 @@ $(document).ready(function() {
     var offCanvas = document.createElement('canvas');
     var offContext = offCanvas.getContext('2d');
 
-    function drawImage(img, url, transform, matrix, msg) {
+    if (canvas == null ||
+        context == null ||
+        msgCanvas == null ||
+        msgCtx == null ||
+        persistCanvas == null ||
+        persistCtx == null ||
+        offCanvas == null ||
+        offContext == null) {
+        LOG("Initialising canvas elements failed!");
+        window.alert("Cannot fully initialise the application, aborting!");
+        return;
+    }
+
+    function drawImage(img: HTMLImageElement, url: string, transform: Transform, matrix: AffineMatrix, msg?: string) {
         if (!isImageReady(img)) {
             img.onload = function() {
                 LOG("Late load of ", url);
@@ -76,11 +152,22 @@ $(document).ready(function() {
             };
             return;
         }
+        if (context == null) {
+            return;
+        }
 
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.clearRect(0, 0, canvas.width, canvas.height);
         var cW = $(context.canvas).width();
+        if (cW == null) {
+            // Unlikely, as we pass a DOM object, but TS...
+            cW = 300;
+        }
         var cH = $(context.canvas).height();
+        if (cH == null) {
+            // Unlikely, as we pass a DOM object, but TS...
+            cH = 300;
+        }
         LOG("transform information:", transform, "matrix information:", matrix);
         var rotation = transform[0];
         var imgW = rotation == 0 ? img.width : img.height;
@@ -112,7 +199,7 @@ $(document).ready(function() {
         LOG("post-draw ", url);
         LOG("url: ", url, "location: ", location.href);
         if (url != location.href && url != undefined) // Prevent double entries.
-            history.pushState(null, null, url);
+            history.pushState(null, "", url);
         cory.state.img = img;
         cory.state.url = url;
         cory.state.transform = transform;
@@ -122,7 +209,7 @@ $(document).ready(function() {
         }
     };
 
-    function updateInfo(url) {
+    function updateInfo(url: string) {
         LOG("Requesting info from ", url);
         $.ajax({url: url,
                 type: "GET",
@@ -132,23 +219,47 @@ $(document).ready(function() {
 
     function redrawImage() {
         drawImage(cory.state.img, cory.state.url, cory.state.transform, cory.state.matrix);
-        maybeWriteIsMovie(cory.state);
+        maybeWriteIsMovie(cory.info.current);
     };
 
     function resizeCanvas() {
+        if(context == null) {
+            return;
+        }
         // Reset main div top position, in case navbar changed size.
         divMain.css({"top": computeNavBarHeight()});
         // Read the computed (display) dimensions...
         var width = $(context.canvas).width();
         var height = $(context.canvas).height();
+        if (width == null || height == null) {
+            // Unlikely, but...
+            LOG("Resizing canvas, failed to compute w/h, width: ", width, ", height: ", height, ", aborting.");
+            return;
+        }
         LOG("Resizing canvas, width ", width, ", height ", height);
         // to set the model (coordinate) dimension.
         context.canvas.width = width;
         context.canvas.height = height;
-        msgCtx.canvas.width = $(msgCtx.canvas).width();
-        msgCtx.canvas.height = $(msgCtx.canvas).height();
-        persistCtx.canvas.width = $(persistCtx.canvas).width();
-        persistCtx.canvas.height = $(persistCtx.canvas).height();
+        if (msgCtx != null) {
+            let w = $(msgCtx.canvas).width();
+            if (w != null) {
+              msgCtx.canvas.width = w;
+            }
+            let h = $(msgCtx.canvas).height();
+            if (h != null) {
+                msgCtx.canvas.height = h;
+            }
+        }
+        if (persistCtx != null) {
+            let w = $(persistCtx.canvas).width();
+            if (w != null) {
+                persistCtx.canvas.width = w;
+            }
+            let h = $(persistCtx.canvas).height();
+            if (h != null) {
+                persistCtx.canvas.height = h;
+            }
+        }
     };
 
     function resizeCanvasAndRedraw() {
@@ -156,37 +267,45 @@ $(document).ready(function() {
         redrawImage();
     };
 
-    function setImageState(img, done) {
+    function setImageState(img: HTMLImageElement, done: boolean) {
         $(img).data("done", done);
     }
 
-    function isImageReady(img) {
+    function isImageReady(img: HTMLImageElement) {
         return $(img).data("done");
     }
 
-    function handleImageLoad(img, kind) {
+    function handleImageLoad(img: HTMLImageElement, kind: string) {
         setImageState(img, true);
         LOG("Loaded", kind, " image");
         T_START("post-load");
         // Hack to force pre-rendering. Seems to work, at least in FF
         // and Chrome. For large images on a certain machine, goes
         // from 600ms to ~15 ms (FF), ~0.1ms (Chrome).
-        offContext.drawImage(img, 0, 0);
+        if (offContext != null) {
+            offContext.drawImage(img, 0, 0);
+        }
         T_STOP("post-load");
     }
 
-    function imageUrlScaled(baseUrl) {
+    function imageUrlScaled(baseUrl: string): string {
         var w = $(canvas).width();
+        if (w == null) {
+            w = 300;
+        }
         var h = $(canvas).height();
+        if (h == null) {
+            h = 300;
+        }
         var r = w > h ? w : h;
         // TODO: suply and read rendered sizes in/from boot data, and
         // make calls only for the right image sizes.
         var url = new URL(baseUrl);
-        url.searchParams.set('res', r);
+        url.searchParams.set('res', r.toString());
         return url.toString();
     }
 
-    function requestImage(img, info, text) {
+    function requestImage(img: HTMLImageElement, info: ImageInfo, text: string) {
         if (info) {
             img.onload = function() {
                 handleImageLoad(img, text);
@@ -200,11 +319,10 @@ $(document).ready(function() {
         }
     }
 
-    function onInfoReceived(json) {
+    function onInfoReceived(json: ViewInfo) {
         LOG("got cory");
         updateNavbar(json);
         cory.info = json;
-        cory.state.movie = cory.info.current.movie;
         cory.prev = new Image();
         requestImage(cory.prev, cory.info.prev, "prev");
         cory.next = new Image();
@@ -244,7 +362,7 @@ $(document).ready(function() {
     }
 
     // Switches to a non-preloaded image.
-    function switchToImage(info) {
+    function switchToImage(info: ImageInfo) {
         var image = new Image();
         image.onload = function() {
             setImageState(image, true);
@@ -257,18 +375,20 @@ $(document).ready(function() {
     }
 
     function clearMessageAndTimeout() {
-        if (cory.state.msgTimeId) {
+        if (cory.state.msgTimeId > 0) {
             window.clearTimeout(cory.state.msgTimeId);
         }
-        clearCanvasContext(msgCanvas, msgCtx);
+        if (msgCtx != null) {
+            clearCanvasContext(msgCanvas, msgCtx);
+        }
     }
 
-    function clearCanvasContext(canv, ctx) {
+    function clearCanvasContext(canv: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
         ctx.clearRect(0, 0, canv.width, canv.height);
     }
 
     // Prepares a canvas context for writing text to it.
-    function writeText(text, canv, ctx, font) {
+    function writeText(text: string, canv: HTMLCanvasElement, ctx: CanvasRenderingContext2D, font: string) {
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
         ctx.shadowBlur = 2;
@@ -281,33 +401,40 @@ $(document).ready(function() {
         ctx.fillText(text, 0, 0);
     }
 
-    function writeMessage(text, timeout) {
+    function writeMessage(text: string, timeout?: number) {
         clearMessageAndTimeout();
-        writeText(text, msgCanvas, msgCtx, 'x-large Sans');
+        if (msgCanvas != null && msgCtx != null) {
+            writeText(text, msgCanvas, msgCtx, 'x-large Sans');
+        }
 
-        if (typeof timeout === 'undefined') {
+        if (timeout == null) {
             timeout = 2000;
         }
         if (timeout > 0) {
             cory.state.msgTimeId = window.setTimeout(function() {
-                cory.state.msgTimeId = null;
+                cory.state.msgTimeId = 0;
                 clearMessageAndTimeout();
             }, timeout);
         }
     }
-    function writePersistent(text) {
+    function writePersistent(text: string) {
+        if (persistCanvas == null || persistCtx == null) {
+            return;
+        }
         clearCanvasContext(persistCanvas, persistCtx);
         writeText(text, persistCanvas, persistCtx, 'italic large Sans');
     }
 
-    function maybeWriteIsMovie(info) {
-        clearCanvasContext(persistCanvas, persistCtx);
-        if(info.movie) {
+    function maybeWriteIsMovie(info: { movie?: Url }) {
+        if (persistCtx != null) {
+            clearCanvasContext(persistCanvas, persistCtx);
+        }
+        if(info.movie != null) {
             writePersistent("This is a movie. Press 'p', click or touch to play.");
         }
     }
 
-    function updateNavbar(topinfo) {
+    function updateNavbar(topinfo: ViewInfo) {
         $("#navlink1").attr("href", topinfo.yearurl);
         $("#navtext1").text(topinfo.year);
         $("#navlink2").attr("href", topinfo.folderurl);
@@ -316,7 +443,7 @@ $(document).ready(function() {
         $("#navtext3").text(topinfo.image);
     }
 
-    function advanceImage(forward) {
+    function advanceImage(forward: boolean) {
         var img = forward ? cory.next : cory.prev;
         var info = forward ? cory.info.next : cory.info.prev;
         if (!info) {
@@ -344,13 +471,13 @@ $(document).ready(function() {
     }
 
     function launchMovie() {
-        if (cory.state.movie != null) {
-            LOG("Opening in separate window:", cory.state.movie);
-            window.open(cory.state.movie, "");
+        if (cory.info.current.movie != null) {
+            LOG("Opening in separate window:", cory.info.current.movie);
+            window.open(cory.info.current.movie, "");
         }
     }
 
-    function flagImage(flag) {
+    function flagImage(flag: boolean) {
         $.ajax({url: cory.info.current.flag,
                 type: flag ? "PUT" : "DELETE",
                 dataType: "json",
@@ -426,12 +553,16 @@ $(document).ready(function() {
         }
     });
 
-    function computeNavBarHeight() {
+    function computeNavBarHeight() : number {
         if (cory.state.fullscreen) {
             return 0;
         } else {
             var navbar = $("nav.navbar");
-            return navbar.outerHeight();
+            var h = navbar.outerHeight();
+            if (h == null) {
+              h = 0;
+            }
+            return h;
         }
     }
 
