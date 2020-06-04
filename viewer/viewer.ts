@@ -72,16 +72,16 @@ type Cory = {
 
 
 $(document).ready(function() {
-    var bootdiv = $("#boot");
-    var bootinfo = bootdiv.data("view-info");
-    var debug = bootdiv.data("debug");
-    var LOG = debug ? console.log.bind(console) : function () {};
-    var T_START = debug ? console.time.bind(console) : function () {};
-    var T_STOP =  debug ? console.timeEnd.bind(console) : function () {};
+    const bootdiv = $("#boot");
+    const bootinfo = bootdiv.data("view-info");
+    const debug = bootdiv.data("debug");
+    const LOG = debug ? console.log.bind(console) : function () {};
+    const T_START = debug ? console.time.bind(console) : function () {};
+    const T_STOP =  debug ? console.timeEnd.bind(console) : function () {};
 
     LOG("bootinfo ", bootinfo);
 
-    var cory : Cory = {
+    const cory : Cory = {
         info: bootinfo,
         prev: new Image(),
         next: new Image(),
@@ -96,22 +96,22 @@ $(document).ready(function() {
         }
     };
 
-    var divMain = $('#main');
-    var navMenu = $('#nav');
+    const divMain = $('#main');
+    const navMenu = $('#nav');
 
-    var canvas = <HTMLCanvasElement> $('#imageCanvas')[0];
-    var context = canvas.getContext('2d');
-    var msgCanvas = <HTMLCanvasElement> $('#messageCanvas')[0];
-    var msgCtx = msgCanvas.getContext('2d');
-    var persistCanvas = <HTMLCanvasElement> $('#persistCanvas')[0];
-    var persistCtx = persistCanvas.getContext('2d');
+    const canvas = <HTMLCanvasElement> $('#imageCanvas')[0];
+    const context = canvas.getContext('2d');
+    const msgCanvas = <HTMLCanvasElement> $('#messageCanvas')[0];
+    const msgCtx = msgCanvas.getContext('2d');
+    const persistCanvas = <HTMLCanvasElement> $('#persistCanvas')[0];
+    const persistCtx = persistCanvas.getContext('2d');
 
     // Virtual (not-in-DOM) canvas that is used to for pre-rendering
     // images. The alternative would be to use putImageData() instead,
     // and pre-render explicitly the images, tracking said rendering,
     // etc., but this seems much easier.
-    var offCanvas = document.createElement('canvas');
-    var offContext = offCanvas.getContext('2d');
+    const offCanvas = document.createElement('canvas');
+    const offContext = offCanvas.getContext('2d');
 
     if (canvas == null ||
         context == null ||
@@ -141,31 +141,31 @@ $(document).ready(function() {
 
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.clearRect(0, 0, canvas.width, canvas.height);
-        var cW = $(context.canvas).width();
+        let cW = $(context.canvas).width();
         if (cW == null) {
             // Unlikely, as we pass a DOM object, but TS...
             cW = 300;
         }
-        var cH = $(context.canvas).height();
+        let cH = $(context.canvas).height();
         if (cH == null) {
             // Unlikely, as we pass a DOM object, but TS...
             cH = 300;
         }
         LOG("transform information:", transform, "matrix information:", matrix);
-        var rotation = transform[0];
-        var imgW = rotation == 0 ? img.width : img.height;
-        var imgH = rotation == 0 ? img.height : img.width;
-        var scaleX = imgW / cW;
-        var scaleY = imgH / cH;
-        var scale = scaleX >= scaleY ? scaleX : scaleY;
+        const rotation = transform[0];
+        const imgW = rotation == 0 ? img.width : img.height;
+        const imgH = rotation == 0 ? img.height : img.width;
+        const scaleX = imgW / cW;
+        const scaleY = imgH / cH;
+        const scale = scaleX >= scaleY ? scaleX : scaleY;
         // Note: target* must be in original coordinate system, not
         // rotated! So using img.width, not imgW. This is because from
         // the point of view of the image, it's drawn straight, not
         // rotated. Sigh, head hurts.
-        var targetW = Math.round(img.width / scale);
-        var targetH = Math.round(img.height / scale);
-        var offX = targetW < cW ? Math.round((cW - targetW) / 2) : 0;
-        var offY = targetH < cH ? Math.round((cH - targetH) / 2) : 0;
+        const targetW = Math.round(img.width / scale);
+        const targetH = Math.round(img.height / scale);
+        let offX = targetW < cW ? Math.round((cW - targetW) / 2) : 0;
+        let offY = targetH < cH ? Math.round((cH - targetH) / 2) : 0;
         LOG("pre-draw; imgW:", imgW, "imgH:", imgH,
             "cW:", cW, "cH:", cH,
             "scaleX:", scaleX, "scaleY:", scaleY,
@@ -212,8 +212,8 @@ $(document).ready(function() {
         // Reset main div top position, in case navbar changed size.
         divMain.css({"top": computeNavBarHeight()});
         // Read the computed (display) dimensions...
-        var width = $(context.canvas).width();
-        var height = $(context.canvas).height();
+        const width = $(context.canvas).width();
+        const height = $(context.canvas).height();
         if (width == null || height == null) {
             // Unlikely, but...
             LOG("Resizing canvas, failed to compute w/h, width: ", width, ", height: ", height, ", aborting.");
@@ -272,18 +272,18 @@ $(document).ready(function() {
     }
 
     function imageUrlScaled(baseUrl: string): string {
-        var w = $(canvas).width();
+        let w = $(canvas).width();
         if (w == null) {
             w = 300;
         }
-        var h = $(canvas).height();
+        let h = $(canvas).height();
         if (h == null) {
             h = 300;
         }
-        var r = w > h ? w : h;
+        const r = w > h ? w : h;
         // TODO: suply and read rendered sizes in/from boot data, and
         // make calls only for the right image sizes.
-        var url = new URL(baseUrl);
+        const url = new URL(baseUrl);
         url.searchParams.set('res', r.toString());
         return url.toString();
     }
@@ -294,8 +294,6 @@ $(document).ready(function() {
                 handleImageLoad(img, text);
             };
             $(img).data("done", false);
-            var w = $(canvas).width();
-            var h = $(canvas).height();
             img.src = imageUrlScaled(info.bytes);
         } else {
             LOG("skipping", text, "image as unavailable");
@@ -314,7 +312,7 @@ $(document).ready(function() {
 
     function enterFullScreen() {
         cory.state.fullscreen = true;
-        var div = divMain[0];
+        const div = divMain[0];
         if (screenfull.isEnabled) {
             LOG("entering full screen via screenfull");
             // Sigh, why is the full type not seen correctly?
@@ -349,7 +347,7 @@ $(document).ready(function() {
 
     // Switches to a non-preloaded image.
     function switchToImage(info: ImageInfo) {
-        var image = new Image();
+        const image = new Image();
         image.onload = function() {
             setImageState(image, true);
             drawImage(image, info.view, info.transform, info.matrix, info.name);
@@ -430,13 +428,13 @@ $(document).ready(function() {
     }
 
     function advanceImage(forward: boolean) {
-        var img = forward ? cory.next : cory.prev;
-        var info = forward ? cory.info.next : cory.info.prev;
+        const img = forward ? cory.next : cory.prev;
+        const info = forward ? cory.info.next : cory.info.prev;
         if (!info) {
             writeMessage("No " + (forward ? "next" : "previous") + " image");
             return;
         }
-        var viewurl = info.view;
+        const viewurl = info.view;
         writeMessage("Loading " + info.name, 6000);
         maybeWriteIsMovie(info);
         drawImage(img, viewurl, info.transform, info.matrix, info.name);
@@ -444,8 +442,8 @@ $(document).ready(function() {
     }
 
     function advanceFolder(forward: boolean) {
-        let info = forward ? cory.info.nextfolder : cory.info.prevfolder;
-        let kind = forward ? 'next folder' : 'previous folder';
+        const info = forward ? cory.info.nextfolder : cory.info.prevfolder;
+        const kind = forward ? 'next folder' : 'previous folder';
         if (!info) {
             writeMessage(`No ${kind} available`);
         } else {
@@ -485,11 +483,11 @@ $(document).ready(function() {
     }
 
     function setupHammer() {
-        var mc = new Hammer.Manager(canvas, {});
+        const mc = new Hammer.Manager(canvas, {});
         //mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
         mc.add( new Hammer.Pan({direction: Hammer.DIRECTION_HORIZONTAL}));
-        var singleTap = new Hammer.Tap({event: "singletap"});
-        var doubleTap = new Hammer.Tap({event: "doubletap", pointers: 2});
+        const singleTap = new Hammer.Tap({event: "singletap"});
+        const doubleTap = new Hammer.Tap({event: "doubletap", pointers: 2});
         mc.add([singleTap, doubleTap]);
         doubleTap.recognizeWith(singleTap);
         singleTap.requireFailure(doubleTap);
@@ -523,7 +521,7 @@ $(document).ready(function() {
         if (active != null && active.id === 'entry') {
             return;
         }
-        var handled = true;
+        let handled = true;
         switch (e.keyCode) {
             case 40: // up arrow
             case 70: // 'f'
@@ -576,8 +574,8 @@ $(document).ready(function() {
         if (cory.state.fullscreen) {
             return 0;
         } else {
-            var navbar = $("nav.navbar");
-            var h = navbar.outerHeight();
+            const navbar = $("nav.navbar");
+            let h = navbar.outerHeight();
             if (h == null) {
               h = 0;
             }
@@ -596,7 +594,7 @@ $(document).ready(function() {
         divMain.removeClass("container-fluid");
         // Compute current location (on screen), based on navbar
         // height.
-        var navBarH = computeNavBarHeight();
+        const navBarH = computeNavBarHeight();
         LOG("navbar at ", navBarH);
         // And convert to absolute at same location.
         divMain.css({
@@ -621,7 +619,7 @@ $(document).ready(function() {
     resizeCanvas();
     maybeWriteIsMovie(bootinfo.current);
 
-    var image = new Image();
+    const image = new Image();
     image.onload = function() {
         setImageState(image, true);
         drawImage(image, location.href, bootinfo.current.transform, bootinfo.current.matrix);
