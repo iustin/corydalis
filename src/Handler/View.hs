@@ -117,20 +117,19 @@ instance ToJSON ViewInfo where
            ]
 
 -- | Ensure that requested image is present in the (filtered) map.
-locateCurrentImage :: Text -> ImageName -> SearchResults -> Handler Image
+locateCurrentImage :: Text -> ImageName -> SearchResultsPics -> Handler Image
 locateCurrentImage fname iname images = do
   unfiltered <- getImage fname iname
-  maybe notFound return $ Map.lookup (fname, imageTimeKey unfiltered) (fst images)
+  maybe notFound return $ Map.lookup (fname, imageTimeKey unfiltered) images
 
 getViewR :: Text -> ImageName -> Handler Html
 getViewR folder iname = do
   (params, _, images) <- getAtomAndSearch
-  img <- locateCurrentImage folder iname images
-  vi <- viewInfoForImage params images folder img
+  vi <- viewInfoForImage params images folder iname
   let viewInfo = encodeToLazyText (toJSON vi)
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    setHtmlTitle $ "image " <> folder <> "/" <> unImageName (imgName img)
+    setHtmlTitle $ "image " <> folder <> "/" <> unImageName iname
     $(widgetFile "view")
 
 basicSvg :: Text -> Svg
@@ -190,10 +189,11 @@ randomPick images = do
   -- well...
   return . snd . Map.elemAt idx $ images
 
-viewInfoForImage :: UrlParams -> SearchResults -> Text -> Image -> Handler ViewInfo
-viewInfoForImage params (images, folders) folder img = do
+viewInfoForImage :: UrlParams -> SearchResults -> Text -> ImageName -> Handler ViewInfo
+viewInfoForImage params (images, folders) folder iname = do
   picdir <- getFolder folder
   render <- getUrlRenderParams
+  img <- locateCurrentImage folder iname images
   let -- since we have an image, it follows that min/max must exist
       -- (they might be the same), hence we can use the non-total
       -- functions findMin/findMax until newer containers package
@@ -219,8 +219,7 @@ viewInfoForImage params (images, folders) folder img = do
 getImageInfoR :: Text -> ImageName -> Handler Value
 getImageInfoR folder iname = do
   (params, _, images) <- getAtomAndSearch
-  img <- locateCurrentImage folder iname images
-  vi <- viewInfoForImage params images folder img
+  vi <- viewInfoForImage params images folder iname
   return $ toJSON vi
 
 getRandomImageInfoR :: Handler Value

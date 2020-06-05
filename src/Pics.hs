@@ -90,6 +90,7 @@ module Pics ( PicDir(..)
             , imageYear
             , imageTimeKey
             , SearchResults
+            , SearchResultsPics
             , getSearchResults
             , SearchCache
             , imgProblems
@@ -667,8 +668,11 @@ repoGlobalExif :: RepoDirs -> GroupExif
 repoGlobalExif =
   Map.foldl' (\e f -> e <> pdExif f) def
 
--- | Type alias for search results, weakly capture-time-sorted.
-type SearchResults = (Map (Text, ImageTimeKey) Image, Map Text Image)
+-- | Type alias for image search results, weakly capture-time-sorted.
+type SearchResultsPics = Map (Text, ImageTimeKey) Image
+
+-- | Overall search results type alias.
+type SearchResults = (SearchResultsPics, Map Text Image)
 
 -- | Type of the search cache.
 type SearchCache = LruCache UrlParams SearchResults
