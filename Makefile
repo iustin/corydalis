@@ -70,6 +70,7 @@ haddock:
 
 clean:
 	rm -rf site/ dist/
+	rm -f static/tmp/* static/combined/*
 
 .PHONY: really-clean
 really-clean: clean
