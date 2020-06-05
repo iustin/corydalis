@@ -40,7 +40,8 @@ import qualified Data.Text.Encoding          as Text (encodeUtf8)
 import qualified Data.Text.Lazy              as TextL
 import           System.Random               (getStdRandom, randomR)
 import qualified Text.Blaze.Svg              as Svg
-import           Text.Blaze.Svg11            (Svg, docTypeSvg, text_, (!))
+import           Text.Blaze.Svg11            (Svg, docTypeSvg, rect, text_,
+                                              tspan, (!))
 import qualified Text.Blaze.Svg11.Attributes as SA
 import qualified Text.Hamlet                 as Hamlet (Render)
 
@@ -134,12 +135,22 @@ getViewR folder iname = do
 
 basicSvg :: Text -> Svg
 basicSvg msg =
-  docTypeSvg ! SA.version "1.1" ! SA.width "600" ! SA.height "600"
-    ! SA.viewbox "0 0 600 600" $
-  text_ (Svg.toSvg msg)
+  docTypeSvg ! SA.version "1.1" ! SA.width "600" ! SA.height "800"
+    ! SA.viewbox "0 0 600 800" $ do
+  rect ! SA.x "0" ! SA.y "0" ! SA.height "100%" ! SA.width "100%"
+    ! SA.fill "#b0b0b0"
+  text_ (breakText msg)
     ! SA.fontSize "14px"
     ! SA.x "50" ! SA.y "50"
-    ! SA.textlength "500" ! SA.lengthadjust "spacingAndGlyphs"
+    -- ! SA.textlength "100%" ! SA.lengthadjust "spacingAndGlyphs"
+
+  where breakText msgx =
+          let w = words msgx
+              lns = go w []
+          in Svg.toSvg $ tspan "":map (\l -> tspan (Svg.toSvg l) ! SA.dy "14" ! SA.x "0") lns
+        go [] lns = reverse lns
+        go ws lns = let (tw, lw) = splitAt 7 ws
+                    in go lw (unwords tw:lns)
 
 imageNotViewable :: TypedContent
 imageNotViewable =
