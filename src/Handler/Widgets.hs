@@ -69,6 +69,7 @@ imageBytes thumbsize params folder image =
                      <img
                        src="@?{imageBytesAtRes folder image thumbsize}"
                        width=#{thumbsize} height=#{thumbsize}
+                       loading="lazy"
                        >|]
 
 imageBytesForFolder :: Int -> UrlParams -> Text -> ImageName -> Widget

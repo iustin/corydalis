@@ -6,6 +6,11 @@
 
 ### Performance changes
 
+Image thumbnails in image/folder list make use of the HTML-native
+lazy-loading mechanism, which (for browsers that implement it) makes
+large image lists actually usable. Not a proper replacement for a
+paged loading mechanism, but a working substitute.
+
 Slight performance change for loading pages due to reduced and
 combined CSS/JS resource serving. This can lead to 10-20% page loaded
 speed-ups, depending on the page type and complexity.
