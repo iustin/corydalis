@@ -232,7 +232,7 @@ $(document).ready(function() {
         return $(img).data("done");
     }
 
-    function handleImageLoad(img: HTMLImageElement, kind: string) {
+    function handleOffscreenImageLoad(img: HTMLImageElement, kind: string) {
         setImageState(img, true);
         LOG("Loaded", kind, " image");
         T_START("post-load");
@@ -262,10 +262,10 @@ $(document).ready(function() {
         return url.toString();
     }
 
-    function requestImage(img: HTMLImageElement, info: ImageInfo | undefined, text: string) {
+    function requestOffscreenImage(img: HTMLImageElement, info: ImageInfo | undefined, text: string) {
         if (info != null) {
             img.onload = function() {
-                handleImageLoad(img, text);
+                handleOffscreenImageLoad(img, text);
             };
             $(img).data("done", false);
             img.src = imageUrlScaled(info.bytes);
@@ -279,9 +279,9 @@ $(document).ready(function() {
         updateNavbar(json);
         cory.info = json;
         cory.prev = new Image();
-        requestImage(cory.prev, cory.info.prev, "prev");
+        requestOffscreenImage(cory.prev, cory.info.prev, "prev");
         cory.next = new Image();
-        requestImage(cory.next, cory.info.next, "next");
+        requestOffscreenImage(cory.next, cory.info.next, "next");
     };
 
     function enterFullScreen() {
@@ -328,7 +328,7 @@ $(document).ready(function() {
         };
         writeMessage(`Loading ${info.name}...`);
         maybeWriteIsMovie(info);
-        image.src = info.bytes;
+        image.src = imageUrlScaled(info.bytes);
         updateInfo(info.info);
     }
 
