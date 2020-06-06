@@ -1,7 +1,9 @@
-dist*
-static/tmp/
-static/combined/
-config/client_session_key.aes
+/dist*
+/static/tmp/
+/static/combined/
+/static/corydalis/js/viewer.js
+/config/client_session_key.aes
+/viewer/node_modules
 *.hi
 *.o
 *.prof_o
@@ -10,7 +12,8 @@ config/client_session_key.aes
 *.sqlite3-wal
 .hsenv*
 cabal-dev/
-.stack-*/
+/.stack-*/
+/stack.yaml.lock
 yesod-devel/
 /db/
 /site/
