@@ -15,6 +15,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+/// <reference types="jquery"/>
+/// <reference types="hammerjs"/>
+/// <reference types="screenfull"/>
 
 // The Haskell types.
 
