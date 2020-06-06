@@ -8,7 +8,13 @@
     "@types/jquery": "^3.3.38",
     "screenfull": "^5.0.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^3.1.0",
+    "@typescript-eslint/parser": "^3.1.0",
+    "clang-format": "^1.4.0",
+    "eslint": "^7.2.0",
+    "eslint-config-google": "^0.14.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
