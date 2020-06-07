@@ -6,5 +6,6 @@
        "moduleResolution": "node",
        "baseUrl": "./",
        "outDir": "../static/corydalis/js/",
-   },
+       "allowJs": true
+   }
 }

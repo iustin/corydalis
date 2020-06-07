@@ -1,7 +1,7 @@
 /dist*
 /static/tmp/
 /static/combined/
-/static/corydalis/js/viewer.js
+/static/corydalis/js/
 /static/font-awesome/css/regular.css
 /static/font-awesome/css/solid.css
 /config/client_session_key.aes
