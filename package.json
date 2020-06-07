@@ -18,6 +18,7 @@
     "imagesloaded": "^4.1.4",
     "jquery": "^3.5.1",
     "plotly.js-cartesian-dist-min": "^1.54.1",
+    "tablesorter": "^2.31.3",
     "typescript": "^3.9.5"
   },
   "scripts": {
