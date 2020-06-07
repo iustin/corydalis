@@ -16,7 +16,7 @@
     "eslint-config-google": "^0.14.0"
   },
   "scripts": {
-    "test": "eslint *.ts"
+    "test": "eslint js/*.ts"
   },
   "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",
