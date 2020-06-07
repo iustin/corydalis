@@ -40,6 +40,14 @@ clean-git-version:
 .PHONY: regen-git-version
 regen-git-version: clean-git-version git-version
 
+# Target to use after cloning from git
+.PHONY: bootstrap
+bootstrap:
+	@echo Installing npm dependencies...
+	npm install
+	@echo One-shot converting typescript to JS...
+	npx tsc -p js/ --listEmittedFiles
+
 # Incremental rebuild and installs in dist/ with the current settings
 # (vs. release which is clean build).
 dist:

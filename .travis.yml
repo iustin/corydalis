@@ -5,6 +5,7 @@ language: generic
 cache:
   directories:
   - $HOME/.stack
+  npm: true
 
 before_install:
   # Download and unpack the stack executable
@@ -15,6 +16,7 @@ before_install:
 
 install:
   - make git-version
+  - make bootstrap
   - stack setup --no-terminal
   - stack build --no-terminal --only-snapshot
 
