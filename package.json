@@ -1,8 +1,8 @@
 {
-  "name": "viewer",
+  "name": "corydalis",
   "version": "0.0.1",
-  "description": "Image viewer for corydalis",
-  "main": "viewer.js",
+  "description": "Frontend package/dependencies for corydalis",
+  "private": true,
   "dependencies": {
     "@types/hammerjs": "^2.0.36",
     "@types/jquery": "^3.3.38",
@@ -18,10 +18,7 @@
   "scripts": {
     "test": "eslint *.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/iustin/corydalis.git"
-  },
+  "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",
   "license": "AGPL-3.0-or-later",
   "bugs": {
