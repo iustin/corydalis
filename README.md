@@ -45,11 +45,11 @@ rather is designed to work in conjunction with the actual manager.
 ## Installation and use
 
 You will need
-[stack](https://docs.haskellstack.org/en/stable/README/), a number of
-common command line utilities, and to read the [installation
-guide](docs/install.md). Then read the [manual](docs/manual.md) in
-order to understand what Corydalis shows. You can also see the
-documentation online at
+[stack](https://docs.haskellstack.org/en/stable/README/),
+[npm](https://www.npmjs.com/), a number of common command line
+utilities, and to read the [installation guide](docs/install.md). Then
+read the [manual](docs/manual.md) in order to understand what
+Corydalis shows. You can also see the documentation online at
 [readthedocs](http://corydalis.readthedocs.io/).
 
 ## Bugs/features

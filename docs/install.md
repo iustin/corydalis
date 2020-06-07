@@ -2,9 +2,18 @@
 
 ## Requirements
 
-Corydalis is built using Haskell and the Yesod framework, which means
-it has a lot of build dependencies; therefore, for source builds, the
-simplest way is to use the
+#### Frontend
+
+Being a web application, Corydalis has a quite a bit of JavaScript
+dependencies. These are installed via `npm`, and to get everything up
+and ready for compilation/integration to the backend, you need to
+first install and post-process these (see actual instructions below).
+
+### Backend
+
+The backend is built using Haskell and the Yesod framework, which
+means it has a lot of build dependencies; therefore, for source
+builds, the simplest way is to use the
 [stack](https://docs.haskellstack.org/en/stable/README/) tool.
 
 It uses [ImageMagick](https://www.imagemagick.org/) to generate the
@@ -28,19 +37,17 @@ CPU; on my own collection, a cold start will probably take many hours
 (for initial, required EXIF gathering) and follow-up work possibly a
 day or so (for the pre-rendering).
 
-Being a web application, it also has a quite a bit of JavaScript
-dependencies. However, these are distributed with the application, so
-there's no need to do anything, unless you want to use newer version
-of them; just update the files in the `static/` subdirectory. See the
-[embedded libraries](embeddedlibs.md) doc for details.
 
 ## Building from source
 
 Using stack:
 
+    $ echo install npm packages and pre-process them
+    $ make bootstrap
+    $ echo build the backend
     $ stack build
     $ stack install --local-bin-path /path/to/target
-    $ cp -a static /path/to/target/
+    $ cp -aL static /path/to/target/
 
 
 That should be it about the "build" phase, although if you don't

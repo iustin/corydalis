@@ -60,6 +60,11 @@ single path element, now image names are multi-path elements:
 corydalis, and in general is a cleaner way to represent file-system
 paths in URLS.
 
+The source tree no longer contains embedded libraries (yay!). They
+have been replaced by symlinks (or transformations) of upstream files
+as shipped in [npm](https://www.npmjs.com/) packages. This should
+simplify future development.
+
 ## v0.4.0
 
 *Sun, 26 May 2019*
