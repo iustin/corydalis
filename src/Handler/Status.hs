@@ -231,12 +231,12 @@ getStatusR = do
   scanProgress <- liftIO $ getProgress ctx
   renderProgress <- liftIO $ getRenderProgress ctx
   let (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
-        RepoEmpty         -> (0::Int, "empty"::Text, "bg-warning"::Text, False)
-        RepoStarting      -> (5, "preparing scan", "bg-warning", False)
-        RepoScanning _    -> (10, "scanning filesystem", "bg-info", True)
-        RepoRendering _ _ -> (50, "rendering images", "bg-info", True)
-        RepoFinished _ _  -> (100, "all done", "bg-info", False)
-        RepoError _       -> (100, "error", "bg-danger", False)
+        RepoEmpty        -> (0::Int, "empty"::Text, "bg-warning"::Text, False)
+        RepoStarting     -> (5, "preparing scan", "bg-warning", False)
+        RepoScanning {}  -> (10, "scanning filesystem", "bg-info", True)
+        RepoRendering {} -> (50, "rendering images", "bg-info", True)
+        RepoFinished {}  -> (100, "all done", "bg-info", False)
+        RepoError {}     -> (100, "error", "bg-danger", False)
       overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
   now <- liftIO getZonedTime
   defaultLayout $ do

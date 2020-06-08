@@ -22,11 +22,11 @@
           $of RepoStarting
             <p .card-text>
               Preparing to scan the repository.
-          $of RepoScanning ws
+          $of RepoScanning { rsScanGoal = ws }
             ^{repoInProgress now scanning ws}
-          $of RepoRendering _ ws
+          $of RepoRendering { rsRenderGoal = ws }
             ^{repoInProgress now rendering ws}
-          $of RepoFinished (WorkResults { wrStart = b }) (WorkResults { wrEnd = er })
+          $of RepoFinished { rsScanResults = WorkResults { wrStart = b }, rsRenderResults = WorkResults { wrEnd = er }}
             <p .card-text>
               All work completed.
               Repository age is <abbr title="Scanned at #{show b}">#{relTime False (diffZ now b)}</abbr>.
@@ -45,11 +45,11 @@
           ^{workIdle scanning}
         $of RepoStarting
           ^{workIdle scanning}
-        $of RepoScanning ws
+        $of RepoScanning { rsScanGoal = ws }
           ^{workInProgress now scanning scanProgress ws}
-        $of RepoRendering sr _
+        $of RepoRendering { rsScanResults = sr }
           ^{workResults now sr scanning "files"}
-        $of RepoFinished sr _
+        $of RepoFinished { rsScanResults = sr }
           ^{workResults now sr scanning "files"}
         $of RepoError _
           ^{scanFailed}
@@ -64,9 +64,9 @@
           ^{workIdle rendering}
         $of RepoScanning _
           ^{workIdle rendering}
-        $of RepoRendering _ ws
+        $of RepoRendering { rsRenderGoal = ws }
           ^{workInProgress now rendering renderProgress ws}
-        $of RepoFinished _ rr
+        $of RepoFinished { rsRenderResults = rr }
           ^{workResults now rr rendering "images"}
         $of RepoError _
           ^{scanFailed}

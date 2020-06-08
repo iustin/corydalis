@@ -396,9 +396,17 @@ data RepoStatus = RepoEmpty    -- ^ Only to be used at application
                                -- startup time!
                 | RepoStarting -- ^ Denotes an empty, in-process of
                                -- being rescanned repo.
-                | RepoScanning !WorkStart
-                | RepoRendering !WorkResults !WorkStart
-                | RepoFinished !WorkResults !WorkResults
+                | RepoScanning
+                  { rsScanGoal :: !WorkStart
+                  }
+                | RepoRendering
+                  { rsScanResults :: !WorkResults
+                  , rsRenderGoal  :: !WorkStart
+                  }
+                | RepoFinished
+                  { rsScanResults   :: !WorkResults
+                  , rsRenderResults :: !WorkResults
+                  }
                 | RepoError !Text
   deriving (Show)
 
@@ -1153,7 +1161,7 @@ scanFilesystem ctx newrepo = do
   atomically $ writeTVar scanProgress def
   start <- getZonedTime
   let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
-  r2 <- tryUpdateRepo ctx (r1 { repoStatus = RepoScanning ws })
+  r2 <- tryUpdateRepo ctx (r1 { repoStatus = RepoScanning { rsScanGoal = ws } })
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir ctx))
                  $ srcdirs ++ outdirs
   logfn "Finished scanning directories"
@@ -1180,7 +1188,8 @@ scanFilesystem ctx newrepo = do
   repo'' <- tryUpdateRepo ctx r2 { repoDirs   = repo'
                                  , repoStats  = stats
                                  , repoExif   = rexif
-                                 , repoStatus = RepoRendering wrscan wsrender
+                                 , repoStatus = RepoRendering { rsScanResults = wrscan,
+                                                                rsRenderGoal = wsrender }
                                  }
   writeDiskCache config repo''
   logfn "Finished building repo, starting rendering"
@@ -1191,7 +1200,10 @@ scanFilesystem ctx newrepo = do
                              , wrGoal = totalrender
                              , wrDone = rendered
                              }
-  repo''' <- evaluate $ force $ repo'' { repoStatus = RepoFinished wrscan wrrender }
+      status = RepoFinished { rsScanResults = wrscan
+                            , rsRenderResults = wrrender
+                            }
+  repo''' <- evaluate $ force $ repo'' { repoStatus = status }
   r4 <- tryUpdateRepo ctx repo'''
   writeDiskCache config r4
   logfn "Finished rendering, all done"
