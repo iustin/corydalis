@@ -54,6 +54,7 @@ module Types ( Config(..)
              , ctxScanner
              , ctxScanProgress
              , ctxRenderProgress
+             , ctxCleanProgress
              , ctxSearchCache
              , ctxLogger
              , newContext
@@ -345,6 +346,7 @@ data Context a b = Context
   , ctxScanner        :: !(TVar (Maybe (Async a)))
   , ctxScanProgress   :: !(TVar Progress)
   , ctxRenderProgress :: !(TVar Progress)
+  , ctxCleanProgress  :: !(TVar Progress)
   -- TODO: this really shouldn't be parametrised…
   , ctxSearchCache    :: !(TVar b)
   , ctxLogger         :: !LogFn
@@ -357,11 +359,13 @@ newContext config logfn a b = do
   scanner <- newTVar Nothing
   scanProg <- newTVar def
   renderProg <- newTVar def
+  cleanProg <- newTVar def
   return $ Context { ctxConfig         = config
                    , ctxRepo           = ta
                    , ctxScanner        = scanner
                    , ctxScanProgress   = scanProg
                    , ctxRenderProgress = renderProg
+                   , ctxCleanProgress  = cleanProg
                    , ctxSearchCache    = tb
                    , ctxLogger         = logfn
                    }

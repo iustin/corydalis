@@ -57,6 +57,7 @@ module Pics ( PicDir(..)
             , getRepo
             , getProgress
             , getRenderProgress
+            , getCleanProgress
             , scanAll
             , launchScanFileSystem
             , waitForScan
@@ -1305,6 +1306,9 @@ getProgress = readTVarIO . ctxScanProgress
 -- | Returns the progress of the render thread.
 getRenderProgress :: Ctx -> IO Progress
 getRenderProgress = readTVarIO . ctxRenderProgress
+
+getCleanProgress :: Ctx -> IO Progress
+getCleanProgress = readTVarIO . ctxCleanProgress
 
 scanAll :: Ctx -> IO Repository
 scanAll ctx = do

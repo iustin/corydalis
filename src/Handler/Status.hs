@@ -254,7 +254,7 @@ getStatusR = do
   -- transaction, and repo as well. [cleanup]
   scanProgress <- liftIO $ getProgress ctx
   renderProgress <- liftIO $ getRenderProgress ctx
-  let cleanProgress = def
+  cleanProgress <- liftIO $ getCleanProgress ctx
   let (overall_perc, overall_text, overall_role, overall_strip) = overallState repoState
       overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
   now <- liftIO getZonedTime
