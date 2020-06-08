@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 $(document).ready(function() {
   'use strict';
-  $.fancybox.defaults.animationEffect = 'false';
-  $.fancybox.defaults.transitionEffect = 'false';
+  $.fancybox.defaults.animationEffect = false;
+  $.fancybox.defaults.transitionEffect = false;
   // Disable hashing since masonry controls the URL.
   $.fancybox.defaults.hash = false;
   // We know we act on a grid, which has infinite scroll enabled.
