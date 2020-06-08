@@ -1,5 +1,0 @@
-$(document).ready(function() {
-    $("#folderlist").tablesorter({
-        sortList: [[1, 0]],
-    });
-});
