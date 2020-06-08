@@ -92,6 +92,6 @@
         $of RepoCleaning { rsCleanGoal = ws }
           ^{workInProgress now cleaning cleanProgress ws}
         $of RepoFinished { rsCleanResults = rr }
-          ^{workResults now rr rendering "images"}
+          ^{workResults now rr cleaning "files"}
         $of RepoError _
           ^{scanFailed}

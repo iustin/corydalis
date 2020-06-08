@@ -145,8 +145,11 @@ initContext :: Config -> LogFn -> STM Ctx
 initContext config logfn =
   newContext config logfn startupRepository emptySearchCache
 
+neverRecurseDirs :: [String]
+neverRecurseDirs = [".", ".."]
+
 blacklistedDirs :: Config -> [String]
-blacklistedDirs config = [".", ".."] ++ cfgBlacklistedDirs config
+blacklistedDirs config = neverRecurseDirs ++ cfgBlacklistedDirs config
 
 isOKDir :: Config -> String -> Bool
 isOKDir cfg = TDFA.match (reRegex $ cfgDirRegex cfg)
@@ -891,10 +894,12 @@ folderClassFromStats stats@Stats {..} =
        _ -> error $ "Wrong computation in folderClass: stats=" ++ show stats
                     ++ ", conditions=" ++ show conditions
 
-getDirContents :: Config -> FilePath -> IO ([FilePath], [InodeInfo])
-getDirContents config root = do
+getDirContents' :: Bool -> Config -> FilePath -> IO ([FilePath], [InodeInfo])
+getDirContents' filtered config root = do
   contents <- getDirectoryContents root
-  let blkdirs = blacklistedDirs config
+  let blkdirs = if filtered
+                then blacklistedDirs config
+                else neverRecurseDirs
       allowed_names = filter (`notElem` blkdirs) contents
   paths <-
     foldM (\acc path -> do
@@ -910,6 +915,9 @@ getDirContents config root = do
        ) [] allowed_names
   let (dirs, files) = partition inodeDir paths
   return $!! (map inodeName dirs, files)
+
+getDirContents :: Config -> FilePath -> IO ([FilePath], [InodeInfo])
+getDirContents = getDirContents' True
 
 -- | Scans one of the directories defined in the configuration.
 scanBaseDir :: Ctx
@@ -933,7 +941,7 @@ scanSubDir ctx path isSource = do
   let allpaths' = filter (isOKDir config) dirpaths
   mapM (\s -> loadFolder ctx s (path </> s) isSource) allpaths'
 
--- | Recursively count number of items under a directory.
+-- | Recursively count number of items (images) under a directory.
 countDir :: Config -> Int -> String -> IO Int
 countDir config level path = do
   (dirpaths, iinfo) <- getDirContents config path
@@ -944,6 +952,14 @@ countDir config level path = do
                  else dirpaths
   subdirs <- mapConcurrently (\p -> countDir config (level+1) (path </> p)) allpaths
   let total = sum subdirs + if level > 2 then length iinfo else 0
+  return $!! total
+
+-- | Recursively count number of all files and directories under a directory.
+countDirRaw :: Config -> String -> IO Int
+countDirRaw config path = do
+  (dirpaths, iinfo) <- getDirContents' False config path
+  subdirs <- mapConcurrently (\p -> countDirRaw config (path </> p)) dirpaths
+  let total = sum subdirs + length iinfo
   return $!! total
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
@@ -1165,7 +1181,10 @@ scanFilesystem ctx newrepo = do
   r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
+  logfn "Counting images"
   itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
+  logfn "Counting cache items"
+  cachecounts <- countDirRaw config (cfgCacheDir config)
   atomically $ writeTVar scanProgress def
   start <- getZonedTime
   let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
@@ -1211,7 +1230,7 @@ scanFilesystem ctx newrepo = do
       wrstatus = RepoCleaning { rsScanResults = wrscan
                               , rsRenderResults = wrrender
                               , rsCleanGoal = WorkStart { wsStart = endr
-                                                        , wsGoal = 0
+                                                        , wsGoal = cachecounts
                                                         }
                               }
   repo_ar <- evaluate $ force $ repo_as { repoStatus = wrstatus }
@@ -1220,8 +1239,11 @@ scanFilesystem ctx newrepo = do
   endc <- getZonedTime
   let wrclean = WorkResults { wrStart = endr
                             , wrEnd = endc
-                            , wrGoal = 0
-                            , wrDone = def
+                            , wrGoal = cachecounts
+                            , wrDone = Progress { pgErrors = cachecounts
+                                                , pgDone = 0
+                                                , pgNoop = 0
+                                                }
                             }
       status = RepoFinished { rsScanResults = wrscan
                             , rsRenderResults = wrrender
