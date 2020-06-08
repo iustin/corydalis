@@ -77,7 +77,7 @@
         $of RepoError _
           ^{scanFailed}
 
-  <div .col-12 .col-md-4>
+  <div .col-12 .col-md-4 .my-3>
     <div .card class="#{repoStatusToCleanStyle repoState}">
       <div .card-header>Cache cleaning status
       $case repoState
