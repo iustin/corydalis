@@ -19,6 +19,7 @@ $case repoState
           <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{sp}" aria-valuemin="0" aria-valuemax="100" style="width: #{sp}%">
             #{sp}%
   $of RepoRendering {}
+  $of RepoCleaning {}
   $of RepoFinished {}
   $of RepoError txt
     <div .alert .alert-danger>

@@ -551,6 +551,7 @@ repoStatusIcon RepoEmpty        = "fas fa-question"
 repoStatusIcon RepoStarting     = "fas fa-hourglass-start"
 repoStatusIcon RepoScanning {}  = "fas fa-hourglass-half"
 repoStatusIcon RepoRendering {} = "fas fa-check"
+repoStatusIcon RepoCleaning {}  = "fas fa-check"
 repoStatusIcon RepoFinished {}  = "fas fa-check-double"
 repoStatusIcon RepoError {}     = "fas fa-exclamation"
 

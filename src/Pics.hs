@@ -403,20 +403,27 @@ data RepoStatus = RepoEmpty    -- ^ Only to be used at application
                   { rsScanResults :: !WorkResults
                   , rsRenderGoal  :: !WorkStart
                   }
+                | RepoCleaning
+                  { rsScanResults   :: !WorkResults
+                  , rsRenderResults :: !WorkResults
+                  , rsCleanGoal     :: !WorkStart
+                  }
                 | RepoFinished
                   { rsScanResults   :: !WorkResults
                   , rsRenderResults :: !WorkResults
+                  , rsCleanResults  :: !WorkResults
                   }
                 | RepoError !Text
   deriving (Show)
 
 instance NFData RepoStatus where
-  rnf RepoEmpty              = ()
-  rnf RepoStarting           = ()
-  rnf (RepoScanning ws)      = rnf ws
-  rnf (RepoRendering wr ws)  = rnf wr `seq` rnf ws
-  rnf (RepoFinished wr1 wr2) = rnf wr1 `seq` rnf wr2
-  rnf (RepoError t)          = rnf t
+  rnf RepoEmpty            = ()
+  rnf RepoStarting         = ()
+  rnf (RepoScanning ws)    = rnf ws
+  rnf (RepoRendering s r)  = rnf s `seq` rnf r
+  rnf (RepoCleaning s r c) = rnf s `seq` rnf r `seq` rnf c
+  rnf (RepoFinished s r c) = rnf s `seq` rnf r `seq` rnf c
+  rnf (RepoError t)        = rnf t
 
 instance Default RepoStatus where
   def = RepoEmpty
@@ -1200,8 +1207,14 @@ scanFilesystem ctx newrepo = do
                              , wrGoal = totalrender
                              , wrDone = rendered
                              }
+      wrclean = WorkResults { wrStart = endr
+                            , wrEnd = endr
+                            , wrGoal = 0
+                            , wrDone = def
+                            }
       status = RepoFinished { rsScanResults = wrscan
                             , rsRenderResults = wrrender
+                            , rsCleanResults = wrclean
                             }
   repo''' <- evaluate $ force $ repo'' { repoStatus = status }
   r4 <- tryUpdateRepo ctx repo'''

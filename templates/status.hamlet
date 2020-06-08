@@ -26,6 +26,8 @@
             ^{repoInProgress now scanning ws}
           $of RepoRendering { rsRenderGoal = ws }
             ^{repoInProgress now rendering ws}
+          $of RepoCleaning { rsCleanGoal = ws }
+            ^{repoInProgress now cleaning ws}
           $of RepoFinished { rsScanResults = WorkResults { wrStart = b }, rsRenderResults = WorkResults { wrEnd = er }}
             <p .card-text>
               All work completed.
@@ -49,6 +51,8 @@
           ^{workInProgress now scanning scanProgress ws}
         $of RepoRendering { rsScanResults = sr }
           ^{workResults now sr scanning "files"}
+        $of RepoCleaning { rsScanResults = sr }
+          ^{workResults now sr scanning "files"}
         $of RepoFinished { rsScanResults = sr }
           ^{workResults now sr scanning "files"}
         $of RepoError _
@@ -62,11 +66,32 @@
           ^{workIdle rendering}
         $of RepoStarting
           ^{workIdle rendering}
-        $of RepoScanning _
+        $of RepoScanning {}
           ^{workIdle rendering}
         $of RepoRendering { rsRenderGoal = ws }
           ^{workInProgress now rendering renderProgress ws}
+        $of RepoCleaning { rsRenderResults = rr }
+          ^{workResults now rr rendering "images"}
         $of RepoFinished { rsRenderResults = rr }
+          ^{workResults now rr rendering "images"}
+        $of RepoError _
+          ^{scanFailed}
+
+  <div .col-12 .col-md-4>
+    <div .card class="#{repoStatusToCleanStyle repoState}">
+      <div .card-header>Cache cleaning status
+      $case repoState
+        $of RepoEmpty
+          ^{workIdle cleaning}
+        $of RepoStarting
+          ^{workIdle cleaning}
+        $of RepoScanning {}
+          ^{workIdle cleaning}
+        $of RepoRendering {}
+          ^{workIdle cleaning}
+        $of RepoCleaning { rsCleanGoal = ws }
+          ^{workInProgress now cleaning cleanProgress ws}
+        $of RepoFinished { rsCleanResults = rr }
           ^{workResults now rr rendering "images"}
         $of RepoError _
           ^{scanFailed}

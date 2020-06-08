@@ -61,11 +61,15 @@ scanning = "Scanning"
 rendering :: Text
 rendering = "Rendering"
 
+cleaning :: Text
+cleaning = "Cleaning"
+
 repoStatusToCardStyle :: RepoStatus -> Text
 repoStatusToCardStyle RepoEmpty        = "border-warning"
 repoStatusToCardStyle RepoStarting     = "border-primary"
 repoStatusToCardStyle RepoScanning {}  = "border-primary"
 repoStatusToCardStyle RepoRendering {} = "border-primary"
+repoStatusToCardStyle RepoCleaning {}  = "border-primary"
 repoStatusToCardStyle RepoFinished {}  = ""
 repoStatusToCardStyle RepoError {}     = "border-danger text-danger"
 
@@ -74,6 +78,7 @@ repoStatusToScanStyle RepoEmpty        = "border-warning"
 repoStatusToScanStyle RepoStarting     = "border-warning"
 repoStatusToScanStyle RepoScanning {}  = "border-info"
 repoStatusToScanStyle RepoRendering {} = "border-success"
+repoStatusToScanStyle RepoCleaning {}  = "border-success"
 repoStatusToScanStyle RepoFinished {}  = "border-succces"
 repoStatusToScanStyle RepoError {}     = "border-danger text-danger"
 
@@ -82,8 +87,18 @@ repoStatusToRenderStyle RepoEmpty        = "border-warning"
 repoStatusToRenderStyle RepoStarting     = "border-warning"
 repoStatusToRenderStyle RepoScanning {}  = "border-warning"
 repoStatusToRenderStyle RepoRendering {} = "border-info"
+repoStatusToRenderStyle RepoCleaning {}  = "border-success"
 repoStatusToRenderStyle RepoFinished {}  = "border-succces"
 repoStatusToRenderStyle RepoError {}     = "border-danger text-danger"
+
+repoStatusToCleanStyle :: RepoStatus -> Text
+repoStatusToCleanStyle RepoEmpty        = "border-warning"
+repoStatusToCleanStyle RepoStarting     = "border-warning"
+repoStatusToCleanStyle RepoScanning {}  = "border-warning"
+repoStatusToCleanStyle RepoRendering {} = "border-warning"
+repoStatusToCleanStyle RepoCleaning {}  = "border-info"
+repoStatusToCleanStyle RepoFinished {}  = "border-succces"
+repoStatusToCleanStyle RepoError {}     = "border-danger text-danger"
 
 repoInProgress :: ZonedTime -> Text -> WorkStart -> Widget
 repoInProgress now work WorkStart{..} =
@@ -226,6 +241,7 @@ overallState RepoEmpty        = (0, "empty", "bg-warning", False)
 overallState RepoStarting     = (5, "preparing scan", "bg-warning", False)
 overallState RepoScanning {}  = (10, "scanning filesystem", "bg-info", True)
 overallState RepoRendering {} = (50, "rendering images", "bg-info", True)
+overallState RepoCleaning {}  = (85, "rendering images", "bg-info", True)
 overallState RepoFinished {}  = (100, "all done", "bg-info", False)
 overallState RepoError {}     = (100, "error", "bg-danger", False)
 
@@ -238,6 +254,7 @@ getStatusR = do
   -- transaction, and repo as well. [cleanup]
   scanProgress <- liftIO $ getProgress ctx
   renderProgress <- liftIO $ getRenderProgress ctx
+  let cleanProgress = def
   let (overall_perc, overall_text, overall_role, overall_strip) = overallState repoState
       overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
   now <- liftIO getZonedTime
