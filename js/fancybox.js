@@ -48,10 +48,12 @@ $(document).ready(function() {
   };
 
   // Custom view item button.
-  $.fancybox.defaults.btnTpl.view =
-        '<button data-fancybox-view class="fancybox-button fancybox-button--view" title="Open image in viewer">' +
-        '<span class="fas fa-external-link-alt">' +
-        '</button>';
+  $.fancybox.defaults.btnTpl.view = `
+<button data-fancybox-view
+        class="fancybox-button fancybox-button--view"
+        title="Open image in viewer">
+  <span class="fas fa-external-link-alt">
+</button>`;
 
   $('body').on('click', '[data-fancybox-view]', function() {
     const instance = $.fancybox.getInstance();
@@ -60,8 +62,8 @@ $(document).ready(function() {
       return;
     }
     if (!current.opts.viewurl) {
-      $.fancybox.open('<div class="message"><h2>Internal Error!</h2>' +
-                            '<p>Viewed image does not have a <i>viewurl</i> data attribute!</p></div>');
+      $.fancybox.open(`<div class="message"><h2>Internal Error!</h2>
+<p>Viewed image does not have a <i>viewurl</i> data attribute!</p></div>`);
       console.log('No viewurl, returning', current);
       return;
     }
@@ -71,9 +73,11 @@ $(document).ready(function() {
 
   // Custom view item info button.
   $.fancybox.defaults.btnTpl.info =
-        '<button data-fancybox-info class="fancybox-button fancybox-button--info" title="View image info">' +
-        '<span class="fas fa-info-circle">' +
-        '</button>';
+        `<button data-fancybox-info
+                 class="fancybox-button fancybox-button--info"
+                 title="View image info">
+          <span class="fas fa-info-circle">
+        </button>`;
 
   $('body').on('click', '[data-fancybox-info]', function() {
     const instance = $.fancybox.getInstance();
@@ -83,8 +87,8 @@ $(document).ready(function() {
       return;
     }
     if (!current.opts.infourl) {
-      $.fancybox.open('<div class="message"><h2>Internal Error!</h2>' +
-                            '<p>Viewed image does not have a <i>infourl</i> data attribute!</p></div>');
+      $.fancybox.open(`<div class="message"><h2>Internal Error!</h2>
+<p>Viewed image does not have a <i>infourl</i> data attribute!</p></div>`);
       console.log('No infourl, returning', current);
       return;
     }
@@ -99,19 +103,20 @@ $(document).ready(function() {
   ];
 
   // Listen to grid expansion and update any in-progress slideshow.
-  $('.grid').on( 'append.infiniteScroll', function( event, response, path, items ) {
-    // console.log( 'Loaded: ', path );
-    // console.info(items);
-    const instance = $.fancybox.getInstance();
-    const current = instance.current || null;
-    if (!current) {
-      return;
-    }
-    const imgs = Array.from(items, (d) => d.firstChild);
-    // console.log( 'Adding items: ', imgs);
+  $('.grid').on( 'append.infiniteScroll',
+                 function( event, response, path, items ) {
+                   // console.log( 'Loaded: ', path );
+                   // console.info(items);
+                   const instance = $.fancybox.getInstance();
+                   const current = instance.current || null;
+                   if (!current) {
+                     return;
+                   }
+                   const imgs = Array.from(items, (d) => d.firstChild);
+                   // console.log( 'Adding items: ', imgs);
 
-    instance.addContent(imgs);
-  });
+                   instance.addContent(imgs);
+                 });
 
   // Trigger fancybox.
   $().fancybox({

@@ -27,7 +27,7 @@
     "typescript": "^3.9.5"
   },
   "scripts": {
-    "test": "eslint js/*.ts"
+    "test": "eslint js/*.ts js/*.js"
   },
   "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",
