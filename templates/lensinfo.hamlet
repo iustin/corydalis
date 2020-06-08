@@ -1,5 +1,9 @@
 <h1>Lens statistics
 
+<div #boot
+  data-lensinfo-url="@{LensInfoR lensname}"
+  >
+
 <div .row>
   <div .col-12>
     <div #lensFlApChart .largegraph>

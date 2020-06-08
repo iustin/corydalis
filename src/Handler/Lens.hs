@@ -73,6 +73,7 @@ getLensInfoR lensname = do
       html = do
         setTitle "Corydalis: lens information"
         $(widgetFile "lensinfo")
+        addScript $ StaticR corydalis_js_lensinfo_js
   defaultLayoutJson html (return obj)
 
 getLensStatsR :: Handler TypedContent
