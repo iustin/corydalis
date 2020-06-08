@@ -1233,7 +1233,8 @@ scanFilesystem ctx newrepo = do
                                                         , wsGoal = cachecounts
                                                         }
                               }
-  repo_ar <- evaluate $ force $ repo_as { repoStatus = wrstatus }
+  repo_ar' <- evaluate $ force $ repo_as { repoStatus = wrstatus }
+  repo_ar <- tryUpdateRepo ctx repo_ar'
   logfn "Finished rendering, starting cleanup"
 
   endc <- getZonedTime
