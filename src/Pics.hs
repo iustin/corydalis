@@ -1178,10 +1178,10 @@ scanFilesystem ctx newrepo = do
                           , wsGoal = totalrender
                           }
   repo'' <- tryUpdateRepo ctx r2 { repoDirs   = repo'
-                                , repoStats  = stats
-                                , repoExif   = rexif
-                                , repoStatus = RepoRendering wrscan wsrender
-                                }
+                                 , repoStats  = stats
+                                 , repoExif   = rexif
+                                 , repoStatus = RepoRendering wrscan wsrender
+                                 }
   writeDiskCache config repo''
   logfn "Finished building repo, starting rendering"
   rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo''
@@ -1204,7 +1204,6 @@ renderableImages = filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageS
 forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> IO Progress
 forceBuildThumbCaches config renderProgress repo = do
   atomically $ writeTVar renderProgress def
-  -- throwString "boo"
   let images = renderableImages repo
       thbuild i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size
