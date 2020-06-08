@@ -16,46 +16,46 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 $(document).ready(function() {
-    'use strict';
-    var bootdiv = $("#boot");
-    var pathurl = bootdiv.data("path-url");
-    var pageindex = bootdiv.data("page-index");
-    var count = bootdiv.data("initial-count");
-    var debug = bootdiv.data("debug");
-    var $howmany = $("#howmany");
-    // init Packery
-    var $grid = $('.grid').masonry({
-        itemSelector: '.grid-item',
-        columnWidth: '.grid-sizer',
-        percentPosition: true,
-        horizontalOrder: false,
-    });
+  'use strict';
+  const bootdiv = $('#boot');
+  const pathurl = bootdiv.data('path-url');
+  const pageindex = bootdiv.data('page-index');
+  let count = bootdiv.data('initial-count');
+  const debug = bootdiv.data('debug');
+  const $howmany = $('#howmany');
+  // init Packery
+  const $grid = $('.grid').masonry({
+    itemSelector: '.grid-item',
+    columnWidth: '.grid-sizer',
+    percentPosition: true,
+    horizontalOrder: false,
+  });
     // layout Packery after each image loads
-    $grid.imagesLoaded().progress( function() {
-        $grid.masonry('layout');
-        //$grid.packery();
-    });
-    // get Masonry instance
-    var msnry = $grid.data('masonry');
-    // infinite scrolling
-    $grid.infiniteScroll({
-        // options
-        //path: '.pagination-next',
-        path: pathurl.replace("/0?", "/{{#}}?"),
-        append: '.grid-item',
-        outlayer: msnry,
-        history: 'replace',
-        checkLastPage: '.pagination-next',
-        prefill: true,
-        onInit: function() {
-            this.pageIndex = pageindex;
-            this.on('append', function(response, path, items) {
-                count = count + items.length;
-                $howmany.text(count);
-                console.log("now viewing", count);
-            });
-        },
-        hideNav: '.pagination',
-        debug: debug
-    });
+  $grid.imagesLoaded().progress( function() {
+    $grid.masonry('layout');
+    // $grid.packery();
+  });
+  // get Masonry instance
+  const msnry = $grid.data('masonry');
+  // infinite scrolling
+  $grid.infiniteScroll({
+    // options
+    // path: '.pagination-next',
+    path: pathurl.replace('/0?', '/{{#}}?'),
+    append: '.grid-item',
+    outlayer: msnry,
+    history: 'replace',
+    checkLastPage: '.pagination-next',
+    prefill: true,
+    onInit: function() {
+      this.pageIndex = pageindex;
+      this.on('append', function(response, path, items) {
+        count = count + items.length;
+        $howmany.text(count);
+        console.log('now viewing', count);
+      });
+    },
+    hideNav: '.pagination',
+    debug: debug,
+  });
 });
