@@ -1,5 +1,9 @@
 <h1>Camera statistics
 
+<div #boot
+  data-camerainfo-url="@{CameraInfoR cameraname}"
+  >
+
 <div .row>
   <div .col-12>
     <div #lensFlApChart .largegraph>

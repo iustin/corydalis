@@ -1,6 +1,8 @@
+/// <reference types="plotly.js"/>
+
 $(document).ready(function() {
 
-    function onDataReceived(series) {
+    function onDataReceived(series: any) {
 
         var cameraLayout = {
             xaxis: {
@@ -11,21 +13,24 @@ $(document).ready(function() {
                 tickprefix: 'f/',
                 tickvals: series.ytickvals,
                 ticktext: series.yticktext,
-                type: 'log',
+                type: 'log' as const,
             },
-            hovermode: 'closest',
+            hovermode: 'closest' as const,
         }
         var config = {
             showLink: false,
             sendData: false,
             displaylogo: false,
-            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+            modeBarButtonsToRemove: [ 'toImage' as const, 'sendDataToCloud' as const ]
         }
         Plotly.newPlot('lensFlApChart', series.lensflap, cameraLayout, config);
     }
 
+    const bootdiv = $('#boot');
+    const camerainfourl = bootdiv.data('lensinfo-url');
+
     $.ajax({
-        url: "@{CameraInfoR cameraname}",
+        url: camerainfourl,
         type: "GET",
         dataType: "json",
         success: onDataReceived
