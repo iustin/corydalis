@@ -9,5 +9,5 @@
   });
 })(jQuery);
 $(document).ready(function() {
-  $(".tablesorter").tablesorter();
+  $('.tablesorter').tablesorter();
 });
