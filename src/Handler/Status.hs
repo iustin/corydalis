@@ -221,6 +221,14 @@ percentsBar counter goal =
       |]
   where (pE, pN, pD, pR) = percentsDone counter goal
 
+overallState :: RepoStatus -> (Int, Text, Text, Bool)
+overallState RepoEmpty        = (0, "empty", "bg-warning", False)
+overallState RepoStarting     = (5, "preparing scan", "bg-warning", False)
+overallState RepoScanning {}  = (10, "scanning filesystem", "bg-info", True)
+overallState RepoRendering {} = (50, "rendering images", "bg-info", True)
+overallState RepoFinished {}  = (100, "all done", "bg-info", False)
+overallState RepoError {}     = (100, "error", "bg-danger", False)
+
 getStatusR :: Handler Html
 getStatusR = do
   repo <- getPics
@@ -230,13 +238,7 @@ getStatusR = do
   -- transaction, and repo as well. [cleanup]
   scanProgress <- liftIO $ getProgress ctx
   renderProgress <- liftIO $ getRenderProgress ctx
-  let (overall_perc, overall_text, overall_role, overall_strip) = case repoState of
-        RepoEmpty        -> (0::Int, "empty"::Text, "bg-warning"::Text, False)
-        RepoStarting     -> (5, "preparing scan", "bg-warning", False)
-        RepoScanning {}  -> (10, "scanning filesystem", "bg-info", True)
-        RepoRendering {} -> (50, "rendering images", "bg-info", True)
-        RepoFinished {}  -> (100, "all done", "bg-info", False)
-        RepoError {}     -> (100, "error", "bg-danger", False)
+  let (overall_perc, overall_text, overall_role, overall_strip) = overallState repoState
       overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
   now <- liftIO getZonedTime
   defaultLayout $ do
