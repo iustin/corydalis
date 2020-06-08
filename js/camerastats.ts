@@ -1,12 +1,14 @@
+/// <reference types="plotly.js"/>
+
 $(document).ready(function() {
 
-    function onDataReceived(series) {
+    function onDataReceived(series: any) {
 
         var cameraLayout = {
             yaxis: {
-                type: 'log',
-                exponentformat: 'SI',
-                rangemode: 'nonnegative',
+                type: 'log' as const,
+                exponentformat: 'SI' as const,
+                rangemode: 'nonnegative' as const,
                 title: 'Images'
             },
             xaxis: {
@@ -52,14 +54,17 @@ $(document).ready(function() {
             showLink: false,
             sendData: false,
             displaylogo: false,
-            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+            modeBarButtonsToRemove: [ 'toImage' as const, 'sendDataToCloud' as const]
         }
         Plotly.newPlot('cameraChart', series.imagecount, cameraLayout, config);
         Plotly.newPlot('trendsChart', series.trends, trendsLayout, config);
     }
 
+  const bootdiv = $('#boot');
+  const camerastatsurl = bootdiv.data('camerastats-url');
+
     $.ajax({
-        url: "@{CameraStatsR}",
+        url: camerastatsurl,
         type: "GET",
         dataType: "json",
         success: onDataReceived

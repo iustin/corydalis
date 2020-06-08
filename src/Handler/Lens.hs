@@ -86,4 +86,5 @@ getLensStatsR = do
   let html = do
         setTitle "Corydalis: lens statistics"
         $(widgetFile "lensstats")
+        addScript $ StaticR corydalis_js_lensstats_js
   defaultLayoutJson html (return obj)

@@ -102,4 +102,5 @@ getCameraStatsR = do
   let html = do
         setTitle "Corydalis: camera statistics"
         $(widgetFile "camerastats")
+        addScript $ StaticR corydalis_js_camerastats_js
   defaultLayoutJson html (return obj)

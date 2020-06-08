@@ -1,5 +1,9 @@
 <h1>Camera statistics
 
+<div #boot
+  data-camerastats-url="@{CameraStatsR}"
+  >
+
 <div .row>
   <div .col-12>
     <div #cameraChart .largegraph>
