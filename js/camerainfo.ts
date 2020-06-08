@@ -25,7 +25,7 @@ $(document).ready(function() {
   }
 
   const bootdiv = $('#boot');
-  const camerainfourl = bootdiv.data('lensinfo-url');
+  const camerainfourl = bootdiv.data('camerainfo-url');
 
   $.ajax({
     url: camerainfourl,
