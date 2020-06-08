@@ -1,6 +1,10 @@
 <h1>Corydalis
   <small> - photo library analysis
 
+<div #boot
+  data-curate-url="@{CurateR}"
+  >
+
 $if allpics > 0
   <div .row>
     <div .col-12 .col-md-3>

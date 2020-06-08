@@ -1,16 +1,18 @@
+/// <reference types="plotly.js"/>
+
 $(document).ready(function() {
 
-    function onDataReceived(series) {
+    function onDataReceived(series: any) {
 
         var cameraLayout = {
             xaxis: {
-                rangemode: 'nonnegative',
+                rangemode: 'nonnegative' as const,
                 title: 'File count'
             },
             yaxis: {
-                type: 'log',
-                exponentformat: 'SI',
-                rangemode: 'nonnegative',
+                type: 'log' as const,
+                exponentformat: 'SI' as const,
+                rangemode: 'nonnegative' as const,
                 title: 'Size'
             },
             title: 'Camera file/size stats',
@@ -21,9 +23,9 @@ $(document).ready(function() {
                 automargin: true,
             },
             yaxis: {
-                type: 'log',
-                exponentformat: 'SI',
-                rangemode: 'nonnegative',
+                type: 'log' as const,
+                exponentformat: 'SI' as const,
+                rangemode: 'nonnegative' as const,
                 title: 'File count',
             },
             showlegend: true,
@@ -31,14 +33,14 @@ $(document).ready(function() {
         }
         var folderLayout = {
             xaxis: {
-                type: 'log',
-                exponentformat: 'SI',
-                rangemode: 'nonnegative',
+                type: 'log' as const,
+                exponentformat: 'SI' as const,
+                rangemode: 'nonnegative' as const,
                 title: 'Size'
             },
             yaxis: {
-                type: 'log',
-                rangemode: 'nonnegative',
+                type: 'log' as const,
+                rangemode: 'nonnegative' as const,
                 title: 'File count'
             },
             title: 'Folder file/size stats',
@@ -47,15 +49,18 @@ $(document).ready(function() {
             showLink: false,
             sendData: false,
             displaylogo: false,
-            modeBarButtonsToRemove: [ 'toImage', 'sendDataToCloud' ]
+            modeBarButtonsToRemove: [ 'toImage' as const, 'sendDataToCloud' as const]
         }
         Plotly.newPlot('cameraChart', series.global, cameraLayout, config);
         Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
         Plotly.newPlot('folderChart', series.folders, folderLayout, config);
     }
 
+    const bootdiv = $('#boot');
+    const curateurl = bootdiv.data('curate-url');
+
     $.ajax({
-        url: "@{CurateR}",
+        url: curateurl,
         type: "GET",
         dataType: "json",
         success: onDataReceived
