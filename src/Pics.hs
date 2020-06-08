@@ -1193,23 +1193,33 @@ scanFilesystem ctx newrepo = do
       wsrender= WorkStart { wsStart = end
                           , wsGoal = totalrender
                           }
-  repo'' <- tryUpdateRepo ctx r2 { repoDirs   = repo'
-                                 , repoStats  = stats
-                                 , repoExif   = rexif
-                                 , repoStatus = RepoRendering { rsScanResults = wrscan,
-                                                                rsRenderGoal = wsrender }
-                                 }
-  writeDiskCache config repo''
+  repo_as <- tryUpdateRepo ctx r2 { repoDirs   = repo'
+                                  , repoStats  = stats
+                                  , repoExif   = rexif
+                                  , repoStatus = RepoRendering { rsScanResults = wrscan,
+                                                                 rsRenderGoal = wsrender }
+                                  }
+  writeDiskCache config repo_as
   logfn "Finished building repo, starting rendering"
-  rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo''
+  rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo_as
   endr <- getZonedTime
   let wrrender = WorkResults { wrStart = end
                              , wrEnd = endr
                              , wrGoal = totalrender
                              , wrDone = rendered
                              }
-      wrclean = WorkResults { wrStart = endr
-                            , wrEnd = endr
+      wrstatus = RepoCleaning { rsScanResults = wrscan
+                              , rsRenderResults = wrrender
+                              , rsCleanGoal = WorkStart { wsStart = endr
+                                                        , wsGoal = 0
+                                                        }
+                              }
+  repo_ar <- evaluate $ force $ repo_as { repoStatus = wrstatus }
+  logfn "Finished rendering, starting cleanup"
+
+  endc <- getZonedTime
+  let wrclean = WorkResults { wrStart = endr
+                            , wrEnd = endc
                             , wrGoal = 0
                             , wrDone = def
                             }
@@ -1217,8 +1227,8 @@ scanFilesystem ctx newrepo = do
                             , rsRenderResults = wrrender
                             , rsCleanResults = wrclean
                             }
-  repo''' <- evaluate $ force $ repo'' { repoStatus = status }
-  r4 <- tryUpdateRepo ctx repo'''
+  repo_ac <- evaluate $ force $ repo_ar { repoStatus = status }
+  r4 <- tryUpdateRepo ctx repo_ac
   writeDiskCache config r4
   logfn "Finished rendering, all done"
   return r4
