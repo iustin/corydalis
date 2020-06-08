@@ -241,7 +241,7 @@ overallState RepoEmpty        = (0, "empty", "bg-warning", False)
 overallState RepoStarting     = (5, "preparing scan", "bg-warning", False)
 overallState RepoScanning {}  = (10, "scanning filesystem", "bg-info", True)
 overallState RepoRendering {} = (50, "rendering images", "bg-info", True)
-overallState RepoCleaning {}  = (85, "rendering images", "bg-info", True)
+overallState RepoCleaning {}  = (90, "cleaning the cache", "bg-info", True)
 overallState RepoFinished {}  = (100, "all done", "bg-info", False)
 overallState RepoError {}     = (100, "error", "bg-danger", False)
 
