@@ -18,7 +18,7 @@
          There are #{length lenses} lenses in the database.
 
      <div .card>
-       <table #lenslist .tablesorter .table .table-sm>
+       <table #lenslist .tablesorter .table .table-sm data-sortlist="[[2,1], [0,0], [1, 0]]">
          <thead>
            <tr>
              <th .sorter-text>Name

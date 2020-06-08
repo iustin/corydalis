@@ -18,7 +18,7 @@
          There are #{length cameras} cameras in the database.
 
      <div .card>
-       <table #cameralist .tablesorter .table .table-sm>
+       <table #cameralist .tablesorter .table .table-sm data-sortlist="[[2,1], [0,0], [1, 0]]">
          <thead>
            <tr>
              <th .sorter-text>Name

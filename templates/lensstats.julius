@@ -64,8 +64,4 @@ $(document).ready(function() {
         dataType: "json",
         success: onDataReceived
     });
-
-    $("#lenslist").tablesorter({
-        sortList: [[2,1], [0,0], [1, 0]],
-    });
 });

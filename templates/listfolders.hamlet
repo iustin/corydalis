@@ -22,7 +22,7 @@
            ; note: this filter cannot find images.
 
      <div .card>
-       <table #folderlist .tablesorter .table .table-sm .vmiddle>
+       <table #folderlist .tablesorter .table .table-sm .vmiddle data-sortlist="[[1,0]]]">
          <col style="width: #{thumbsize}px;">
          <thead>
            <tr>

@@ -27,10 +27,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Widgets where
 
-import qualified Data.Map      as Map
+import           Data.Aeson.Text (encodeToLazyText)
+import qualified Data.Map        as Map
 import           Data.Ord
-import qualified Data.Set      as Set
-import qualified Data.Text     as Text
+import qualified Data.Set        as Set
+import qualified Data.Text       as Text
 import           Formatting
 
 import           Exif
@@ -147,6 +148,7 @@ imageList thumbsize params showParent hideStatus images = do
                     if showParent
                       then [[1, 0], [3, 0], [2, 0]]
                       else [[2, 0], [1, 0]]::[[Int]]
+      sortColumnsEnc = encodeToLazyText sortColumns
   $(widgetFile "imagelist")
 
 imageGrid :: Config -> Int -> UrlParams -> [Image] -> Widget

@@ -12,7 +12,7 @@
            Note: this item type doesn't match images, only folders.
 
      <div .card>
-       <table #itemlist .tablesorter .table .table-sm>
+       <table #itemlist .tablesorter .table .table-sm data-sortlist="[[0,0]]">
          <thead>
            <tr>
              <th .empty-min .sorter-text>Name
