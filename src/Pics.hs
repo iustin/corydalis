@@ -1253,7 +1253,7 @@ scanFilesystem ctx newrepo = do
   repo_ac <- evaluate $ force $ repo_ar { repoStatus = status }
   r4 <- tryUpdateRepo ctx repo_ac
   writeDiskCache config r4
-  logfn "Finished rendering, all done"
+  logfn "Finished cleaning up, all done"
   return r4
 
 -- | Computes the list of images that can be rendered.
