@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module TestImport
     ( module TestImport
@@ -80,20 +81,25 @@ loadSettings =
     useEnv
 
 -- | Creates needed dir paths in the config.
-updateConfig :: FilePath -> AppSettings -> IO AppSettings
-updateConfig tempDir settings = do
+updateConfig :: FilePath -> AppSettings -> IO Config
+updateConfig tempDir (appConfig -> config) = do
   let inTemp = (tempDir </>)
       rawDir = inTemp "raw"
       jpgDir = inTemp "jpg"
+      cache  = inTemp "cache"
   createDirectory rawDir
   createDirectory jpgDir
-  let config = appConfig settings
-      config' = config { cfgCacheDir = tempDir </> "cache"
-                       , cfgSourceDirs = [rawDir]
-                       , cfgOutputDirs = [jpgDir]
-                       }
-      settings' = settings { appConfig = config' }
-  return settings'
+  createDirectory cache
+  return config { cfgCacheDir = cache
+                , cfgSourceDirs = [rawDir]
+                , cfgOutputDirs = [jpgDir]
+                }
+
+-- | Updates settings with valid config.
+updateSettings :: FilePath -> AppSettings -> IO AppSettings
+updateSettings tempDir settings = do
+  config <- updateConfig tempDir settings
+  return settings { appConfig = config }
 
 -- Simple, plain temp dir definitions.
 
@@ -110,16 +116,35 @@ cleanupTempDir  = ignoringIOErrors . removeDirectoryRecursive
 withTempDir :: SpecWith FilePath -> Spec
 withTempDir = around (bracket setTempDir cleanupTempDir)
 
+-- Config spec definitions.
+
+-- | Builds and returns a valid config.
+openTempConfig :: AppSettings -> IO (FilePath, Config)
+openTempConfig settings = do
+  tempDir <- setTempDir
+  config <- updateConfig tempDir settings
+  return (tempDir, config)
+
+-- | Runs an action with a temporary context.
+withConfig' :: (Config -> IO ()) -> IO ()
+withConfig' action = do
+  settings <- loadSettings
+  bracket (openTempConfig settings) (cleanupTempDir . fst) (action . snd)
+
+-- | Spec definition for with context.
+withConfig :: SpecWith Config -> Spec
+withConfig = around withConfig'
+
 -- Context spec definitions.
 
 -- | Builds and returns a valid context.
 openTempContext :: AppSettings -> IO (FilePath, Ctx)
 openTempContext settings = do
   tempDir <- setTempDir
-  settings' <- updateConfig tempDir settings
+  config <- updateConfig tempDir settings
   -- FIXME: use a proper logger? replace with one from yesod?
   let logger = BS8.putStrLn . fromLogStr
-  ctx <- atomically $ initContext (appConfig settings') logger
+  ctx <- atomically $ initContext config logger
   launchScanFileSystem ctx
   _ <- waitForScan ctx
   return (tempDir, ctx)
@@ -140,7 +165,7 @@ withContext = around withContext'
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
   tempDir <- setTempDir
-  settings <- loadSettings >>= updateConfig tempDir
+  settings <- loadSettings >>= updateSettings tempDir
   foundation <- makeFoundation settings
   logWare <- liftIO $ makeLogWare foundation
   return (tempDir, (foundation, logWare))
