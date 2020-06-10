@@ -70,9 +70,9 @@ loadSettings =
     []
     useEnv
 
-setTempContext :: AppSettings -> IO (FilePath, (AppSettings, Ctx))
-setTempContext settings = do
-  tempDir <- setTempDir
+-- | Creates needed dir paths in the config.
+updateConfig :: FilePath -> AppSettings -> IO AppSettings
+updateConfig tempDir settings = do
   let inTemp = (tempDir </>)
       rawDir = inTemp "raw"
       jpgDir = inTemp "jpg"
@@ -84,6 +84,14 @@ setTempContext settings = do
                        , cfgOutputDirs = [jpgDir]
                        }
       settings' = settings { appConfig = config' }
+  return settings'
+
+-- | Builds and returns a valid context.
+setTempContext :: AppSettings -> IO (FilePath, (AppSettings, Ctx))
+setTempContext settings = do
+  tempDir <- setTempDir
+  settings' <- updateConfig tempDir settings
+  let config' = appConfig settings'
       -- FIXME: use a proper logger? replace with one from yesod?
       logger = BS8.putStrLn . fromLogStr
   ctx <- atomically $ initContext config' logger
@@ -112,7 +120,8 @@ withTempContext action = do
 
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
-  (tempDir, (settings, _)) <- loadSettings >>= setTempContext
+  tempDir <- setTempDir
+  settings <- loadSettings >>= updateConfig tempDir
   foundation <- makeFoundation settings
   logWare <- liftIO $ makeLogWare foundation
   return (tempDir, (foundation, logWare))
