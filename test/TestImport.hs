@@ -87,17 +87,16 @@ updateConfig tempDir settings = do
   return settings'
 
 -- | Builds and returns a valid context.
-setTempContext :: AppSettings -> IO (FilePath, (AppSettings, Ctx))
+setTempContext :: AppSettings -> IO (FilePath, Ctx)
 setTempContext settings = do
   tempDir <- setTempDir
   settings' <- updateConfig tempDir settings
-  let config' = appConfig settings'
-      -- FIXME: use a proper logger? replace with one from yesod?
-      logger = BS8.putStrLn . fromLogStr
-  ctx <- atomically $ initContext config' logger
+  -- FIXME: use a proper logger? replace with one from yesod?
+  let logger = BS8.putStrLn . fromLogStr
+  ctx <- atomically $ initContext (appConfig settings') logger
   launchScanFileSystem ctx
   _ <- waitForScan ctx
-  return (tempDir, (settings', ctx))
+  return (tempDir, ctx)
 
 setTempDir :: IO FilePath
 setTempDir = do
@@ -116,7 +115,7 @@ cleanupTempDir  = ignoringIOErrors . removeDirectoryRecursive
 withTempContext :: (Ctx -> IO ()) -> IO ()
 withTempContext action = do
   settings <- loadSettings
-  bracket (setTempContext settings) (cleanupTempDir . fst) (action . snd . snd)
+  bracket (setTempContext settings) (cleanupTempDir . fst) (action . snd)
 
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
