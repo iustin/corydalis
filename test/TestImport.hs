@@ -53,6 +53,8 @@ import           System.Directory               (createDirectory,
 import           System.IO.Temp
 import           System.Log.FastLogger          (fromLogStr)
 
+-- Helper functions for running tests.
+
 runDB :: SqlPersistM a -> YesodExample App a
 runDB query = do
     pool <- fmap appConnPool getTestYesod
@@ -63,6 +65,13 @@ runHandler handler = do
     app <- getTestYesod
     fakeHandlerGetLogger appLogger app handler
 
+{-# ANN ignoringIOErrors ("HLint: ignore Evaluate"::String) #-}
+-- | Adapted from temporary's code.
+ignoringIOErrors :: IO () -> IO ()
+ignoringIOErrors ioe =
+  ioe `E.catch` (\e -> const (return ()) (e :: IOException))
+
+-- | Loads the test settings.
 loadSettings :: IO AppSettings
 loadSettings =
   loadYamlSettings
@@ -86,9 +95,26 @@ updateConfig tempDir settings = do
       settings' = settings { appConfig = config' }
   return settings'
 
+-- Simple, plain temp dir definitions.
+
+-- | Creates and returns a temporary directory.
+setTempDir :: IO FilePath
+setTempDir = do
+  rootTempDir <- getCanonicalTemporaryDirectory
+  createTempDirectory rootTempDir "corydalis-test"
+
+-- | Cleans up a temporary directory.
+cleanupTempDir :: FilePath -> IO ()
+cleanupTempDir  = ignoringIOErrors . removeDirectoryRecursive
+
+withTempDir :: SpecWith FilePath -> Spec
+withTempDir = around (bracket setTempDir cleanupTempDir)
+
+-- Context spec definitions.
+
 -- | Builds and returns a valid context.
-setTempContext :: AppSettings -> IO (FilePath, Ctx)
-setTempContext settings = do
+openTempContext :: AppSettings -> IO (FilePath, Ctx)
+openTempContext settings = do
   tempDir <- setTempDir
   settings' <- updateConfig tempDir settings
   -- FIXME: use a proper logger? replace with one from yesod?
@@ -98,25 +124,19 @@ setTempContext settings = do
   _ <- waitForScan ctx
   return (tempDir, ctx)
 
-setTempDir :: IO FilePath
-setTempDir = do
-  rootTempDir <- getCanonicalTemporaryDirectory
-  createTempDirectory rootTempDir "corydalis-test"
-
-{-# ANN ignoringIOErrors ("HLint: ignore Evaluate"::String) #-}
--- | Adapted from temporary's code.
-ignoringIOErrors :: IO () -> IO ()
-ignoringIOErrors ioe =
-  ioe `E.catch` (\e -> const (return ()) (e :: IOException))
-
-cleanupTempDir :: FilePath -> IO ()
-cleanupTempDir  = ignoringIOErrors . removeDirectoryRecursive
-
-withTempContext :: (Ctx -> IO ()) -> IO ()
-withTempContext action = do
+-- | Runs an action with a temporary context.
+withContext' :: (Ctx -> IO ()) -> IO ()
+withContext' action = do
   settings <- loadSettings
-  bracket (setTempContext settings) (cleanupTempDir . fst) (action . snd)
+  bracket (openTempContext settings) (cleanupTempDir . fst) (action . snd)
 
+-- | Spec definition for with context.
+withContext :: SpecWith Ctx -> Spec
+withContext = around withContext'
+
+-- App spec definitions.
+
+-- | Builds and returns a valid app.
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
   tempDir <- setTempDir
@@ -125,15 +145,15 @@ openTempApp = do
   logWare <- liftIO $ makeLogWare foundation
   return (tempDir, (foundation, logWare))
 
+-- | Runs an action with a temporary app.
+withApp' :: (TestApp App -> IO ())  -> IO ()
+withApp' action = bracket openTempApp (cleanupTempDir . fst) (action . snd)
+
+-- | Spec definition for with app.
 withApp :: SpecWith (TestApp App) -> Spec
-withApp =
-  around (\action -> bracket openTempApp (cleanupTempDir . fst) (action . snd))
+withApp = around withApp'
 
-withContext :: SpecWith Ctx -> Spec
-withContext = around withTempContext
-
-withTempDir :: SpecWith FilePath -> Spec
-withTempDir = around (bracket setTempDir cleanupTempDir)
+-- Helper test functions
 
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in
