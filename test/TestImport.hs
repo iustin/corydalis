@@ -72,10 +72,9 @@ loadSettings =
     []
     useEnv
 
-setTempDir :: AppSettings -> IO (FilePath, (AppSettings, Ctx))
-setTempDir settings = do
-  rootTempDir <- getCanonicalTemporaryDirectory
-  tempDir <- createTempDirectory rootTempDir "corydalis-test"
+setTempContext :: AppSettings -> IO (FilePath, (AppSettings, Ctx))
+setTempContext settings = do
+  tempDir <- setTempDir
   let inTemp = (tempDir </>)
       rawDir = inTemp "raw"
       jpgDir = inTemp "jpg"
@@ -95,33 +94,41 @@ setTempDir settings = do
   _ <- waitForScan ctx
   return (tempDir, (settings', ctx))
 
+setTempDir :: IO FilePath
+setTempDir = do
+  rootTempDir <- getCanonicalTemporaryDirectory
+  createTempDirectory rootTempDir "corydalis-test"
+
 {-# ANN ignoringIOErrors ("HLint: ignore Evaluate"::String) #-}
 -- | Adapted from temporary's code.
 ignoringIOErrors :: IO () -> IO ()
 ignoringIOErrors ioe =
   ioe `E.catch` (\e -> const (return ()) (e :: IOException))
 
-cleanupTempDir :: (FilePath, (a, b)) -> IO ()
-cleanupTempDir  = ignoringIOErrors . removeDirectoryRecursive . fst
+cleanupTempDir :: FilePath -> IO ()
+cleanupTempDir  = ignoringIOErrors . removeDirectoryRecursive
 
 withTempContext :: (Ctx -> IO ()) -> IO ()
 withTempContext action = do
   settings <- loadSettings
-  bracket (setTempDir settings) cleanupTempDir (action . snd . snd)
+  bracket (setTempContext settings) (cleanupTempDir . fst) (action . snd . snd)
 
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
-  (tempDir, (settings, _)) <- loadSettings >>= setTempDir
+  (tempDir, (settings, _)) <- loadSettings >>= setTempContext
   foundation <- makeFoundation settings
   logWare <- liftIO $ makeLogWare foundation
   return (tempDir, (foundation, logWare))
 
 withApp :: SpecWith (TestApp App) -> Spec
 withApp =
-  around (\action -> bracket openTempApp cleanupTempDir (action . snd))
+  around (\action -> bracket openTempApp (cleanupTempDir . fst) (action . snd))
 
 withContext :: SpecWith Ctx -> Spec
 withContext = around withTempContext
+
+withTempDir :: SpecWith FilePath -> Spec
+withTempDir = around (bracket setTempDir cleanupTempDir)
 
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in
