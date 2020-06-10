@@ -22,8 +22,8 @@ database:
   # would like to have environment variable overrides, you could instead use
   # something like:
   #
-  database: "/non-existent/db/corydalis_test.sqlite3"
-  poolsize: 10
+  database: ":memory:"
+  poolsize: 1
 
 auth-dummy-login: true
 

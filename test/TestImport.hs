@@ -47,9 +47,7 @@ import           Yesod.Test                     as X
 import qualified Control.Exception              as E
 import qualified Data.ByteString.Char8          as BS8
 import           Data.Either
-import           Database.Persist.Sqlite        (SqliteConf (..))
-import           Settings                       (AppSettings (..),
-                                                 appDatabaseConf)
+import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
                                                  removeDirectoryRecursive)
 import           System.IO.Temp
@@ -85,8 +83,7 @@ setTempContext settings = do
                        , cfgSourceDirs = [rawDir]
                        , cfgOutputDirs = [jpgDir]
                        }
-      db = SqliteConf ":memory:" 1
-      settings' = settings { appConfig = config', appDatabaseConf = db }
+      settings' = settings { appConfig = config' }
       -- FIXME: use a proper logger? replace with one from yesod?
       logger = BS8.putStrLn . fromLogStr
   ctx <- atomically $ initContext config' logger
