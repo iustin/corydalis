@@ -160,6 +160,10 @@ dropCopySuffix cfg name =
     [_:b:_] -> b
     _       -> name
 
+-- | Makes a path "absolute" by dropping prefix slashes.
+makeRel :: FilePath -> FilePath
+makeRel = dropWhile (== pathSeparator)
+
 -- FIXME: duplication with Indexer.
 parseDecimal :: (Integral a) => String -> Maybe a
 parseDecimal (Text.pack -> w) =
@@ -962,6 +966,15 @@ countDirRaw config path = do
   let total = sum subdirs + length iinfo
   return $!! total
 
+-- | Run action on all files under a given directory.
+allPathFiles :: Config -> FilePath -> (FilePath -> IO ()) -> FilePath -> IO ()
+allPathFiles config root handler (makeRel -> subdir) = do
+  let buildsub p = if subdir == "." then p else subdir </> p
+  (dirpaths, iinfo) <- getDirContents' False config (root </> subdir)
+  mapM_ (\ii -> handler (subdir </> inodeName ii)) iinfo
+  mapM_ (\p -> allPathFiles config root handler (buildsub p)) dirpaths
+  return ()
+
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
 addDirToRepo config dir =
   Map.insertWith (mergeFolders config) (pdName dir) dir
@@ -1124,6 +1137,52 @@ resolveProcessedRanges config picd =
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
+-- | Checks if a given cache file is obsolete.
+examineCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
+                 -> TVar Progress  -- ^ For tracking progress
+                 -> Set TextL.Text -- ^ Set of real image files (absolute paths)
+                 -> LogFn          -- ^ Logger function
+                 -> FilePath       -- ^ Relative path to the item being examined
+                 -> IO ()
+examineCacheFile prefix cleanProgress iset logger path = do
+  let fpath = TextL.pack (pathSeparator:path)
+      found = maybe False (`isPrefixOf` fpath) $ Set.lookupLE fpath iset
+  modifier <- if found
+              then return incNoop
+              else cleanCacheFile prefix logger path
+  atomically $ modifyTVar cleanProgress modifier
+
+-- | Cleans up a given cache file.
+cleanCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
+               -> LogFn          -- ^ Logger function
+               -> FilePath       -- ^ Relative path to the item being examined
+               -> IO (Progress -> Progress)
+cleanCacheFile prefix logger path = do
+  res <- deleteCacheFile prefix path
+  case res of
+    Just err -> do
+      logger $ "Failed to delete path: " <> toLogStr err
+      return incErrors
+    Nothing  -> do
+      logger $ "Cleaned obsolete path '" <> toLogStr path <> "'"
+      return incDone
+
+-- | Cleanups given directories under the cache dir.
+cleanupCache :: Ctx         -- ^ Context
+             -> Repository  -- ^ Repository with current set of images
+             -> [FilePath]  -- ^ Set of directories to cleanup
+             -> IO Progress -- ^ Result of cleanup
+cleanupCache ctx repo alldirs = do
+  let cleanProgress = ctxCleanProgress ctx
+  atomically $ writeTVar cleanProgress def
+  let imgs = allRepoFiles repo
+      iset = Set.fromList $ map filePath imgs
+      config = ctxConfig ctx
+      cacheDir = cfgCacheDir config
+      handler = examineCacheFile cacheDir cleanProgress iset (ctxLogger ctx)
+  mapM_ (allPathFiles config cacheDir handler) alldirs
+  readTVarIO cleanProgress
+
 -- | Resets the repository to empty with an increase serial number.
 --
 -- The logic here needs to be kept in sync with updateRepo.
@@ -1181,10 +1240,14 @@ scanFilesystem ctx newrepo = do
   r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
   let srcdirs = zip (cfgSourceDirs config) (repeat True)
       outdirs = zip (cfgOutputDirs config) (repeat False)
-  logfn "Counting images"
-  itemcounts <- mapConcurrently (countDir config 1) $ map fst $ srcdirs ++ outdirs
-  logfn "Counting cache items"
-  cachecounts <- countDirRaw config (cfgCacheDir config)
+      alldirs = map fst $ srcdirs ++ outdirs
+      alldirsAsRelative = map makeRel alldirs
+  logfn $ "Counting images under " <> toLogStr (show alldirs)
+  itemcounts <- mapConcurrently (countDir config 1) alldirs
+  let cachePaths = map (cfgCacheDir config </>) alldirsAsRelative
+  logfn $ "Counting cache items under " ++ toLogStr (show cachePaths)
+  cachecounts' <- mapConcurrently (countDirRaw config) cachePaths
+  let cachecounts = sum cachecounts'
   atomically $ writeTVar scanProgress def
   start <- getZonedTime
   let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
@@ -1236,15 +1299,12 @@ scanFilesystem ctx newrepo = do
   repo_ar' <- evaluate $ force $ repo_as { repoStatus = wrstatus }
   repo_ar <- tryUpdateRepo ctx repo_ar'
   logfn "Finished rendering, starting cleanup"
-
+  clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative
   endc <- getZonedTime
   let wrclean = WorkResults { wrStart = endr
                             , wrEnd = endc
                             , wrGoal = cachecounts
-                            , wrDone = Progress { pgErrors = cachecounts
-                                                , pgDone = 0
-                                                , pgNoop = 0
-                                                }
+                            , wrDone = clean_pg
                             }
       status = RepoFinished { rsScanResults = wrscan
                             , rsRenderResults = wrrender
