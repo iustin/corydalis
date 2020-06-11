@@ -40,8 +40,10 @@ module Types ( Config(..)
              , pathSep
              , LazyText
              , LogFn
+             , ProgressError
              , Progress(..)
              , pgTotal
+             , pgNumErrors
              , incErrors
              , incNoop
              , incDone
@@ -276,28 +278,42 @@ $(makeStore ''Config)
 
 type LogFn = LogStr -> IO ()
 
+-- | Represents an error during processing.
+data ProgressError = ProgressError
+  { peItem  :: !Text
+  , peError :: !Text
+  } deriving (Show)
+
+instance NFData ProgressError where
+  rnf (ProgressError a b) = rnf a `seq` rnf b
+
+$(makeStore ''ProgressError)
+
 -- | Progress of a work item.
 data Progress = Progress
-  { pgErrors :: !Int  -- ^ Work that was attempted but failed.
-  , pgNoop   :: !Int  -- ^ Work that was skipped.
-  , pgDone   :: !Int  -- ^ Work that was attempted and succeeded.
+  { pgErrors :: ![ProgressError] -- ^ Work that was attempted but failed.
+  , pgNoop   :: !Int             -- ^ Work that was skipped.
+  , pgDone   :: !Int             -- ^ Work that was attempted and succeeded.
   }
   deriving (Show)
 
 instance Default Progress where
-  def = Progress 0 0 0
+  def = Progress [] 0 0
 
 instance NFData Progress where
   rnf (Progress a b c) = rnf a `seq` rnf b `seq` rnf c
 
 $(makeStore ''Progress)
 
-pgTotal :: Progress -> Int
-pgTotal p = pgErrors p + pgNoop p + pgDone p
+pgNumErrors :: Progress -> Int
+pgNumErrors = length . pgErrors
 
-incErrors :: Progress -> Progress
-incErrors p@Progress { pgErrors = old } =
-  p { pgErrors = old + 1 }
+pgTotal :: Progress -> Int
+pgTotal p = pgNumErrors p + pgNoop p + pgDone p
+
+incErrors :: Text -> Text -> Progress -> Progress
+incErrors item err p@Progress { pgErrors = old } =
+  p { pgErrors = ProgressError item err:old  }
 
 incNoop :: Progress -> Progress
 incNoop p@Progress { pgNoop = old } =
@@ -307,9 +323,9 @@ incDone :: Progress -> Progress
 incDone p@Progress { pgDone = old } =
   p { pgDone = old + 1 }
 
-incProgress :: Int -> Int -> Int -> Progress -> Progress
+incProgress :: [ProgressError] -> Int -> Int -> Progress -> Progress
 incProgress e n d Progress{..} =
-  Progress { pgErrors = pgErrors + e
+  Progress { pgErrors = e ++ pgErrors
            , pgNoop = pgNoop + n
            , pgDone = pgDone + d
            }

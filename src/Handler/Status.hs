@@ -128,7 +128,7 @@ progressDetails counter goal =
                 <ul>
                   <li>#{swissNum $ pgNoop counter} items were already up-to-date.
                   <li>#{swissNum $ pgDone counter} items needed processing.
-                  <li>#{swissNum $ pgErrors counter} items had issues during processing.
+                  <li>#{swissNum $ pgNumErrors counter} items had issues during processing.
                   <li>#{swissNum $ remaining} items to left to investigate.
                   |]
   where remaining = goal - pgTotal counter
@@ -140,7 +140,7 @@ progressThroughput counter delta =
               Throughput: #{showThroughput $ throughput (pgTotal counter) delta} files/s overall,
               #{showThroughput $ throughput totalWork delta} files/s for actual work.
               |]
-  where totalWork = pgDone counter + pgErrors counter
+  where totalWork = pgDone counter + pgNumErrors counter
 
 workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
 workInProgress now work counter WorkStart{..} =
@@ -209,7 +209,7 @@ percentsDone p@Progress{..} total =
   -- (in 0/0 case), make it 1 to not have to deal with ±∞.
   let atotal = fromIntegral (maximumEx [total, pgTotal p, 1])::Double
       f x = truncate $ fromIntegral x * 100 / atotal
-      pE = f pgErrors
+      pE = f (pgNumErrors p)
       pN = f pgNoop
       pD = f pgDone
       pR = 100 - pE - pN - pD

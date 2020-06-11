@@ -1101,7 +1101,7 @@ loadFolder ctx name path isSource = do
       totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0
       pstats = computeImagesStats images
-  atomically $ modifyTVar' scanProgress (incProgress 0 noopexifs readexifs)
+  atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
   return $!! PicDir tname dirpath [] images timesort shadows year exif pstats
 
 mergeShadows :: Config -> PicDir -> PicDir
@@ -1162,7 +1162,7 @@ cleanCacheFile prefix logger path = do
   case res of
     Just err -> do
       logger $ "Failed to delete path: " <> toLogStr err
-      return incErrors
+      return $ incErrors (Text.pack path) err
     Nothing  -> do
       logger $ "Cleaned obsolete path '" <> toLogStr path <> "'"
       return incDone
@@ -1324,10 +1324,11 @@ forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> IO Progress
 forceBuildThumbCaches config renderProgress repo = do
   atomically $ writeTVar renderProgress def
   let images = renderableImages repo
+      imageForError i = (imgParent i ++ ":" ++ unImageName (imgName i))
       thbuild i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size
                             let modifier = case res of
-                                  Left _              -> incErrors
+                                  Left err            -> incErrors (imageForError i) (Text.pack $ show err)
                                   Right (False, _, _) -> incNoop
                                   Right (True, _, _)  -> incDone
                             atomically $ modifyTVar renderProgress modifier
