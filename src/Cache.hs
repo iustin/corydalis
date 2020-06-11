@@ -23,13 +23,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Cache ( cachedBasename
              , writeCacheFile
              , readCacheFile
+             , deleteCacheFile
              ) where
 
 import qualified Data.ByteString       as BS (ByteString, readFile, writeFile)
 import qualified Data.ByteString.Lazy  as BSL (ByteString, writeFile)
-import           Data.List.NonEmpty    hiding (zip)
+import           Data.List.NonEmpty    hiding (isPrefixOf, zip)
 import           Data.Time.Clock.POSIX
-import           System.Directory      (createDirectoryIfMissing)
+import           System.Directory      (canonicalizePath,
+                                        createDirectoryIfMissing, removeFile)
 import           System.FilePath       (splitFileName)
 import           System.IO.Error
 import           System.Posix.Files
@@ -109,3 +111,35 @@ readCacheFile config path fn validate extras = do
   if stale
     then return Nothing
     else readContents rpath
+
+-- | Deletes a cache file, given that it lies under the cache directory.
+deleteCacheFile :: FilePath        -- ^ Canonical, absolute path to the cache
+                                   -- directory.
+                -> FilePath        -- ^ Relative path to the cache file.
+                -> IO (Maybe Text) -- ^ Error details, or Nothing in case of
+                                   -- success.
+deleteCacheFile cachedir path = do
+  let errfmt :: IOError -> IO (Maybe Text)
+      errfmt err = return . Just . pack . show $ err
+  result <- try $ deleteCacheFile' cachedir path
+  either errfmt (const (return Nothing)) result
+
+-- | Inner body for 'deleteCacheFile'.
+--
+-- It canonicalises the parent of the target, and checks that it (the parent) is
+-- still inside the cache dir. In that case, we can remove the item, since it's
+-- either a file under its parent directory, or a symlink to somewhere else
+-- (which doesn't matter).
+deleteCacheFile' :: FilePath  -- ^ Canonical, absolute path to the cache
+                              -- directory.
+                 -> FilePath  -- ^ Relative path to the cache file.
+                 -> IO ()
+deleteCacheFile' cachedir path = do
+  let fp = cachedir </> path
+      (parent, leaf) = splitFileName fp
+  canon <- canonicalizePath parent
+  if cachedir `isPrefixOf` canon
+    then removeFile fp
+    else ioError $ userError ("Cache path '" ++ path ++ "' resolves to file '" ++ leaf ++
+                              "' under '" ++ canon ++
+                              "' which does not live under cachedir '" ++ cachedir)

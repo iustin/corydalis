@@ -38,7 +38,7 @@ import           Pics                           (Ctx, initContext,
                                                  launchScanFileSystem,
                                                  waitForScan)
 import           Test.Hspec                     as X hiding (shouldSatisfy)
-import           Test.Hspec.Expectations.Lifted
+import           Test.Hspec.Expectations.Lifted as X (shouldSatisfy)
 import           Types                          (Config (..))
 import           Yesod.Auth                     as X
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
