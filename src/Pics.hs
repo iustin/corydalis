@@ -972,8 +972,7 @@ allPathFiles config root handler (makeRel -> subdir) = do
   let buildsub p = if subdir == "." then p else subdir </> p
   (dirpaths, iinfo) <- getDirContents' False config (root </> subdir)
   mapM_ (\ii -> handler (subdir </> inodeName ii)) iinfo
-  mapM_ (\p -> allPathFiles config root handler (buildsub p)) dirpaths
-  return ()
+  mapM_ (allPathFiles config root handler . buildsub) dirpaths
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
 addDirToRepo config dir =

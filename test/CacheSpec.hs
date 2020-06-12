@@ -77,7 +77,7 @@ spec = parallel $ withConfig $ do
             symdir = cache </> "test/foo/bar/raw"
             passwd = symdir </> "passwd"
         createDirectoryIfMissing True $ cache </> "test/foo/bar"
-        createDirectoryLink "/etc/" $ symdir
+        createDirectoryLink "/etc/" symdir
         pathShouldExist passwd
         failDelete config "test/foo/raw/passwd"
         pathShouldExist passwd
@@ -103,7 +103,7 @@ spec = parallel $ withConfig $ do
       it "it deletes valid leaf symlinks" $ \config -> do
         let cache = cfgCacheDir config
             fp = cache </> "x.txt"
-        createFileLink "/" $ fp
+        createFileLink "/" fp
         pathIsSymbolicLink fp `shouldReturn` True
         pathShouldExist fp
         deleteCacheFile cache "x.txt" `shouldReturn` Nothing
@@ -112,7 +112,7 @@ spec = parallel $ withConfig $ do
       it "it deletes stale symlinks" $ \config -> do
         let cache = cfgCacheDir config
             fp = cache </> "x.txt"
-        createFileLink "foobar.txt" $ fp
+        createFileLink "foobar.txt" fp
         pathIsSymbolicLink fp `shouldReturn` True
         deleteCacheFile cache "x.txt" `shouldReturn` Nothing
         pathShouldNotExist fp
