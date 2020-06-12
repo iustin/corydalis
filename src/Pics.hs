@@ -1171,10 +1171,11 @@ cleanCacheFile prefix logger path = do
 cleanupCache :: Ctx         -- ^ Context
              -> Repository  -- ^ Repository with current set of images
              -> [FilePath]  -- ^ Set of directories to cleanup
+             -> Int         -- ^ Target item count goal
              -> IO Progress -- ^ Result of cleanup
-cleanupCache ctx repo alldirs = do
+cleanupCache ctx repo alldirs cachecount = do
   let cleanProgress = ctxCleanProgress ctx
-  atomically $ writeTVar cleanProgress def
+  atomically $ writeTVar cleanProgress (def { pgGoal = cachecount })
   let imgs = allRepoFiles repo
       iset = Set.fromList $ map filePath imgs
       config = ctxConfig ctx
@@ -1248,9 +1249,9 @@ scanFilesystem ctx newrepo = do
   logfn $ "Counting cache items under " ++ toLogStr (show cachePaths)
   cachecounts' <- mapConcurrently (countDirRaw config) cachePaths
   let cachecounts = sum cachecounts'
-  atomically $ writeTVar scanProgress def
+  atomically $ writeTVar scanProgress (def { pgGoal = sum itemcounts })
   start <- getZonedTime
-  let ws = WorkStart { wsStart = start, wsGoal = sum itemcounts }
+  let ws = WorkStart { wsStart = start }
   r2 <- tryUpdateRepo ctx (r1 { repoStatus = RepoScanning { rsScanGoal = ws } })
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir ctx))
                  $ srcdirs ++ outdirs
@@ -1269,11 +1270,9 @@ scanFilesystem ctx newrepo = do
       totalrender = length allsizes * length allimgs
       wrscan = WorkResults { wrStart = start
                            , wrEnd = end
-                           , wrGoal = wsGoal ws
                            , wrDone = scanned
                            }
       wsrender= WorkStart { wsStart = end
-                          , wsGoal = totalrender
                           }
   repo_as <- tryUpdateRepo ctx r2 { repoDirs   = repo'
                                   , repoStats  = stats
@@ -1283,27 +1282,23 @@ scanFilesystem ctx newrepo = do
                                   }
   writeDiskCache config repo_as
   logfn "Finished building repo, starting rendering"
-  rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo_as
+  rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo_as totalrender
   endr <- getZonedTime
   let wrrender = WorkResults { wrStart = end
                              , wrEnd = endr
-                             , wrGoal = totalrender
                              , wrDone = rendered
                              }
       wrstatus = RepoCleaning { rsScanResults = wrscan
                               , rsRenderResults = wrrender
-                              , rsCleanGoal = WorkStart { wsStart = endr
-                                                        , wsGoal = cachecounts
-                                                        }
+                              , rsCleanGoal = WorkStart { wsStart = endr }
                               }
   repo_ar' <- evaluate $ force $ repo_as { repoStatus = wrstatus }
   repo_ar <- tryUpdateRepo ctx repo_ar'
   logfn "Finished rendering, starting cleanup"
-  clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative
+  clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative cachecounts
   endc <- getZonedTime
   let wrclean = WorkResults { wrStart = endr
                             , wrEnd = endc
-                            , wrGoal = cachecounts
                             , wrDone = clean_pg
                             }
       status = RepoFinished { rsScanResults = wrscan
@@ -1320,9 +1315,9 @@ scanFilesystem ctx newrepo = do
 renderableImages :: Repository -> [Image]
 renderableImages = filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
 
-forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> IO Progress
-forceBuildThumbCaches config renderProgress repo = do
-  atomically $ writeTVar renderProgress def
+forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> Int -> IO Progress
+forceBuildThumbCaches config renderProgress repo totalrender = do
+  atomically $ writeTVar renderProgress (def { pgGoal = totalrender})
   let images = renderableImages repo
       imageForError i res = sformat (stext % "/" % stext % " at resolution " % int)
                             (imgParent i) (unImageName (imgName i)) res

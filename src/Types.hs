@@ -44,6 +44,7 @@ module Types ( Config(..)
              , Progress(..)
              , pgTotal
              , pgNumErrors
+             , pgProgress
              , incErrors
              , incNoop
              , incDone
@@ -294,14 +295,15 @@ data Progress = Progress
   { pgErrors :: ![ProgressError] -- ^ Work that was attempted but failed.
   , pgNoop   :: !Int             -- ^ Work that was skipped.
   , pgDone   :: !Int             -- ^ Work that was attempted and succeeded.
+  , pgGoal   :: !Int             -- ^ Target work goal.
   }
   deriving (Show)
 
 instance Default Progress where
-  def = Progress [] 0 0
+  def = Progress [] 0 0 0
 
 instance NFData Progress where
-  rnf (Progress a b c) = rnf a `seq` rnf b `seq` rnf c
+  rnf (Progress a b c d) = rnf a `seq` rnf b `seq` rnf c `seq` rnf d
 
 $(makeStore ''Progress)
 
@@ -310,6 +312,13 @@ pgNumErrors = length . pgErrors
 
 pgTotal :: Progress -> Int
 pgTotal p = pgNumErrors p + pgNoop p + pgDone p
+
+-- | Returns progress as a ratio, or Nothing if no goal.
+pgProgress :: Progress -> Maybe Double
+pgProgress p@Progress{..} =
+  if pgGoal == 0
+  then Nothing
+  else Just $ fromIntegral (pgTotal p) / fromIntegral pgGoal
 
 incErrors :: Text -> Text -> Progress -> Progress
 incErrors item err p@Progress { pgErrors = old } =
@@ -324,32 +333,28 @@ incDone p@Progress { pgDone = old } =
   p { pgDone = old + 1 }
 
 incProgress :: [ProgressError] -> Int -> Int -> Progress -> Progress
-incProgress e n d Progress{..} =
-  Progress { pgErrors = e ++ pgErrors
-           , pgNoop = pgNoop + n
-           , pgDone = pgDone + d
-           }
+incProgress e n d p@Progress{..} =
+  p { pgErrors = e ++ pgErrors
+    , pgNoop = pgNoop + n
+    , pgDone = pgDone + d
+    }
 
-data WorkStart = WorkStart
-  { wsStart :: !ZonedTime
-  , wsGoal  :: !Int
-  }
+newtype WorkStart = WorkStart { wsStart :: ZonedTime }
   deriving (Show)
 
 instance NFData WorkStart where
-  rnf (WorkStart s g) = rnf s `seq` rnf g
+  rnf (WorkStart s) = rnf s
 
 data WorkResults = WorkResults
   { wrStart :: !ZonedTime
   , wrEnd   :: !ZonedTime
-  , wrGoal  :: !Int
   , wrDone  :: !Progress
   }
   deriving (Show)
 
 instance NFData WorkResults where
-  rnf (WorkResults a b c d) =
-    rnf a `seq` rnf b `seq` rnf c `seq` rnf d
+  rnf (WorkResults a b c) =
+    rnf a `seq` rnf b `seq` rnf c
 
 
 -- | Data representing the entirety of the application state.

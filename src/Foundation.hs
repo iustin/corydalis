@@ -322,13 +322,13 @@ instance Yesod App where
                                               then mmsgKind'
                                               else msgInfo
         ctx <- getContext
-        scanProgress <- liftIO (pgTotal <$> getProgress ctx)
+        progress <- liftIO $ getProgress ctx
+        let scanProgress = pgTotal progress
+            scanGoal = pgGoal progress
         repo <- getPics
         let repoState = repoStatus repo
             scanPercent = case repoState of
-                            -- so ugly!
-                            RepoScanning WorkStart { wsGoal = t } | t > 0 ->
-                                 Just (truncate (fromIntegral scanProgress * 100 / (fromIntegral t::Double)))
+                            RepoScanning {} -> truncate . (100 *) <$> pgProgress progress
                             _ -> Nothing::Maybe Int
 
         -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.

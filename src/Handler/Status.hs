@@ -122,8 +122,8 @@ repoContents repo =
       |]
   where totalImages = totalStatsCount . rsPicStats . repoStats $ repo
 
-progressDetails :: Progress -> Int -> Widget
-progressDetails counter goal =
+progressDetails :: Progress -> Widget
+progressDetails counter =
   toWidget [hamlet|
                 <ul>
                   <li>#{swissNumOrNone $ pgNoop counter} items were already up-to-date.
@@ -135,7 +135,7 @@ progressDetails counter goal =
                     \ during processing.
                   <li>#{swissNumOrNone $ remaining} items to left to investigate.
                   |]
-  where remaining = goal - pgTotal counter
+  where remaining = pgGoal counter - pgTotal counter
 
 progressThroughput :: Progress -> NominalDiffTime -> Widget
 progressThroughput counter delta =
@@ -147,19 +147,19 @@ progressThroughput counter delta =
   where totalWork = pgDone counter + pgNumErrors counter
 
 workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
-workInProgress now work counter WorkStart{..} =
+workInProgress now work counter@Progress{..} WorkStart{..} =
   [whamlet|
           <div .card-body>
             <p .card-text>
-               #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum wsGoal}:
-            ^{progressDetails counter wsGoal}
+               #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum pgGoal}:
+            ^{progressDetails counter}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
                ETA: #{relTime True remaining}.
             ^{progressThroughput counter delta}
-            ^{percentsBar counter wsGoal}
+            ^{percentsBar counter}
                |]
-  where doneitems = pgTotal counter - pgNoop counter
+  where doneitems = pgTotal counter - pgNoop
         -- Tricky: if we actually did work, estimate on (goal - noop)
         -- / actual work. If not, then fall back to goal /
         -- work. Otherwise, with the formaer we'd never get an ETA for
@@ -168,9 +168,9 @@ workInProgress now work counter WorkStart{..} =
         -- course, can still show get inf right at the start, but
         -- that's acceptable.
         multiplier = if doneitems > 0
-                     then fromIntegral (wsGoal - pgNoop counter) /
+                     then fromIntegral (pgGoal - pgNoop) /
                           fromIntegral doneitems::Double
-                     else fromIntegral wsGoal / fromIntegral (pgTotal counter)
+                     else fromIntegral pgGoal / fromIntegral (pgTotal counter)
         elapsed = realToFrac $ diffZ now wsStart
         totaltime = elapsed * multiplier
         remaining = totaltime - elapsed
@@ -183,12 +183,12 @@ workResults now WorkResults{..} work item =
           <div .card-body>
             <p .card-text>
               #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed:
-                 ^{progressDetails wrDone wrGoal}
+                 ^{progressDetails wrDone}
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
             ^{progressThroughput wrDone delta}
-            ^{percentsBar wrDone wrGoal}
+            ^{percentsBar wrDone}
               |]
   where delta = diffZ wrEnd wrStart
 
@@ -206,12 +206,12 @@ scanFailed =
             Repository scanning failed.
             |]
 
-percentsDone :: Progress -> Int -> (Int, Int, Int, Int)
-percentsDone p@Progress{..} total =
+percentsDone :: Progress -> (Int, Int, Int, Int)
+percentsDone p@Progress{..} =
   -- Normalisation for total: if total < pgTotal p, then take the
   -- latter as goal (some weird error in this case). If that's still 0
   -- (in 0/0 case), make it 1 to not have to deal with ±∞.
-  let atotal = fromIntegral (maximumEx [total, pgTotal p, 1])::Double
+  let atotal = fromIntegral (maximumEx [pgGoal, pgTotal p, 1])::Double
       f x = truncate $ fromIntegral x * 100 / atotal
       pE = f (pgNumErrors p)
       pN = f pgNoop
@@ -229,8 +229,8 @@ pgBar perc classes title =
         #{perc}%
         |]
 
-percentsBar :: Progress -> Int -> Widget
-percentsBar counter goal =
+percentsBar :: Progress -> Widget
+percentsBar counter =
   [whamlet|
     <div .progress>
       ^{pgBar pN "bg-success" "Already up-to-date"}
@@ -238,7 +238,8 @@ percentsBar counter goal =
       ^{pgBar pD "bg-info progress-bar-striped" "Processed successfully"}
       ^{pgBar pR "bg-light text-secondary" "Left to do"}
       |]
-  where (pE, pN, pD, pR) = percentsDone counter goal
+  where (pE, pN, pD, pR) = percentsDone counter
+
 
 overallState :: RepoStatus -> (Int, Text, Text, Bool)
 overallState RepoEmpty        = (0, "empty", "bg-warning", False)
