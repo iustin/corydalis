@@ -1324,11 +1324,12 @@ forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> IO Progress
 forceBuildThumbCaches config renderProgress repo = do
   atomically $ writeTVar renderProgress def
   let images = renderableImages repo
-      imageForError i = (imgParent i ++ ":" ++ unImageName (imgName i))
+      imageForError i res = sformat (stext % "/" % stext % " at resolution " % int)
+                            (imgParent i) (unImageName (imgName i)) res
       thbuild i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size
                             let modifier = case res of
-                                  Left err            -> incErrors (imageForError i) (Text.pack $ show err)
+                                  Left err            -> incErrors (imageForError i size) (Text.pack $ show err)
                                   Right (False, _, _) -> incNoop
                                   Right (True, _, _)  -> incDone
                             atomically $ modifyTVar renderProgress modifier

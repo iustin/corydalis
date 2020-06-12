@@ -261,6 +261,7 @@ routeStyle SearchR                = PageBasic
 routeStyle SettingsR              = PageBasic
 routeStyle StaticR{}              = PageBasic
 routeStyle StatusR                = PageBasic
+routeStyle StatusErrorsR          = PageTable
 routeStyle ViewR{}                = PageView
 
 viewMode :: Route App -> Maybe ViewMode
@@ -423,6 +424,7 @@ instance YesodBreadcrumbs App where
   breadcrumb CurateR        = return ("Curate"       , Nothing)
   breadcrumb ReloadR        = return ("Reload cache" , Nothing)
   breadcrumb StatusR        = return ("Status"       , Nothing)
+  breadcrumb StatusErrorsR  = return ("Errors"       , Just StatusR)
   breadcrumb (FolderR name) = do
     pics <- getPics
     let r = maybe SearchFoldersNoYearR SearchFoldersByYearR $

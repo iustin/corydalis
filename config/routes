@@ -30,6 +30,7 @@
 /stats/cameras CameraStatsR GET
 /stats/camera/#Text CameraInfoR GET
 /status StatusR GET
+/status/errors StatusErrorsR GET
 /list/#Symbol ListItemsR GET
 /search/quick QuickSearchR GET
 /about AboutR GET

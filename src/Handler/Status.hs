@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Status
   ( getStatusR
+  , getStatusErrorsR
   ) where
 
 import           Data.Time.Clock
@@ -128,7 +129,10 @@ progressDetails counter goal =
                 <ul>
                   <li>#{swissNum $ pgNoop counter} items were already up-to-date.
                   <li>#{swissNum $ pgDone counter} items needed processing.
-                  <li>#{swissNum $ pgNumErrors counter} items had issues during processing.
+                  <li>
+                    <a href=@{StatusErrorsR}>
+                      #{swissNum $ pgNumErrors counter}
+                    items had issues during processing.
                   <li>#{swissNum $ remaining} items to left to investigate.
                   |]
   where remaining = goal - pgTotal counter
@@ -261,3 +265,31 @@ getStatusR = do
   defaultLayout $ do
     setHtmlTitle "status"
     $(widgetFile "status")
+
+getStatusErrorsR :: Handler Html
+getStatusErrorsR = do
+  ctx <- getContext
+  (finished, sp, rp, cp) <- liftIO $ atomically $ do
+    repo <- readTVar (ctxRepo ctx)
+    instScan <- readTVar (ctxScanProgress ctx)
+    instRend <- readTVar (ctxRenderProgress ctx)
+    instClean <- readTVar (ctxCleanProgress ctx)
+    return $ case repoStatus repo of
+      RepoFinished { rsScanResults = finScan
+                   , rsRenderResults = finRend
+                   , rsCleanResults = finClean
+                   } -> (True, wrDone finScan, wrDone finRend, wrDone finClean)
+      RepoCleaning { rsScanResults = finScan
+                   , rsRenderResults = finProg
+                   } -> (False, wrDone finScan, wrDone finProg, instClean)
+
+      RepoRendering { rsScanResults = finScan
+                    } -> (False, wrDone finScan, instRend, def)
+      RepoScanning {} -> (False, instScan, def, def)
+      _ -> (False, def, def, def)
+  let errors = zip (repeat scanning) (pgErrors sp) ++
+               zip (repeat rendering) (pgErrors rp) ++
+               zip (repeat cleaning) (pgErrors cp)
+  defaultLayout $ do
+    setHtmlTitle "Repository scanning errors"
+    $(widgetFile "progressinfo")

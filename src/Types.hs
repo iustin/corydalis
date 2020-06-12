@@ -40,7 +40,7 @@ module Types ( Config(..)
              , pathSep
              , LazyText
              , LogFn
-             , ProgressError
+             , ProgressError(..)
              , Progress(..)
              , pgTotal
              , pgNumErrors
