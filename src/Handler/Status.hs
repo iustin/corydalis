@@ -240,19 +240,45 @@ percentsBar counter =
       |]
   where (pE, pN, pD, pR) = percentsDone counter
 
+readProgresses :: Ctx -> STM (Progress, Progress, Progress)
+readProgresses ctx = do
+  scan <- readTVar $ ctxScanProgress ctx
+  render <- readTVar $ ctxRenderProgress ctx
+  clean <- readTVar $ ctxCleanProgress ctx
+  return (scan, render, clean)
 
-overallState :: RepoStatus -> (Int, Text, Text, Bool)
-overallState RepoEmpty        = (0, "empty", "bg-warning", False)
-overallState RepoStarting     = (5, "preparing scan", "bg-warning", False)
-overallState RepoScanning {}  = (10, "scanning filesystem", "bg-info", True)
-overallState RepoRendering {} = (50, "rendering images", "bg-info", True)
-overallState RepoCleaning {}  = (90, "cleaning the cache", "bg-info", True)
-overallState RepoFinished {}  = (100, "all done", "bg-info", False)
-overallState RepoError {}     = (100, "error", "bg-danger", False)
+percentBetween :: Progress -> Int -> Int -> Int
+percentBetween p low high
+  | Just perc <- pgProgress p =
+      truncate (fromIntegral (high - low) * perc) + low
+  | otherwise = low
 
-repoScanProgress :: RepoStatus -> Widget
-repoScanProgress repoState = do
-  let (overall_perc, overall_text, overall_role, overall_strip) = overallState repoState
+scanStart :: Int
+scanStart = 10
+
+renderStart :: Int
+renderStart = 50
+
+cleanStart :: Int
+cleanStart = 90
+
+overallState :: RepoStatus -> Progress -> Progress -> Progress
+             -> (Int, Text, Text, Bool)
+overallState RepoEmpty        _ _ _  = (0, "empty", "bg-warning", False)
+overallState RepoStarting     _ _ _  = (5, "preparing scan", "bg-warning", False)
+overallState RepoScanning {}  s _ _ = (percentBetween s scanStart renderStart,
+                                       "scanning filesystem", "bg-info", True)
+overallState RepoRendering {} _ r _ = (percentBetween r renderStart cleanStart,
+                                       "rendering images", "bg-info", True)
+overallState RepoCleaning {}  _ _ c = (percentBetween c cleanStart 100,
+                                       "cleaning the cache", "bg-info", True)
+overallState RepoFinished {}  _ _ _ = (100, "all done", "bg-info", False)
+overallState RepoError {}     _ _ _ = (100, "error", "bg-danger", False)
+
+repoScanProgress :: Ctx -> RepoStatus -> Widget
+repoScanProgress ctx repoState = do
+  (sp, rp, cp) <- liftIO $ atomically $ readProgresses ctx
+  let (overall_perc, overall_text, overall_role, overall_strip) = overallState repoState sp rp cp
       overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
   $(widgetFile "scanprogress")
 
@@ -277,9 +303,7 @@ getStatusErrorsR = do
   (finished, repoState, sp, rp, cp) <- liftIO $ atomically $ do
     repo <- readTVar (ctxRepo ctx)
     let repoState = repoStatus repo
-    instScan <- readTVar (ctxScanProgress ctx)
-    instRend <- readTVar (ctxRenderProgress ctx)
-    instClean <- readTVar (ctxCleanProgress ctx)
+    (instScan, instRend, instClean) <- readProgresses ctx
     return $ case repoStatus repo of
       RepoFinished { rsScanResults = finScan
                    , rsRenderResults = finRend

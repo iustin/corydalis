@@ -1,7 +1,7 @@
 <h1>Corydalis
   <small> - repository scanning error details 
 
-^{repoScanProgress repoState}
+^{repoScanProgress ctx repoState}
 
 <div .row>
  <div .col-12>
