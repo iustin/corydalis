@@ -1,0 +1,33 @@
+<h1>Corydalis
+  <small> - repository scanning error details 
+
+^{repoScanProgress repoState}
+
+<div .row>
+ <div .col-12>
+   <div .card>
+     <div .card-body>
+        There are #{length errors} errors. #
+        $if finished
+          The repository scanning is finished, the error list should be final.
+        $else
+          Repository scanning still in progress, the error list is partial.
+            
+   $if not (null errors)
+     <div .card .my-3>
+       <table #errorlist .tablesorter .table .table-sm data-sortlist="[[0,0],[1,0]]">
+         <thead>
+           <tr>
+             <th .sorter-text>Phase
+             <th .empty-min .sorter-text>Item
+             <th .sorter-text>Error
+
+         <tbody>
+           $forall (phase, ProgressError item err) <- errors
+             <tr>
+               <td>
+                  #{phase}
+               <td>
+                  #{item}
+               <td>
+                  #{err}

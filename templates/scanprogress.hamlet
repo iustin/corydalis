@@ -1,0 +1,8 @@
+<div .row>
+  <div .col-12 .mb-3>
+   <div .card>
+      <div .card-header>Overall status
+      <div .card-body>
+        <div .progress>
+          <div .progress-bar class="#{overall_role} #{overall_striptxt}" role=progressbar aria-valuenow="#{overall_perc}" aria-valuemin="0" aria-valuemax="100" style="width: #{overall_perc}%">
+                #{overall_text}
