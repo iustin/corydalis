@@ -249,6 +249,12 @@ overallState RepoCleaning {}  = (90, "cleaning the cache", "bg-info", True)
 overallState RepoFinished {}  = (100, "all done", "bg-info", False)
 overallState RepoError {}     = (100, "error", "bg-danger", False)
 
+repoScanProgress :: RepoStatus -> Widget
+repoScanProgress repoState = do
+  let (overall_perc, overall_text, overall_role, overall_strip) = overallState repoState
+      overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
+  $(widgetFile "scanprogress")
+
 getStatusR :: Handler Html
 getStatusR = do
   repo <- getPics
@@ -259,8 +265,6 @@ getStatusR = do
   scanProgress <- liftIO $ getProgress ctx
   renderProgress <- liftIO $ getRenderProgress ctx
   cleanProgress <- liftIO $ getCleanProgress ctx
-  let (overall_perc, overall_text, overall_role, overall_strip) = overallState repoState
-      overall_striptxt = if overall_strip then "progress-bar-striped" else ""::Text
   now <- liftIO getZonedTime
   defaultLayout $ do
     setHtmlTitle "status"
@@ -269,8 +273,9 @@ getStatusR = do
 getStatusErrorsR :: Handler Html
 getStatusErrorsR = do
   ctx <- getContext
-  (finished, sp, rp, cp) <- liftIO $ atomically $ do
+  (finished, repoState, sp, rp, cp) <- liftIO $ atomically $ do
     repo <- readTVar (ctxRepo ctx)
+    let repoState = repoStatus repo
     instScan <- readTVar (ctxScanProgress ctx)
     instRend <- readTVar (ctxRenderProgress ctx)
     instClean <- readTVar (ctxCleanProgress ctx)
@@ -278,15 +283,18 @@ getStatusErrorsR = do
       RepoFinished { rsScanResults = finScan
                    , rsRenderResults = finRend
                    , rsCleanResults = finClean
-                   } -> (True, wrDone finScan, wrDone finRend, wrDone finClean)
+                   } -> (True, repoState,
+                         wrDone finScan, wrDone finRend, wrDone finClean)
       RepoCleaning { rsScanResults = finScan
                    , rsRenderResults = finProg
-                   } -> (False, wrDone finScan, wrDone finProg, instClean)
+                   } -> (False, repoState,
+                         wrDone finScan, wrDone finProg, instClean)
 
       RepoRendering { rsScanResults = finScan
-                    } -> (False, wrDone finScan, instRend, def)
-      RepoScanning {} -> (False, instScan, def, def)
-      _ -> (False, def, def, def)
+                    } -> (False, repoState,
+                          wrDone finScan, instRend, def)
+      RepoScanning {} -> (False, repoState, instScan, def, def)
+      _ -> (False, repoState, def, def, def)
   let errors = zip (repeat scanning) (pgErrors sp) ++
                zip (repeat rendering) (pgErrors rp) ++
                zip (repeat cleaning) (pgErrors cp)
