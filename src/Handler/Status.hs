@@ -50,6 +50,10 @@ showThroughput = sformat (F.f 2)
 diffZ :: ZonedTime -> ZonedTime -> NominalDiffTime
 diffZ a b = diffUTCTime (zonedTimeToUTC a) (zonedTimeToUTC b)
 
+swissNumOrNone :: (Integral n, Buildable n) => n -> Text
+swissNumOrNone 0 = "no"
+swissNumOrNone n = swissNum n
+
 swissNum :: (Integral n, Buildable n) => n -> Text
 swissNum = sformat (groupInt 3 '\'')
 
@@ -112,12 +116,7 @@ repoContents :: Repository -> Widget
 repoContents repo =
   toWidget [hamlet|
     <p .card-text>
-      Repository currently contains #
-      $if totalImages > 0
-        #{swissNum totalImages} images
-      $else
-        no images
-      .
+      Repository currently contains #{swissNumOrNone totalImages} images.
     <p .card-text>
       Repository generation number is #{repoSerial repo}.
       |]
@@ -127,13 +126,14 @@ progressDetails :: Progress -> Int -> Widget
 progressDetails counter goal =
   toWidget [hamlet|
                 <ul>
-                  <li>#{swissNum $ pgNoop counter} items were already up-to-date.
-                  <li>#{swissNum $ pgDone counter} items needed processing.
+                  <li>#{swissNumOrNone $ pgNoop counter} items were already up-to-date.
+                  <li>#{swissNumOrNone $ pgDone counter} items needed processing.
                   <li>
+                    #{swissNumOrNone $ pgNumErrors counter} items had #
                     <a href=@{StatusErrorsR}>
-                      #{swissNum $ pgNumErrors counter}
-                    items had issues during processing.
-                  <li>#{swissNum $ remaining} items to left to investigate.
+                      issues
+                    \ during processing.
+                  <li>#{swissNumOrNone $ remaining} items to left to investigate.
                   |]
   where remaining = goal - pgTotal counter
 
