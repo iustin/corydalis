@@ -60,7 +60,7 @@ release: clean lint doc regen-git-version
 	rm -rf .stack-release
 	stack --work-dir .stack-release build --pedantic $(FLAGS)
 	stack --work-dir .stack-release install --local-bin-path dist/ $(FLAGS)
-	rsync -a static dist/
+	rsync -aL static dist/
 	rm -rf dist/static/tmp/
 
 .PHONY: demo-release
