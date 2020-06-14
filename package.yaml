@@ -215,10 +215,11 @@ executables:
 # Test suite
 tests:
   test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: test
     dependencies:
     - corydalis
+    - clientsession
     - hspec >=2.0.0
     - hspec-expectations-lifted
     - http-types

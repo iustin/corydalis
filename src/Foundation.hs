@@ -40,6 +40,7 @@ module Foundation
   , getPics
   , getContext
   , getLastViewMode
+  , clientSessionKeyFile
   ) where
 
 import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
@@ -280,6 +281,9 @@ setViewMode :: ViewMode -> Handler ()
 setViewMode vm =
   setCookie $ lastViewCookie vm
 
+clientSessionKeyFile :: FilePath
+clientSessionKeyFile = "config/client_session_key.aes"
+
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
 instance Yesod App where
@@ -294,8 +298,7 @@ instance Yesod App where
       (if appSecureSessions $ appSettings app
         then sslOnlySessions
         else id) $
-      Just <$> defaultClientSessionBackend sessionTimeout
-        "config/client_session_key.aes"
+      Just <$> defaultClientSessionBackend sessionTimeout clientSessionKeyFile
 
     -- Yesod Middleware allows you to run code before and after each handler function.
     -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
