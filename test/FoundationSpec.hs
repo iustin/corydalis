@@ -39,7 +39,6 @@ handlerView = [ (BrowseImagesR 0, ViewImages PresentationGrid)
 checkViewCookie :: Maybe ViewMode -> YesodExample App ()
 checkViewCookie expected = request $ do
   cookies <- getRequestCookies
-  liftIO $ print cookies
   let actual = do
         cookieB <- M.lookup (encodeUtf8 viewCookieName) cookies
         parseViewMode . decodeUtf8 . setCookieValue $ cookieB
