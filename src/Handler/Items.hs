@@ -60,6 +60,8 @@ symbolPlCap TFileName = "File names"
 symbolPlCap TStatus   = "Image status"
 symbolPlCap TFClass   = "Folder class"
 symbolPlCap TRating   = "Image ratings"
+symbolPlCap TPplCnt   = "People count"
+symbolPlCap TKwdCnt   = "Keyword count"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"

@@ -88,6 +88,8 @@ data Symbol = TCountry
             | TStatus
             | TFClass
             | TRating
+            | TPplCnt
+            | TKwdCnt
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -112,28 +114,32 @@ instance PathPiece Symbol where
   toPathPiece TStatus   = "image-status"
   toPathPiece TFClass   = "folder-class"
   toPathPiece TRating   = "rating"
-  fromPathPiece "countries"    = Just TCountry
-  fromPathPiece "provinces"    = Just TProvince
-  fromPathPiece "cities"       = Just TCity
-  fromPathPiece "locations"    = Just TLocation
-  fromPathPiece "people"       = Just TPerson
-  fromPathPiece "keywords"     = Just TKeyword
-  fromPathPiece "title"        = Just TTitle
-  fromPathPiece "caption"      = Just TCaption
-  fromPathPiece "years"        = Just TYear
-  fromPathPiece "seasons"      = Just TSeason
-  fromPathPiece "months"       = Just TMonth
-  fromPathPiece "days"         = Just TDay
-  fromPathPiece "cameras"      = Just TCamera
-  fromPathPiece "lenses"       = Just TLens
-  fromPathPiece "problems"     = Just TProblem
-  fromPathPiece "types"        = Just TType
-  fromPathPiece "folders"      = Just TFolder
-  fromPathPiece "filenames"    = Just TFileName
-  fromPathPiece "image-status" = Just TStatus
-  fromPathPiece "folder-class" = Just TFClass
-  fromPathPiece "rating"       = Just TRating
-  fromPathPiece _              = Nothing
+  toPathPiece TPplCnt   = "people-count"
+  toPathPiece TKwdCnt   = "keyword-count"
+  fromPathPiece "countries"     = Just TCountry
+  fromPathPiece "provinces"     = Just TProvince
+  fromPathPiece "cities"        = Just TCity
+  fromPathPiece "locations"     = Just TLocation
+  fromPathPiece "people"        = Just TPerson
+  fromPathPiece "keywords"      = Just TKeyword
+  fromPathPiece "title"         = Just TTitle
+  fromPathPiece "caption"       = Just TCaption
+  fromPathPiece "years"         = Just TYear
+  fromPathPiece "seasons"       = Just TSeason
+  fromPathPiece "months"        = Just TMonth
+  fromPathPiece "days"          = Just TDay
+  fromPathPiece "cameras"       = Just TCamera
+  fromPathPiece "lenses"        = Just TLens
+  fromPathPiece "problems"      = Just TProblem
+  fromPathPiece "types"         = Just TType
+  fromPathPiece "folders"       = Just TFolder
+  fromPathPiece "filenames"     = Just TFileName
+  fromPathPiece "image-status"  = Just TStatus
+  fromPathPiece "folder-class"  = Just TFClass
+  fromPathPiece "rating"        = Just TRating
+  fromPathPiece "people-count"  = Just TPplCnt
+  fromPathPiece "keyword-count" = Just TKwdCnt
+  fromPathPiece _               = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
 symbolFindsFiles TFClass = False
@@ -236,6 +242,8 @@ data Atom = Country  StrOp
           | Status   ImageStatus
           | FClass   FolderClass
           | Rating   (NumOp Int)
+          | PplCnt   (NumOp Int)
+          | KwdCnt   (NumOp Int)
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -269,33 +277,37 @@ symbolName TFileName = "filename"
 symbolName TStatus   = "status"
 symbolName TFClass   = "folder-class"
 symbolName TRating   = "rating"
+symbolName TPplCnt   = "people-count"
+symbolName TKwdCnt   = "keyword-count"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
 
 parseSymbol :: Text -> Maybe Symbol
-parseSymbol "country"      = Just TCountry
-parseSymbol "province"     = Just TProvince
-parseSymbol "city"         = Just TCity
-parseSymbol "location"     = Just TLocation
-parseSymbol "person"       = Just TPerson
-parseSymbol "keyword"      = Just TKeyword
-parseSymbol "title"        = Just TTitle
-parseSymbol "caption"      = Just TCaption
-parseSymbol "year"         = Just TYear
-parseSymbol "season"       = Just TSeason
-parseSymbol "month"        = Just TMonth
-parseSymbol "day"          = Just TDay
-parseSymbol "camera"       = Just TCamera
-parseSymbol "lens"         = Just TLens
-parseSymbol "problem"      = Just TProblem
-parseSymbol "type"         = Just TType
-parseSymbol "folder"       = Just TFolder
-parseSymbol "filename"     = Just TFileName
-parseSymbol "status"       = Just TStatus
-parseSymbol "folder-class" = Just TFClass
-parseSymbol "rating"       = Just TRating
-parseSymbol _              = Nothing
+parseSymbol "country"       = Just TCountry
+parseSymbol "province"      = Just TProvince
+parseSymbol "city"          = Just TCity
+parseSymbol "location"      = Just TLocation
+parseSymbol "person"        = Just TPerson
+parseSymbol "keyword"       = Just TKeyword
+parseSymbol "title"         = Just TTitle
+parseSymbol "caption"       = Just TCaption
+parseSymbol "year"          = Just TYear
+parseSymbol "season"        = Just TSeason
+parseSymbol "month"         = Just TMonth
+parseSymbol "day"           = Just TDay
+parseSymbol "camera"        = Just TCamera
+parseSymbol "lens"          = Just TLens
+parseSymbol "problem"       = Just TProblem
+parseSymbol "type"          = Just TType
+parseSymbol "folder"        = Just TFolder
+parseSymbol "filename"      = Just TFileName
+parseSymbol "status"        = Just TStatus
+parseSymbol "folder-class"  = Just TFClass
+parseSymbol "rating"        = Just TRating
+parseSymbol "people-count"  = Just TPplCnt
+parseSymbol "keyword-count" = Just TKwdCnt
+parseSymbol _               = Nothing
 
 buildMissingAtom :: Symbol -> Atom
 buildMissingAtom s =
@@ -322,6 +334,8 @@ buildMissingAtom s =
     TFileName -> error "No missing atom for filename"
     TStatus   -> error "No missing atom for status"
     TFClass   -> error "No missing atom for folder class"
+    TPplCnt   -> error "No missing atom for people count"
+    TKwdCnt   -> error "No missing atom for keyword count"
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -330,6 +344,7 @@ parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
 parseAtom a v = do
   s <- parseSymbol a
   let dec = parseDecimal v
+      intDec = parseDecimal v
       str = parseString v
       typ = parseType v
       sta = parseImageStatus v
@@ -354,7 +369,10 @@ parseAtom a v = do
     TFileName -> FileName <$> str
     TStatus   -> Status   <$> sta
     TFClass   -> FClass   <$> parseFolderClass v
-    TRating   -> Rating   <$> parseDecimal v
+    TRating   -> Rating   <$> intDec
+    TPplCnt   -> PplCnt   <$> intDec
+    TKwdCnt   -> KwdCnt   <$> intDec
+
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -383,6 +401,8 @@ quickSearch s v =
     TStatus   -> Status <$> parseImageStatus v
     TFClass   -> FClass <$> parseFolderClass v
     TRating   -> Rating . OpEq <$> either (const Nothing) Just (parseDecimalPlain v)
+    TPplCnt   -> Nothing
+    TKwdCnt   -> Nothing
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
 
@@ -408,6 +428,8 @@ atomTypeDescriptions TFileName = "filenames"
 atomTypeDescriptions TStatus   = "image statuses"
 atomTypeDescriptions TFClass   = "folder classes"
 atomTypeDescriptions TRating   = "ratings"
+atomTypeDescriptions TPplCnt   = "people count"
+atomTypeDescriptions TKwdCnt   = "keyword count"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -444,6 +466,13 @@ describeStr a (OpEqual "") = a <> " is empty"
 describeStr a (OpEqual v)  = describeEq a v
 describeStr a (OpFuzzy v)  = a <> " contains " <> unFuzzy v
 describeStr a  OpMissing   = "has no " <> a <> " information"
+
+-- | Describe a numeric value
+describeNum :: Integral a => Text -> NumOp a -> Text
+describeNum t (OpEq v) = sformat ("with " % int % " " % stext) v t
+describeNum t (OpLt v) = sformat ("with less than " % int % " " % stext) v t
+describeNum t (OpGt v) = sformat ("with more than " % int % " " % stext) v t
+describeNum t OpNa     = sformat ("with unknown number of " % stext) t
 
 atomDescription :: Atom -> Text
 atomDescription (Country  place) = describeStr "country"  place
@@ -505,6 +534,8 @@ atomDescription (Rating OpNa)          = "unrated"
 atomDescription (Rating (OpLt v))      = sformat ("rated with less than " % int % " stars") v
 atomDescription (Rating (OpGt v))      = sformat ("rated with more than " % int % " stars") v
 atomDescription (Rating (OpEq v))      = sformat ("rated with " % int % " stars") v
+atomDescription (PplCnt v)             = describeNum "people" v
+atomDescription (KwdCnt v)             = describeNum "keywords" v
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -617,6 +648,12 @@ folderSearchFunction (FClass c) =
 folderSearchFunction a@(Rating _) =
   imagesMatchAtom a . pdImages
 
+folderSearchFunction a@(PplCnt _) =
+  imagesMatchAtom a . pdImages
+
+folderSearchFunction a@(KwdCnt _) =
+  imagesMatchAtom a . pdImages
+
 folderSearchFunction (And a b) = \p ->
   folderSearchFunction a p &&
   folderSearchFunction b p
@@ -722,6 +759,12 @@ imageSearchFunction (FClass _) = const False
 imageSearchFunction (Rating r) =
   evalNum r . exifRating . imgExif
 
+imageSearchFunction (PplCnt n) =
+  evalNum n . Just . Set.size . exifPeople . imgExif
+
+imageSearchFunction (KwdCnt n) =
+  evalNum n . Just . Set.size . exifKeywords . imgExif
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -777,6 +820,8 @@ getAtoms TFileName =
 getAtoms TStatus   = statusStats
 getAtoms TFClass   = fClassStats
 getAtoms TRating   = ratingStats
+getAtoms TPplCnt   = gExifPeopleCnt . repoExif
+getAtoms TKwdCnt   = gExifKwdCnt . repoExif
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats
@@ -1169,6 +1214,8 @@ atomToParams (FileName v) = [formatParam TFileName v]
 atomToParams (Status   v) = [formatParam TStatus   v]
 atomToParams (FClass   v) = [formatParam TFClass   v]
 atomToParams (Rating   v) = [formatParam TRating   v]
+atomToParams (PplCnt   v) = [formatParam TPplCnt   v]
+atomToParams (KwdCnt   v) = [formatParam TKwdCnt   v]
 atomToParams (And a b)    =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)     =

@@ -131,6 +131,8 @@ atomIcon TFileName = "fas fa-file"
 atomIcon TStatus   = "fas fa-file-alt"
 atomIcon TFClass   = "fas fa-folder"
 atomIcon TRating   = "fas fa-star"
+atomIcon TPplCnt   = "fas fa-users"
+atomIcon TKwdCnt   = "fas fa-tags"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =

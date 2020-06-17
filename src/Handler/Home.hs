@@ -57,6 +57,8 @@ specialViews =
   , TMonth
   , TDay
   , TRating
+  , TPplCnt
+  , TKwdCnt
   ]
 
 debugViews :: [Symbol]
