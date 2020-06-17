@@ -10,9 +10,9 @@
   "devDependencies": {
     "@fancyapps/fancybox": "^3.5.7",
     "@fortawesome/fontawesome-free": "^5.13.0",
-    "@types/plotly.js": "^1.50.12",
-    "@typescript-eslint/eslint-plugin": "^3.1.0",
-    "@typescript-eslint/parser": "^3.1.0",
+    "@types/plotly.js": "^1.50.13",
+    "@typescript-eslint/eslint-plugin": "^3.3.0",
+    "@typescript-eslint/parser": "^3.3.0",
     "bootstrap": "^4.5.0",
     "clang-format": "^1.4.0",
     "eslint": "^7.2.0",
@@ -22,7 +22,7 @@
     "infinite-scroll": "^3.0.6",
     "jquery": "^3.5.1",
     "masonry-layout": "^4.2.2",
-    "plotly.js-cartesian-dist-min": "^1.54.1",
+    "plotly.js-cartesian-dist-min": "^1.54.3",
     "screenfull": "^5.0.2",
     "tablesorter": "^2.31.3",
     "typescript": "^3.9.5"
