@@ -1,1 +1,1 @@
-../../../node_modules/tablesorter/dist/js/jquery.tablesorter.min.js
+../../../node_modules/tablesorter/dist/js/jquery.tablesorter.js

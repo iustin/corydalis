@@ -1,1 +1,1 @@
-../../../node_modules/masonry-layout/dist/masonry.pkgd.min.js
+../../../node_modules/masonry-layout/dist/masonry.pkgd.js

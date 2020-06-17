@@ -1,1 +1,1 @@
-../../../node_modules/hammerjs/hammer.min.js
+../../../node_modules/hammerjs/hammer.js
