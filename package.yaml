@@ -162,12 +162,22 @@ library:
     then:
       ghc-options:
       - -Wall
+      - -Wcompat
+      - -Wincomplete-record-updates
+      - -Wincomplete-uni-patterns
+      - -Wredundant-constraints
+      - -Werror
       - -fwarn-tabs
       - -O0
       cpp-options: -DDEVELOPMENT
     else:
       ghc-options:
       - -Wall
+      - -Wcompat
+      - -Wincomplete-record-updates
+      - -Wincomplete-uni-patterns
+      - -Wredundant-constraints
+      - -Werror
       - -fwarn-tabs
       - -O2
   - condition: flag(public-site)
