@@ -498,6 +498,8 @@ data GroupExif = GroupExif
   , gExifLenses    :: !NameStats
   , gExifTitles    :: !NameStats
   , gExifCaptions  :: !NameStats
+  , gExifPeopleCnt :: !NameStats
+  , gExifKwdCnt    :: !NameStats
   -- TODO: add warnings?
   } deriving (Show)
 
@@ -511,11 +513,14 @@ instance NFData GroupExif where
                       rnf gExifCameras   `seq`
                       rnf gExifLenses    `seq`
                       rnf gExifTitles    `seq`
-                      rnf gExifCaptions
+                      rnf gExifCaptions  `seq`
+                      rnf gExifPeopleCnt `seq`
+                      rnf gExifKwdCnt
 
 instance Default GroupExif where
   def = GroupExif Map.empty Map.empty Map.empty Map.empty
         Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
+        Map.empty Map.empty
 
 exifLocalCreateDate :: Exif -> Maybe LocalTime
 exifLocalCreateDate = (zonedTimeToLocalTime . etTime <$>) . exifCreateDate
@@ -533,11 +538,14 @@ addExifToGroup g Exif{..} =
     , gExifLenses    = count1  (gExifLenses    g) (Just $ liName exifLens)
     , gExifTitles    = count1  (gExifTitles    g) exifTitle
     , gExifCaptions  = count1  (gExifCaptions  g) exifCaption
+    , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
+    , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
     }
     where count1 m k = Map.insertWith (+) k 1 m
           foldSet m s = if Set.null s
                           then m `count1` Nothing
                           else foldl' count1 m (Set.map Just s)
+          setSz = Just . Text.pack . show . Set.size
 
 instance Semigroup GroupExif where
   g1 <> g2 =
@@ -552,6 +560,8 @@ instance Semigroup GroupExif where
     , gExifLenses    = gExifLenses    g1 `merge` gExifLenses    g2
     , gExifTitles    = gExifTitles    g1 `merge` gExifTitles    g2
     , gExifCaptions  = gExifCaptions  g1 `merge` gExifCaptions  g2
+    , gExifPeopleCnt = gExifPeopleCnt g1 `merge` gExifPeopleCnt g2
+    , gExifKwdCnt    = gExifKwdCnt    g1 `merge` gExifKwdCnt    g2
     }
     where merge = Map.unionWith (+)
 
