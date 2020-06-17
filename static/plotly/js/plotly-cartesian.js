@@ -1,1 +1,1 @@
-../../../node_modules/plotly.js-cartesian-dist-min/plotly-cartesian.min.js
+../../../node_modules/plotly.js-cartesian-dist/plotly-cartesian.js
