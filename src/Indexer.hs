@@ -388,10 +388,7 @@ quickSearch s v =
     TCamera   -> fuzzer Camera
     TLens     -> fuzzer Lens
     TProblem  -> fuzzer Problem
-    TYear     ->
-      case Text.decimal v of
-        Right (w', "") -> Just . Year . OpEq $ w'
-        _              -> Nothing
+    TYear     -> Year   <$> parseDecimal v
     TSeason   -> Season <$> parseSeason v
     TMonth    -> Month  <$> parseMonth v
     TDay      -> Day    <$> parseDay v
@@ -400,11 +397,12 @@ quickSearch s v =
     TFileName -> fuzzer FileName
     TStatus   -> Status <$> parseImageStatus v
     TFClass   -> FClass <$> parseFolderClass v
-    TRating   -> Rating . OpEq <$> either (const Nothing) Just (parseDecimalPlain v)
-    TPplCnt   -> Nothing
-    TKwdCnt   -> Nothing
+    TRating   -> Rating <$> dec
+    TPplCnt   -> PplCnt <$> dec
+    TKwdCnt   -> KwdCnt <$> dec
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
+        dec = parseDecimal v
 
 atomTypeDescriptions :: Symbol -> Text
 atomTypeDescriptions TCountry  = "countries"
