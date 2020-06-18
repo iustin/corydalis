@@ -178,9 +178,7 @@ pageJSResources PageBasic =
 pageJSResources PageTable =
   $(combineScripts 'StaticR
      [ jquery_js_jquery_js
-     , tablesorter_js_jquery_tablesorter_js
-     , tablesorter_js_widgets_widget_uitheme_js
-     , tablesorter_js_widgets_widget_filter_js
+     , tablesorter_js_jquery_tablesorter_combined_js
      , bootstrap_js_bootstrap_bundle_js
      , corydalis_js_tablesorter_uitheme_simple_js
      , corydalis_js_tablesorter_config_js
@@ -198,9 +196,7 @@ pageJSResources PageView =
 pageJSResources PagePlot =
   $(combineScripts 'StaticR
      [ jquery_js_jquery_js
-     , tablesorter_js_jquery_tablesorter_js
-     , tablesorter_js_widgets_widget_uitheme_js
-     , tablesorter_js_widgets_widget_filter_js
+     , tablesorter_js_jquery_tablesorter_combined_js
      , bootstrap_js_bootstrap_bundle_js
      , corydalis_js_tablesorter_uitheme_simple_js
      , corydalis_js_tablesorter_config_js

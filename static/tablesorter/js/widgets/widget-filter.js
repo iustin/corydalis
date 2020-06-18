@@ -1,1 +1,0 @@
-../../../../node_modules/tablesorter/dist/js/widgets/widget-filter.min.js
