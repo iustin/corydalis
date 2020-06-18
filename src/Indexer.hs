@@ -953,7 +953,7 @@ anyAtom = go . nub
 -- | Simpler Text to decimal parsing with error handling.
 parseDecimalPlain :: (Integral a) => Text -> Either Text a
 parseDecimalPlain w =
-  case Text.decimal w of
+  case Text.signed Text.decimal w of
     Right (w', "") -> Right w'
     Right (w', leftover) ->
       Left $ sformat ("Parsed " % int % " decimal but with leftover text '" %
