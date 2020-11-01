@@ -47,6 +47,7 @@ specialViews :: [Symbol]
 specialViews =
   [ TCamera
   , TLens
+  , TFStop
   , TType
   , TProblem
   , TStatus

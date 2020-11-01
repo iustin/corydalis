@@ -81,6 +81,7 @@ data Symbol = TCountry
             | TDay
             | TCamera
             | TLens
+            | TFStop
             | TProblem
             | TType
             | TFolder
@@ -107,6 +108,7 @@ instance PathPiece Symbol where
   toPathPiece TDay      = "days"
   toPathPiece TCamera   = "cameras"
   toPathPiece TLens     = "lenses"
+  toPathPiece TFStop    = "f-stops"
   toPathPiece TProblem  = "problems"
   toPathPiece TType     = "types"
   toPathPiece TFolder   = "folders"
@@ -130,6 +132,7 @@ instance PathPiece Symbol where
   fromPathPiece "days"          = Just TDay
   fromPathPiece "cameras"       = Just TCamera
   fromPathPiece "lenses"        = Just TLens
+  fromPathPiece "f-stops"       = Just TFStop
   fromPathPiece "problems"      = Just TProblem
   fromPathPiece "types"         = Just TType
   fromPathPiece "folders"       = Just TFolder
@@ -235,6 +238,7 @@ data Atom = Country  StrOp
           | Day      DayOp
           | Camera   StrOp
           | Lens     StrOp
+          | FStop    (NumOp Double)
           | Problem  StrOp
           | Type     MediaType
           | Folder   StrOp
@@ -270,6 +274,7 @@ symbolName TMonth    = "month"
 symbolName TDay      = "day"
 symbolName TCamera   = "camera"
 symbolName TLens     = "lens"
+symbolName TFStop    = "f-stop"
 symbolName TProblem  = "problem"
 symbolName TType     = "type"
 symbolName TFolder   = "folder"
@@ -298,6 +303,7 @@ parseSymbol "month"         = Just TMonth
 parseSymbol "day"           = Just TDay
 parseSymbol "camera"        = Just TCamera
 parseSymbol "lens"          = Just TLens
+parseSymbol "f-stop"        = Just TFStop
 parseSymbol "problem"       = Just TProblem
 parseSymbol "type"          = Just TType
 parseSymbol "folder"        = Just TFolder
@@ -326,6 +332,7 @@ buildMissingAtom s =
     TDay      -> Day       DayUnknown
     TCamera   -> Camera    OpMissing
     TLens     -> Lens      OpMissing
+    TFStop    -> FStop     OpNa
     TProblem  -> Problem   OpMissing
     TType     -> Type      MediaUnknown
     TRating   -> Rating    OpNa
@@ -345,6 +352,7 @@ parseAtom a v = do
   s <- parseSymbol a
   let dec = parseDecimal v
       intDec = parseDecimal v
+      double = parseReal v
       str = parseString v
       typ = parseType v
       sta = parseImageStatus v
@@ -363,6 +371,7 @@ parseAtom a v = do
     TDay      -> Day      <$> parseDay v
     TCamera   -> Camera   <$> str
     TLens     -> Lens     <$> str
+    TFStop    -> FStop    <$> double
     TProblem  -> Problem  <$> str
     TType     -> Type     <$> typ
     TFolder   -> Folder   <$> str
@@ -387,6 +396,7 @@ quickSearch s v =
     TCaption  -> fuzzer Caption
     TCamera   -> fuzzer Camera
     TLens     -> fuzzer Lens
+    TFStop    -> FStop  <$> parseReal v
     TProblem  -> fuzzer Problem
     TYear     -> Year   <$> parseDecimal v
     TSeason   -> Season <$> parseSeason v
@@ -419,6 +429,7 @@ atomTypeDescriptions TMonth    = "months"
 atomTypeDescriptions TDay      = "days"
 atomTypeDescriptions TCamera   = "cameras"
 atomTypeDescriptions TLens     = "lenses"
+atomTypeDescriptions TFStop    = "f-stops"
 atomTypeDescriptions TProblem  = "problems"
 atomTypeDescriptions TType     = "types"
 atomTypeDescriptions TFolder   = "folders"
@@ -518,6 +529,10 @@ atomDescription (Lens (OpEqual ""))   = "has defined but empty lens information"
 atomDescription (Lens (OpEqual v))    = "shot with a " <> v <> " lens"
 atomDescription (Lens (OpFuzzy v))    =
   "shot with a lens named like " <> unFuzzy v
+atomDescription (FStop (OpEq fstop))   = "shot with an aperture of f/" <> toText fstop
+atomDescription (FStop (OpLt fstop))   = "shot with an aperture larger than f/" <> toText fstop
+atomDescription (FStop (OpGt fstop))   = "shot with an aperture smaller than f/" <> toText fstop
+atomDescription (FStop OpNa)           = "without aperture information"
 atomDescription (Problem OpMissing)    = "has no problems"
 atomDescription (Problem (OpEqual "")) = "has an empty problem description"
 atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
@@ -621,6 +636,9 @@ folderSearchFunction (Camera c) =
 
 folderSearchFunction (Lens l) =
   nameStatsSearch l . gExifLenses . pdExif
+
+folderSearchFunction a@(FStop _) =
+  imagesMatchAtom a . pdImages
 
 -- TODO: cache folder problems?
 folderSearchFunction a@(Problem _) =
@@ -738,6 +756,9 @@ imageSearchFunction (Lens lens) =
     (evalStr lens . Just . liName . exifLens . imgExif) img ||
     (evalStr lens . Just . liSpec . exifLens . imgExif) img
 
+imageSearchFunction (FStop f) =
+  evalNum f . exifAperture . imgExif
+
 imageSearchFunction (Problem who) =
   setSearch who . imgProblems
 
@@ -806,6 +827,7 @@ getAtoms TTitle    = gExifTitles    . repoExif
 getAtoms TCaption  = gExifCaptions  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TLens     = gExifLenses    . repoExif
+getAtoms TFStop    = apertureStats
 getAtoms TYear     = yearStats
 getAtoms TSeason   = seasonStats
 getAtoms TDay      = dayStats
@@ -870,6 +892,10 @@ seasonStats = computePicStats $ \i -> [picSeason i]
 -- | Month statistics.
 monthStats :: Repository -> NameStats
 monthStats = computePicStats $ \i -> [picMonth i]
+
+apertureStats :: Repository -> NameStats
+apertureStats = computePicStats $ \i ->
+  [sformat shortest <$> exifAperture (imgExif i)]
 
 -- | Day statistics.
 dayStats :: Repository -> NameStats
@@ -1224,6 +1250,7 @@ atomToParams (Month    m) = [formatParam TMonth    m]
 atomToParams (Day      d) = [formatParam TDay      d]
 atomToParams (Camera   v) = [formatParam TCamera   v]
 atomToParams (Lens     v) = [formatParam TLens     v]
+atomToParams (FStop    v) = [formatParam TFStop    v]
 atomToParams (Problem  v) = [formatParam TProblem  v]
 atomToParams (Type     v) = [formatParam TType     v]
 atomToParams (Folder   v) = [formatParam TFolder   v]

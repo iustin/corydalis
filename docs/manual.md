@@ -110,6 +110,7 @@ The search atoms are:
   searches more precisely
 - camera (string)
 - lens (string)
+- f-stop (numeric, e.g. `2.8`)
 - problem (this is what can be potentially errors; right now limited
   to exif metadata read issues)
 - type (set: movie, image, or unknown)

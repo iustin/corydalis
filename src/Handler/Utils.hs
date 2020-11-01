@@ -124,6 +124,7 @@ atomIcon TMonth    = "fas fa-calendar"
 atomIcon TDay      = "fas fa-calendar"
 atomIcon TCamera   = "fas fa-camera"
 atomIcon TLens     = "fas fa-camera" -- :(
+atomIcon TFStop    = "far fa-circle" -- FIXME: check font-awesome sometimes
 atomIcon TProblem  = "fas fa-bomb"
 atomIcon TType     = "fas fa-file"
 atomIcon TFolder   = "fas fa-folder"
