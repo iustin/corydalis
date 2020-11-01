@@ -440,6 +440,8 @@ instance ToText Integer
 
 instance ToText Int
 
+instance ToText Double
+
 instance ToText SeasonOp where
   toText = showSeason
 
@@ -962,6 +964,18 @@ parseDecimalPlain w =
       Left $ sformat ("Failed to parse integer from '" % stext % "': " %
                       string) w msg
 
+-- | Simpler Text to real parsing with error handling.
+parseRealPlain :: (RealFrac a) => Text -> Either Text a
+parseRealPlain w =
+  case Text.signed Text.rational w of
+    Right (w', "") -> Right w'
+    Right (w', leftover) ->
+      Left $ sformat ("Parsed " % shortest % " fractional but with leftover text '" %
+                      stext % "'") w' leftover
+    Left msg ->
+      Left $ sformat ("Failed to parse fractional from '" % stext % "': " %
+                      string) w msg
+
 -- | Simpler Text to ordinal parsing with error handling.
 --
 -- It accepts usual prefixes such as 'th', 'st', 'nd', 'rd', as long as they're valid.
@@ -1022,6 +1036,14 @@ parseDecimal v =
     Just ('>', v') -> OpGt <$> go v'
     _              -> OpEq <$> go v
   where go = either (const Nothing) Just . parseDecimalPlain
+
+parseReal :: (RealFrac a) => Text -> Maybe (NumOp a)
+parseReal v =
+  case Text.uncons v of
+    Just ('<', v') -> OpLt <$> go v'
+    Just ('>', v') -> OpGt <$> go v'
+    _              -> OpEq <$> go v
+  where go = either (const Nothing) Just . parseRealPlain
 
 parseType :: Text -> Maybe MediaType
 parseType v
