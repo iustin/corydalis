@@ -529,9 +529,9 @@ atomDescription (Lens (OpEqual ""))   = "has defined but empty lens information"
 atomDescription (Lens (OpEqual v))    = "shot with a " <> v <> " lens"
 atomDescription (Lens (OpFuzzy v))    =
   "shot with a lens named like " <> unFuzzy v
-atomDescription (FStop (OpEq fstop))   = "shot with an aperture of f/" <> toText fstop
-atomDescription (FStop (OpLt fstop))   = "shot with an aperture larger than f/" <> toText fstop
-atomDescription (FStop (OpGt fstop))   = "shot with an aperture smaller than f/" <> toText fstop
+atomDescription (FStop (OpEq fstop))   = "shot at an aperture of f/" <> toText fstop
+atomDescription (FStop (OpLt fstop))   = "shot at an aperture larger than f/" <> toText fstop
+atomDescription (FStop (OpGt fstop))   = "shot at an aperture smaller than f/" <> toText fstop
 atomDescription (FStop OpNa)           = "without aperture information"
 atomDescription (Problem OpMissing)    = "has no problems"
 atomDescription (Problem (OpEqual "")) = "has an empty problem description"
