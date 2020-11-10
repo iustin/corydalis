@@ -82,6 +82,7 @@ data Symbol = TCountry
             | TCamera
             | TLens
             | TFStop
+            | TFocalLength
             | TProblem
             | TType
             | TFolder
@@ -94,30 +95,31 @@ data Symbol = TCountry
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
-  toPathPiece TCountry  = "countries"
-  toPathPiece TProvince = "provinces"
-  toPathPiece TCity     = "cities"
-  toPathPiece TLocation = "locations"
-  toPathPiece TPerson   = "people"
-  toPathPiece TKeyword  = "keywords"
-  toPathPiece TTitle    = "title"
-  toPathPiece TCaption  = "caption"
-  toPathPiece TYear     = "years"
-  toPathPiece TSeason   = "seasons"
-  toPathPiece TMonth    = "months"
-  toPathPiece TDay      = "days"
-  toPathPiece TCamera   = "cameras"
-  toPathPiece TLens     = "lenses"
-  toPathPiece TFStop    = "f-stops"
-  toPathPiece TProblem  = "problems"
-  toPathPiece TType     = "types"
-  toPathPiece TFolder   = "folders"
-  toPathPiece TFileName = "filenames"
-  toPathPiece TStatus   = "image-status"
-  toPathPiece TFClass   = "folder-class"
-  toPathPiece TRating   = "rating"
-  toPathPiece TPplCnt   = "people-count"
-  toPathPiece TKwdCnt   = "keyword-count"
+  toPathPiece TCountry     = "countries"
+  toPathPiece TProvince    = "provinces"
+  toPathPiece TCity        = "cities"
+  toPathPiece TLocation    = "locations"
+  toPathPiece TPerson      = "people"
+  toPathPiece TKeyword     = "keywords"
+  toPathPiece TTitle       = "title"
+  toPathPiece TCaption     = "caption"
+  toPathPiece TYear        = "years"
+  toPathPiece TSeason      = "seasons"
+  toPathPiece TMonth       = "months"
+  toPathPiece TDay         = "days"
+  toPathPiece TCamera      = "cameras"
+  toPathPiece TLens        = "lenses"
+  toPathPiece TFStop       = "f-stops"
+  toPathPiece TFocalLength = "focal-length"
+  toPathPiece TProblem     = "problems"
+  toPathPiece TType        = "types"
+  toPathPiece TFolder      = "folders"
+  toPathPiece TFileName    = "filenames"
+  toPathPiece TStatus      = "image-status"
+  toPathPiece TFClass      = "folder-class"
+  toPathPiece TRating      = "rating"
+  toPathPiece TPplCnt      = "people-count"
+  toPathPiece TKwdCnt      = "keyword-count"
   fromPathPiece "countries"     = Just TCountry
   fromPathPiece "provinces"     = Just TProvince
   fromPathPiece "cities"        = Just TCity
@@ -133,6 +135,7 @@ instance PathPiece Symbol where
   fromPathPiece "cameras"       = Just TCamera
   fromPathPiece "lenses"        = Just TLens
   fromPathPiece "f-stops"       = Just TFStop
+  fromPathPiece "focal-length"  = Just TFocalLength
   fromPathPiece "problems"      = Just TProblem
   fromPathPiece "types"         = Just TType
   fromPathPiece "folders"       = Just TFolder
@@ -239,6 +242,7 @@ data Atom = Country  StrOp
           | Camera   StrOp
           | Lens     StrOp
           | FStop    (NumOp Double)
+          | FocalLength (NumOp Double)
           | Problem  StrOp
           | Type     MediaType
           | Folder   StrOp
@@ -260,30 +264,31 @@ symbolNames :: [(Symbol, Text)]
 symbolNames = map (\t -> (t, symbolName t)) [minBound..maxBound]
 
 symbolName :: Symbol -> Text
-symbolName TCountry  = "country"
-symbolName TProvince = "province"
-symbolName TCity     = "city"
-symbolName TLocation = "location"
-symbolName TPerson   = "person"
-symbolName TKeyword  = "keyword"
-symbolName TTitle    = "title"
-symbolName TCaption  = "caption"
-symbolName TYear     = "year"
-symbolName TSeason   = "season"
-symbolName TMonth    = "month"
-symbolName TDay      = "day"
-symbolName TCamera   = "camera"
-symbolName TLens     = "lens"
-symbolName TFStop    = "f-stop"
-symbolName TProblem  = "problem"
-symbolName TType     = "type"
-symbolName TFolder   = "folder"
-symbolName TFileName = "filename"
-symbolName TStatus   = "status"
-symbolName TFClass   = "folder-class"
-symbolName TRating   = "rating"
-symbolName TPplCnt   = "people-count"
-symbolName TKwdCnt   = "keyword-count"
+symbolName TCountry     = "country"
+symbolName TProvince    = "province"
+symbolName TCity        = "city"
+symbolName TLocation    = "location"
+symbolName TPerson      = "person"
+symbolName TKeyword     = "keyword"
+symbolName TTitle       = "title"
+symbolName TCaption     = "caption"
+symbolName TYear        = "year"
+symbolName TSeason      = "season"
+symbolName TMonth       = "month"
+symbolName TDay         = "day"
+symbolName TCamera      = "camera"
+symbolName TLens        = "lens"
+symbolName TFStop       = "f-stop"
+symbolName TFocalLength = "focal-length"
+symbolName TProblem     = "problem"
+symbolName TType        = "type"
+symbolName TFolder      = "folder"
+symbolName TFileName    = "filename"
+symbolName TStatus      = "status"
+symbolName TFClass      = "folder-class"
+symbolName TRating      = "rating"
+symbolName TPplCnt      = "people-count"
+symbolName TKwdCnt      = "keyword-count"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -304,6 +309,7 @@ parseSymbol "day"           = Just TDay
 parseSymbol "camera"        = Just TCamera
 parseSymbol "lens"          = Just TLens
 parseSymbol "f-stop"        = Just TFStop
+parseSymbol "focal-length"  = Just TFocalLength
 parseSymbol "problem"       = Just TProblem
 parseSymbol "type"          = Just TType
 parseSymbol "folder"        = Just TFolder
@@ -318,31 +324,32 @@ parseSymbol _               = Nothing
 buildMissingAtom :: Symbol -> Atom
 buildMissingAtom s =
   case s of
-    TCountry  -> Country   OpMissing
-    TProvince -> Province  OpMissing
-    TCity     -> City      OpMissing
-    TLocation -> Location  OpMissing
-    TPerson   -> Person    OpMissing
-    TKeyword  -> Keyword   OpMissing
-    TTitle    -> Title     OpMissing
-    TCaption  -> Caption   OpMissing
-    TYear     -> Year      OpNa
-    TSeason   -> Season    SeasonUnknown
-    TMonth    -> Month     MonthUnknown
-    TDay      -> Day       DayUnknown
-    TCamera   -> Camera    OpMissing
-    TLens     -> Lens      OpMissing
-    TFStop    -> FStop     OpNa
-    TProblem  -> Problem   OpMissing
-    TType     -> Type      MediaUnknown
-    TRating   -> Rating    OpNa
+    TCountry     -> Country   OpMissing
+    TProvince    -> Province  OpMissing
+    TCity        -> City      OpMissing
+    TLocation    -> Location  OpMissing
+    TPerson      -> Person    OpMissing
+    TKeyword     -> Keyword   OpMissing
+    TTitle       -> Title     OpMissing
+    TCaption     -> Caption   OpMissing
+    TYear        -> Year      OpNa
+    TSeason      -> Season    SeasonUnknown
+    TMonth       -> Month     MonthUnknown
+    TDay         -> Day       DayUnknown
+    TCamera      -> Camera    OpMissing
+    TLens        -> Lens      OpMissing
+    TFStop       -> FStop     OpNa
+    TFocalLength -> FocalLength OpNa
+    TProblem     -> Problem   OpMissing
+    TType        -> Type      MediaUnknown
+    TRating      -> Rating    OpNa
     -- FIXME: these should fail instead (using Maybe).
-    TFolder   -> error "No missing atom for folder"
-    TFileName -> error "No missing atom for filename"
-    TStatus   -> error "No missing atom for status"
-    TFClass   -> error "No missing atom for folder class"
-    TPplCnt   -> error "No missing atom for people count"
-    TKwdCnt   -> error "No missing atom for keyword count"
+    TFolder      -> error "No missing atom for folder"
+    TFileName    -> error "No missing atom for filename"
+    TStatus      -> error "No missing atom for status"
+    TFClass      -> error "No missing atom for folder class"
+    TPplCnt      -> error "No missing atom for people count"
+    TKwdCnt      -> error "No missing atom for keyword count"
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -357,88 +364,92 @@ parseAtom a v = do
       typ = parseType v
       sta = parseImageStatus v
   case s of
-    TCountry  -> Country  <$> str
-    TProvince -> Province <$> str
-    TCity     -> City     <$> str
-    TLocation -> Location <$> str
-    TPerson   -> Person   <$> str
-    TKeyword  -> Keyword  <$> str
-    TTitle    -> Title    <$> str
-    TCaption  -> Caption  <$> str
-    TYear     -> Year     <$> dec
-    TSeason   -> Season   <$> parseSeason v
-    TMonth    -> Month    <$> parseMonth v
-    TDay      -> Day      <$> parseDay v
-    TCamera   -> Camera   <$> str
-    TLens     -> Lens     <$> str
-    TFStop    -> FStop    <$> double
-    TProblem  -> Problem  <$> str
-    TType     -> Type     <$> typ
-    TFolder   -> Folder   <$> str
-    TFileName -> FileName <$> str
-    TStatus   -> Status   <$> sta
-    TFClass   -> FClass   <$> parseFolderClass v
-    TRating   -> Rating   <$> intDec
-    TPplCnt   -> PplCnt   <$> intDec
-    TKwdCnt   -> KwdCnt   <$> intDec
+    TCountry     -> Country  <$> str
+    TProvince    -> Province <$> str
+    TCity        -> City     <$> str
+    TLocation    -> Location <$> str
+    TPerson      -> Person   <$> str
+    TKeyword     -> Keyword  <$> str
+    TTitle       -> Title    <$> str
+    TCaption     -> Caption  <$> str
+    TYear        -> Year     <$> dec
+    TSeason      -> Season   <$> parseSeason v
+    TMonth       -> Month    <$> parseMonth v
+    TDay         -> Day      <$> parseDay v
+    TCamera      -> Camera   <$> str
+    TLens        -> Lens     <$> str
+    TFStop       -> FStop    <$> double
+    TFocalLength -> FocalLength <$> double
+    TProblem     -> Problem  <$> str
+    TType        -> Type     <$> typ
+    TFolder      -> Folder   <$> str
+    TFileName    -> FileName <$> str
+    TStatus      -> Status   <$> sta
+    TFClass      -> FClass   <$> parseFolderClass v
+    TRating      -> Rating   <$> intDec
+    TPplCnt      -> PplCnt   <$> intDec
+    TKwdCnt      -> KwdCnt   <$> intDec
 
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
   case s of
-    TCountry  -> fuzzer Country
-    TProvince -> fuzzer Province
-    TCity     -> fuzzer City
-    TLocation -> fuzzer Location
-    TPerson   -> fuzzer Person
-    TKeyword  -> fuzzer Keyword
-    TTitle    -> fuzzer Title
-    TCaption  -> fuzzer Caption
-    TCamera   -> fuzzer Camera
-    TLens     -> fuzzer Lens
-    TFStop    -> FStop  <$> parseReal v
-    TProblem  -> fuzzer Problem
-    TYear     -> Year   <$> parseDecimal v
-    TSeason   -> Season <$> parseSeason v
-    TMonth    -> Month  <$> parseMonth v
-    TDay      -> Day    <$> parseDay v
-    TType     -> Type   <$> parseType v
-    TFolder   -> fuzzer Folder
-    TFileName -> fuzzer FileName
-    TStatus   -> Status <$> parseImageStatus v
-    TFClass   -> FClass <$> parseFolderClass v
-    TRating   -> Rating <$> dec
-    TPplCnt   -> PplCnt <$> dec
-    TKwdCnt   -> KwdCnt <$> dec
+    TCountry     -> fuzzer Country
+    TProvince    -> fuzzer Province
+    TCity        -> fuzzer City
+    TLocation    -> fuzzer Location
+    TPerson      -> fuzzer Person
+    TKeyword     -> fuzzer Keyword
+    TTitle       -> fuzzer Title
+    TCaption     -> fuzzer Caption
+    TCamera      -> fuzzer Camera
+    TLens        -> fuzzer Lens
+    TFStop       -> FStop  <$> real
+    TFocalLength -> FocalLength <$> real
+    TProblem     -> fuzzer Problem
+    TYear        -> Year   <$> parseDecimal v
+    TSeason      -> Season <$> parseSeason v
+    TMonth       -> Month  <$> parseMonth v
+    TDay         -> Day    <$> parseDay v
+    TType        -> Type   <$> parseType v
+    TFolder      -> fuzzer Folder
+    TFileName    -> fuzzer FileName
+    TStatus      -> Status <$> parseImageStatus v
+    TFClass      -> FClass <$> parseFolderClass v
+    TRating      -> Rating <$> dec
+    TPplCnt      -> PplCnt <$> dec
+    TKwdCnt      -> KwdCnt <$> dec
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
         dec = parseDecimal v
+        real = parseReal v
 
 atomTypeDescriptions :: Symbol -> Text
-atomTypeDescriptions TCountry  = "countries"
-atomTypeDescriptions TProvince = "provinces"
-atomTypeDescriptions TCity     = "cities"
-atomTypeDescriptions TLocation = "locations"
-atomTypeDescriptions TPerson   = "people"
-atomTypeDescriptions TKeyword  = "keywords"
-atomTypeDescriptions TTitle    = "image titles"
-atomTypeDescriptions TCaption  = "image captions"
-atomTypeDescriptions TYear     = "years"
-atomTypeDescriptions TSeason   = "seasons"
-atomTypeDescriptions TMonth    = "months"
-atomTypeDescriptions TDay      = "days"
-atomTypeDescriptions TCamera   = "cameras"
-atomTypeDescriptions TLens     = "lenses"
-atomTypeDescriptions TFStop    = "f-stops"
-atomTypeDescriptions TProblem  = "problems"
-atomTypeDescriptions TType     = "types"
-atomTypeDescriptions TFolder   = "folders"
-atomTypeDescriptions TFileName = "filenames"
-atomTypeDescriptions TStatus   = "image statuses"
-atomTypeDescriptions TFClass   = "folder classes"
-atomTypeDescriptions TRating   = "ratings"
-atomTypeDescriptions TPplCnt   = "people count"
-atomTypeDescriptions TKwdCnt   = "keyword count"
+atomTypeDescriptions TCountry     = "countries"
+atomTypeDescriptions TProvince    = "provinces"
+atomTypeDescriptions TCity        = "cities"
+atomTypeDescriptions TLocation    = "locations"
+atomTypeDescriptions TPerson      = "people"
+atomTypeDescriptions TKeyword     = "keywords"
+atomTypeDescriptions TTitle       = "image titles"
+atomTypeDescriptions TCaption     = "image captions"
+atomTypeDescriptions TYear        = "years"
+atomTypeDescriptions TSeason      = "seasons"
+atomTypeDescriptions TMonth       = "months"
+atomTypeDescriptions TDay         = "days"
+atomTypeDescriptions TCamera      = "cameras"
+atomTypeDescriptions TLens        = "lenses"
+atomTypeDescriptions TFStop       = "f-stops"
+atomTypeDescriptions TFocalLength = "focal lengths"
+atomTypeDescriptions TProblem     = "problems"
+atomTypeDescriptions TType        = "types"
+atomTypeDescriptions TFolder      = "folders"
+atomTypeDescriptions TFileName    = "filenames"
+atomTypeDescriptions TStatus      = "image statuses"
+atomTypeDescriptions TFClass      = "folder classes"
+atomTypeDescriptions TRating      = "ratings"
+atomTypeDescriptions TPplCnt      = "people count"
+atomTypeDescriptions TKwdCnt      = "keyword count"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -533,6 +544,10 @@ atomDescription (FStop (OpEq fstop))   = "shot at an aperture of f/" <> toText f
 atomDescription (FStop (OpLt fstop))   = "shot at an aperture larger than f/" <> toText fstop
 atomDescription (FStop (OpGt fstop))   = "shot at an aperture smaller than f/" <> toText fstop
 atomDescription (FStop OpNa)           = "without aperture information"
+atomDescription (FocalLength (OpEq fstop))   = "shot at a focal length of " <> toText fstop <> "mm"
+atomDescription (FocalLength (OpLt fstop))   = "shot at a focal length longer than " <> toText fstop <> "mm"
+atomDescription (FocalLength (OpGt fstop))   = "shot at a focal length shorter than" <> toText fstop <> "mm"
+atomDescription (FocalLength OpNa)           = "without focal length information"
 atomDescription (Problem OpMissing)    = "has no problems"
 atomDescription (Problem (OpEqual "")) = "has an empty problem description"
 atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
@@ -638,6 +653,9 @@ folderSearchFunction (Lens l) =
   nameStatsSearch l . gExifLenses . pdExif
 
 folderSearchFunction a@(FStop _) =
+  imagesMatchAtom a . pdImages
+
+folderSearchFunction a@(FocalLength _) =
   imagesMatchAtom a . pdImages
 
 -- TODO: cache folder problems?
@@ -759,6 +777,9 @@ imageSearchFunction (Lens lens) =
 imageSearchFunction (FStop f) =
   evalNum f . exifAperture . imgExif
 
+imageSearchFunction (FocalLength f) =
+  evalNum f . exifFocalLength . imgExif
+
 imageSearchFunction (Problem who) =
   setSearch who . imgProblems
 
@@ -828,6 +849,7 @@ getAtoms TCaption  = gExifCaptions  . repoExif
 getAtoms TCamera   = gExifCameras   . repoExif
 getAtoms TLens     = gExifLenses    . repoExif
 getAtoms TFStop    = apertureStats
+getAtoms TFocalLength = focalLengthStats
 getAtoms TYear     = yearStats
 getAtoms TSeason   = seasonStats
 getAtoms TDay      = dayStats
@@ -896,6 +918,10 @@ monthStats = computePicStats $ \i -> [picMonth i]
 apertureStats :: Repository -> NameStats
 apertureStats = computePicStats $ \i ->
   [sformat shortest <$> exifAperture (imgExif i)]
+
+focalLengthStats :: Repository -> NameStats
+focalLengthStats = computePicStats $ \i ->
+  [sformat shortest <$> exifFocalLength (imgExif i)]
 
 -- | Day statistics.
 dayStats :: Repository -> NameStats
@@ -1148,7 +1174,7 @@ parseDay (Text.toLower -> d)
   | otherwise =
       case parseOrdinal d of
         Right v | v >= 1 && v <= 31 -> Just $ MonthDay v
-        _       -> Nothing
+        _                           -> Nothing
 
 showDay :: DayOp -> Text
 showDay Monday       = "Monday"
@@ -1236,41 +1262,42 @@ formatParam :: (OpParam a) => Symbol -> a -> (Text, Text)
 formatParam s = opToParam (symbolName s)
 
 atomToParams :: Atom -> [(Text, Text)]
-atomToParams (Country  v) = [formatParam TCountry  v]
-atomToParams (Province v) = [formatParam TProvince v]
-atomToParams (City     v) = [formatParam TCity     v]
-atomToParams (Location v) = [formatParam TLocation v]
-atomToParams (Person   v) = [formatParam TPerson   v]
-atomToParams (Keyword  v) = [formatParam TKeyword  v]
-atomToParams (Title    v) = [formatParam TTitle    v]
-atomToParams (Caption  v) = [formatParam TCaption  v]
-atomToParams (Year     n) = [formatParam TYear     n]
-atomToParams (Season   s) = [formatParam TSeason   s]
-atomToParams (Month    m) = [formatParam TMonth    m]
-atomToParams (Day      d) = [formatParam TDay      d]
-atomToParams (Camera   v) = [formatParam TCamera   v]
-atomToParams (Lens     v) = [formatParam TLens     v]
-atomToParams (FStop    v) = [formatParam TFStop    v]
-atomToParams (Problem  v) = [formatParam TProblem  v]
-atomToParams (Type     v) = [formatParam TType     v]
-atomToParams (Folder   v) = [formatParam TFolder   v]
-atomToParams (FileName v) = [formatParam TFileName v]
-atomToParams (Status   v) = [formatParam TStatus   v]
-atomToParams (FClass   v) = [formatParam TFClass   v]
-atomToParams (Rating   v) = [formatParam TRating   v]
-atomToParams (PplCnt   v) = [formatParam TPplCnt   v]
-atomToParams (KwdCnt   v) = [formatParam TKwdCnt   v]
-atomToParams (And a b)    =
+atomToParams (Country  v)     = [formatParam TCountry      v]
+atomToParams (Province v)     = [formatParam TProvince     v]
+atomToParams (City     v)     = [formatParam TCity         v]
+atomToParams (Location v)     = [formatParam TLocation     v]
+atomToParams (Person   v)     = [formatParam TPerson       v]
+atomToParams (Keyword  v)     = [formatParam TKeyword      v]
+atomToParams (Title    v)     = [formatParam TTitle        v]
+atomToParams (Caption  v)     = [formatParam TCaption      v]
+atomToParams (Year     n)     = [formatParam TYear         n]
+atomToParams (Season   s)     = [formatParam TSeason       s]
+atomToParams (Month    m)     = [formatParam TMonth        m]
+atomToParams (Day      d)     = [formatParam TDay          d]
+atomToParams (Camera   v)     = [formatParam TCamera       v]
+atomToParams (Lens     v)     = [formatParam TLens         v]
+atomToParams (FStop    v)     = [formatParam TFStop        v]
+atomToParams (FocalLength v)  = [formatParam TFocalLength  v]
+atomToParams (Problem  v)     = [formatParam TProblem      v]
+atomToParams (Type     v)     = [formatParam TType         v]
+atomToParams (Folder   v)     = [formatParam TFolder       v]
+atomToParams (FileName v)     = [formatParam TFileName     v]
+atomToParams (Status   v)     = [formatParam TStatus       v]
+atomToParams (FClass   v)     = [formatParam TFClass       v]
+atomToParams (Rating   v)     = [formatParam TRating       v]
+atomToParams (PplCnt   v)     = [formatParam TPplCnt       v]
+atomToParams (KwdCnt   v)     = [formatParam TKwdCnt       v]
+atomToParams (And a b)        =
   concat [atomToParams a, atomToParams b, [("and", "")]]
-atomToParams (Or a b)     =
+atomToParams (Or a b)         =
   concat [atomToParams a, atomToParams b, [("or", "")]]
-atomToParams (Not a)      =
+atomToParams (Not a)          =
   atomToParams a ++ [("not", "")]
-atomToParams (All xs)     =
+atomToParams (All xs)         =
   concatMap atomToParams xs ++ [("all", sformat int $ length xs)]
-atomToParams (Any xs)     =
+atomToParams (Any xs)         =
   concatMap atomToParams xs ++ [("any", sformat int $ length xs)]
-atomToParams ConstTrue    = atomToParams (All [])
+atomToParams ConstTrue        = atomToParams (All [])
 
 earliestImage :: Image -> Image -> Image
 earliestImage a b =

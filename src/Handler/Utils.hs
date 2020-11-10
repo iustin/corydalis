@@ -110,30 +110,31 @@ fcDescription FolderMixed       = "contains both RAW files (processed) \
                                   \and files without RAW storage"
 
 atomIcon :: Symbol -> Text
-atomIcon TCountry  = "fas fa-globe"
-atomIcon TProvince = "fas fa-map"
-atomIcon TCity     = "fas fa-building"
-atomIcon TLocation = "fas fa-map-signs"
-atomIcon TPerson   = "fas fa-users"
-atomIcon TKeyword  = "fas fa-tags"
-atomIcon TTitle    = "fas fa-comment"
-atomIcon TCaption  = "fas fa-comment-dots"
-atomIcon TYear     = "fas fa-calendar"
-atomIcon TSeason   = "fas fa-calendar"
-atomIcon TMonth    = "fas fa-calendar"
-atomIcon TDay      = "fas fa-calendar"
-atomIcon TCamera   = "fas fa-camera"
-atomIcon TLens     = "fas fa-camera" -- :(
-atomIcon TFStop    = "far fa-circle" -- FIXME: check font-awesome sometimes
-atomIcon TProblem  = "fas fa-bomb"
-atomIcon TType     = "fas fa-file"
-atomIcon TFolder   = "fas fa-folder"
-atomIcon TFileName = "fas fa-file"
-atomIcon TStatus   = "fas fa-file-alt"
-atomIcon TFClass   = "fas fa-folder"
-atomIcon TRating   = "fas fa-star"
-atomIcon TPplCnt   = "fas fa-users"
-atomIcon TKwdCnt   = "fas fa-tags"
+atomIcon TCountry     = "fas fa-globe"
+atomIcon TProvince    = "fas fa-map"
+atomIcon TCity        = "fas fa-building"
+atomIcon TLocation    = "fas fa-map-signs"
+atomIcon TPerson      = "fas fa-users"
+atomIcon TKeyword     = "fas fa-tags"
+atomIcon TTitle       = "fas fa-comment"
+atomIcon TCaption     = "fas fa-comment-dots"
+atomIcon TYear        = "fas fa-calendar"
+atomIcon TSeason      = "fas fa-calendar"
+atomIcon TMonth       = "fas fa-calendar"
+atomIcon TDay         = "fas fa-calendar"
+atomIcon TCamera      = "fas fa-camera"
+atomIcon TLens        = "fas fa-camera" -- :(
+atomIcon TFStop       = "far fa-circle" -- FIXME: check font-awesome sometimes
+atomIcon TFocalLength = "fas fa-ruler-horizontal" -- FIXME: sigh…
+atomIcon TProblem     = "fas fa-bomb"
+atomIcon TType        = "fas fa-file"
+atomIcon TFolder      = "fas fa-folder"
+atomIcon TFileName    = "fas fa-file"
+atomIcon TStatus      = "fas fa-file-alt"
+atomIcon TFClass      = "fas fa-folder"
+atomIcon TRating      = "fas fa-star"
+atomIcon TPplCnt      = "fas fa-users"
+atomIcon TKwdCnt      = "fas fa-tags"
 
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =

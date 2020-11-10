@@ -111,6 +111,8 @@ The search atoms are:
 - camera (string)
 - lens (string)
 - f-stop (numeric, e.g. `2.8`)
+- focal-length (numeric, in millimetres, e.g. `200`); this is either the native
+  focal length, without conversion into 35-mm equivalent
 - problem (this is what can be potentially errors; right now limited
   to exif metadata read issues)
 - type (set: movie, image, or unknown)

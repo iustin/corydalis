@@ -48,6 +48,7 @@ specialViews =
   [ TCamera
   , TLens
   , TFStop
+  , TFocalLength
   , TType
   , TProblem
   , TStatus
