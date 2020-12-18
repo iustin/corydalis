@@ -1134,21 +1134,19 @@ parseString :: Text -> Maybe StrOp
 parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy (makeFuzzy v)
 parseString v                              = Just $ OpEqual v
 
-parseDecimal :: (Integral a) => Text -> Maybe (NumOp a)
-parseDecimal v =
+numParser :: (Num a, Ord a) => (Text -> Either Text a) -> Text -> Maybe (NumOp a)
+numParser parser v =
   case Text.uncons v of
     Just ('<', v') -> OpLt <$> go v'
     Just ('>', v') -> OpGt <$> go v'
     _              -> OpEq <$> go v
-  where go = either (const Nothing) Just . parseDecimalPlain
+  where go = either (const Nothing) Just . parser
+
+parseDecimal :: (Integral a) => Text -> Maybe (NumOp a)
+parseDecimal = numParser parseDecimalPlain
 
 parseReal :: (RealFrac a) => Text -> Maybe (NumOp a)
-parseReal v =
-  case Text.uncons v of
-    Just ('<', v') -> OpLt <$> go v'
-    Just ('>', v') -> OpGt <$> go v'
-    _              -> OpEq <$> go v
-  where go = either (const Nothing) Just . parseRealPlain
+parseReal = numParser parseRealPlain
 
 parseType :: Text -> Maybe MediaType
 parseType v
