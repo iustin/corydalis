@@ -111,6 +111,8 @@ The search atoms are:
 - camera (string)
 - lens (string)
 - f-stop (numeric, e.g. `2.8`)
+- shutter-speed (numeric), the shutter speed
+- iso (numeric), the ISO value at which the picture was taken
 - focal-length (numeric, in millimetres, e.g. `200`); this is either the native
   focal length, without conversion into 35-mm equivalent
 - problem (this is what can be potentially errors; right now limited
