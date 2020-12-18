@@ -50,7 +50,7 @@ module Indexer ( Symbol(..)
 import           Control.Monad               (foldM, when)
 import           Data.List                   (foldl', nub, partition)
 import qualified Data.Map                    as Map
-import           Data.Maybe                  (isNothing, mapMaybe)
+import           Data.Maybe                  (fromMaybe, isNothing, mapMaybe)
 import           Data.Set                    (Set)
 import qualified Data.Set                    as Set
 import           Data.Text                   (Text)
@@ -393,7 +393,7 @@ parseAtom a v = do
     TCamera       -> Camera       <$> str
     TLens         -> Lens         <$> str
     TFStop        -> FStop        <$> double
-    TShutterSpeed -> ShutterSpeed <$> double
+    TShutterSpeed -> ShutterSpeed <$> parseShutterSpeed v
     TIso          -> Iso          <$> parseDecimal v
     TFocalLength  -> FocalLength  <$> double
     TProblem      -> Problem      <$> str
@@ -421,7 +421,7 @@ quickSearch s v =
     TCamera       -> fuzzer Camera
     TLens         -> fuzzer Lens
     TFStop        -> FStop  <$> real
-    TShutterSpeed -> ShutterSpeed  <$> real
+    TShutterSpeed -> ShutterSpeed  <$> parseShutterSpeed v
     TIso          -> Iso    <$> parseDecimal v
     TFocalLength  -> FocalLength <$> real
     TProblem      -> fuzzer Problem
@@ -565,9 +565,9 @@ atomDescription (FStop (OpLt fstop))   = "shot at an aperture larger than f/" <>
 atomDescription (FStop (OpGt fstop))   = "shot at an aperture smaller than f/" <> toText fstop
 atomDescription (FStop OpNa)           = "without aperture information"
 
-atomDescription (ShutterSpeed (OpEq speed))   = "shot with a shutter speed of " <> toText speed
-atomDescription (ShutterSpeed (OpLt speed))   = "shot with a shutter speed faster than " <> toText speed
-atomDescription (ShutterSpeed (OpGt speed))   = "shot with a shutter speed slower than " <> toText speed
+atomDescription (ShutterSpeed (OpEq speed))   = "shot with a shutter speed of " <> showShutterSpeed speed
+atomDescription (ShutterSpeed (OpLt speed))   = "shot with a shutter speed faster than " <> showShutterSpeed speed
+atomDescription (ShutterSpeed (OpGt speed))   = "shot with a shutter speed slower than " <> showShutterSpeed speed
 atomDescription (ShutterSpeed OpNa)           = "without shutter speed information"
 
 atomDescription (Iso (OpEq iso))   = "shot with an ISO of " <> toText iso
@@ -1264,6 +1264,21 @@ intToWeekDay 5 = Just Friday
 intToWeekDay 6 = Just Saturday
 intToWeekDay 7 = Just Sunday
 intToWeekDay _ = Nothing
+
+stripSuf :: Text -> Text -> Text
+stripSuf v suf = fromMaybe v (Text.stripSuffix suf v)
+
+parseShutterSpeedPlain :: Text -> Either Text Double
+parseShutterSpeedPlain (Text.stripPrefix "1/" -> Just v) = (1/) <$> parseRealPlain (stripSuf v "s")
+parseShutterSpeedPlain v                                 = parseRealPlain (stripSuf v "s")
+
+parseShutterSpeed :: Text -> Maybe (NumOp Double)
+parseShutterSpeed = numParser parseShutterSpeedPlain
+
+showShutterSpeed :: Double -> Text
+showShutterSpeed v
+  | v >= 1 = sformat (shortest % "s") v
+  | otherwise = sformat ("1/" % shortest % "s") (1/v)
 
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params =
