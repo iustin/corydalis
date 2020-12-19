@@ -1689,7 +1689,7 @@ imgProblems :: Image -> Set Text
 imgProblems =
   Set.map ("exif: " <>) . exifWarning . imgExif
 
-pdProblems :: PicDir -> NameStats
+pdProblems :: PicDir -> NameStats Text
 pdProblems =
   foldl' (\m probs ->
             if null probs
@@ -1697,7 +1697,7 @@ pdProblems =
               else foldl' (\m' e -> Map.insertWith (+) (Just e) 1 m') m probs)
   Map.empty . map (Set.toList . imgProblems) . Map.elems . pdImages
 
-repoProblems :: Repository -> NameStats
+repoProblems :: Repository -> NameStats Text
 repoProblems =
   Map.unionsWith (+) . map pdProblems . Map.elems . repoDirs
 

@@ -485,21 +485,21 @@ data FailRExif = FailRExif
 -- the actual data.
 type ERawExif = Either FailRExif RawExif
 
-type NameStats = Map (Maybe Text) Integer
+type NameStats a = Map (Maybe a) Integer
 
 data GroupExif = GroupExif
-  { gExifPeople    :: !NameStats
-  , gExifKeywords  :: !NameStats
-  , gExifCountries :: !NameStats
-  , gExifProvinces :: !NameStats
-  , gExifCities    :: !NameStats
-  , gExifLocations :: !NameStats
-  , gExifCameras   :: !NameStats
-  , gExifLenses    :: !NameStats
-  , gExifTitles    :: !NameStats
-  , gExifCaptions  :: !NameStats
-  , gExifPeopleCnt :: !NameStats
-  , gExifKwdCnt    :: !NameStats
+  { gExifPeople    :: !(NameStats Text)
+  , gExifKeywords  :: !(NameStats Text)
+  , gExifCountries :: !(NameStats Text)
+  , gExifProvinces :: !(NameStats Text)
+  , gExifCities    :: !(NameStats Text)
+  , gExifLocations :: !(NameStats Text)
+  , gExifCameras   :: !(NameStats Text)
+  , gExifLenses    :: !(NameStats Text)
+  , gExifTitles    :: !(NameStats Text)
+  , gExifCaptions  :: !(NameStats Text)
+  , gExifPeopleCnt :: !(NameStats Text)
+  , gExifKwdCnt    :: !(NameStats Text)
   -- TODO: add warnings?
   } deriving (Show)
 
@@ -679,7 +679,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
       subjPeople      = foldl' (\e ks ->
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
-                                   _   -> e) [] rExifHSubjects
+                                   _                  -> e) [] rExifHSubjects
       exifPeople = Set.fromList $ rExifPeople ++ subjPeople
       dropPeople = filter (not . (`Set.member` exifPeople))
       exifKeywords    = Set.fromList $

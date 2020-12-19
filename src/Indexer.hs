@@ -625,7 +625,7 @@ setSearch (OpFuzzy f)=
   Set.foldr' (\a v -> v || fuzzyMatch f a) False
 
 -- | NameStats search function for either membership or null set checking.
-nameStatsSearch :: StrOp -> NameStats -> Bool
+nameStatsSearch :: StrOp -> NameStats Text -> Bool
 nameStatsSearch OpMissing =
   maybe False (> 0) . (Nothing `Map.lookup`)
 nameStatsSearch (OpEqual v) =
@@ -880,7 +880,7 @@ atomFindsFiles (Any as)   = any atomFindsFiles as
 atomFindsFiles ConstTrue  = True
 atomFindsFiles _          = True
 
-getAtoms :: Symbol -> Repository -> NameStats
+getAtoms :: Symbol -> Repository -> NameStats Text
 getAtoms TCountry      = gExifCountries . repoExif
 getAtoms TProvince     = gExifProvinces . repoExif
 getAtoms TCity         = gExifCities    . repoExif
@@ -913,11 +913,11 @@ getAtoms TPplCnt       = gExifPeopleCnt . repoExif
 getAtoms TKwdCnt       = gExifKwdCnt . repoExif
 
 -- | Computes type statistics.
-typeStats :: Repository -> NameStats
+typeStats :: Repository -> NameStats Text
 typeStats = computePicStats $ \i -> [Just $ imgType i]
 
 -- | Gets status stastics from repository statistics.
-statusStats :: Repository -> NameStats
+statusStats :: Repository -> NameStats Text
 statusStats (rsPicStats . repoStats -> stats) =
   Map.fromList . map (\(s, f) -> (Just $ showImageStatus s,
                                   fromIntegral $ f stats)) $
@@ -927,21 +927,21 @@ statusStats (rsPicStats . repoStats -> stats) =
   , (ImageProcessed,   sProcessed)
   ]
 
-fClassStats :: Repository -> NameStats
+fClassStats :: Repository -> NameStats Text
 fClassStats =
   Map.fromList . map (\(a, b) -> (Just $ showFolderClass a,
                                   fromIntegral b)) .
   Map.toList . rsFCStats . repoStats
 
--- | Helper to increase a count in a NameStats.
-bumpCount :: (ToText a) => Maybe a -> NameStats -> NameStats
+-- | Helper to increase a count in a NameStats Text.
+bumpCount :: (ToText a) => Maybe a -> NameStats Text -> NameStats Text
 bumpCount a = Map.insertWith (+) (toText <$> a) 1
 
 -- | Computes namestats of a repository.
 computePicStats :: (ToText a)
                 => (Image -> [Maybe a]) -- ^ Computes what entries need to be bumped up.
                 -> Repository           -- ^ Input repository
-                -> NameStats
+                -> NameStats Text
 computePicStats helper =
   foldl' (\stats ->
             Map.foldl' (\stats' -> foldr bumpCount stats' . helper)
@@ -949,35 +949,35 @@ computePicStats helper =
          ) Map.empty . Map.elems . repoDirs
 
 -- | Computes year statistics.
-yearStats :: Repository -> NameStats
+yearStats :: Repository -> NameStats Text
 yearStats = computePicStats $ \i -> [imageYear i]
 
 -- | Season statistics.
-seasonStats :: Repository -> NameStats
+seasonStats :: Repository -> NameStats Text
 seasonStats = computePicStats $ \i -> [picSeason i]
 
 -- | Month statistics.
-monthStats :: Repository -> NameStats
+monthStats :: Repository -> NameStats Text
 monthStats = computePicStats $ \i -> [picMonth i]
 
-apertureStats :: Repository -> NameStats
+apertureStats :: Repository -> NameStats Text
 apertureStats = computePicStats $ \i ->
   [sformat shortest <$> exifAperture (imgExif i)]
 
-shutterSpeedStats :: Repository -> NameStats
+shutterSpeedStats :: Repository -> NameStats Text
 shutterSpeedStats = computePicStats $ \i ->
   [sformat shortest <$> exifSSpeedVal (imgExif i)]
 
-isoStats :: Repository -> NameStats
+isoStats :: Repository -> NameStats Text
 isoStats = computePicStats $ \i ->
   [sformat int <$> exifISO (imgExif i)]
 
-focalLengthStats :: Repository -> NameStats
+focalLengthStats :: Repository -> NameStats Text
 focalLengthStats = computePicStats $ \i ->
   [sformat shortest <$> exifFocalLength (imgExif i)]
 
 -- | Day statistics.
-dayStats :: Repository -> NameStats
+dayStats :: Repository -> NameStats Text
 dayStats =
   computePicStats (\pic -> let d = picDay pic
                                wd = weekdayToEnd <$> d
@@ -985,7 +985,7 @@ dayStats =
                            in [ d , wd , md ]
                   )
 -- | Rating statistics.
-ratingStats :: Repository -> NameStats
+ratingStats :: Repository -> NameStats Text
 ratingStats = computePicStats $ (:[]) . exifRating . imgExif
 
 -- | Computes the weekday of a picture.
