@@ -185,7 +185,7 @@ data SeasonOp
   | Autumn
   | Winter
   | SeasonUnknown
-    deriving (Show, Eq)
+    deriving (Show, Eq, Ord)
 
 data MonthOp
   = January
@@ -201,7 +201,7 @@ data MonthOp
   | November
   | December
   | MonthUnknown
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 data DayOp
   = Monday
@@ -215,7 +215,7 @@ data DayOp
   | Weekend
   | MonthDay Int
   | DayUnknown
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 
 fuzzyMatch :: FuzzyText -> Text -> Bool
