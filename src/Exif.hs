@@ -608,16 +608,24 @@ transformMatrix (Transform r fx fy) =
 parseHierSubject :: Text -> [Text]
 parseHierSubject = Text.splitOn "|"
 
+extractFirstLastName :: Text -> Maybe (Text, Text)
+extractFirstLastName name
+  | [l, f] <- Text.splitOn "/" name,
+    not (Text.null l),
+    not (Text.null f) = Just (f, l)
+  | [f, l] <- Text.splitOn " " name,
+    not (Text.null l),
+    not (Text.null f) = Just (f, l)
+  | otherwise = Nothing
+
 -- | Formats a \"Doe\/John\" name as \"John Doe\" or \"John D.\".
 formatPerson :: Bool -> Text -> Text
 formatPerson abbrev name =
-  let w = "/" `Text.splitOn` name
-  in case w of
-       [l, f] | not (Text.null l) ->
-                if abbrev
-                  then f <> " " `Text.snoc` Text.head l `Text.snoc` '.'
-                  else f <> " " <> l
-       _ -> name
+  case extractFirstLastName name of
+    Just (firstn, lastn) ->
+      sformat (stext % " " % stext) firstn
+        (if abbrev then Text.head lastn `Text.cons` "." else lastn)
+    _ -> name
 
 -- | Returns the (partial) affine matrix for the given orientation.
 affineTransform :: Orientation -> Transform
