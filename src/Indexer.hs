@@ -889,6 +889,9 @@ gaBuilder keyfn reprfn =
 simpleBuilder :: (a -> Text) -> NameStats a -> AtomStats
 simpleBuilder b = gaBuilder b b
 
+toTextBuilder :: (ToText a) => NameStats a -> AtomStats
+toTextBuilder = simpleBuilder toText
+
 idBuilder :: NameStats Text -> AtomStats
 idBuilder = simpleBuilder id
 
@@ -907,12 +910,12 @@ getAtoms TFStop        = idBuilder . apertureStats
 getAtoms TShutterSpeed = idBuilder . shutterSpeedStats
 getAtoms TIso          = idBuilder . isoStats
 getAtoms TFocalLength  = idBuilder . focalLengthStats
-getAtoms TYear         = idBuilder . yearStats
-getAtoms TSeason       = idBuilder . seasonStats
-getAtoms TDay          = idBuilder . dayStats
-getAtoms TMonth        = idBuilder . monthStats
+getAtoms TYear         = toTextBuilder . yearStats
+getAtoms TSeason       = toTextBuilder . seasonStats
+getAtoms TDay          = toTextBuilder . dayStats
+getAtoms TMonth        = toTextBuilder . monthStats
 getAtoms TProblem      = idBuilder . repoProblems
-getAtoms TType         = idBuilder . typeStats
+getAtoms TType         = toTextBuilder . typeStats
 getAtoms TFolder       = idBuilder .
   foldl' (\a p -> Map.insertWith (+) (Just $ pdName p) 1 a) Map.empty . repoDirs
 -- TODO: this is expensive. Disable (const Map.empty)?
@@ -920,12 +923,12 @@ getAtoms TFileName     = idBuilder .
   foldl' (\a i -> Map.insertWith (+) (Just . unImageName $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
 getAtoms TStatus       = idBuilder . statusStats
 getAtoms TFClass       = idBuilder . fClassStats
-getAtoms TRating       = idBuilder . ratingStats
+getAtoms TRating       = toTextBuilder . ratingStats
 getAtoms TPplCnt       = idBuilder . gExifPeopleCnt . repoExif
 getAtoms TKwdCnt       = idBuilder . gExifKwdCnt . repoExif
 
 -- | Computes type statistics.
-typeStats :: Repository -> NameStats Text
+typeStats :: Repository -> NameStats MediaType
 typeStats = computePicStats $ \i -> [Just $ imgType i]
 
 -- | Gets status stastics from repository statistics.
@@ -946,14 +949,14 @@ fClassStats =
   Map.toList . rsFCStats . repoStats
 
 -- | Helper to increase a count in a NameStats Text.
-bumpCount :: (ToText a) => Maybe a -> NameStats Text -> NameStats Text
-bumpCount a = Map.insertWith (+) (toText <$> a) 1
+bumpCount :: (Ord a) => Maybe a -> NameStats a -> NameStats a
+bumpCount a = Map.insertWith (+) a 1
 
 -- | Computes namestats of a repository.
-computePicStats :: (ToText a)
+computePicStats :: (Ord a)
                 => (Image -> [Maybe a]) -- ^ Computes what entries need to be bumped up.
                 -> Repository           -- ^ Input repository
-                -> NameStats Text
+                -> NameStats a
 computePicStats helper =
   foldl' (\stats ->
             Map.foldl' (\stats' -> foldr bumpCount stats' . helper)
@@ -961,15 +964,15 @@ computePicStats helper =
          ) Map.empty . Map.elems . repoDirs
 
 -- | Computes year statistics.
-yearStats :: Repository -> NameStats Text
+yearStats :: Repository -> NameStats Integer
 yearStats = computePicStats $ \i -> [imageYear i]
 
 -- | Season statistics.
-seasonStats :: Repository -> NameStats Text
+seasonStats :: Repository -> NameStats SeasonOp
 seasonStats = computePicStats $ \i -> [picSeason i]
 
 -- | Month statistics.
-monthStats :: Repository -> NameStats Text
+monthStats :: Repository -> NameStats MonthOp
 monthStats = computePicStats $ \i -> [picMonth i]
 
 apertureStats :: Repository -> NameStats Text
@@ -989,7 +992,7 @@ focalLengthStats = computePicStats $ \i ->
   [sformat shortest <$> exifFocalLength (imgExif i)]
 
 -- | Day statistics.
-dayStats :: Repository -> NameStats Text
+dayStats :: Repository -> NameStats DayOp
 dayStats =
   computePicStats (\pic -> let d = picDay pic
                                wd = weekdayToEnd <$> d
@@ -997,7 +1000,7 @@ dayStats =
                            in [ d , wd , md ]
                   )
 -- | Rating statistics.
-ratingStats :: Repository -> NameStats Text
+ratingStats :: Repository -> NameStats Int
 ratingStats = computePicStats $ (:[]) . exifRating . imgExif
 
 -- | Computes the weekday of a picture.
