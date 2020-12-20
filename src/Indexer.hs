@@ -907,7 +907,7 @@ getAtoms TCaption      = idBuilder . gExifCaptions  . repoExif
 getAtoms TCamera       = idBuilder . gExifCameras   . repoExif
 getAtoms TLens         = idBuilder . gExifLenses    . repoExif
 getAtoms TFStop        = idBuilder . apertureStats
-getAtoms TShutterSpeed = idBuilder . shutterSpeedStats
+getAtoms TShutterSpeed = gaBuilder toText showShutterSpeed . shutterSpeedStats
 getAtoms TIso          = idBuilder . isoStats
 getAtoms TFocalLength  = idBuilder . focalLengthStats
 getAtoms TYear         = toTextBuilder . yearStats
@@ -979,9 +979,9 @@ apertureStats :: Repository -> NameStats Text
 apertureStats = computePicStats $ \i ->
   [sformat shortest <$> exifAperture (imgExif i)]
 
-shutterSpeedStats :: Repository -> NameStats Text
+shutterSpeedStats :: Repository -> NameStats Double
 shutterSpeedStats = computePicStats $ \i ->
-  [sformat shortest <$> exifSSpeedVal (imgExif i)]
+  [exifSSpeedVal (imgExif i)]
 
 isoStats :: Repository -> NameStats Text
 isoStats = computePicStats $ \i ->
