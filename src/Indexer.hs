@@ -880,37 +880,49 @@ atomFindsFiles (Any as)   = any atomFindsFiles as
 atomFindsFiles ConstTrue  = True
 atomFindsFiles _          = True
 
-getAtoms :: Symbol -> Repository -> NameStats Text
-getAtoms TCountry      = gExifCountries . repoExif
-getAtoms TProvince     = gExifProvinces . repoExif
-getAtoms TCity         = gExifCities    . repoExif
-getAtoms TLocation     = gExifLocations . repoExif
-getAtoms TPerson       = gExifPeople    . repoExif
-getAtoms TKeyword      = gExifKeywords  . repoExif
-getAtoms TTitle        = gExifTitles    . repoExif
-getAtoms TCaption      = gExifCaptions  . repoExif
-getAtoms TCamera       = gExifCameras   . repoExif
-getAtoms TLens         = gExifLenses    . repoExif
-getAtoms TFStop        = apertureStats
-getAtoms TShutterSpeed = shutterSpeedStats
-getAtoms TIso          = isoStats
-getAtoms TFocalLength  = focalLengthStats
-getAtoms TYear         = yearStats
-getAtoms TSeason       = seasonStats
-getAtoms TDay          = dayStats
-getAtoms TMonth        = monthStats
-getAtoms TProblem      = repoProblems
-getAtoms TType         = typeStats
-getAtoms TFolder       =
+type AtomStats = [(Maybe Text, Maybe Text, Integer)]
+
+gaBuilder :: (a -> Text) -> (a -> Text) -> NameStats a -> AtomStats
+gaBuilder keyfn reprfn =
+  map (\(k, v) -> (keyfn <$> k, reprfn <$> k, v)) . Map.toList
+
+simpleBuilder :: (a -> Text) -> NameStats a -> AtomStats
+simpleBuilder b = gaBuilder b b
+
+idBuilder :: NameStats Text -> AtomStats
+idBuilder = simpleBuilder id
+
+getAtoms :: Symbol -> Repository -> AtomStats
+getAtoms TCountry      = idBuilder . gExifCountries . repoExif
+getAtoms TProvince     = idBuilder . gExifProvinces . repoExif
+getAtoms TCity         = idBuilder . gExifCities    . repoExif
+getAtoms TLocation     = idBuilder . gExifLocations . repoExif
+getAtoms TPerson       = idBuilder . gExifPeople    . repoExif
+getAtoms TKeyword      = idBuilder . gExifKeywords  . repoExif
+getAtoms TTitle        = idBuilder . gExifTitles    . repoExif
+getAtoms TCaption      = idBuilder . gExifCaptions  . repoExif
+getAtoms TCamera       = idBuilder . gExifCameras   . repoExif
+getAtoms TLens         = idBuilder . gExifLenses    . repoExif
+getAtoms TFStop        = idBuilder . apertureStats
+getAtoms TShutterSpeed = idBuilder . shutterSpeedStats
+getAtoms TIso          = idBuilder . isoStats
+getAtoms TFocalLength  = idBuilder . focalLengthStats
+getAtoms TYear         = idBuilder . yearStats
+getAtoms TSeason       = idBuilder . seasonStats
+getAtoms TDay          = idBuilder . dayStats
+getAtoms TMonth        = idBuilder . monthStats
+getAtoms TProblem      = idBuilder . repoProblems
+getAtoms TType         = idBuilder . typeStats
+getAtoms TFolder       = idBuilder .
   foldl' (\a p -> Map.insertWith (+) (Just $ pdName p) 1 a) Map.empty . repoDirs
 -- TODO: this is expensive. Disable (const Map.empty)?
-getAtoms TFileName     =
+getAtoms TFileName     = idBuilder .
   foldl' (\a i -> Map.insertWith (+) (Just . unImageName $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
-getAtoms TStatus       = statusStats
-getAtoms TFClass       = fClassStats
-getAtoms TRating       = ratingStats
-getAtoms TPplCnt       = gExifPeopleCnt . repoExif
-getAtoms TKwdCnt       = gExifKwdCnt . repoExif
+getAtoms TStatus       = idBuilder . statusStats
+getAtoms TFClass       = idBuilder . fClassStats
+getAtoms TRating       = idBuilder . ratingStats
+getAtoms TPplCnt       = idBuilder . gExifPeopleCnt . repoExif
+getAtoms TKwdCnt       = idBuilder . gExifKwdCnt . repoExif
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats Text

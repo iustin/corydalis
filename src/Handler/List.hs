@@ -44,7 +44,7 @@ getListItemsR :: Symbol -> Handler Html
 getListItemsR atom = do
   let description = atomTypeDescriptions atom
   pics <- getPics
-  let items = Map.toList $ getAtoms atom pics
+  let items = getAtoms atom pics
   defaultLayout $ do
     setHtmlTitle $ "listing " <> description
     $(widgetFile "listitems")

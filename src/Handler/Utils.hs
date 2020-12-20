@@ -446,7 +446,7 @@ searchContext = do
 
 -- | Gets the top N and the rest of non-"unknown" items from a
 -- NameStats.
-topN :: Int -> NameStats Text -> ([Text], [Text])
+topN :: Int -> NameStats a -> ([a], [a])
 topN n =
   splitAt n .
   map fst .

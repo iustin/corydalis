@@ -19,13 +19,13 @@
              <th .sorter-digit>Count
 
          <tbody>
-           $forall (n, count) <- items
+           $forall (key, repr, count) <- items
              <tr>
-               <td data-text=#{fromMaybe "" n}>
-                 <a href="@?{(BrowseFoldersR 0,[atomAsParam atom n])}"><span class="far fa-folder-open">
+               <td data-text=#{fromMaybe "" key}>
+                 <a href="@?{(BrowseFoldersR 0,[atomAsParam atom key])}"><span class="far fa-folder-open">
                  $if symbolFindsFiles atom
-                   <a href="@?{(BrowseImagesR 0,[atomAsParam atom n])}"><span class="far fa-images">
-                 $maybe val <- n
+                   <a href="@?{(BrowseImagesR 0,[atomAsParam atom key])}"><span class="far fa-images">
+                 $maybe val <- repr
                    #{val}
                  $nothing
                    $with atom' <- buildMissingAtom atom
