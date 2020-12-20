@@ -909,9 +909,9 @@ getAtoms TTitle        = idBuilder . gExifTitles    . repoExif
 getAtoms TCaption      = idBuilder . gExifCaptions  . repoExif
 getAtoms TCamera       = idBuilder . gExifCameras   . repoExif
 getAtoms TLens         = idBuilder . gExifLenses    . repoExif
-getAtoms TFStop        = idBuilder . apertureStats
+getAtoms TFStop        = gaBuilder (sformat shortest) (sformat ("f/" % shortest)) . apertureStats
 getAtoms TShutterSpeed = gaBuilder toText showShutterSpeed . shutterSpeedStats
-getAtoms TIso          = idBuilder . isoStats
+getAtoms TIso          = gaBuilder (sformat int) (sformat ("ISO " % int)) . isoStats
 getAtoms TFocalLength  = fancyTextBuilder (sformat (shortest % "mm")) . focalLengthStats
 getAtoms TYear         = toTextBuilder . yearStats
 getAtoms TSeason       = toTextBuilder . seasonStats
@@ -978,17 +978,17 @@ seasonStats = computePicStats $ \i -> [picSeason i]
 monthStats :: Repository -> NameStats MonthOp
 monthStats = computePicStats $ \i -> [picMonth i]
 
-apertureStats :: Repository -> NameStats Text
+apertureStats :: Repository -> NameStats Double
 apertureStats = computePicStats $ \i ->
-  [sformat shortest <$> exifAperture (imgExif i)]
+  [exifAperture (imgExif i)]
 
 shutterSpeedStats :: Repository -> NameStats Double
 shutterSpeedStats = computePicStats $ \i ->
   [exifSSpeedVal (imgExif i)]
 
-isoStats :: Repository -> NameStats Text
+isoStats :: Repository -> NameStats Integer
 isoStats = computePicStats $ \i ->
-  [sformat int <$> exifISO (imgExif i)]
+  [exifISO (imgExif i)]
 
 focalLengthStats :: Repository -> NameStats Double
 focalLengthStats = computePicStats $ \i ->
