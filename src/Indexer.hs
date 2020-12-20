@@ -1157,13 +1157,18 @@ parseString :: Text -> Maybe StrOp
 parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy (makeFuzzy v)
 parseString v                              = Just $ OpEqual v
 
+numPrefixes :: Set.Set Char
+numPrefixes = Set.fromList ['=', '<', '>']
+
 numParser :: (Num a, Ord a) => (Text -> Either Text a) -> Text -> Maybe (NumOp a)
-numParser parser v =
-  case Text.uncons v of
-    Just ('<', v') -> OpLt <$> go v'
-    Just ('>', v') -> OpGt <$> go v'
-    _              -> OpEq <$> go v
-  where go = either (const Nothing) Just . parser
+numParser parser (Text.span (`Set.member` numPrefixes) -> (prefix, v)) =
+  case prefix of
+    "=" -> OpEq <$> v'
+    ""  -> OpEq <$> v'
+    "<" -> OpLt <$> v'
+    ">" -> OpGt <$> v'
+    _   -> Nothing
+  where v' = either (const Nothing) Just . parser $ v
 
 parseDecimal :: (Integral a) => Text -> Maybe (NumOp a)
 parseDecimal = numParser parseDecimalPlain
