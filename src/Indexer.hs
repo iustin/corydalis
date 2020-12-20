@@ -1082,9 +1082,9 @@ parseDecimalPlain w =
                       string) w msg
 
 -- | Simpler Text to real parsing with error handling.
-parseRealPlain :: (RealFrac a) => Text -> Either Text a
+parseRealPlain :: Text -> Either Text Double
 parseRealPlain w =
-  case Text.signed Text.rational w of
+  case Text.signed Text.double w of
     Right (w', "") -> Right w'
     Right (w', leftover) ->
       Left $ sformat ("Parsed " % shortest % " fractional but with leftover text '" %
@@ -1157,7 +1157,7 @@ numParser parser v =
 parseDecimal :: (Integral a) => Text -> Maybe (NumOp a)
 parseDecimal = numParser parseDecimalPlain
 
-parseReal :: (RealFrac a) => Text -> Maybe (NumOp a)
+parseReal :: Text -> Maybe (NumOp Double)
 parseReal = numParser parseRealPlain
 
 parseType :: Text -> Maybe MediaType
