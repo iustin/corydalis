@@ -172,8 +172,11 @@ data StrOp = OpEqual Text
 
 data NumOp a where
   OpEq :: (Eq a) => a -> NumOp a
+  OpNe :: (Eq a) => a -> NumOp a
   OpNa :: NumOp a
   OpLt :: (Num a, Ord a) => a -> NumOp a
+  OpLe :: (Num a, Ord a) => a -> NumOp a
+  OpGe :: (Num a, Ord a) => a -> NumOp a
   OpGt :: (Num a, Ord a) => a -> NumOp a
 
 deriving instance Show a => Show (NumOp a)
@@ -229,7 +232,10 @@ evalStr  OpMissing  = isNothing
 
 evalNum :: NumOp a -> Maybe a -> Bool
 evalNum (OpEq a) = (== Just a)
+evalNum (OpNe a) = maybe False (/= a)
 evalNum (OpLt a) = maybe False (< a)
+evalNum (OpLe a) = maybe False (<= a)
+evalNum (OpGe a) = maybe False (>= a)
 evalNum (OpGt a) = maybe False (> a)
 evalNum OpNa     = isNothing
 
@@ -510,17 +516,24 @@ describeStr a (OpFuzzy v)  = a <> " contains " <> unFuzzy v
 describeStr a  OpMissing   = "has no " <> a <> " information"
 
 -- | Describe a numeric value
-describeNum :: Integral a => Text -> NumOp a -> Text
-describeNum t (OpEq v) = sformat ("with " % int % " " % stext) v t
-describeNum t (OpLt v) = sformat ("with less than " % int % " " % stext) v t
-describeNum t (OpGt v) = sformat ("with more than " % int % " " % stext) v t
-describeNum t OpNa     = sformat ("with unknown number of " % stext) t
+describeNumHaving :: Integral a => Text -> NumOp a -> Text
+describeNumHaving t (OpEq v) = sformat ("with " % int % " " % stext) v t
+describeNumHaving t (OpNe v) = sformat ("not with " % int % " " % stext) v t
+describeNumHaving t (OpLt v) = sformat ("with less than " % int % " " % stext) v t
+describeNumHaving t (OpLe v) = sformat ("with " % int % " " % stext % " or less") v t
+describeNumHaving t (OpGe v) = sformat ("with " % int % " " % stext % " or more") v t
+describeNumHaving t (OpGt v) = sformat ("with more than " % int % " " % stext) v t
+describeNumHaving t OpNa     = sformat ("with unknown number of " % stext) t
 
 atomDescription :: Atom -> Text
 atomDescription (Country  place) = describeStr "country"  place
+
 atomDescription (Province place) = describeStr "province" place
+
 atomDescription (City     place) = describeStr "city"     place
+
 atomDescription (Location place) = describeStr "location" place
+
 atomDescription (Person   (OpEqual who)) =
   case who of
     "" -> "has an empty person tag"
@@ -528,6 +541,7 @@ atomDescription (Person   (OpEqual who)) =
 atomDescription (Person (OpFuzzy v)) =
   "tagged with a person named like " <> unFuzzy v
 atomDescription (Person OpMissing)   = "has no person information"
+
 atomDescription (Keyword (OpEqual keyword)) =
   case keyword of
     "" -> "tagged with an empty keyword"
@@ -535,68 +549,104 @@ atomDescription (Keyword (OpEqual keyword)) =
 atomDescription (Keyword (OpFuzzy v)) =
   "tagged with a keyword containing " <> unFuzzy v
 atomDescription (Keyword OpMissing)   = "not tagged with any keywords"
+
 atomDescription (Title t)              = describeStr "title" t
+
 atomDescription (Caption t)            = describeStr "caption" t
+
 atomDescription (Year (OpEq year))    = "taken in the year " <> toText year
+atomDescription (Year (OpNe year))    = "taken not in the year " <> toText year
 atomDescription (Year (OpLt year))    = "taken before the year " <> toText year
+atomDescription (Year (OpLe year))    = "taken in, or before the year " <> toText year
+atomDescription (Year (OpGe year))    = "taken in, or after the year " <> toText year
 atomDescription (Year (OpGt year))    = "taken after the year " <> toText year
 atomDescription (Year OpNa)           = "does not have date information"
+
 atomDescription (Season SeasonUnknown) = "taken in an unknown season"
 atomDescription (Season s)            = "taken in " <> toText s
+
 atomDescription (Month MonthUnknown)  = "taken in an unknown month"
+atomDescription (Month m)             = "taken in " <> toText m
+
 atomDescription (Day Weekday)         = "taken on an weekday"
 atomDescription (Day Weekend)         = "taken on an weekend"
 atomDescription (Day (MonthDay d))    = "taken on a " <> showOrdinal d <> " day of the month"
 atomDescription (Day DayUnknown)      = "taken on an unknown day"
 atomDescription (Day d)               = "taken on a " <> toText d
-atomDescription (Month m)             = "taken in " <> toText m
+
 atomDescription (Camera OpMissing)    = "has no camera information"
 atomDescription (Camera (OpEqual "")) = "has defined but empty camera information"
 atomDescription (Camera (OpEqual v))  = "shot with a " <> v <> " camera"
 atomDescription (Camera (OpFuzzy v))  =
   "shot with a camera named like " <> unFuzzy v
+
 atomDescription (Lens OpMissing)      = "has no lens information"
 atomDescription (Lens (OpEqual ""))   = "has defined but empty lens information"
 atomDescription (Lens (OpEqual v))    = "shot with a " <> v <> " lens"
 atomDescription (Lens (OpFuzzy v))    =
   "shot with a lens named like " <> unFuzzy v
+
 atomDescription (FStop (OpEq fstop))   = "shot at an aperture of f/" <> toText fstop
+atomDescription (FStop (OpNe fstop))   = "shot at an aperture different from f/" <> toText fstop
 atomDescription (FStop (OpLt fstop))   = "shot at an aperture larger than f/" <> toText fstop
+atomDescription (FStop (OpLe fstop))   = "shot at the aperture of f/" <> toText fstop <> " or faster"
+atomDescription (FStop (OpGe fstop))   = "shot at the aperture of f/" <> toText fstop <> " or slower"
 atomDescription (FStop (OpGt fstop))   = "shot at an aperture smaller than f/" <> toText fstop
 atomDescription (FStop OpNa)           = "without aperture information"
 
 atomDescription (ShutterSpeed (OpEq speed))   = "shot with a shutter speed of " <> showShutterSpeed speed
+atomDescription (ShutterSpeed (OpNe speed))   = "shot with shutter speed different fro " <> showShutterSpeed speed
 atomDescription (ShutterSpeed (OpLt speed))   = "shot with a shutter speed faster than " <> showShutterSpeed speed
+atomDescription (ShutterSpeed (OpLe speed))   = "shot with a shutter speed of " <> showShutterSpeed speed <> " or faster"
+atomDescription (ShutterSpeed (OpGe speed))   = "shot with a shutter speed of " <> showShutterSpeed speed <> " or slower"
 atomDescription (ShutterSpeed (OpGt speed))   = "shot with a shutter speed slower than " <> showShutterSpeed speed
 atomDescription (ShutterSpeed OpNa)           = "without shutter speed information"
 
 atomDescription (Iso (OpEq iso))   = "shot with an ISO of " <> toText iso
+atomDescription (Iso (OpNe iso))   = "shot with an ISO different than " <> toText iso
 atomDescription (Iso (OpLt iso))   = "shot with an ISO lower than " <> toText iso
+atomDescription (Iso (OpLe iso))   = "shot with an ISO of " <> toText iso <> " or lower"
+atomDescription (Iso (OpGe iso))   = "shot with an ISO of " <> toText iso <> " or higher"
 atomDescription (Iso (OpGt iso))   = "shot with an ISO greater than " <> toText iso
 atomDescription (Iso OpNa)           = "without ISO information"
 
 atomDescription (FocalLength (OpEq fstop))   = "shot at a focal length of " <> toText fstop <> "mm"
-atomDescription (FocalLength (OpLt fstop))   = "shot at a focal length longer than " <> toText fstop <> "mm"
-atomDescription (FocalLength (OpGt fstop))   = "shot at a focal length shorter than" <> toText fstop <> "mm"
+atomDescription (FocalLength (OpNe fstop))   = "shot at a focal length different from " <> toText fstop <> "mm"
+atomDescription (FocalLength (OpLt fstop))   = "shot at a focal length shorter than " <> toText fstop <> "mm"
+atomDescription (FocalLength (OpLe fstop))   = "shot at a focal length of " <> toText fstop <> "mm or shorter"
+atomDescription (FocalLength (OpGe fstop))   = "shot at a focal length of " <> toText fstop <> "mm or longer"
+atomDescription (FocalLength (OpGt fstop))   = "shot at a focal length greater than " <> toText fstop <> "mm"
 atomDescription (FocalLength OpNa)           = "without focal length information"
+
 atomDescription (Problem OpMissing)    = "has no problems"
 atomDescription (Problem (OpEqual "")) = "has an empty problem description"
 atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
 atomDescription (Problem (OpFuzzy v))  =
   "has a problem that matches " <> unFuzzy v
+
 atomDescription (Type MediaImage)      = "is an image"
 atomDescription (Type MediaMovie)      = "is a movie"
 atomDescription (Type MediaUnknown)    = "is of unknown type"
+
 atomDescription (Folder s)             = describeStr "folder" s
+
 atomDescription (FileName s)           = describeStr "filename" s
+
 atomDescription (Status v)             = "image status is " <> showImageStatus v
+
 atomDescription (FClass v)             = "folder class is " <> showFolderClass v
+
 atomDescription (Rating OpNa)          = "unrated"
-atomDescription (Rating (OpLt v))      = sformat ("rated with less than " % int % " stars") v
-atomDescription (Rating (OpGt v))      = sformat ("rated with more than " % int % " stars") v
 atomDescription (Rating (OpEq v))      = sformat ("rated with " % int % " stars") v
-atomDescription (PplCnt v)             = describeNum "people" v
-atomDescription (KwdCnt v)             = describeNum "keywords" v
+atomDescription (Rating (OpNe v))      = sformat ("not rated " % int % " stars") v
+atomDescription (Rating (OpLt v))      = sformat ("rated with less than " % int % " stars") v
+atomDescription (Rating (OpLe v))      = sformat ("rated with " % int % " stars or lower") v
+atomDescription (Rating (OpGe v))      = sformat ("rated with " % int % " stars or more") v
+atomDescription (Rating (OpGt v))      = sformat ("rated with more than " % int % " stars") v
+
+atomDescription (PplCnt v)             = describeNumHaving "people" v
+atomDescription (KwdCnt v)             = describeNumHaving "keywords" v
+
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -1158,16 +1208,23 @@ parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy (makeFuzzy v)
 parseString v                              = Just $ OpEqual v
 
 numPrefixes :: Set.Set Char
-numPrefixes = Set.fromList ['=', '<', '>']
+numPrefixes = Set.fromList ['=', '/', '!', '≠', '<', '>', '≤', '≥']
 
 numParser :: (Num a, Ord a) => (Text -> Either Text a) -> Text -> Maybe (NumOp a)
 numParser parser (Text.span (`Set.member` numPrefixes) -> (prefix, v)) =
   case prefix of
-    "=" -> OpEq <$> v'
-    ""  -> OpEq <$> v'
-    "<" -> OpLt <$> v'
-    ">" -> OpGt <$> v'
-    _   -> Nothing
+    "="  -> OpEq <$> v'
+    "/=" -> OpNe <$> v'
+    "!=" -> OpNe <$> v'
+    "≠"  -> OpNe <$> v'
+    ""   -> OpEq <$> v'
+    "<"  -> OpLt <$> v'
+    "<=" -> OpLe <$> v'
+    "≤"  -> OpLe <$> v'
+    ">=" -> OpGe <$> v'
+    "≥"  -> OpGe <$> v'
+    ">"  -> OpGt <$> v'
+    _    -> Nothing
   where v' = either (const Nothing) Just . parser $ v
 
 parseDecimal :: (Integral a) => Text -> Maybe (NumOp a)
@@ -1327,7 +1384,10 @@ instance OpParam StrOp where
 
 instance (ToText a) => OpParam (NumOp a) where
   opToParam s (OpEq v) = (s, toText v)
+  opToParam s (OpNe v) = (s, "/=" <> toText v)
   opToParam s (OpLt v) = (s, '<' `Text.cons` toText v)
+  opToParam s (OpLe v) = (s, "<=" <> toText v)
+  opToParam s (OpGe v) = (s, ">=" <> toText v)
   opToParam s (OpGt v) = (s, '>' `Text.cons` toText v)
   opToParam s  OpNa    = formatNo s
 

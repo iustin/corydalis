@@ -122,16 +122,24 @@ The search atoms are:
 - filename (string): matches image name (with any intermediate
   sub-paths)
 
-Numeric atoms (currently only year) allow:
+Numeric atoms (e.g. year, ISO, shutter speed, etc.) allow:
 
-- equal (no prefix)
+- equal (no prefix, or `=` prefix)
+- not equal (prefixes allowed: `!=`, `/=` and `≠`)
 - lower than (`<` prefix)
+- lower or equal (`<=` and `≤`)
+- greater or equal (`>=` and `≥`)
 - greater than (`>` prefix)
 
-Fixed set atoms (currently only type) only allow matches on one of
+Note that numeric not equal (`≠`) is different that `not` plus "equal to". Numeric
+`≠` means a valid, defined value that is different, whereas `not` + "equal to"
+will also match undefined (missing) values.
+
+Fixed set atoms (e.g. season, month, type, etc.) only allow matches on one of
 their values.
 
-Set atoms implement matching by matching on any of their contents.
+For set atoms (e.g. list of keywords for a picture), matching means one of their
+elements matches the search.
 
 String atoms (all others) allow:
 
