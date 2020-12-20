@@ -892,6 +892,9 @@ simpleBuilder b = gaBuilder b b
 toTextBuilder :: (ToText a) => NameStats a -> AtomStats
 toTextBuilder = simpleBuilder toText
 
+fancyTextBuilder :: (ToText a) => (a -> Text) -> NameStats a -> AtomStats
+fancyTextBuilder = gaBuilder toText
+
 idBuilder :: NameStats Text -> AtomStats
 idBuilder = simpleBuilder id
 
@@ -909,7 +912,7 @@ getAtoms TLens         = idBuilder . gExifLenses    . repoExif
 getAtoms TFStop        = idBuilder . apertureStats
 getAtoms TShutterSpeed = gaBuilder toText showShutterSpeed . shutterSpeedStats
 getAtoms TIso          = idBuilder . isoStats
-getAtoms TFocalLength  = idBuilder . focalLengthStats
+getAtoms TFocalLength  = fancyTextBuilder (sformat (shortest % "mm")) . focalLengthStats
 getAtoms TYear         = toTextBuilder . yearStats
 getAtoms TSeason       = toTextBuilder . seasonStats
 getAtoms TDay          = toTextBuilder . dayStats
@@ -987,9 +990,9 @@ isoStats :: Repository -> NameStats Text
 isoStats = computePicStats $ \i ->
   [sformat int <$> exifISO (imgExif i)]
 
-focalLengthStats :: Repository -> NameStats Text
+focalLengthStats :: Repository -> NameStats Double
 focalLengthStats = computePicStats $ \i ->
-  [sformat shortest <$> exifFocalLength (imgExif i)]
+  [exifFocalLength (imgExif i)]
 
 -- | Day statistics.
 dayStats :: Repository -> NameStats DayOp
