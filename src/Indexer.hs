@@ -898,6 +898,11 @@ fancyTextBuilder = gaBuilder toText
 idBuilder :: NameStats Text -> AtomStats
 idBuilder = simpleBuilder id
 
+formatZeroOneMore :: Text -> Text -> Int -> Text
+formatZeroOneMore _ p 0 = sformat ("no " % stext) p
+formatZeroOneMore s _ 1 = sformat ("1 " % stext) s
+formatZeroOneMore _ p n = sformat (int % " " % stext) n p
+
 getAtoms :: Symbol -> Repository -> AtomStats
 getAtoms TCountry      = idBuilder . gExifCountries . repoExif
 getAtoms TProvince     = idBuilder . gExifProvinces . repoExif
@@ -927,8 +932,8 @@ getAtoms TFileName     = idBuilder .
 getAtoms TStatus       = idBuilder . statusStats
 getAtoms TFClass       = idBuilder . fClassStats
 getAtoms TRating       = toTextBuilder . ratingStats
-getAtoms TPplCnt       = idBuilder . gExifPeopleCnt . repoExif
-getAtoms TKwdCnt       = idBuilder . gExifKwdCnt . repoExif
+getAtoms TPplCnt       = gaBuilder (sformat int) (formatZeroOneMore "person" "people") . gExifPeopleCnt . repoExif
+getAtoms TKwdCnt       = gaBuilder (sformat int) (formatZeroOneMore "keyword" "keywords") . gExifKwdCnt . repoExif
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats MediaType

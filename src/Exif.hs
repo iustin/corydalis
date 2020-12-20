@@ -498,8 +498,8 @@ data GroupExif = GroupExif
   , gExifLenses    :: !(NameStats Text)
   , gExifTitles    :: !(NameStats Text)
   , gExifCaptions  :: !(NameStats Text)
-  , gExifPeopleCnt :: !(NameStats Text)
-  , gExifKwdCnt    :: !(NameStats Text)
+  , gExifPeopleCnt :: !(NameStats Int)
+  , gExifKwdCnt    :: !(NameStats Int)
   -- TODO: add warnings?
   } deriving (Show)
 
@@ -541,11 +541,12 @@ addExifToGroup g Exif{..} =
     , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
     , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
     }
-    where count1 m k = Map.insertWith (+) k 1 m
+    where count1 :: (Ord k, Num v) => Map.Map k v -> k -> Map.Map k v
+          count1 m k = Map.insertWith (+) k 1 m
           foldSet m s = if Set.null s
                           then m `count1` Nothing
                           else foldl' count1 m (Set.map Just s)
-          setSz = Just . Text.pack . show . Set.size
+          setSz = Just . Set.size
 
 instance Semigroup GroupExif where
   g1 <> g2 =
@@ -563,7 +564,9 @@ instance Semigroup GroupExif where
     , gExifPeopleCnt = gExifPeopleCnt g1 `merge` gExifPeopleCnt g2
     , gExifKwdCnt    = gExifKwdCnt    g1 `merge` gExifKwdCnt    g2
     }
-    where merge = Map.unionWith (+)
+    where
+      merge :: (Ord k, Num v) => Map.Map k v -> Map.Map k v -> Map.Map k v
+      merge = Map.unionWith (+)
 
 unknown :: Text
 unknown = "unknown"
