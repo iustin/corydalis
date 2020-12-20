@@ -1293,7 +1293,7 @@ parseShutterSpeed = numParser parseShutterSpeedPlain
 showShutterSpeed :: Double -> Text
 showShutterSpeed v
   | v >= 1 = sformat (shortest % "s") v
-  | otherwise = sformat ("1/" % shortest % "s") (1/v)
+  | otherwise = sformat ("1/" % fixed 0 % "s") (1/v)
 
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params =
