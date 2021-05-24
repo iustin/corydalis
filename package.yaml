@@ -53,8 +53,7 @@ dependencies:
   # See: https://ghc.haskell.org/trac/ghc/ticket/12130
   - base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
 
-  # version 1.0 had a bug in reexporting Handler, causing trouble
-  - classy-prelude-yesod >=0.10.2 && <1.0 || >=1.1
+  - classy-prelude-yesod
   - aeson
   - async
   - blaze-markup
