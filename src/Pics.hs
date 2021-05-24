@@ -1550,8 +1550,8 @@ extractEmbedded config path tag = do
       -- FIXME: embedded images are assumed JPEGs.
       mime = "image/jpeg"
       goodRet = Right (mime, outputPath)
-  exists <- fileExist outputPath
-  if not exists
+  gotThumbnail <- fileExist outputPath
+  if not gotThumbnail
     then do
       -- TODO: write directly to temp file via setStdOut +
       -- useHandleOpen + ..., then rename atomically if successful.
@@ -1606,8 +1606,8 @@ extractFirstFrame config path = do
       -- FIXME: Extracted frames ('image2') are assumed jpeg.
       mime = "image/jpeg"
       goodRet = Right (mime, outputPath)
-  exists <- fileExist outputPath
-  if not exists
+  gotFirstFrame <- fileExist outputPath
+  if not gotFirstFrame
     then do
       ensureParent outputPath
       let pconfig =
