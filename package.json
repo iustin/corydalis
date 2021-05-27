@@ -19,7 +19,7 @@
     "eslint-config-google": "^0.14.0",
     "hammerjs": "^2.0.8",
     "imagesloaded": "^4.1.4",
-    "infinite-scroll": "^3.0.6",
+    "infinite-scroll": "^4.0.1",
     "jquery": "^3.5.1",
     "masonry-layout": "^4.2.2",
     "plotly.js-cartesian-dist": "^1.54.3",
