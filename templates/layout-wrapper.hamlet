@@ -28,8 +28,8 @@ $doctype 5
                  <span id="navtext#{idx}">#{snd bc}
             <li .nav-item .nav-link .px-0 .d-none .d-md-block>
               <span .fas .fa-caret-right>
-          <li .nav-item .active .d-none .d-md-block>
-            <span .nav-link>
+          <li .nav-item .d-none .d-md-block>
+            <span .nav-link .active>
               #{title}
 
         <form action=@{QuickSearchR} .form-inline>
