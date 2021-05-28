@@ -6,6 +6,7 @@ cache:
   directories:
   - $HOME/.stack
   npm: true
+  timeout: 1800
 
 before_install:
   # Download and unpack the stack executable
