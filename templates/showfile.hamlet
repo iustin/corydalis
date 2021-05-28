@@ -1,4 +1,4 @@
-<table .table>
+<table .table .m-0>
   <tr>
     <td>Name
     <td><span class="monolight">#{Pics.fileName f}</span>

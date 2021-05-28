@@ -1,18 +1,17 @@
 $maybe msg <- mmsg
-  <div .alert .alert-#{mmsgClass} .alert-dismissable>
-    <button type="button" .close data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;
+  <div .alert .alert-#{mmsgClass} .alert-dismissable .py-2>
+    <button type="button" .btn-close .py-0 .align-middle data-bs-dismiss="alert" aria-label="Close">
     <span id="corydalis-app-message">
       #{msg}
 $case repoState
   $of RepoEmpty
-    <div .alert .alert-warning>
+    <div .alert .alert-warning .py-2>
       Repository is being (re)initialized
   $of RepoStarting
-    <div .alert .alert-primary>
+    <div .alert .alert-primary .py-2>
       Preparing to scan the repository.
   $of RepoScanning {}
-    <div .alert .alert-info>
+    <div .alert .alert-info .py-2>
       Repository scanning in progress, #{scanProgress} out of #{scanGoal} items scanned.
       $maybe sp <- scanPercent
         <div .progress>

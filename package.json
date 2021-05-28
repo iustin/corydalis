@@ -13,7 +13,7 @@
     "@types/plotly.js": "^1.50.13",
     "@typescript-eslint/eslint-plugin": "^4.25.0",
     "@typescript-eslint/parser": "^4.25.0",
-    "bootstrap": "^4.5.0",
+    "bootstrap": "^5.0.1",
     "clang-format": "^1.4.0",
     "eslint": "^7.2.0",
     "eslint-config-google": "^0.14.0",

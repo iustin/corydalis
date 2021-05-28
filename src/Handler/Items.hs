@@ -83,7 +83,7 @@ itemHeader :: Bool -> Symbol -> Widget
 itemHeader nolink symbol =
   [whamlet|
           <div .card-header .py-2>
-            <a href="@{ListItemsR symbol}" .btn .btn-light .py-1 .w-100 .text-left :nolink:.disabled>
+            <a href="@{ListItemsR symbol}" .btn .btn-light .py-1 .w-100 .text-start :nolink:.disabled>
               <span class="#{atomIcon symbol} fa-fw">
               #{symbolPlCap symbol}
           |]

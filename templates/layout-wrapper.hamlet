@@ -14,7 +14,8 @@ $doctype 5
 
   <body>
     <nav .navbar .navbar-light .bg-light .navbar-expand #nav>
-        <ul .navbar-nav .mr-auto>
+      <div .container-fluid>
+        <ul .navbar-nav .me-auto>
           <li .nav-item>
             <a .nav-link href=@{HomeR}>
               <span .fas .fa-home>
@@ -35,8 +36,8 @@ $doctype 5
         <form action=@{QuickSearchR} .form-inline>
           <div .input-group>
             <input type="text" .form-control placeholder="Search" aria-label="Search" name="q" #entry>
-            <div .input-group-append .d-none .d-sm-flex>
-              <button .btn .input-group-text type="submit">
+            <div .d-none .d-sm-flex>
+              <button .btn .input-group-text type="submit" .btn-secondary>
                 <span .fas .fa-search>
 
         <div .navbar-nav>

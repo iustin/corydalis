@@ -3,9 +3,9 @@
   Image #
     <small>#{folder}/#{iname}
 
-<div .row>
- <div .col-12>
-  <div .card-columns>
+$# Note that masonry doesn't work very well for image page. So disable for now.
+<div .row data-xmasonry=#{dataMasonry}>
+  <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header>Merged image information
       <table .table>
@@ -41,9 +41,10 @@
           <td>#{flags}
         ^{showExif $ imgExif img}
 
+  <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header>Equipment
-      <table .table>
+      <table .table .m-0>
         <tr>
           <td>Camera
           <td>^{showCameraLink (exifCamera exif)}
@@ -53,7 +54,8 @@
             <a href=@{LensInfoR (liName lens)}>
               #{lensDisplayName lens}
 
-    $if imageHasImages img
+  $if imageHasImages img
+    <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
         <div .card-header>RAW file
         $case imgRawPath img
@@ -63,6 +65,7 @@
           <div .card-body>
             No RAW component
 
+    <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
         <div .card-header>Sidecar file
         $case imgSidecarPath img
@@ -72,20 +75,24 @@
            <div .card-body>
              No sidecar file
 
-      $if (null $ imgJpegPath img)
+    $if (null $ imgJpegPath img)
+      <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
         <div .card .border-warning>
           <div .card-body>
             Has no processed files
-      $else
+    $else
         $forall jpeg <- imgJpegPath img
+         <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
           <div .card>
             <div .card-header>Processed output
             ^{showFile jpeg}
-    $else
+  $else
+     <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
         <div .card-body>Has no image components
 
-    $if imageHasMovies img
+  $if imageHasMovies img
+    <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
         <div .card-header>Master movie file
         $case imgMasterMov img
@@ -95,25 +102,35 @@
            <div .card-body>
              No Master movie component
 
-      $if (null $ imgMovs img)
+    $if (null $ imgMovs img)
+      <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
         <div .card .border-warning>
           <div .card-body>
             Has no processed movies
-      $else
-        $forall movie <- imgMovs img
+    $else
+       $forall movie <- imgMovs img
+         <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
           <div .card>
             <div .card-header>Processed movie
             ^{showFile movie}
-    $else
+  $else
+     <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
-        <div .card-body>Has no movie components
+        <div .card-header>
+          Movie components
+        <div .card-body>
+          Has no movie components
 
-    $if (null $ imgUntracked img)
+  $if (null $ imgUntracked img)
+    <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
+        <div .card-header>
+          Untracked files
         <div .card-body>
           Has no untracked components
-    $else
-      $forall untrk <- imgUntracked img
+  $else
+    $forall untrk <- imgUntracked img
+      <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
         <div .card>
           <div .card-header>Untracked file
           ^{showFile untrk}

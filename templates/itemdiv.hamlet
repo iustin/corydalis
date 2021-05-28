@@ -1,3 +1,4 @@
+<div .col-12 .col-sm-6 .col-lg-4 .mb-4>
   <div .card class="#{dclass symbol}">
      $if null items
         ^{itemHeader True symbol}
@@ -5,7 +6,7 @@
           $case symbol
             $of TProblem
               No pictures with problems
-              <span .fas .fa-check .ml-2>
+              <span .fas .fa-check .ms-2>
             $of k
               No pictures have a #{symbolName k} defined ☹
     $else
@@ -14,7 +15,7 @@
          <div .card-body>
            $forall p <- items
             $with searchParams <- [(symbolName symbol, p)]
-             <a .btn .btn-light href="@?{(SearchR,searchParams)}">#{formatter symbol p}
+             <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,searchParams)}">#{formatter symbol p}
 
            $if rcount > 0
              <a .btn .btn-light href="@{ListItemsR symbol}">
@@ -24,7 +25,7 @@
             $forall p <- items
              $with searchParams <- [(symbolName symbol, p)]
               <li .list-group-item>
-               <a .text-dark href="@?{(SearchR,searchParams)}">#{formatter symbol p}
+               <a .link-dark href="@?{(SearchR,searchParams)}">#{formatter symbol p}
 
             $if rcount > 0
              <li .list-group-item>

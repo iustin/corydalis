@@ -127,11 +127,12 @@ sessionTimeout :: Int
 sessionTimeout = 120
 
 data PageStyle
-  = PageBasic  -- ^ Only the most basic CSS/JS.
+  = PageBasic  -- ^ Only the most basic CSS/JS. Well, with masonry since
+               -- Bootstrap 5. Sigh.
   | PageTable  -- ^ A page with tablesorter.
   | PageView   -- ^ A page with our viewer.
   | PagePlot   -- ^ A page with plotly and tableviewer.
-  | PageGrid   -- ^ A page with masonry/infinitescroll.
+  | PageGrid   -- ^ A page with infinitescroll.
   | PageFBox   -- ^ A page with grid view and fancy box.
 
 
@@ -172,6 +173,7 @@ pageJSResources :: PageStyle -> Widget
 pageJSResources PageBasic =
   $(combineScripts 'StaticR
      [ jquery_js_jquery_js
+     , masonry_js_masonry_pkgd_js
      , bootstrap_js_bootstrap_bundle_js
      ])
 
@@ -206,8 +208,8 @@ pageJSResources PagePlot =
 pageJSResources PageGrid =
   $(combineScripts 'StaticR
      [ jquery_js_jquery_js
-     , bootstrap_js_bootstrap_bundle_js
      , masonry_js_masonry_pkgd_js
+     , bootstrap_js_bootstrap_bundle_js
      , imagesloaded_js_imagesloaded_pkgd_js
      , infinite_scroll_js_infinite_scroll_pkgd_js
      , corydalis_js_imagegrid_js
@@ -216,8 +218,8 @@ pageJSResources PageGrid =
 pageJSResources PageFBox =
   $(combineScripts 'StaticR
      [ jquery_js_jquery_js
-     , bootstrap_js_bootstrap_bundle_js
      , masonry_js_masonry_pkgd_js
+     , bootstrap_js_bootstrap_bundle_js
      , imagesloaded_js_imagesloaded_pkgd_js
      , infinite_scroll_js_infinite_scroll_pkgd_js
      , corydalis_js_imagegrid_js

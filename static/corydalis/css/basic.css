@@ -119,3 +119,14 @@ span#persistBox {
     font-style: italic;
     font-size: large;
 }
+
+/* Bootstrap 5 enforces bottom borders. Bootstrap 4 did top borders, but that
+ * was less visible due to .card-header colour. With v5, need to fix this. */
+.card .table tr:last-child td {
+    border-bottom-width: 0px;
+}
+
+/* Get rid of bottom margins with Bootstrap 5. */
+.card > .table {
+    margin-bottom: 0px;
+}

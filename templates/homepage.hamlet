@@ -4,41 +4,41 @@
 $maybe msg <- homeMessage
    #{preEscapedToMarkup msg}
 
-<div .row>
- <div .col-12>
-  <div .card-columns>
-    ^{itemDiv TYear True (years, [])}
+<div .row data-masonry=#{dataMasonry}>
+  ^{itemDiv TYear True (years, [])}
 
-    ^{itemDiv TPerson True topPeople}
+  ^{itemDiv TPerson True topPeople}
 
-    ^{itemDiv TKeyword True topKeywords}
+  ^{itemDiv TKeyword True topKeywords}
 
-    ^{itemDiv TCountry True topCountries}
+  ^{itemDiv TCountry True topCountries}
 
-    ^{itemDiv TProvince True topProvinces}
+  ^{itemDiv TProvince True topProvinces}
 
-    ^{itemDiv TCity True topCities}
+  ^{itemDiv TCity True topCities}
 
-    ^{itemDiv TLocation True topLocations}
+  ^{itemDiv TLocation True topLocations}
 
+  <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header .py-2>
         <span .fas .fa-cogs .fa-fw>
         Specialised views
       <div .card-body>
         $forall t <- specialViews
-            <a href="@{ListItemsR t}" .btn .btn-light .py-1 .text-left>
+            <a href="@{ListItemsR t}" .btn .btn-light .py-1 .my-1 .text-start>
               <span class="#{atomIcon t} fa-fw">
               #{symbolPlCap t}
 
-    $if development
+  $if development
+    <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
         <div .card-header .py-2>
           <span .fas .fa-crosshairs .fa-fw>
           Debug views
         <div .card-body>
           $forall t <- debugViews
-              <a href="@{ListItemsR t}" .btn .btn-light .py-1 .text-left>
+              <a href="@{ListItemsR t}" .btn .btn-light .py-1 .my-1 .text-start>
                 <span class="#{atomIcon t} fa-fw">
                 #{symbolPlCap t}
 
@@ -47,8 +47,8 @@ $maybe msg <- homeMessage
   &nbsp;
 
 <form action=@{QuickSearchR} .form-horizontal>
-      <div .form-group .row>
-        <label for="entry" .col-form-label .col-sm-2 .text-right .d-none .d-sm-inline-block>Quick search
+      <div .row .row-cols-auto>
+        <label for="entry" .col-form-label .col-sm-2 .text-end .d-none .d-sm-inline-block>Quick search
         <div .col-12 .col-sm-8>
           <input type="text" .form-control #entry name="q" placeholder="Switzerland 2018">
         <div .col-sm-2 .d-none .d-sm-inline-block>

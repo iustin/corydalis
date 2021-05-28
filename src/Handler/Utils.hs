@@ -138,6 +138,9 @@ atomIcon TRating       = "fas fa-star"
 atomIcon TPplCnt       = "fas fa-users"
 atomIcon TKwdCnt       = "fas fa-tags"
 
+dataMasonry :: Text
+dataMasonry   = "{\"percentPosition\": true}"
+
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =
   showLocalTime . utcToZonedTime utc . posixSecondsToUTCTime
