@@ -1,0 +1,43 @@
+on: [push]
+name: Continuous Integration
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest # or macOS-latest, or windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - name: Setup Haskell
+        uses: haskell/actions/setup@v1
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+          
+      - name: Cache Haskell dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.stack
+          key: v1-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
+          restore-keys: v1-haskell-deps-
+      - name: Cache node modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: v1-npm-deps-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: v1-npm-deps-          
+          
+      - name: Create git-version
+        run: make git-version
+        
+      - name: Bootstrap npm/typescript code
+        run: make bootstrap
+      
+      - name: Setup GHC for the resolver
+        run: stack setup --no-terminal
+      
+      - name: Build the dependencies and code
+        run: stack build --no-terminal --only-snapshot
+        
+      - name: Run tests
+        run: stack --no-terminal test --flag corydalis:dev
