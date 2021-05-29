@@ -28,6 +28,25 @@ jobs:
           key: v1-npm-deps-${{ hashFiles('**/package-lock.json') }}
           restore-keys: v1-npm-deps-
 
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          # This path is specific to Ubuntu
+          path: ~/.cache/pip
+          # Look to see if there is a cache hit for the corresponding requirements file
+          key: v1-pip-${{ runner.os }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
+
+      - name: Install mkdocs
+        run: pip install --upgrade pip mkdocs
+
       - name: Create git-version
         run: make git-version
 
@@ -48,3 +67,6 @@ jobs:
 
       - name: Run tests
         run: stack test --flag corydalis:dev
+
+      - name: Build documentation
+        run: make doc
