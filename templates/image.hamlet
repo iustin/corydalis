@@ -12,13 +12,16 @@ $# Note that masonry doesn't work very well for image page. So disable for now.
         <tr>
           <td>Image name
           <td>
-            <a href=@?{(ViewR (imgParent img) (imgName img), params)}>
-             <span .far .fa-image .fa-lg>
-             #{imgName img}
+             <span .monolight>
+               #{imgName img}
         <tr>
           <td>Parent folder
           <td>
             <a href=@{FolderR (imgParent img)}>#{imgParent img}
+        <tr>
+          <td>Actions
+          <td>
+            ^{imageViewActions (imgParent img) (imgName img) params}
         <tr>
           <td>Flag image for review
           <td>

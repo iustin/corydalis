@@ -28,7 +28,8 @@ $if not $ null flagged'
                <th>Author
                <th>Path
                <th>Status
-               <th>Action
+               <th>Actions
+               <th>Flagging
            <tbody>
              $forall (folder, image, author, mimg) <- flagged'
                <tr>
@@ -46,7 +47,9 @@ $if not $ null flagged'
                    $nothing
                      <span .text-muted>unknown
                  <td>
-                   <a href="@{ImageR folder image}">#{folder}/#{image}
+                   <a href="@{ImageR folder image}">
+                     <span .fas .fa-info-circle .fa-lg>#
+                   ^{imageViewActions folder image []}
                  <td>
                    ^{imageFlagActions folder image False}
            <tfoot>

@@ -255,6 +255,17 @@ imageFlagActions folder image flag =
               <button .btn .btn-light type="submit" name="_method" value="DELETE">Un-flag
               |]
 
+imageViewActions :: Text -> ImageName -> UrlParams -> Widget
+imageViewActions folder image params =
+  toWidget [hamlet|
+            <a href=@?{(ViewR folder image, params)} title="View image in Corydalis">
+              <span .far .fa-image .fa-lg>#
+            <a href=@{ImageBytesR folder image} target=_blank title="View image in the browser">
+              <span .fas .fa-eye .fa-lg>#
+            <a href=@{ImageBytesR folder image} download=#{image} title="Download image">
+              <span .fas .fa-download .fa-lg>#
+           |]
+
 showCameraLink :: Maybe Text -> Widget
 showCameraLink (Just camera) =
   toWidget [hamlet|<a href=@{CameraInfoR camera}>#{camera}|]
