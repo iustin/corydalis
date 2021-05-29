@@ -14,12 +14,6 @@ jobs:
           enable-stack: true
           stack-version: 'latest'
 
-      - name: Generate stack.yaml.lock
-        run: |
-          stack --no-terminal ls snapshots
-          echo
-          test -f stack.yaml.lock
-
       - name: Cache Haskell dependencies
         uses: actions/cache@v2
         with:
