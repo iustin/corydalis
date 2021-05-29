@@ -15,7 +15,7 @@ jobs:
           stack-version: 'latest'
           
       - name: Cache Haskell dependencies
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.stack
           key: v1-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
@@ -43,10 +43,7 @@ jobs:
         run: stack test --only-dependencies
 
       - name: Build the code
-        run: stack build
-        
-      - name: Build the tests
-        run: stack test --no-run-tests
+        run: stack build --pedantic --test --no-run-tests --flag corydalis:dev
         
       - name: Run tests
         run: stack test --flag corydalis:dev
