@@ -35,7 +35,9 @@ module Handler.FlaggedImages
   )
 where
 
-import qualified Data.Text       as Text
+import qualified Data.Text          as Text
+import           Database.Esqueleto ((?.), (^.))
+import qualified Database.Esqueleto as E
 
 import           Handler.Utils
 import           Handler.Widgets
@@ -44,10 +46,18 @@ import           Pics
 
 getFlaggedImagesR :: Handler Html
 getFlaggedImagesR = do
-  flagged <- runDB $
-    selectList [] [Asc FlaggedImageFolder, Asc FlaggedImageName]
+  flagged <- runDB
+    $ E.select
+    $ E.from $ \(flaggedimage `E.LeftOuterJoin` user) -> do
+      E.on $ E.just (flaggedimage ^. FlaggedImageAuthorId) E.==. user ?. UserId
+      return ( flaggedimage ^. FlaggedImageFolder
+             , flaggedimage ^. FlaggedImageName
+             , user ?. UserName
+             )
   pics <- getPics
-  let flagged' = map ((\fe -> (fe, lookupImage pics (flaggedImageFolder fe) (flaggedImageName fe))) . entityVal) flagged
+  let flagged' = map (\(E.Value dir, E.Value name, E.Value author) ->
+                         let img = lookupImage pics dir name
+                         in (dir, name, author, img)) flagged
   defaultLayout $ do
     setHtmlTitle "listing flagged images"
     $(widgetFile "flaggedimages")

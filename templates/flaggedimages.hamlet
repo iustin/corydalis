@@ -25,13 +25,18 @@ $if not $ null flagged'
         <table #imagelist .tablesorter .table .table-sm .vmiddle>
            <thead>
              <tr>
+               <th>Author
                <th>Status
                <th>Image
                <th>Action
            <tbody>
-             $forall (FlaggedImage{flaggedImageFolder = folder, flaggedImageName = image}, mimg) <- flagged'
+             $forall (folder, image, author, mimg) <- flagged'
                <tr>
                $maybe img <- mimg
+                 $maybe author' <- author
+                   <td>#{author'}
+                 $nothing
+                   <td .text-muted><i>Unknown author
                  <td>#{show $ imgStatus img}
                  <td><a href="@{ImageR folder image}">#{folder}/#{image}</a>
                $nothing

@@ -69,6 +69,7 @@ dependencies:
   - data-default
   - deepseq
   - directory
+  - esqueleto
   - fast-logger
   - file-embed
   - filepath
