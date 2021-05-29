@@ -36,8 +36,17 @@ jobs:
       - name: Setup GHC for the resolver
         run: stack setup --no-terminal
       
-      - name: Build the dependencies and code
-        run: stack build --no-terminal --only-snapshot
+      - name: Build the dependencies
+        run: stack build --only-dependencies
+
+      - name: Build the test dependencies
+        run: stack test --only-dependencies
+
+      - name: Build the code
+        run: stack build
+        
+      - name: Build the tests
+        run: stack test --no-run-tests
         
       - name: Run tests
-        run: stack --no-terminal test --flag corydalis:dev
+        run: stack test --flag corydalis:dev
