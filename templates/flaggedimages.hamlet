@@ -26,22 +26,27 @@ $if not $ null flagged'
            <thead>
              <tr>
                <th>Author
+               <th>Path
                <th>Status
-               <th>Image
                <th>Action
            <tbody>
              $forall (folder, image, author, mimg) <- flagged'
                <tr>
-               $maybe img <- mimg
-                 $maybe author' <- author
-                   <td>#{author'}
-                 $nothing
-                   <td .text-muted><i>Unknown author
-                 <td>#{show $ imgStatus img}
-                 <td><a href="@{ImageR folder image}">#{folder}/#{image}</a>
-               $nothing
-                 <td .text-muted><i>Unknown image</i>
-                 <td>#{folder}/#{image}
-               <td>
-                 ^{imageFlagActions folder image False}
+                 <td>
+                   $maybe author' <- author
+                     #{author'}
+                   $nothing
+                     <span .text-muted><i>Unknown author
+                 <td>
+                   <span .monolight>
+                     #{folder}/#{image}
+                 <td>
+                   $maybe img <- mimg
+                     #{show $ imgStatus img}
+                   $nothing
+                     <span .text-muted>unknown
+                 <td>
+                   <a href="@{ImageR folder image}">#{folder}/#{image}
+                 <td>
+                   ^{imageFlagActions folder image False}
            <tfoot>
