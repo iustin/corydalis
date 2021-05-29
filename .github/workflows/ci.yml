@@ -7,13 +7,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        
+
       - name: Setup Haskell
         uses: haskell/actions/setup@v1
         with:
           enable-stack: true
           stack-version: 'latest'
-          
+
       - name: Cache Haskell dependencies
         uses: actions/cache@v2
         with:
@@ -25,17 +25,17 @@ jobs:
         with:
           path: ~/.npm
           key: v1-npm-deps-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: v1-npm-deps-          
-          
+          restore-keys: v1-npm-deps-
+
       - name: Create git-version
         run: make git-version
-        
+
       - name: Bootstrap npm/typescript code
         run: make bootstrap
-      
+
       - name: Setup GHC for the resolver
         run: stack setup --no-terminal
-      
+
       - name: Build the dependencies
         run: stack build --only-dependencies
 
@@ -44,6 +44,6 @@ jobs:
 
       - name: Build the code
         run: stack build --pedantic --test --no-run-tests --flag corydalis:dev
-        
+
       - name: Run tests
         run: stack test --flag corydalis:dev
