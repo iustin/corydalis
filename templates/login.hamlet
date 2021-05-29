@@ -14,12 +14,12 @@ $maybe msg <- loginMsg
    <form method=post action=@{loginRoute} enctype=#{UrlEncoded}>
      $maybe tok <- mtok
        <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
-     <div class="form-floating mb-3">
-       <input type="text" class="form-control" name="username" id="floatingUsername" placeholder="username">
+     <div .form-floating .mb-3>
+       <input type="text" .form-control name="username" #floatingUsername placeholder="username">
        <label for="floatingUsername">Username
-     <div class="form-floating">
-       <input type="password" class="form-control" name="password" id="floatingPassword" placeholder="password">
+     <div .form-floating>
+       <input type="password" .form-control name="password" #floatingPassword placeholder="password">
        <label for="floatingPassword">Password
      <button .btn .btn-primary .mt-3 type="submit">
        Login
-       <span class="fas fa-sign-in-alt">
+       <span .fas .fa-sign-in-alt>
