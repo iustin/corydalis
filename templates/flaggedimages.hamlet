@@ -47,7 +47,7 @@ $if not $ null flagged'
                    $nothing
                      <span .text-muted>unknown
                  <td>
-                   <a href="@{ImageR folder image}">
+                   <a href="@{ImageR folder image}" title="Show image information">
                      <span .fas .fa-info-circle .fa-lg>#
                    ^{imageViewActions folder image []}
                  <td>
