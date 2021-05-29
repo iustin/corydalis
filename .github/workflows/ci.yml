@@ -14,12 +14,17 @@ jobs:
           enable-stack: true
           stack-version: 'latest'
 
+      - name: Generate stack.yaml.lock
+        run: stack --no-terminal ls snapshots
+        run: test -f stack.yaml.lock
+
       - name: Cache Haskell dependencies
         uses: actions/cache@v2
         with:
           path: ~/.stack
           key: v1-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
           restore-keys: v1-haskell-deps-
+
       - name: Cache node modules
         uses: actions/cache@v2
         with:
