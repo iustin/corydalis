@@ -11,14 +11,15 @@ $maybe msg <- loginMsg
 <div .container .my-2>
  <div .row>
   <div .col-12 .col-md-4>
+   <p .mb-3>Please login in order to continue.
    <form method=post action=@{loginRoute} enctype=#{UrlEncoded}>
      $maybe tok <- mtok
        <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
      <div .form-floating .mb-3>
-       <input type="text" .form-control name="username" #floatingUsername placeholder="username">
+       <input type="text" .form-control name="username" #floatingUsername placeholder="username" required>
        <label for="floatingUsername">Username
      <div .form-floating>
-       <input type="password" .form-control name="password" #floatingPassword placeholder="password">
+       <input type="password" .form-control name="password" #floatingPassword placeholder="password" required>
        <label for="floatingPassword">Password
      <button .btn .btn-primary .mt-3 type="submit">
        Login
