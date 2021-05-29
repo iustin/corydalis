@@ -8,10 +8,18 @@ $maybe msg <- loginMsg
         <div .card-body #info>
           #{msg}
 
-<div .row>
- <div .col-12 .col-md-4>
-   <form method=post action=@{loginRoute} enctype=#{formEnctype}>
-     ^{formWidget}
-     <button .btn .btn-primary type="submit">
+<div .container .my-2>
+ <div .row>
+  <div .col-12 .col-md-4>
+   <form method=post action=@{loginRoute} enctype=#{UrlEncoded}>
+     $maybe tok <- mtok
+       <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
+     <div class="form-floating mb-3">
+       <input type="text" class="form-control" name="username" id="floatingUsername" placeholder="username">
+       <label for="floatingUsername">Username
+     <div class="form-floating">
+       <input type="password" class="form-control" name="password" id="floatingPassword" placeholder="password">
+       <label for="floatingPassword">Password
+     <button .btn .btn-primary .mt-3 type="submit">
        Login
        <span class="fas fa-sign-in-alt">

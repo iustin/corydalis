@@ -43,26 +43,24 @@ module Foundation
   , clientSessionKeyFile
   ) where
 
-import           Database.Persist.Sql  (ConnectionPool, runSqlPool)
+import           Database.Persist.Sql (ConnectionPool, runSqlPool)
 import           Import.NoFoundation
-import           Text.Hamlet           (hamletFile)
-import           Text.Jasmine          (minifym)
+import           Text.Hamlet          (hamletFile)
+import           Text.Jasmine         (minifym)
 
 #ifdef DEVELOPMENT
 import           Yesod.Auth.Dummy
 #endif
 
-import           Yesod.Auth.HashDB     (authHashDBWithForm)
+import           Yesod.Auth.HashDB    (authHashDBWithForm)
 
 import           Yesod.Auth.Message
-import           Yesod.Core.Types      (Logger)
-import qualified Yesod.Core.Unsafe     as Unsafe
-import           Yesod.Default.Util    (addStaticContentExternal)
-import           Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), bfs,
-                                        renderBootstrap3, withAutofocus)
+import           Yesod.Core.Types     (Logger)
+import qualified Yesod.Core.Unsafe    as Unsafe
+import           Yesod.Default.Util   (addStaticContentExternal)
 
-import qualified Data.Map              as Map
-import qualified Data.Set              as Set
+import qualified Data.Map             as Map
+import qualified Data.Set             as Set
 
 import           Handler.Cookies
 import           Indexer
@@ -94,9 +92,6 @@ data App = App
 -- type Handler = HandlerT App IO
 -- type Widget = WidgetT App IO ()
 mkYesodData "App" $(parseRoutesFile "config/routes")
-
--- | A convenient synonym for creating forms.
-type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
 
 -- | Message type key
 msgTypeKey :: Text
@@ -512,18 +507,11 @@ instance YesodAuth App where
 
     --authHttpManager = getHttpManager
 
-loginForm :: Form (Text, Text)
-loginForm = renderBootstrap3 BootstrapBasicForm $ (,)
-    <$> areq textField (withAutofocus $ mkField "username" "Username") Nothing
-    <*> areq passwordField (mkField "password" "Password") Nothing
-  where mkField :: Text -> Text -> FieldSettings a
-        mkField name descr =
-          let fs = bfs descr in fs { fsName = Just name }
-
 loginWidget :: Route App -> Widget
 loginWidget loginRoute = do
+  request <- getRequest
   loginMsg <- appLoginMessage . appSettings <$> getYesod
-  (formWidget, formEnctype) <- handlerToWidget $ generateFormPost loginForm
+  let mtok = reqToken request
   $(whamletFile "templates/login.hamlet")
 
 -- | access function to determine if a user is logged in.
