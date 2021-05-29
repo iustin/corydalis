@@ -59,3 +59,4 @@ list](docs/todo.md). Otherwise, feel free to [file
 bugs](https://github.com/iustin/corydalis/issues).
 
 [![Continuous Integration](https://github.com/iustin/corydalis/actions/workflows/ci.yml/badge.svg)](https://github.com/iustin/corydalis/actions/workflows/ci.yml)
+[![Documentation Status](https://readthedocs.org/projects/corydalis/badge/?version=latest)](https://corydalis.readthedocs.io/en/latest/?badge=latest)
