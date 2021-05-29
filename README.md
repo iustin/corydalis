@@ -58,4 +58,4 @@ There is a raw list of ideas/issues in the [todo
 list](docs/todo.md). Otherwise, feel free to [file
 bugs](https://github.com/iustin/corydalis/issues).
 
-[![Build Status](https://travis-ci.org/iustin/corydalis.svg)](https://travis-ci.org/iustin/corydalis)
+[![Continuous Integration](https://github.com/iustin/corydalis/actions/workflows/ci.yml/badge.svg)](https://github.com/iustin/corydalis/actions/workflows/ci.yml)
