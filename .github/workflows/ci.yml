@@ -13,7 +13,7 @@ on:
   schedule:
     - cron: '17 03 * * 0'
 
-name: Continuous Integration
+name: CI
 jobs:
   build:
     name: Build and test
