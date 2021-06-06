@@ -1,7 +1,7 @@
 name:    corydalis
 version: "0.4.0"
 license: AGPL-3
-license-file: [LICENCE, LICENCE-details]
+license-file: LICENCE
 category: Image
 author:
   - Iustin Pop <iustin@k1024.org>
