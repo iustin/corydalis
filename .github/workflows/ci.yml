@@ -63,10 +63,19 @@ jobs:
         run: stack test --only-dependencies
 
       - name: Build the code
-        run: stack build --pedantic --test --no-run-tests --flag corydalis:dev
+        run: stack build --pedantic --test --no-run-tests --coverage --flag corydalis:dev
 
       - name: Run tests
-        run: stack test --flag corydalis:dev
+        run: stack test --coverage --flag corydalis:dev
+
+      - name: Generate coverage report
+        uses: 8c6794b6/hpc-codecov-action@v2
+        with:
+          target: stack:test
+          excludes: Main
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1
 
       - name: Build documentation
         run: make doc
