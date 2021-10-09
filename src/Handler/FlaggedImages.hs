@@ -35,9 +35,9 @@ module Handler.FlaggedImages
   )
 where
 
-import qualified Data.Text          as Text
-import           Database.Esqueleto ((?.), (^.))
-import qualified Database.Esqueleto as E
+import qualified Data.Text                 as Text
+import           Database.Esqueleto.Legacy ((?.), (^.))
+import qualified Database.Esqueleto.Legacy as E
 
 import           Handler.Utils
 import           Handler.Widgets
