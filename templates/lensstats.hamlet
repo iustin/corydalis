@@ -33,6 +33,7 @@
              <th>First picture
              <th>Last picture
              <th>Working age
+             <th>Average weekly images
          <tbody>
            $forall (name, oc) <- lenses
              $with lens <- ocData oc
@@ -56,7 +57,9 @@
                    $# FIXME: when time 1.9, this becomes much easier…
                    $with age <- diffDays (localDay eDate) (localDay bDate) + 1
                      <td data-text="#{show age}">#{formatDate age}
+                     <td .number>#{formatPicRate age (ocFiles oc) 7}
                  $nothing
+                   <td>
                    <td>
                    <td>
                    <td>

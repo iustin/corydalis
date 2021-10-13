@@ -460,3 +460,11 @@ topN n =
                Just a' -> (a', b):l
          ) [] .
   Map.toList
+
+formatPicRate :: Integer -> Integer -> Integer -> Text
+formatPicRate days pics period =
+  let ddays = fromIntegral days::Double
+      dpics = fromIntegral pics
+      dperiod = fromIntegral period
+      rate = dpics * dperiod / ddays
+  in sformat (fixed 2) rate
