@@ -49,9 +49,12 @@ Using stack:
     $ stack install --local-bin-path /path/to/target
     $ cp -aL static /path/to/target/
 
-
 That should be it about the "build" phase, although if you don't
-already have a stack work space, this will take a bit of time and CPU.
+already have a stack work space already, this will take a bit of time
+and CPU.
+
+A simpler way for all this is to just run `make release` for the
+backend part.
 
 This step will generate three binaries:
 

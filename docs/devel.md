@@ -14,6 +14,19 @@ You need up to two terminals, depending on which code you edit:
   will simply update the `static/corydalis` directory, which is referred to by
   the server part.
 
+## Making a binary build/release
+
+There are two targets for binaries:
+
+* internal, private build; run `make releade` for this, which will put
+  everything into `dist/` that needs to be copied to the target machine.
+* public/demo site, which only needs authentication for some parts of the site;
+  run `make demo-release` for this, which again puts things into `dist`.
+
+Both of these cleanup `dist/` before. Note that on the target machine, the
+`static/tmp` directory must exist. And of course, you need the `config/`
+directory as well. For more details, see the [install](install.md) document.
+
 ## Version upgrades
 
 ### Haskell code
