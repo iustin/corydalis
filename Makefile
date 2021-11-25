@@ -50,6 +50,11 @@ bootstrap:
 	@echo One-shot converting typescript to JS...
 	npx tsc -p js/ --listEmittedFiles
 
+# Continuous typescript compilation
+.PHONY: ts-watch
+ts-watch:
+	npx tsc -w -p js/
+
 # Incremental rebuild and installs in dist/ with the current settings
 # (vs. release which is clean build).
 dist:
