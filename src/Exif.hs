@@ -315,8 +315,8 @@ instance Ord ExifTime where
 
 data FlashSource
   = FlashSourceNone
-  | FlashSourceExternal
   | FlashSourceInternal
+  | FlashSourceExternal
   deriving (Eq, Ord, Show)
 
 instance NFData FlashSource where
