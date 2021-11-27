@@ -192,6 +192,7 @@ showExif Exif {..} = do
                                  then "unrated"
                                  else sformat ("rated " % int % " stars") v
                                ) exifRating
+      flash_source = formatFlashSource exifFlashSource
   -- TODO: serial field, links to camera/lens?, move capture time earlier.
   $(widgetFile "exif")
 

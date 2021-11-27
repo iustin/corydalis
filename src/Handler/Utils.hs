@@ -468,3 +468,11 @@ formatPicRate days pics period =
       dperiod = fromIntegral period
       rate = dpics * dperiod / ddays
   in sformat (fixed 2) rate
+
+formatFlashSource :: Maybe FlashSource -> Text
+formatFlashSource f =
+  case f of
+    Nothing                  -> "unknown"
+    Just FlashSourceNone     -> "no flash used"
+    Just FlashSourceInternal -> "camera internal flash"
+    Just FlashSourceExternal -> "external flash"

@@ -33,6 +33,7 @@ module Exif ( Exif(..)
             , LensAperture(..)
             , LensType(..)
             , ExifTime(..)
+            , FlashSource(..)
             , NameStats
             , EExif
             , getExif
@@ -312,6 +313,21 @@ instance Ord ExifTime where
   ExifTime a `compare` ExifTime b =
     zonedTimeToUTC a `compare` zonedTimeToUTC b
 
+data FlashSource
+  = FlashSourceNone
+  | FlashSourceExternal
+  | FlashSourceInternal
+  deriving (Eq, Ord, Show)
+
+instance NFData FlashSource where
+  rnf = rwhnf
+
+parseFlashSource :: (Integral a) => a -> Maybe FlashSource
+parseFlashSource 0 = Just FlashSourceNone
+parseFlashSource 1 = Just FlashSourceExternal
+parseFlashSource 2 = Just FlashSourceInternal
+parseFlashSource _ = Nothing
+
 data RawExif = RawExif
   { rExifSrcFile      :: Text
   , rExifModel        :: Maybe Text
@@ -336,6 +352,8 @@ data RawExif = RawExif
   , rExifShutterCount :: Maybe Integer
   , rExifMimeType     :: Maybe Text
   , rExifRating       :: Maybe Int
+  , rExifFlashSource  :: Maybe Int
+  -- met fields below
   , rExifRaw          :: Object
   , rExifWarning      :: Maybe Text
   } deriving (Show)
@@ -385,6 +403,8 @@ instance FromJSON RawExif where
     rExifShutterCount <- o .~:? "ShutterCount"
     rExifMimeType    <- o .~:? "MIMEType"
     rExifRating      <- o .~:? "Rating"
+    rExifFlashSource <- o .!:? "FlashSource"
+    -- meta fields below
     rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
     return RawExif{..}
@@ -415,6 +435,8 @@ data Exif = Exif
   , exifShutterCount :: !(Maybe Integer)
   , exifMimeType     :: !(Maybe Text)
   , exifRating       :: !(Maybe Int)
+  , exifFlashSource  :: !(Maybe FlashSource)
+  -- meta field
   , exifWarning      :: !(Set Text)
   } deriving (Show, Eq)
 
@@ -441,6 +463,7 @@ instance NFData Exif where
                  rnf exifShutterCount `seq`
                  rnf exifMimeType     `seq`
                  rnf exifRating       `seq`
+                 rnf exifFlashSource  `seq`
                  rnf exifWarning
 
 instance Default Exif where
@@ -467,6 +490,7 @@ instance Default Exif where
              , exifShutterCount = Nothing
              , exifMimeType     = Nothing
              , exifRating       = Nothing
+             , exifFlashSource  = Nothing
              , exifWarning      = Set.empty
              }
 
@@ -716,6 +740,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
       exifSSpeedVal    = rExifSSpeedVal
       exifMimeType     = rExifMimeType
       exifRating       = rExifRating
+      exifFlashSource  = rExifFlashSource >>= parseFlashSource
   exifModel        <- checkNull "model" rExifModel
   exifSerial       <- checkNull "serial" rExifSerial
   exifTitle        <- checkNull "title" rExifTitle
@@ -789,6 +814,7 @@ promoteFileExif re se je mm me =
       exifMimeType'     = Nothing
       exifRating'       = fjust  exifRating
       exifWarning'      = setmerge exifWarning
+      exifFlashSource'  = fjust  exifFlashSource
   in Exif { exifPeople       = exifPeople'
           , exifKeywords     = exifKeywords'
           , exifCountry      = exifCountry'
@@ -813,6 +839,7 @@ promoteFileExif re se je mm me =
           , exifMimeType     = exifMimeType'
           , exifRating       = exifRating'
           , exifWarning      = exifWarning'
+          , exifFlashSource  = exifFlashSource'
           }
 
 -- TODO: make this saner/ensure it's canonical path.
@@ -974,5 +1001,6 @@ parseCreateDate o = do
   return $ ExifTime <$> dto'
 
 $(makeStore ''ExifTime)
+$(makeStore ''FlashSource)
 $(makeStore ''Exif)
 $(makeStore ''GroupExif)
