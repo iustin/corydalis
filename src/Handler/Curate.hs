@@ -34,7 +34,8 @@ import qualified Data.Map      as Map
 import qualified Data.Set      as Set
 import qualified Data.Text     as Text
 
-import           Exif          (lensShortName, liName, liSpec, unknownLens)
+import           Exif          (gExifFlashSrc, lensShortName, liName, liSpec,
+                                unknownLens)
 import           Handler.Items
 import           Handler.Utils
 import           Import        hiding (Status)
@@ -156,6 +157,7 @@ getCurateR = do
                  }::XGraphData Int64 Int64
            ]
       problems = topN 3 $ repoProblems pics
+      exifstats = repoExif pics
       imageFilter s = (ListImagesR, atomToParams (Status s))
       folderFilter cs = (ListFoldersR, atomToParams (Any (map FClass cs)))
   let html = do

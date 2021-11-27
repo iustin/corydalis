@@ -52,13 +52,21 @@ $if allpics > 0
             <li>#{showBinary moviesize} in movie files
             <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
-    <div .col-12 .col-md-4 .my-3>
+    <div .col-12 .col-md-2 .my-3>
       <div .card>
         <div .card-header>Equipment
         <div .card-body #equipment>
           <ul>
             <li>See the <a href=@{CameraStatsR}>#{numCameras} cameras</a>
             <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>
+
+    <div .col-12 .col-md-2 .my-3>
+      <div .card>
+        <div .card-header>Flash information
+        <div .card-body #flashinfo>
+          <ul>
+            $forall (fm, cnt) <- Map.assocs (gExifFlashSrc exifstats)
+               <li>#{formatFlashSource fm}: #{cnt} images
 
     <div .col-12 .col-md-6 .my-3>
       ^{itemDiv TProblem False problems}

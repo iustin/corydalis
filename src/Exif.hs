@@ -524,6 +524,7 @@ data GroupExif = GroupExif
   , gExifCaptions  :: !(NameStats Text)
   , gExifPeopleCnt :: !(NameStats Int)
   , gExifKwdCnt    :: !(NameStats Int)
+  , gExifFlashSrc  :: !(NameStats FlashSource)
   -- TODO: add warnings?
   } deriving (Show)
 
@@ -539,12 +540,13 @@ instance NFData GroupExif where
                       rnf gExifTitles    `seq`
                       rnf gExifCaptions  `seq`
                       rnf gExifPeopleCnt `seq`
-                      rnf gExifKwdCnt
+                      rnf gExifKwdCnt    `seq`
+                      rnf gExifFlashSrc
 
 instance Default GroupExif where
   def = GroupExif Map.empty Map.empty Map.empty Map.empty
         Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
-        Map.empty Map.empty
+        Map.empty Map.empty Map.empty
 
 exifLocalCreateDate :: Exif -> Maybe LocalTime
 exifLocalCreateDate = (zonedTimeToLocalTime . etTime <$>) . exifCreateDate
@@ -564,6 +566,7 @@ addExifToGroup g Exif{..} =
     , gExifCaptions  = count1  (gExifCaptions  g) exifCaption
     , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
     , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
+    , gExifFlashSrc  = count1  (gExifFlashSrc  g) exifFlashSource
     }
     where count1 :: (Ord k, Num v) => Map.Map k v -> k -> Map.Map k v
           count1 m k = Map.insertWith (+) k 1 m
@@ -587,6 +590,7 @@ instance Semigroup GroupExif where
     , gExifCaptions  = gExifCaptions  g1 `merge` gExifCaptions  g2
     , gExifPeopleCnt = gExifPeopleCnt g1 `merge` gExifPeopleCnt g2
     , gExifKwdCnt    = gExifKwdCnt    g1 `merge` gExifKwdCnt    g2
+    , gExifFlashSrc  = gExifFlashSrc  g1 `merge` gExifFlashSrc  g2
     }
     where
       merge :: (Ord k, Num v) => Map.Map k v -> Map.Map k v -> Map.Map k v
