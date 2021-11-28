@@ -38,6 +38,9 @@ $with smf <- showMaybeField "?"
     <td>Flash source
     <td>#{flash_source}
   <tr>
+    <td>Flash mode
+    <td>#{flash_mode}
+  <tr>
     <td>Shutter count
     <td>^{showMaybeField "unknown" shutterCount}
   <tr>

@@ -34,6 +34,7 @@ module Exif ( Exif(..)
             , LensType(..)
             , ExifTime(..)
             , FlashSource(..)
+            , FlashInfo(..)
             , NameStats
             , EExif
             , getExif
@@ -328,6 +329,18 @@ parseFlashSource 1 = Just FlashSourceExternal
 parseFlashSource 2 = Just FlashSourceInternal
 parseFlashSource _ = Nothing
 
+data FlashInfo = FlashInfo
+  { fiSource :: !(Maybe FlashSource)
+  , fiMode   :: !(Maybe Text)
+  } deriving (Eq, Show)
+
+instance Default FlashInfo where
+  def = FlashInfo Nothing Nothing
+
+instance NFData FlashInfo where
+  rnf FlashInfo{..} = rnf fiSource `seq`
+                      rnf fiMode
+
 data RawExif = RawExif
   { rExifSrcFile      :: Text
   , rExifModel        :: Maybe Text
@@ -353,6 +366,7 @@ data RawExif = RawExif
   , rExifMimeType     :: Maybe Text
   , rExifRating       :: Maybe Int
   , rExifFlashSource  :: Maybe Int
+  , rExifFlashMode    :: Maybe Text
   -- met fields below
   , rExifRaw          :: Object
   , rExifWarning      :: Maybe Text
@@ -404,6 +418,7 @@ instance FromJSON RawExif where
     rExifMimeType    <- o .~:? "MIMEType"
     rExifRating      <- o .~:? "Rating"
     rExifFlashSource <- o .!:? "FlashSource"
+    rExifFlashMode   <- o .~:? "FlashMode"
     -- meta fields below
     rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
@@ -435,7 +450,7 @@ data Exif = Exif
   , exifShutterCount :: !(Maybe Integer)
   , exifMimeType     :: !(Maybe Text)
   , exifRating       :: !(Maybe Int)
-  , exifFlashSource  :: !(Maybe FlashSource)
+  , exifFlashInfo    :: !FlashInfo
   -- meta field
   , exifWarning      :: !(Set Text)
   } deriving (Show, Eq)
@@ -463,7 +478,7 @@ instance NFData Exif where
                  rnf exifShutterCount `seq`
                  rnf exifMimeType     `seq`
                  rnf exifRating       `seq`
-                 rnf exifFlashSource  `seq`
+                 rnf exifFlashInfo    `seq`
                  rnf exifWarning
 
 instance Default Exif where
@@ -490,7 +505,7 @@ instance Default Exif where
              , exifShutterCount = Nothing
              , exifMimeType     = Nothing
              , exifRating       = Nothing
-             , exifFlashSource  = Nothing
+             , exifFlashInfo    = def
              , exifWarning      = Set.empty
              }
 
@@ -566,7 +581,7 @@ addExifToGroup g Exif{..} =
     , gExifCaptions  = count1  (gExifCaptions  g) exifCaption
     , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
     , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
-    , gExifFlashSrc  = count1  (gExifFlashSrc  g) exifFlashSource
+    , gExifFlashSrc  = count1  (gExifFlashSrc  g) (fiSource exifFlashInfo)
     }
     where count1 :: (Ord k, Num v) => Map.Map k v -> k -> Map.Map k v
           count1 m k = Map.insertWith (+) k 1 m
@@ -744,7 +759,9 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
       exifSSpeedVal    = rExifSSpeedVal
       exifMimeType     = rExifMimeType
       exifRating       = rExifRating
-      exifFlashSource  = rExifFlashSource >>= parseFlashSource
+      flashSource      = rExifFlashSource >>= parseFlashSource
+      flashMode        = rExifFlashMode
+      exifFlashInfo    = FlashInfo flashSource flashMode
   exifModel        <- checkNull "model" rExifModel
   exifSerial       <- checkNull "serial" rExifSerial
   exifTitle        <- checkNull "title" rExifTitle
@@ -818,7 +835,9 @@ promoteFileExif re se je mm me =
       exifMimeType'     = Nothing
       exifRating'       = fjust  exifRating
       exifWarning'      = setmerge exifWarning
-      exifFlashSource'  = fjust  exifFlashSource
+      flashSource       = fjust  (fiSource . exifFlashInfo)
+      flashMode         = fjust  (fiMode . exifFlashInfo)
+      exifFlashInfo'    = FlashInfo flashSource flashMode
   in Exif { exifPeople       = exifPeople'
           , exifKeywords     = exifKeywords'
           , exifCountry      = exifCountry'
@@ -843,7 +862,7 @@ promoteFileExif re se je mm me =
           , exifMimeType     = exifMimeType'
           , exifRating       = exifRating'
           , exifWarning      = exifWarning'
-          , exifFlashSource  = exifFlashSource'
+          , exifFlashInfo    = exifFlashInfo'
           }
 
 -- TODO: make this saner/ensure it's canonical path.
@@ -1006,5 +1025,6 @@ parseCreateDate o = do
 
 $(makeStore ''ExifTime)
 $(makeStore ''FlashSource)
+$(makeStore ''FlashInfo)
 $(makeStore ''Exif)
 $(makeStore ''GroupExif)
