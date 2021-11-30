@@ -7,7 +7,7 @@
 
 $if allpics > 0
   <div .row>
-    <div .col-12 .col-md-3>
+    <div .col-12 .col-md-3 .mb-4>
       <div .card>
         <div .card-header>Images
         <div .card-body #images>
@@ -30,7 +30,7 @@ $if allpics > 0
 
           See the <a href=@{FlaggedImagesR}>flagged images</a>.
 
-    <div .col-12 .col-md-4>
+    <div .col-12 .col-md-4 .mb-4>
       <div .card>
         <div .card-header>Folders
         <div .card-body #folders>
@@ -39,7 +39,7 @@ $if allpics > 0
             $forall (fc, count) <- fstats
               <li>#{count} folders of type '<a href=@?{folderFilter [fc]}>#{fcName fc}</a>': folder #{fcDescription fc}
 
-    <div .col-12 .col-md-4>
+    <div .col-12 .col-md-4 .mb-4>
       <div .card>
         <div .card-header>Bytes
         <div .card-body #bytes>
@@ -52,7 +52,7 @@ $if allpics > 0
             <li>#{showBinary moviesize} in movie files
             <li>#{showBinary untrksize} in untracked files (files of unknown type)
 
-    <div .col-12 .col-md-2 .my-3>
+    <div .col-12 .col-md-2 .mb-4>
       <div .card>
         <div .card-header>Equipment
         <div .card-body #equipment>
@@ -60,7 +60,7 @@ $if allpics > 0
             <li>See the <a href=@{CameraStatsR}>#{numCameras} cameras</a>
             <li>See the <a href=@{LensStatsR}>#{numLenses} lenses</a>
 
-    <div .col-12 .col-md-2 .my-3>
+    <div .col-12 .col-md-3 .mb-4>
       <div .card>
         <div .card-header>Flash information
         <div .card-body #flashinfo>
@@ -68,8 +68,7 @@ $if allpics > 0
             $forall (fm, cnt) <- Map.assocs (gExifFlashSrc exifstats)
                <li>#{formatFlashSource fm}: #{cnt} images
 
-    <div .col-12 .col-md-6 .my-3>
-      ^{itemDiv TProblem False problems}
+    ^{itemDiv TProblem False problems}
 
   <div .row>
     <div .col-12 .col-md-6 .col-lg-6>
