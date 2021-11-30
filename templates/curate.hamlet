@@ -62,11 +62,21 @@ $if allpics > 0
 
     <div .col-12 .col-md-3 .mb-4>
       <div .card>
-        <div .card-header>Flash information
+        <div .card-header>Flash source
         <div .card-body #flashinfo>
           <ul>
             $forall (fm, cnt) <- Map.assocs (gExifFlashSrc exifstats)
                <li>#{formatFlashSource fm}: #{cnt} images
+
+    <div .col-12 .col-md-3 .mb-4>
+      <div .card>
+        <div .card-header>Flash mode
+        <div .card-body #flashinfo>
+          <ul>
+            $forall (fm, cnt) <- Map.assocs (gExifFlashMode exifstats)
+               <li>#{fromMaybe "n/a" fm}: #{cnt} images
+
+
 
     ^{itemDiv TProblem False problems}
 

@@ -34,8 +34,8 @@ import qualified Data.Map      as Map
 import qualified Data.Set      as Set
 import qualified Data.Text     as Text
 
-import           Exif          (gExifFlashSrc, lensShortName, liName, liSpec,
-                                unknownLens)
+import           Exif          (gExifFlashMode, gExifFlashSrc, lensShortName,
+                                liName, liSpec, unknownLens)
 import           Handler.Items
 import           Handler.Utils
 import           Import        hiding (Status)
