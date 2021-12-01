@@ -94,6 +94,8 @@ data Symbol = TCountry
             | TRating
             | TPplCnt
             | TKwdCnt
+            | TFlashSrc
+            | TFlashMode
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -124,6 +126,8 @@ instance PathPiece Symbol where
   toPathPiece TRating       = "rating"
   toPathPiece TPplCnt       = "people-count"
   toPathPiece TKwdCnt       = "keyword-count"
+  toPathPiece TFlashSrc     = "flash-source"
+  toPathPiece TFlashMode    = "flash-mode"
   fromPathPiece "countries"     = Just TCountry
   fromPathPiece "provinces"     = Just TProvince
   fromPathPiece "cities"        = Just TCity
@@ -151,6 +155,8 @@ instance PathPiece Symbol where
   fromPathPiece "rating"        = Just TRating
   fromPathPiece "people-count"  = Just TPplCnt
   fromPathPiece "keyword-count" = Just TKwdCnt
+  fromPathPiece "flash-source"  = Just TFlashSrc
+  fromPathPiece "flash-mode"    = Just TFlashMode
   fromPathPiece _               = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
@@ -221,6 +227,29 @@ data DayOp
   deriving (Show, Eq, Ord)
 
 
+data FlashOp
+ = FlashNone
+ | FlashInternal
+ | FlashExternal
+ | FlashAny
+ | FlashUnknown
+ deriving (Show, Eq, Ord)
+
+parseFlash :: Text -> Maybe FlashOp
+parseFlash v
+  | v == "none"                    = Just FlashNone
+  | v == "internal" || v == "int"  = Just FlashInternal
+  | v == "external" || v == "ext"  = Just FlashExternal
+  | v == "yes" || v == "any"       = Just FlashAny
+  | otherwise                      = Nothing
+
+showFlash :: FlashOp -> Text
+showFlash FlashNone     = "none"
+showFlash FlashInternal = "internal"
+showFlash FlashExternal = "external"
+showFlash FlashAny      = "any"
+showFlash FlashUnknown  = "unknown"
+
 fuzzyMatch :: FuzzyText -> Text -> Bool
 fuzzyMatch fz =
   (unFuzzy fz `Text.isInfixOf`) . Text.toCaseFold
@@ -266,6 +295,8 @@ data Atom = Country  StrOp
           | Rating   (NumOp Int)
           | PplCnt   (NumOp Int)
           | KwdCnt   (NumOp Int)
+          | FlashSrc FlashOp
+          | FlashMode StrOp
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -305,6 +336,9 @@ symbolName TFClass       = "folder-class"
 symbolName TRating       = "rating"
 symbolName TPplCnt       = "people-count"
 symbolName TKwdCnt       = "keyword-count"
+symbolName TFlashSrc     = "flash-source"
+symbolName TFlashMode    = "flash-mode"
+
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -337,6 +371,8 @@ parseSymbol "folder-class"  = Just TFClass
 parseSymbol "rating"        = Just TRating
 parseSymbol "people-count"  = Just TPplCnt
 parseSymbol "keyword-count" = Just TKwdCnt
+parseSymbol "flash-source"  = Just TFlashSrc
+parseSymbol "flash-mode"    = Just TFlashMode
 parseSymbol _               = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -363,6 +399,8 @@ buildMissingAtom s =
     TProblem      -> Problem   OpMissing
     TType         -> Type      MediaUnknown
     TRating       -> Rating    OpNa
+    TFlashSrc     -> FlashSrc  FlashUnknown
+    TFlashMode    -> FlashMode OpMissing
     -- FIXME: these should fail instead (using Maybe).
     TFolder       -> error "No missing atom for folder"
     TFileName     -> error "No missing atom for filename"
@@ -411,6 +449,8 @@ parseAtom a v = do
     TRating       -> Rating       <$> intDec
     TPplCnt       -> PplCnt       <$> intDec
     TKwdCnt       -> KwdCnt       <$> intDec
+    TFlashSrc     -> FlashSrc     <$> parseFlash v
+    TFlashMode    -> FlashMode    <$> str
 
 
 quickSearch :: Symbol -> Text -> Maybe Atom
@@ -443,6 +483,8 @@ quickSearch s v =
     TRating       -> Rating <$> dec
     TPplCnt       -> PplCnt <$> dec
     TKwdCnt       -> KwdCnt <$> dec
+    TFlashSrc     -> FlashSrc <$> parseFlash v
+    TFlashMode    -> fuzzer FlashMode
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
         dec = parseDecimal v
@@ -476,6 +518,8 @@ atomTypeDescriptions TFClass       = "folder classes"
 atomTypeDescriptions TRating       = "ratings"
 atomTypeDescriptions TPplCnt       = "people count"
 atomTypeDescriptions TKwdCnt       = "keyword count"
+atomTypeDescriptions TFlashSrc     = "flash source"
+atomTypeDescriptions TFlashMode    = "flash mode"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -647,6 +691,12 @@ atomDescription (Rating (OpGt v))      = sformat ("rated with more than " % int 
 atomDescription (PplCnt v)             = describeNumHaving "people" v
 atomDescription (KwdCnt v)             = describeNumHaving "keywords" v
 
+atomDescription (FlashSrc v)           = formatFlashSource v
+
+atomDescription (FlashMode mode)       = describeStr "flash mode" mode
+
+
+
 atomDescription (And a b) =
   mconcat [ "("
           , atomDescription a
@@ -684,6 +734,18 @@ nameStatsSearch (OpFuzzy f) =
   Map.foldrWithKey' (\k v a ->
                        let found = maybe False (fuzzyMatch f) k && v > 0
                        in found || a) False
+
+flashSearch :: FlashOp -> Maybe FlashSource -> Bool
+flashSearch FlashUnknown  Nothing                     = True
+flashSearch FlashUnknown  _                           = False
+flashSearch FlashInternal (Just FlashSourceInternal)  = True
+flashSearch FlashInternal _                           = False
+flashSearch FlashExternal (Just FlashSourceExternal)  = True
+flashSearch FlashExternal _                           = False
+flashSearch FlashAny      (Just a)                    = a == FlashSourceInternal || a == FlashSourceExternal
+flashSearch FlashAny      Nothing                     = False
+flashSearch FlashNone     (Just FlashSourceNone)      = True
+flashSearch FlashNone     _                           = False
 
 -- TODO: implement searching type=unknown after untracked merging into image.
 folderSearchFunction :: Atom -> PicDir -> Bool
@@ -776,6 +838,14 @@ folderSearchFunction a@(PplCnt _) =
 
 folderSearchFunction a@(KwdCnt _) =
   imagesMatchAtom a . pdImages
+
+folderSearchFunction a@(FlashSrc _) =
+  imagesMatchAtom a . pdImages
+
+folderSearchFunction (FlashMode m) =
+  nameStatsSearch m . gExifFlashMode . pdExif
+
+-- Generic ops below
 
 folderSearchFunction (And a b) = \p ->
   folderSearchFunction a p &&
@@ -900,6 +970,14 @@ imageSearchFunction (PplCnt n) =
 imageSearchFunction (KwdCnt n) =
   evalNum n . Just . Set.size . exifKeywords . imgExif
 
+imageSearchFunction (FlashSrc s) =
+  flashSearch s . fiSource . exifFlashInfo . imgExif
+
+imageSearchFunction (FlashMode m) =
+  evalStr m . fiMode . exifFlashInfo . imgExif
+
+-- Generic ops below
+
 imageSearchFunction (And a b) = \img ->
   imageSearchFunction a img &&
   imageSearchFunction b img
@@ -953,6 +1031,14 @@ formatZeroOneMore _ p 0 = sformat ("no " % stext) p
 formatZeroOneMore s _ 1 = sformat ("1 " % stext) s
 formatZeroOneMore _ p n = sformat (int % " " % stext) n p
 
+-- TODO: remove duplication with Handler/Utils.hs
+formatFlashSource :: FlashOp -> Text
+formatFlashSource FlashNone     = "shot without flash"
+formatFlashSource FlashInternal = "shot with internal flash"
+formatFlashSource FlashExternal = "shot with an external flash"
+formatFlashSource FlashAny      = "shot with an active flash (any type)"
+formatFlashSource FlashUnknown  = "does not have flash information"
+
 getAtoms :: Symbol -> Repository -> AtomStats
 getAtoms TCountry      = idBuilder . gExifCountries . repoExif
 getAtoms TProvince     = idBuilder . gExifProvinces . repoExif
@@ -984,6 +1070,8 @@ getAtoms TFClass       = idBuilder . fClassStats
 getAtoms TRating       = toTextBuilder . ratingStats
 getAtoms TPplCnt       = gaBuilder (sformat int) (formatZeroOneMore "person" "people") . gExifPeopleCnt . repoExif
 getAtoms TKwdCnt       = gaBuilder (sformat int) (formatZeroOneMore "keyword" "keywords") . gExifKwdCnt . repoExif
+getAtoms TFlashSrc     = gaBuilder showFlash formatFlashSource . flashStats
+getAtoms TFlashMode    = idBuilder . gExifFlashMode . repoExif
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats MediaType
@@ -1060,6 +1148,16 @@ dayStats =
 -- | Rating statistics.
 ratingStats :: Repository -> NameStats Int
 ratingStats = computePicStats $ (:[]) . exifRating . imgExif
+
+-- | Flash statistics.
+flashStats :: Repository -> NameStats FlashOp
+flashStats = computePicStats $ \i ->
+  map Just $
+  case fiSource . exifFlashInfo . imgExif $ i of
+    Just FlashSourceNone     -> [FlashNone]
+    Just FlashSourceInternal -> [FlashInternal, FlashAny]
+    Just FlashSourceExternal -> [FlashExternal, FlashAny]
+    Nothing                  -> [FlashUnknown]
 
 -- | Computes the weekday of a picture.
 picDay :: Image -> Maybe DayOp
@@ -1412,6 +1510,11 @@ instance OpParam DayOp where
   opToParam s DayUnknown = formatNo s
   opToParam s v          = (s, showDay v)
 
+instance OpParam FlashOp where
+  -- TODO: is formatNo here correct?
+  opToParam s FlashUnknown = formatNo s
+  opToParam s v            = (s, showFlash v)
+
 formatParam :: (OpParam a) => Symbol -> a -> (Text, Text)
 formatParam s = opToParam (symbolName s)
 
@@ -1443,6 +1546,8 @@ atomToParams (FClass   v)     = [formatParam TFClass       v]
 atomToParams (Rating   v)     = [formatParam TRating       v]
 atomToParams (PplCnt   v)     = [formatParam TPplCnt       v]
 atomToParams (KwdCnt   v)     = [formatParam TKwdCnt       v]
+atomToParams (FlashSrc v)     = [formatParam TFlashSrc     v]
+atomToParams (FlashMode v)    = [formatParam TFlashMode    v]
 atomToParams (And a b)        =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)         =

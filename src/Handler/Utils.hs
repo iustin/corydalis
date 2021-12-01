@@ -137,6 +137,8 @@ atomIcon TFClass       = "fas fa-folder"
 atomIcon TRating       = "fas fa-star"
 atomIcon TPplCnt       = "fas fa-users"
 atomIcon TKwdCnt       = "fas fa-tags"
+atomIcon TFlashSrc     = "fas fa-bolt"
+atomIcon TFlashMode    = "fas fa-bolt" -- FIXME - maybe multi-symbol?
 
 dataMasonry :: Text
 dataMasonry   = "{\"percentPosition\": true}"

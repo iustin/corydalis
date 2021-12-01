@@ -66,6 +66,8 @@ symbolPlCap TFClass       = "Folder class"
 symbolPlCap TRating       = "Image ratings"
 symbolPlCap TPplCnt       = "People count"
 symbolPlCap TKwdCnt       = "Keyword count"
+symbolPlCap TFlashSrc     = "Flash source"
+symbolPlCap TFlashMode    = "Flash information"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"

@@ -121,6 +121,8 @@ The search atoms are:
 - folder (string): matches folder name
 - filename (string): matches image name (with any intermediate
   sub-paths)
+- flash-source: internal, external, none, or unknown
+- flash-mode (string): this is mostly descriptive
 
 Numeric atoms (e.g. year, ISO, shutter speed, etc.) allow:
 
@@ -191,6 +193,10 @@ Example 3: searching for all pictures taken on somebody's birthday,
 e.g. *February 29th*: `month=february&day=29th&and`.
 
 Note: due to the RPN parser, the order is critical in the parameters.
+
+Note: the flash atoms are mostly Nikon-focused. Olympus for example is not
+supported, as it doesn't use the "FlashSource" field, and instead fills the "did
+use flash or not" using a "Flash" EXIF field that is free-form.
 
 ### Atom searches on images versus folders
 

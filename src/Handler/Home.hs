@@ -51,6 +51,7 @@ specialViews =
   , TShutterSpeed
   , TIso
   , TFocalLength
+  , TFlashSrc
   , TType
   , TProblem
   , TStatus
@@ -66,7 +67,7 @@ specialViews =
   ]
 
 debugViews :: [Symbol]
-debugViews = [TFolder, TFileName]
+debugViews = [TFolder, TFileName, TFlashMode]
 
 getHomeR :: Handler Html
 getHomeR = do
