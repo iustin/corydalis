@@ -77,7 +77,7 @@ import           System.Process.Typed
 
 import           Cache
 import           Compat.Orphans            ()
-import           Import.NoFoundation       hiding (get)
+import           Import.NoFoundation       hiding (Key, get)
 
 -- | Shutter counts this high are unlikely, but they do appear in
 -- corrupted/wrong exif data.
@@ -116,50 +116,50 @@ instance FromJSON Orientation where
 
 $(makeStore ''Orientation)
 
-extractRaw :: (FromJSON a) => Text -> Value -> Parser a
+extractRaw :: (FromJSON a) => Key -> Value -> Parser a
 extractRaw t =
   modifyFailure (\s -> "Parsing " ++ desc ++ ": " ++ s) .
   withObject (desc ++ "/num|val") (\o -> o .: "num" <|> o .: "val")
-  where desc = Text.unpack t
+  where desc = show t
 
-extractParsed :: (FromJSON a) => Text -> Value -> Parser a
+extractParsed :: (FromJSON a) => Key -> Value -> Parser a
 extractParsed t =
   modifyFailure (\s -> "Parsing " ++ desc ++ ": " ++ s) .
   withObject (desc ++ "/val") (.: "val")
-  where desc = Text.unpack t
+  where desc = show t
 
-rawValue :: (FromJSON a) => Object -> Text -> Parser a
+rawValue :: (FromJSON a) => Object -> Key -> Parser a
 rawValue parent key =
   parent .: key >>= extractRaw key
 
-(.!:) :: (FromJSON a) => Object -> Text -> Parser a
+(.!:) :: (FromJSON a) => Object -> Key -> Parser a
 (.!:) = rawValue
 
-parsedValue :: (FromJSON a) => Object -> Text -> Parser a
+parsedValue :: (FromJSON a) => Object -> Key -> Parser a
 parsedValue parent key =
   parent .: key >>= extractParsed key
 
-(.~:) :: (FromJSON a) => Object -> Text -> Parser a
+(.~:) :: (FromJSON a) => Object -> Key -> Parser a
 (.~:) = parsedValue
 
-optRawValue :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+optRawValue :: (FromJSON a) => Object -> Key -> Parser (Maybe a)
 optRawValue parent key = do
   e <- parent .:? key
   case e of
     Nothing -> return Nothing
     Just e' -> Just <$> extractRaw key e'
 
-(.!:?) :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+(.!:?) :: (FromJSON a) => Object -> Key -> Parser (Maybe a)
 (.!:?) = optRawValue
 
-optParsedValue :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+optParsedValue :: (FromJSON a) => Object -> Key -> Parser (Maybe a)
 optParsedValue parent key = do
   e <- parent .:? key
   case e of
     Nothing -> return Nothing
     Just e' -> Just <$> extractParsed key e'
 
-(.~:?) :: (FromJSON a) => Object -> Text -> Parser (Maybe a)
+(.~:?) :: (FromJSON a) => Object -> Key -> Parser (Maybe a)
 (.~:?) = optParsedValue
 
 data LensFocalLength
@@ -722,6 +722,28 @@ parseSingletonList val = do
     [e] -> return e
     _   -> fail "Not a single-element list"
 
+
+-- | Tries to compute the date the image was taken.
+parseCreateDate :: Object -> Parser (Maybe ExifTime)
+parseCreateDate o = do
+  dto  <- msum $ map (o .!:) [ "SubSecDateTimeOriginal"
+                             , "DateTimeOriginal"
+                             , "SubSecCreateDate"
+                             , "CreateDate"
+                             ]
+  -- Note: Aeson does have parsing of time itself, but only support
+  -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
+  -- %Y:%m:%d format, so we have to parse the time manually.
+  let dto' = do -- in Maybe monad
+        dateinfo <- dto
+        msum $ map (\fmt -> parseTimeM True defaultTimeLocale fmt dateinfo)
+               [ "%Y:%m:%d %T%Q%Z"
+               , "%Y:%m:%d %T%Q"
+               , "%Y:%m:%d %T"
+               ]
+  return $ ExifTime <$> dto'
+
+
 exifFromRaw :: Config -> RawExif -> Exif
 exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   let logger s = modify (s `Set.insert`)
@@ -869,6 +891,12 @@ promoteFileExif re se je mm me =
           , exifFlashInfo    = exifFlashInfo'
           }
 
+$(makeStore ''ExifTime)
+$(makeStore ''FlashSource)
+$(makeStore ''FlashInfo)
+$(makeStore ''Exif)
+$(makeStore ''GroupExif)
+
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath
 buildPath dir name = dir ++ "/" ++ name
@@ -1006,29 +1034,3 @@ parseExif val =
                             \fp -> return . Left $
                                    FailRExif fp (Text.pack msg) (Just val)
                 Right r  -> Just $ Right r
-
--- | Tries to compute the date the image was taken.
-parseCreateDate :: Object -> Parser (Maybe ExifTime)
-parseCreateDate o = do
-  dto  <- msum $ map (o .!:) [ "SubSecDateTimeOriginal"
-                             , "DateTimeOriginal"
-                             , "SubSecCreateDate"
-                             , "CreateDate"
-                             ]
-  -- Note: Aeson does have parsing of time itself, but only support
-  -- %Y-%m-%d, whereas exiftool (or exif spec itself?) outputs in
-  -- %Y:%m:%d format, so we have to parse the time manually.
-  let dto' = do -- in Maybe monad
-        dateinfo <- dto
-        msum $ map (\fmt -> parseTimeM True defaultTimeLocale fmt dateinfo)
-               [ "%Y:%m:%d %T%Q%Z"
-               , "%Y:%m:%d %T%Q"
-               , "%Y:%m:%d %T"
-               ]
-  return $ ExifTime <$> dto'
-
-$(makeStore ''ExifTime)
-$(makeStore ''FlashSource)
-$(makeStore ''FlashInfo)
-$(makeStore ''Exif)
-$(makeStore ''GroupExif)

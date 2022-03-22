@@ -29,6 +29,7 @@ import           Import
 import           Indexer
 import           Pics
 
+import           Data.Aeson.Key        (fromText)
 import qualified Data.Map              as Map
 import           Data.Prefix.Units
 import qualified Data.Text             as Text
@@ -339,7 +340,7 @@ instance (ToJSON a, ToJSON b, ToJSON c) => ToJSON (GraphData a b c) where
              , "z"     .= gdZ
              , "text"  .= gdText
              , "mode"  .= gdMode
-             ] ++ map (uncurry (.=)) gdExtra
+             ] ++ map (\(a, b) -> fromText a .= b) gdExtra
 
 computeApFLStats :: [Image] -> Map.Map (Double, Double) Int64
 computeApFLStats =

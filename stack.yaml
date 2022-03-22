@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-18.18
+resolver: lts-19.0
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -41,7 +41,6 @@ packages:
 # (e.g., acme-missiles-0.3)
 # hlint and later are just for hlint, until newer version in LTS.
 extra-deps:
-- classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
 
 # Override default flag values for local packages and extra-deps
 flags: {}

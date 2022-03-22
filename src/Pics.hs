@@ -580,12 +580,38 @@ instance NFData RepoStats where
 instance Default RepoStats where
   def = RepoStats def def
 
+
+-- | Type alias for image search results, weakly capture-time-sorted.
+type SearchResultsPics = Map (Text, ImageTimeKey) Image
+
+-- | Overall search results type alias.
+type SearchResults = (SearchResultsPics, Map Text Image)
+
+-- | Type of the search cache.
+type SearchCache = LruCache UrlParams SearchResults
+
+-- TODO: replace hardcoded cache size with config option.
+emptySearchCache :: SearchCache
+emptySearchCache = LRU.empty 10
+
 -- | The empty (zero) stats.
 zeroStats :: Stats
 zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
 
 instance Default Stats where
   def = zeroStats
+
+$(makeStore ''CameraInfo)
+$(makeStore ''Occurrence)
+$(makeStore ''File)
+$(makeStore ''MediaType)
+$(makeStore ''Flags)
+$(makeStore ''Image)
+$(makeStore ''Stats)
+$(makeStore ''RepoStats)
+$(makeStore ''PicDir)
+$(makeStore ''RepoStatus)
+$(makeStore ''Repository)
 
 -- | The total recorded size in a `Stats` structure.
 totalStatsSize :: Stats -> FileOffset
@@ -691,15 +717,6 @@ repoGlobalExif :: RepoDirs -> GroupExif
 repoGlobalExif =
   Map.foldl' (\e f -> e <> pdExif f) def
 
--- | Type alias for image search results, weakly capture-time-sorted.
-type SearchResultsPics = Map (Text, ImageTimeKey) Image
-
--- | Overall search results type alias.
-type SearchResults = (SearchResultsPics, Map Text Image)
-
--- | Type of the search cache.
-type SearchCache = LruCache UrlParams SearchResults
-
 updateRepo :: Ctx -> Repository -> IO Bool
 updateRepo ctx new = atomically $ do
   let rc = ctxRepo ctx
@@ -717,10 +734,6 @@ tryUpdateRepo ctx new = do
   owning <- updateRepo ctx new
   unless owning $ throwString "Repository ownership changed, aborting"
   return new
-
--- TODO: replace hardcoded cache size with config option.
-emptySearchCache :: SearchCache
-emptySearchCache = LRU.empty 10
 
 -- FIXME: move to STM?
 getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
@@ -1713,15 +1726,3 @@ fileToView img =
   case imgJpegPath img of
     f:_ -> Just f
     []  -> imgRawPath img
-
-$(makeStore ''CameraInfo)
-$(makeStore ''Occurrence)
-$(makeStore ''File)
-$(makeStore ''MediaType)
-$(makeStore ''Flags)
-$(makeStore ''Image)
-$(makeStore ''Stats)
-$(makeStore ''RepoStats)
-$(makeStore ''PicDir)
-$(makeStore ''RepoStatus)
-$(makeStore ''Repository)
