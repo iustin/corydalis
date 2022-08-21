@@ -140,16 +140,19 @@ $(document).ready(function() {
 
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
+    const deviceScale = window.devicePixelRatio;
     let cW = $(context.canvas).width();
     if (cW == null) {
       // Unlikely, as we pass a DOM object, but TS...
       cW = 300;
     }
+    cW = Math.floor(cW * deviceScale);
     let cH = $(context.canvas).height();
     if (cH == null) {
       // Unlikely, as we pass a DOM object, but TS...
       cH = 300;
     }
+    cH = Math.floor(cH * deviceScale);
     LOG('transform information:', transform, 'matrix information:', matrix);
     const rotation = transform[0];
     const imgW = rotation == 0 ? img.width : img.height;
@@ -223,10 +226,14 @@ $(document).ready(function() {
           width, ', height: ', height, ', aborting.');
       return;
     }
-    LOG('Resizing canvas, width ', width, ', height ', height);
+    const scale = window.devicePixelRatio;
+    const scaled_width = Math.floor(width * scale);
+    const scaled_height = Math.floor(height * scale);
+    LOG('Resizing canvas, width ', width, ', height ', height,
+        'scaled: ', scaled_width, ' x ', scaled_height);
     // to set the model (coordinate) dimension.
-    context.canvas.width = width;
-    context.canvas.height = height;
+    context.canvas.width = scaled_width;
+    context.canvas.height = scaled_height;
   };
 
   function resizeCanvasAndRedraw() {
@@ -264,7 +271,10 @@ $(document).ready(function() {
     if (h == null) {
       h = 300;
     }
-    const r = w > h ? w : h;
+    const scale = window.devicePixelRatio;
+    // LOG('Scale is ', scale);
+    const r = Math.floor((w > h ? w : h) * scale);
+    // const r = w > h ? w : h;
     // TODO: suply and read rendered sizes in/from boot data, and
     // make calls only for the right image sizes.
     const url = new URL(baseUrl);

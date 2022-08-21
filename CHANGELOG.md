@@ -4,6 +4,12 @@
 
 *unreleased*
 
+### HiDPI displays
+
+Finally fixed image resolution handling for hi-dpi displays. Previously,
+Corydalis was completely oblivious to this, so the images were fuzzy in the
+native (built-in) image viewer (issue #10). Now they should show correctly.
+
 ### Performance changes
 
 Image thumbnails in image/folder list make use of the HTML-native
