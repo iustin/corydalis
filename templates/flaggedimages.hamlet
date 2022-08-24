@@ -49,7 +49,10 @@ $if not $ null flagged'
                  <td>
                    <a href="@{ImageR folder image}" title="Show image information">
                      <span .fas .fa-info-circle .fa-lg>#
-                   ^{imageViewActions folder image []}
+                   $maybe img <- mimg
+                     ^{actionsWidget [] img}
+                   $nothing
+                     <span .text-muted>can't find image
                  <td>
                    ^{imageFlagActions folder image False}
            <tfoot>

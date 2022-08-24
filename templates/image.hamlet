@@ -20,8 +20,7 @@ $# Note that masonry doesn't work very well for image page. So disable for now.
             <a href=@{FolderR (imgParent img)}>#{imgParent img}
         <tr>
           <td>Actions
-          <td>
-            ^{imageViewActions (imgParent img) (imgName img) params}
+          <td>^{actionsWidget params img}
         <tr>
           <td>Flag image for review
           <td>
