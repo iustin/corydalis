@@ -268,12 +268,14 @@ imageViewActions folder image params =
               <span .fas .fa-download .fa-lg>#
            |]
 
-movieViewActions :: Image -> Widget
-movieViewActions img = do
+movieViewActions :: Image -> UrlParams -> Widget
+movieViewActions img params = do
   let folder = imgParent img
       image = imgName img
       download = maybe "" Pics.fileName (bestMovie img)
   toWidget [hamlet|
+            <a href=@?{(ViewR folder image, params)} title="View movie in Corydalis">
+              <span .far .fa-image .fa-lg>#
             <a href=@{MovieBytesR folder image} target=_blank title="Play movie in the browser">
               <span .fas .fa-eye .fa-lg>#
             <a href=@{MovieBytesR folder image} download=#{download} title="Download the movie">
@@ -284,7 +286,7 @@ actionsWidget :: UrlParams -> Image -> Widget
 actionsWidget params img =
   case imgType img of
     MediaImage   -> imageViewActions (imgParent img) (imgName img) params
-    MediaMovie   -> movieViewActions img
+    MediaMovie   -> movieViewActions img params
     MediaUnknown -> toWidget [hamlet|<p>No actions for files of unknown type 😞|]
 
 showCameraLink :: Maybe Text -> Widget
