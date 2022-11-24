@@ -57,7 +57,7 @@ import           Data.Text                   (Text)
 import qualified Data.Text                   as Text
 import qualified Data.Text.Read              as Text
 import           Data.Time.Calendar          (toGregorian)
-import           Data.Time.Calendar.WeekDate
+import           Data.Time.Calendar.WeekDate (toWeekDate)
 import           Data.Time.LocalTime
 import           Formatting
 import           Yesod                       (PathPiece (..))
