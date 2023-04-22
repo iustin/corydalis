@@ -23,7 +23,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.SearchSpec (spec) where
 
 import           Formatting
+import           Handler.Cookies
 import           TestImport
+import           Types
 
 checkRedirAndHeader :: YesodExample App ()
 checkRedirAndHeader = do
@@ -42,6 +44,8 @@ spec = parallel $ withApp $ do
       checkRedirAndHeader
     it "loads empty folder=1900 page and checks it looks right" $ do
       login
+      -- Force mode so that we dont' rely on defaults.
+      testSetCookie $ lastViewCookie (ViewFolders PresentationGrid)
       get $ SearchFoldersByYearR 1900
       checkRedirAndHeader
       htmlAnyContain "div.card-header" "Nothing found"
