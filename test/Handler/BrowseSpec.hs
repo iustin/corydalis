@@ -40,14 +40,14 @@ spec = parallel $ withApp $ do
       login
       checkRoute $ BrowseImagesR 0
       htmlAnyContain "div.card-header" "Nothing found"
-      htmlAnyContain "div.card-body" "doesn&#39;t match any images"
+      htmlAnyContain "div.card-body" "doesn't match any images"
       bodyContains "data-page-index=\"0\""
       bodyContains "data-initial-count=\"0\""
     it "checks empty search on page 3" $ do
       login
       checkRoute $ BrowseImagesR 3
       htmlAnyContain "div.card-header" "Nothing found"
-      htmlAnyContain "div.card-body" "doesn&#39;t match any images"
+      htmlAnyContain "div.card-body" "doesn't match any images"
       bodyContains "data-page-index=\"3\""
       bodyContains "data-initial-count=\"0\""
   describe "checks that wrong filter image search shows search impossible" $

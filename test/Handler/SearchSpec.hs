@@ -49,7 +49,7 @@ spec = parallel $ withApp $ do
       get $ SearchFoldersByYearR 1900
       checkRedirAndHeader
       htmlAnyContain "div.card-header" "Nothing found"
-      htmlAnyContain "div.card-body" "doesn&#39;t match any folders"
+      htmlAnyContain "div.card-body" "doesn't match any folders"
   describe "QuickSearch" $ do
     it "checks for missing search parameter" $ do
       login
