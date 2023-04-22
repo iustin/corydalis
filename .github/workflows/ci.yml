@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest # or macOS-latest, or windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Haskell
-        uses: haskell/actions/setup@v1
+        uses: haskell/actions/setup@v2
         with:
           enable-stack: true
           stack-version: 'latest'
@@ -89,7 +89,7 @@ jobs:
           excludes: Main
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
 
       - name: Build documentation
         run: make doc
