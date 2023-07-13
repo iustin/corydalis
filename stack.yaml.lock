@@ -3,10 +3,24 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: lrucaching-0.3.3@sha256:ca831e94c8bad99c6a56ec515b86b5e6835975c20721706bf609602a12318449,2010
+    pantry-tree:
+      sha256: fe85c56346e04bec7ebd6502bc6c6f484960ed6987a671b77eb3ab134e3b9fd1
+      size: 784
+  original:
+    hackage: lrucaching-0.3.3@sha256:ca831e94c8bad99c6a56ec515b86b5e6835975c20721706bf609602a12318449,2010
+- completed:
+    hackage: vector-0.12.3.1@sha256:39141f312871b7c793a63be76635999e84d442aa3290aec59f30638ec0bf23a7,8218
+    pantry-tree:
+      sha256: c4f50de0598ce416df3a8f01ad7f23d8f1282ef3c5c531d67afe15b1e14a5d8d
+      size: 3842
+  original:
+    hackage: vector-0.12.3.1@sha256:39141f312871b7c793a63be76635999e84d442aa3290aec59f30638ec0bf23a7,8218
 snapshots:
 - completed:
-    sha256: 9fa4bece7acfac1fc7930c5d6e24606004b09e80aa0e52e9f68b148201008db9
-    size: 649606
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/18.yaml
-  original: lts-20.18
+    sha256: bd34dcded0f9d502275871b7bcd9bbe356bf060276bc6b62fb9e8a225589c74c
+    size: 639151
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/2.yaml
+  original: lts-21.2

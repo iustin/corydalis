@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE ViewPatterns          #-}
 
 module Foundation
@@ -43,6 +44,7 @@ module Foundation
   , clientSessionKeyFile
   ) where
 
+import           Data.Type.Equality
 import           Database.Persist.Sql (ConnectionPool, runSqlPool)
 import           Import.NoFoundation
 import           Text.Hamlet          (hamletFile)

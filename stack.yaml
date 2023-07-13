@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-20.18
+resolver: lts-21.2
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -41,6 +41,8 @@ packages:
 # (e.g., acme-missiles-0.3)
 # hlint and later are just for hlint, until newer version in LTS.
 extra-deps:
+  - lrucaching-0.3.3@sha256:ca831e94c8bad99c6a56ec515b86b5e6835975c20721706bf609602a12318449,2010
+  - vector-0.12.3.1@sha256:39141f312871b7c793a63be76635999e84d442aa3290aec59f30638ec0bf23a7,8218
 
 # Override default flag values for local packages and extra-deps
 flags: {}
