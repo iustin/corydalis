@@ -20,7 +20,7 @@ packages:
     hackage: vector-0.12.3.1@sha256:39141f312871b7c793a63be76635999e84d442aa3290aec59f30638ec0bf23a7,8218
 snapshots:
 - completed:
-    sha256: bd34dcded0f9d502275871b7bcd9bbe356bf060276bc6b62fb9e8a225589c74c
-    size: 639151
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/2.yaml
-  original: lts-21.2
+    sha256: caa77fdbc5b9f698262b21ee78030133272ec53116ad6ddbefdc4c321f668e0c
+    size: 640014
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/4.yaml
+  original: lts-21.4
