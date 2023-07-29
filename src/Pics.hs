@@ -1259,6 +1259,9 @@ scanFilesystem ctx newrepo = do
   itemcounts <- mapConcurrently (countDir config 1) alldirs
   let cachePaths = map (cfgCacheDir config </>) alldirsAsRelative
   logfn $ "Counting cache items under " ++ toLogStr (show cachePaths)
+  -- Ensure cache top dirs are created if missing (likely only during
+  -- bootstrap, but better to always redo during scanning).
+  mapConcurrently_ (createDirectoryIfMissing True) cachePaths
   cachecounts' <- mapConcurrently (countDirRaw config) cachePaths
   let cachecounts = sum cachecounts'
   atomically $ writeTVar scanProgress (def { pgGoal = sum itemcounts })
