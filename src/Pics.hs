@@ -1113,6 +1113,7 @@ loadFolder ctx name path isSource = do
       totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0
       pstats = computeImagesStats images
+  -- FIXME: incProgress is always called with an empty error list?
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
   return $!! PicDir tname dirpath [] images timesort shadows year exif pstats
 
