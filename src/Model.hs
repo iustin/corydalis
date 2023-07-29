@@ -17,12 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{- This is https://github.com/yesodweb/persistent/pull/1407,
-fixed in 2.14.0.2, but which is not yet in LTS
--}
-{- TODO: remove in LTS that includes the above -}
-{-# OPTIONS_GHC -Wno-name-shadowing     #-}
-
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE EmptyDataDecls             #-}
