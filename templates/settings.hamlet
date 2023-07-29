@@ -59,7 +59,9 @@
       <div .card-body>
         <ul>
           <li>Cache directory:
-            <ul><li><span .monolight>#{cfgCacheDir config}
+            <ul>
+              <li>
+                <span .monolight>#{quoteMarkup $ cfgCacheDir config}
           <li>Pre/auto-generated image sizes:
             <ul>
               $forall sz <- cfgAutoImageSizes config
