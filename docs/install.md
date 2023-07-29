@@ -73,7 +73,7 @@ Create a few needed directories:
 At runtime, the application depends on ImageMagick and exiftool, so
 make sure to install them before you run the application, e.g.:
 
-    $ sudo apt-get install imagemagick libimage-exiftool-perl
+    $ sudo apt install imagemagick libimage-exiftool-perl
 
 The application is configured to work only over https; as such, you
 must install the certificate in `config/cert.pem` and the key in
