@@ -18,7 +18,7 @@ You need up to two terminals, depending on which code you edit:
 
 There are two targets for binaries:
 
-* internal, private build; run `make releade` for this, which will put
+* internal, private build; run `make release` for this, which will put
   everything into `dist/` that needs to be copied to the target machine.
 * public/demo site, which only needs authentication for some parts of the site;
   run `make demo-release` for this, which again puts things into `dist`.
