@@ -49,7 +49,7 @@
                   <span .monolight>#{quoteMarkup ext}
           <li>extensions considered movie <span class="#{iconMovie}"></span> files:
             <ul>
-              $forall ext <- Set.toAscList $ cfgJpegExts config
+              $forall ext <- Set.toAscList $ cfgMovieExts config
                 <li>
                   <span .monolight>#{quoteMarkup ext}
 
