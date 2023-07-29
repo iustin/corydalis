@@ -33,7 +33,7 @@
                   <li>
                     <span .monolight>#{quoteMarkup dir}
           <li>extensions considered raw <span class="#{iconRaw}"></span> files (in priority order):
-            <ul>
+            <ol>
               $forall ext <- cfgRawExts config
                 <li>
                   <span .monolight>#{quoteMarkup ext}
