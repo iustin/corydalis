@@ -2,6 +2,49 @@
 
 A few notes, mostly for myself.
 
+## Bootstrapping in a clean environment
+
+To avoid the scenario of being stuck on a plane without in-flight wifi
+and with only a partial setup :), make sure to install:
+
+Operating system:
+
+* on Debian: the usual build packages (`build-essential`, `git`,
+  `patch`, `diff`, etc.).
+* make sure you have a full-fledged editor (emacs, vim, but not the
+  basic vi that Debian installs by default).
+* for documentation: `mkdocs`, either from the distribution or via `pip
+  install mkdocs`.
+* make sure to clone from somewhere else the git configs for your usual
+  aliases.
+* install the image tools, see the install doc, e.g. `apt install
+  imagemagick libimage-exiftool-perl`.
+* have some images for a basic library (clone from another development
+  machine, or fake ones, etc.).
+
+Haskell:
+
+* stack itself, from distribution or upstream.
+* yesod binary, used for `make devel`, via `stack install yesod`.
+* hlint tool, via `stack install hlint`.
+* todo tool, via `stack install lentil`.
+* run a `make git-version` if a clean source dir, otherwise next step
+  will fail.
+* run a `stack build`, `make test` and `make devel`, to ensure all
+  dependencies are there.
+
+JS:
+
+* npm, from distribution or upstream.
+* run `npm install` and `make bootstrap` to create initial JS files.
+
+App config:
+
+* create `config/settings.yml` (start from `settings.yml.sample`).
+* create the `db` directory - `mkdir -p db`.
+
+Then continue with next section.
+
 ## Normal development
 
 This is for normal, incremental work. See below for version upgrades.
