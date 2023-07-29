@@ -1525,7 +1525,10 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
             (parent, _) = splitFileName fpath
             outFile = fmt ++ ":" ++ fpath
         createDirectoryIfMissing True parent
-        (exitCode, out, err) <- readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])
+        -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
+        (exitCode, out, err) <- (readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])) `catch`
+                                (\e -> let e' = sformat shown (e :: SomeException)
+                                       in throwIO . ImageError $ e')
         when (exitCode /= ExitSuccess) . throwIO . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
       return (needsGen, sformat ("image/" % string) fmt, fpath)
 
