@@ -120,7 +120,7 @@ deleteCacheFile :: FilePath        -- ^ Canonical, absolute path to the cache
                                    -- success.
 deleteCacheFile cachedir path = do
   let errfmt :: IOError -> IO (Maybe Text)
-      errfmt err = return . Just . pack . show $ err
+      errfmt = return . Just . pack . show
   result <- try $ deleteCacheFile' cachedir path
   either errfmt (const (return Nothing)) result
 

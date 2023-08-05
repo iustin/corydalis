@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE ViewPatterns        #-}
 
 module Pics ( PicDir(..)
@@ -1252,8 +1253,8 @@ scanFilesystem ctx newrepo = do
       scanProgress = ctxScanProgress ctx
   logfn "Launching scan filesystem"
   r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
-  let srcdirs = zip (cfgSourceDirs config) (repeat True)
-      outdirs = zip (cfgOutputDirs config) (repeat False)
+  let srcdirs = map (, True)  (cfgSourceDirs config)
+      outdirs = map (, False) (cfgOutputDirs config)
       alldirs = map fst $ srcdirs ++ outdirs
       alldirsAsRelative = map makeRel alldirs
   logfn $ "Counting images under " <> toLogStr (show alldirs)
@@ -1335,8 +1336,8 @@ forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> Int -> IO Prog
 forceBuildThumbCaches config renderProgress repo totalrender = do
   atomically $ writeTVar renderProgress (def { pgGoal = totalrender})
   let images = renderableImages repo
-      imageForError i res = sformat (stext % "/" % stext % " at resolution " % int)
-                            (imgParent i) (unImageName (imgName i)) res
+      imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
+                        (imgParent i) (unImageName (imgName i))
       thbuild i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size
                             let modifier = case res of
@@ -1527,7 +1528,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
             outFile = fmt ++ ":" ++ fpath
         createDirectoryIfMissing True parent
         -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
-        (exitCode, out, err) <- (readProcess $ proc "convert" (concat [[bytesPath], operators, [outFile]])) `catch`
+        (exitCode, out, err) <- readProcess (proc "convert" (concat [[bytesPath], operators, [outFile]])) `catch`
                                 (\e -> let e' = sformat shown (e :: SomeException)
                                        in throwIO . ImageError $ e')
         when (exitCode /= ExitSuccess) . throwIO . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out

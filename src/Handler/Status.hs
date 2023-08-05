@@ -320,9 +320,9 @@ getStatusErrorsR = do
                           wrDone finScan, instRend, def)
       RepoScanning {} -> (False, repoState, instScan, def, def)
       _ -> (False, repoState, def, def, def)
-  let errors = zip (repeat scanning) (pgErrors sp) ++
-               zip (repeat rendering) (pgErrors rp) ++
-               zip (repeat cleaning) (pgErrors cp)
+  let errors = map (scanning,)  (pgErrors sp) ++
+               map (rendering,) (pgErrors rp) ++
+               map (cleaning,)  (pgErrors cp)
   defaultLayout $ do
     setHtmlTitle "Repository scanning errors"
     $(widgetFile "progressinfo")
