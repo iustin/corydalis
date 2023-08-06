@@ -148,6 +148,7 @@ data Config = Config
     , cfgThumbnailSize   :: Int
     , cfgBrowsingSize    :: Int
     , cfgAutoImageSizes  :: [Int]
+    , cfgOnDemandSizes   :: [Int]
     , cfgAllImageSizes   :: [Int]
     , cfgPageSize        :: Int
     , cfgRawExts         :: [FilePath]
@@ -173,6 +174,7 @@ instance FromJSON Config where
          thumbsize              <*>
          browsingsize           <*>
          autosizes              <*>
+         demandsizes            <*>
          allsizes'              <*>
          v .: "pagesize"        <*>
          rawexts                <*>

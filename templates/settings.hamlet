@@ -67,8 +67,8 @@
               $forall sz <- cfgAutoImageSizes config
                 <li>
                   <span .monolight>#{sz}
-          <li>All allowed/on-demand-generated image sizes:
+          <li>Additional allowed/on-demand-generated image sizes:
             <ul>
-              $forall sz <- cfgAllImageSizes config
+              $forall sz <- cfgOnDemandSizes config
                 <li>
                   <span .monolight>#{sz}
