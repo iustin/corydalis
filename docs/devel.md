@@ -13,6 +13,7 @@ Operating system:
   `patch`, `diff`, `rsync`, etc.).
 * make sure you have a full-fledged editor (emacs, vim, but not the
   basic vi that Debian installs by default).
+* editor support for Haskell, Typescript/JavaScript, YAML.
 * for documentation: `mkdocs`, either from the distribution or via `pip
   install mkdocs`.
 * make sure to clone from somewhere else the git configs for your usual
