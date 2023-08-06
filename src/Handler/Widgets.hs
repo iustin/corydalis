@@ -86,7 +86,7 @@ imageSrcSet :: Config -> (Route App -> [(Text, Text)] -> Text) -> Text -> ImageN
 imageSrcSet config renderer folder image minsize =
   -- FIXME: this should filter out all sizes greater than actual image
   -- size; this needs knowing the image size in Image. [performance]
-  let allSizes = sortOn Down . filter (>= minsize) . cfgAutoImageSizes $ config
+  let allSizes = sortOn Down . filter (>= minsize) . Set.toList . cfgAutoImageSizes $ config
       sizes = map (\size -> sformat (stext % " " % int % "w")
                             (renderer (ImageBytesR folder image) (makeResParam size))
                             size

@@ -74,7 +74,6 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
 import           Data.Default             (Default, def)
-import           Data.List                (nub)
 import qualified Data.Set                 as Set
 import           Data.Store
 import           Data.Store.TH            (makeStore)
@@ -147,9 +146,9 @@ data Config = Config
     , cfgCacheDir        :: FilePath
     , cfgThumbnailSize   :: Int
     , cfgBrowsingSize    :: Int
-    , cfgAutoImageSizes  :: [Int]
-    , cfgOnDemandSizes   :: [Int]
-    , cfgAllImageSizes   :: [Int]
+    , cfgAutoImageSizes  :: Set Int
+    , cfgOnDemandSizes   :: Set Int
+    , cfgAllImageSizes   :: Set Int
     , cfgPageSize        :: Int
     , cfgRawExts         :: [FilePath]
     , cfgRawExtsSet      :: Set Text
@@ -175,7 +174,7 @@ instance FromJSON Config where
          browsingsize           <*>
          autosizes              <*>
          demandsizes            <*>
-         allsizes'              <*>
+         allsizes               <*>
          v .: "pagesize"        <*>
          rawexts                <*>
          rawextsset             <*>
@@ -188,12 +187,11 @@ instance FromJSON Config where
          v .: "copyregex"       <*>
          v .: "peopleprefix"    <*>
          v .: "ignoreprefix"
-    where autosizes = sort . nub <$> ((:) <$> thumbsize <*> ((:) <$> browsingsize <*> v .: "autoimgsizes"))
+    where autosizes = Set.fromList <$> ((:) <$> thumbsize <*> ((:) <$> browsingsize <*> v .: "autoimgsizes"))
           thumbsize = v .: "thumbnailsize"
           browsingsize = v .: "browsingsize"
-          demandsizes = v .: "demandimgsizes"
-          allsizes = (++) <$> autosizes <*> demandsizes
-          allsizes' = sort . nub <$> allsizes
+          demandsizes = Set.fromList <$> v .: "demandimgsizes"
+          allsizes = Set.union <$> autosizes <*> demandsizes
           rawexts = v .: "rawexts"
           rawextsset = Set.fromList . map Text.pack <$> rawexts
 

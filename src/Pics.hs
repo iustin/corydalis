@@ -1474,12 +1474,8 @@ allRepoFiles =
 -- smallest size that is larger or equal than the required image
 -- size. If none is found, it means we're requesting a size larger
 -- than any of our allowed-to-be-cached sizes, so return Nothing.
-findBestSize :: ImageSize -> [Int] -> Maybe Int
-findBestSize _ [] = Nothing
-findBestSize r@(ImageSize s) (x:xs) =
-  if s <= x
-    then Just x
-    else findBestSize r xs
+findBestSize :: ImageSize -> Set Int -> Maybe Int
+findBestSize (ImageSize i) = Set.lookupLE i
 
 embeddedImagePath :: Config -> FilePath -> String
 embeddedImagePath config path =
