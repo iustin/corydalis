@@ -10,7 +10,7 @@ and with only a partial setup :), make sure to install:
 Operating system:
 
 * on Debian: the usual build packages (`build-essential`, `git`,
-  `patch`, `diff`, etc.).
+  `patch`, `diff`, `rsync`, etc.).
 * make sure you have a full-fledged editor (emacs, vim, but not the
   basic vi that Debian installs by default).
 * for documentation: `mkdocs`, either from the distribution or via `pip
