@@ -126,8 +126,8 @@ import           System.Exit
 import           System.FilePath
 import           System.IO.Error
 import           System.Log.FastLogger   (toLogStr)
-import           System.Posix.Files      hiding (fileSize)
 import qualified System.Posix.Files      (fileSize)
+import           System.Posix.Files      hiding (fileSize)
 import           System.Posix.Types
 import           System.Process.Typed
 import qualified Text.Regex.TDFA         as TDFA
