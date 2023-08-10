@@ -38,7 +38,7 @@ config:
   thumbnailsize: 64
   browsingsize: 1024
   autoimgsizes: [1920, 2560]
-  demandimgsizes: [3840, 7680]
+  demandimgsizes: [3840, 7680, 1920]
   pagesize: 16
   rawexts: ["nef", "raf", "orf", "crw", "tif", "tiff", "dng"]
   jpegexts: ["jpg", "jpeg"]

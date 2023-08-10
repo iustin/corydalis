@@ -173,7 +173,7 @@ instance FromJSON Config where
          thumbsize              <*>
          browsingsize           <*>
          autosizes              <*>
-         demandsizes            <*>
+         demandsizes'           <*>
          allsizes               <*>
          v .: "pagesize"        <*>
          rawexts                <*>
@@ -191,6 +191,7 @@ instance FromJSON Config where
           thumbsize = v .: "thumbnailsize"
           browsingsize = v .: "browsingsize"
           demandsizes = Set.fromList <$> v .: "demandimgsizes"
+          demandsizes' = Set.difference <$> demandsizes <*> autosizes
           allsizes = Set.union <$> autosizes <*> demandsizes
           rawexts = v .: "rawexts"
           rawextsset = Set.fromList . map Text.pack <$> rawexts

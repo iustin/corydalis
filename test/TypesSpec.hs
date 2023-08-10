@@ -25,6 +25,8 @@ module TypesSpec (spec) where
 import           TestImport
 import           Types
 
+import           Data.Set
+
 allViewModes :: [ViewMode]
 allViewModes = [ ViewImages PresentationGrid
                , ViewImages PresentationList
@@ -42,3 +44,8 @@ spec = parallel $ do
     it "checks invalid value decoding" $ do
       parseViewMode "foobar" `shouldBe` Nothing
       parseViewMode "" `shouldBe` Nothing
+  describe "checks image sizes config parsing" $ withContext $ do
+    it "checks duplicates between auto and on-demand" $ \ctx -> do
+      let c = ctxConfig ctx
+          common = cfgAutoImageSizes c  `intersect` cfgOnDemandSizes c
+      common `shouldBe` Data.Set.empty
