@@ -72,7 +72,7 @@ isIcon ImageUnprocessed = [iconRaw]
 isIcon ImageProcessed   = [iconRaw, iconProcessed]
 
 iconRaw :: Text
-iconRaw = "fas fa-file-image"
+iconRaw = "fa-solid fa-file-image"
 
 iconProcessed :: Text
 iconProcessed = "far fa-file-image"
@@ -81,13 +81,13 @@ iconPlainFile :: Text
 iconPlainFile = "far fa-file-alt"
 
 iconMovie :: Text
-iconMovie = "fas fa-video"
+iconMovie = "fa-solid fa-video"
 
 iconDone :: Text
-iconDone = "fas fa-check"
+iconDone = "fa-solid fa-check"
 
 iconWIP :: Text
-iconWIP = "fas fa-hourglass-half"
+iconWIP = "fa-solid fa-hourglass-half"
 
 iconFolder :: Text
 iconFolder = "far fa-folder"
@@ -111,35 +111,35 @@ fcDescription FolderMixed       = "contains both RAW files (processed) \
                                   \and files without RAW storage"
 
 atomIcon :: Symbol -> Text
-atomIcon TCountry      = "fas fa-globe"
-atomIcon TProvince     = "fas fa-map"
-atomIcon TCity         = "fas fa-building"
-atomIcon TLocation     = "fas fa-map-signs"
-atomIcon TPerson       = "fas fa-users"
-atomIcon TKeyword      = "fas fa-tags"
-atomIcon TTitle        = "fas fa-comment"
-atomIcon TCaption      = "fas fa-comment-dots"
-atomIcon TYear         = "fas fa-calendar"
-atomIcon TSeason       = "fas fa-calendar"
-atomIcon TMonth        = "fas fa-calendar"
-atomIcon TDay          = "fas fa-calendar"
-atomIcon TCamera       = "fas fa-camera"
-atomIcon TLens         = "fas fa-camera" -- :(
+atomIcon TCountry      = "fa-solid fa-globe"
+atomIcon TProvince     = "fa-solid fa-map"
+atomIcon TCity         = "fa-solid fa-building"
+atomIcon TLocation     = "fa-solid fa-map-signs"
+atomIcon TPerson       = "fa-solid fa-users"
+atomIcon TKeyword      = "fa-solid fa-tags"
+atomIcon TTitle        = "fa-solid fa-comment"
+atomIcon TCaption      = "fa-solid fa-comment-dots"
+atomIcon TYear         = "fa-solid fa-calendar"
+atomIcon TSeason       = "fa-solid fa-calendar"
+atomIcon TMonth        = "fa-solid fa-calendar"
+atomIcon TDay          = "fa-solid fa-calendar"
+atomIcon TCamera       = "fa-solid fa-camera"
+atomIcon TLens         = "fa-solid fa-camera" -- :(
 atomIcon TFStop        = "far fa-circle" -- FIXME: check font-awesome sometimes
-atomIcon TShutterSpeed = "fas fa-stopwatch"
-atomIcon TIso          = "fas fa-cloud-sun-rain"
-atomIcon TFocalLength  = "fas fa-ruler-horizontal" -- FIXME: sigh…
-atomIcon TProblem      = "fas fa-bomb"
-atomIcon TType         = "fas fa-file"
-atomIcon TFolder       = "fas fa-folder"
-atomIcon TFileName     = "fas fa-file"
-atomIcon TStatus       = "fas fa-file-alt"
-atomIcon TFClass       = "fas fa-folder"
-atomIcon TRating       = "fas fa-star"
-atomIcon TPplCnt       = "fas fa-users"
-atomIcon TKwdCnt       = "fas fa-tags"
-atomIcon TFlashSrc     = "fas fa-bolt"
-atomIcon TFlashMode    = "fas fa-bolt" -- FIXME - maybe multi-symbol?
+atomIcon TShutterSpeed = "fa-solid fa-stopwatch"
+atomIcon TIso          = "fa-solid fa-cloud-sun-rain"
+atomIcon TFocalLength  = "fa-solid fa-ruler-horizontal" -- FIXME: sigh…
+atomIcon TProblem      = "fa-solid fa-bomb"
+atomIcon TType         = "fa-solid fa-file"
+atomIcon TFolder       = "fa-solid fa-folder"
+atomIcon TFileName     = "fa-solid fa-file"
+atomIcon TStatus       = "fa-solid fa-file-alt"
+atomIcon TFClass       = "fa-solid fa-folder"
+atomIcon TRating       = "fa-solid fa-star"
+atomIcon TPplCnt       = "fa-solid fa-users"
+atomIcon TKwdCnt       = "fa-solid fa-tags"
+atomIcon TFlashSrc     = "fa-solid fa-bolt"
+atomIcon TFlashMode    = "fa-solid fa-bolt" -- FIXME - maybe multi-symbol?
 
 dataMasonry :: Text
 dataMasonry   = "{\"percentPosition\": true}"

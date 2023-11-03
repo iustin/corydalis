@@ -13,22 +13,22 @@
 <div #imageNav .btn-group role="group" aria="Navigation buttons">
     <button type="button" .btn .btn-light #folderPrev
       title="Go to the first image in the previous folder">
-      <span .fas .fa-2x .fa-angle-double-left>
+      <span .fa-solid .fa-2x .fa-angle-double-left>
     <button type="button" .btn .btn-light #imagePrev
       title="Go to the previous image">
-      <span .fas .fa-2x .fa-angle-left>
+      <span .fa-solid .fa-2x .fa-angle-left>
     <button type="button" .btn .btn-light #imageUp
       title="Go to the parent folder">
-      <span .fas .fa-2x .fa-angle-up>
+      <span .fa-solid .fa-2x .fa-angle-up>
     <button type="button" .btn .btn-light #imageFull
       title="Toggle full-screen state">
-      <span .fas .fa-2x .fa-arrows-alt>
+      <span .fa-solid .fa-2x .fa-arrows-alt>
     <button type="button" .btn .btn-light #imageRand
       title="Go to a random image">
-      <span .fas .fa-2x .fa-random>
+      <span .fa-solid .fa-2x .fa-random>
     <button type="button" .btn .btn-light #imageNext
       title="Go to the next image">
-      <span .fas .fa-2x .fa-angle-right>
+      <span .fa-solid .fa-2x .fa-angle-right>
     <button type="button" .btn .btn-light #folderNext
       title="Go to the first image in the next folder">
-      <span .fas .fa-2x .fa-angle-double-right>
+      <span .fa-solid .fa-2x .fa-angle-double-right>

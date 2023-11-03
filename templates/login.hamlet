@@ -23,4 +23,4 @@ $maybe msg <- loginMsg
        <label for="floatingPassword">Password
      <button .btn .btn-primary .mt-3 type="submit">
        Login
-       <span .fas .fa-sign-in-alt>
+       <span .fa-solid .fa-sign-in-alt>

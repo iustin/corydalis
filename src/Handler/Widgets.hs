@@ -113,7 +113,7 @@ imageBytesNoStyle config imagesize params folder img = do
                            .grid-item-image
                            src="@?{imageBytesAtRes folder image imagesize}"
                            >
-                           <span class="fas fa-file-video fa-2x icon-overlay"></span>
+                           <span class="fa-solid fa-file-video fa-2x icon-overlay"></span>
                            |]
     Nothing -> do
       let srcset = imageSrcSet config renderP folder image imagesize
@@ -263,9 +263,9 @@ imageViewActions folder image params =
             <a href=@?{(ViewR folder image, params)} title="View image in Corydalis">
               <span .far .fa-image .fa-lg>#
             <a href=@{ImageBytesR folder image} target=_blank title="View image in the browser">
-              <span .fas .fa-eye .fa-lg>#
+              <span .fa-solid .fa-eye .fa-lg>#
             <a href=@{ImageBytesR folder image} download=#{image} title="Download image">
-              <span .fas .fa-download .fa-lg>#
+              <span .fa-solid .fa-download .fa-lg>#
            |]
 
 movieViewActions :: Image -> UrlParams -> Widget
@@ -277,9 +277,9 @@ movieViewActions img params = do
             <a href=@?{(ViewR folder image, params)} title="View movie in Corydalis">
               <span .far .fa-image .fa-lg>#
             <a href=@{MovieBytesR folder image} target=_blank title="Play movie in the browser">
-              <span .fas .fa-eye .fa-lg>#
+              <span .fa-solid .fa-eye .fa-lg>#
             <a href=@{MovieBytesR folder image} download=#{download} title="Download the movie">
-              <span .fas .fa-download .fa-lg>#
+              <span .fa-solid .fa-download .fa-lg>#
            |]
 
 actionsWidget :: UrlParams -> Image -> Widget

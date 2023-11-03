@@ -22,7 +22,7 @@ $maybe msg <- homeMessage
   <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header .py-2>
-        <span .fas .fa-cogs .fa-fw>
+        <span .fa-solid .fa-cogs .fa-fw>
         Specialised views
       <div .card-body>
         $forall t <- specialViews
@@ -34,7 +34,7 @@ $maybe msg <- homeMessage
     <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
         <div .card-header .py-2>
-          <span .fas .fa-crosshairs .fa-fw>
+          <span .fa-solid .fa-crosshairs .fa-fw>
           Debug views
         <div .card-body>
           $forall t <- debugViews
@@ -53,5 +53,5 @@ $maybe msg <- homeMessage
           <input type="text" .form-control #entry name="q" placeholder="Switzerland 2018">
         <div .col-sm-2 .d-none .d-sm-inline-block>
           <button type="submit" .btn .btn-light>
-            <span .fas .fa-search>
+            <span .fa-solid .fa-search>
             Search

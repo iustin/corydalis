@@ -6,7 +6,7 @@
           $case symbol
             $of TProblem
               No pictures with problems
-              <span .fas .fa-check .ms-2>
+              <span .fa-solid .fa-check .ms-2>
             $of k
               No pictures have a #{symbolName k} defined ☹
     $else

@@ -538,13 +538,13 @@ getPics = do
   liftIO $ scanAll ctx
 
 repoStatusIcon :: RepoStatus -> Text
-repoStatusIcon RepoEmpty        = "fas fa-question"
-repoStatusIcon RepoStarting     = "fas fa-hourglass-start"
-repoStatusIcon RepoScanning {}  = "fas fa-hourglass-half"
-repoStatusIcon RepoRendering {} = "fas fa-check"
-repoStatusIcon RepoCleaning {}  = "fas fa-check"
-repoStatusIcon RepoFinished {}  = "fas fa-check-double"
-repoStatusIcon RepoError {}     = "fas fa-exclamation"
+repoStatusIcon RepoEmpty        = "fa-solid fa-question"
+repoStatusIcon RepoStarting     = "fa-solid fa-hourglass-start"
+repoStatusIcon RepoScanning {}  = "fa-solid fa-hourglass-half"
+repoStatusIcon RepoRendering {} = "fa-solid fa-check"
+repoStatusIcon RepoCleaning {}  = "fa-solid fa-check"
+repoStatusIcon RepoFinished {}  = "fa-solid fa-check-double"
+repoStatusIcon RepoError {}     = "fa-solid fa-exclamation"
 
 instance YesodAuthPersist App
 

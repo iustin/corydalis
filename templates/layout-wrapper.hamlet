@@ -18,17 +18,17 @@ $doctype 5
         <ul .navbar-nav .me-auto>
           <li .nav-item>
             <a .nav-link href=@{HomeR}>
-              <span .fas .fa-home>
+              <span .fa-solid .fa-home>
               <span .d-none .d-lg-inline>
                 Corydalis
           <li .nav-item .nav-link .px-0 .d-none .d-md-block>
-              <span .fas .fa-caret-right>
+              <span .fa-solid .fa-caret-right>
           $forall (idx, bc) <- zip inflist parents
             <li .nav-item .d-none .d-md-block>
               <a .nav-link href=@{fst bc} id="navlink#{idx}">
                  <span id="navtext#{idx}">#{snd bc}
             <li .nav-item .nav-link .px-0 .d-none .d-md-block>
-              <span .fas .fa-caret-right>
+              <span .fa-solid .fa-caret-right>
           <li .nav-item .d-none .d-md-block>
             <span .nav-link .active>
               #{title}
@@ -38,14 +38,14 @@ $doctype 5
             <input type="text" .form-control placeholder="Search" aria-label="Search" name="q" #entry>
             <div .d-none .d-sm-flex>
               <button .btn .input-group-text type="submit" .btn-secondary>
-                <span .fas .fa-search>
+                <span .fa-solid .fa-search>
 
         <div .navbar-nav>
             <form action=@{ReloadR} method=post .form-inline>
                 <!-- This unused input is needed to avoid Chrome's SPDY protocol error. Sigh… -->
                 <input type="hidden" name="unused" value="unused">
                 <button .btn .btn-light type="submit" title="Rescan directories and image information" .d-none .d-sm-inline>
-                  <span .fas .fa-sync>
+                  <span .fa-solid .fa-sync>
                   <span .d-none .d-lg-inline>
                     Rescan
             <a .nav-item .nav-link href=@{StatusR}>
@@ -53,25 +53,25 @@ $doctype 5
                 <span .d-none .d-lg-inline>
                   Status
             <a .nav-item .nav-link href=@{CurateR}>
-                <span .fas .fa-tasks>
+                <span .fa-solid .fa-tasks>
                 <span .d-none .d-lg-inline>
                   Curate
             <a .nav-item .nav-link .d-none .d-sm-inline href=@{SettingsR}>
-                <span .fas .fa-cog>
+                <span .fa-solid .fa-cog>
                 <span .d-none .d-lg-inline>
                   Settings
             <a .nav-item .nav-link href=@{AboutR}>
-              <span .fas .fa-question>
+              <span .fa-solid .fa-question>
               <span .d-none .d-lg-inline>
                 About
             $if is_auth
               <a .nav-item .nav-link href=@{AuthR LogoutR}>
-                  <span .fas .fa-sign-out-alt>
+                  <span .fa-solid .fa-sign-out-alt>
                   <span .d-none .d-lg-inline>
                     Logout
             $else
               <a .nav-item .nav-link href=@{AuthR LoginR}>
-                  <span .fas .fa-sign-in-alt>
+                  <span .fa-solid .fa-sign-in-alt>
                   <span .d-none .d-lg-inline>
                     Login
 
