@@ -13,35 +13,38 @@ $(document).ready(function() {
         automargin: true,
       },
     };
+    const restyle: Plotly.UpdateMenuButton['method'] = 'restyle';
+    const xLeft: Plotly.UpdateMenu['xanchor'] = 'left';
+    const yBottom: Plotly.UpdateMenu['yanchor'] = 'bottom';
     const trendsLayout = {
       yaxis: {
         title: 'Images',
       },
       updatemenus: [
         {y: 1,
-         yanchor: 'bottom',
+         yanchor: yBottom,
          x: 0,
-         xanchor: 'left',
+         xanchor: xLeft,
          buttons: [{
-           method: 'restyle',
+           method: restyle,
            args: ['stackgroup', 'one'],
            label: 'stacked',
          }, {
-           method: 'restyle',
+           method: restyle,
            args: ['stackgroup', null],
            label: 'line',
          }],
         },
         {y: 1,
-         yanchor: 'bottom',
+         yanchor: yBottom,
          x: 0.1,
-         xanchor: 'left',
+         xanchor: xLeft,
          buttons: [{
-           method: 'restyle',
+           method: restyle,
            args: ['groupnorm', ''],
            label: 'absolute',
          }, {
-           method: 'restyle',
+           method: restyle,
            args: ['groupnorm', 'percent'],
            label: 'normalized',
          }],
