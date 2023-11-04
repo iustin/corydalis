@@ -227,13 +227,13 @@ $(document).ready(function() {
       return;
     }
     const scale = window.devicePixelRatio;
-    const scaled_width = Math.floor(width * scale);
-    const scaled_height = Math.floor(height * scale);
+    const scaledWidth = Math.floor(width * scale);
+    const scaledHeight = Math.floor(height * scale);
     LOG('Resizing canvas, width ', width, ', height ', height,
-        'scaled: ', scaled_width, ' x ', scaled_height);
+        'scaled: ', scaledWidth, ' x ', scaledHeight);
     // to set the model (coordinate) dimension.
-    context.canvas.width = scaled_width;
-    context.canvas.height = scaled_height;
+    context.canvas.width = scaledWidth;
+    context.canvas.height = scaledHeight;
   };
 
   function resizeCanvasAndRedraw() {
