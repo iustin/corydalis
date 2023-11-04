@@ -1,0 +1,14 @@
+#!/bin/bash
+
+NPM="node_modules/@fortawesome/fontawesome-free/css/"
+for f in regular.css solid.css; do
+  if ! [ -f "$NPM/$f" ]; then
+    echo node module for $NPM/$f is missing 1>&2
+    exit 1
+  fi
+  cp -f "$NPM/$f" static/font-awesome/css/"$f"
+done
+
+cd static/font-awesome/css || exit 1
+
+sed -i -e 's@url("\.\./webfonts@url("/static/font-awesome/webfonts@g' regular.css solid.css
