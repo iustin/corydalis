@@ -26,6 +26,10 @@ view: corydalis.ps
 %.html: %.md
 	pandoc -s -o $@ $<
 
+this-week:
+	date +'%Y.%V'
+.PHONY: this-week
+
 git-version:
 	if test -d .git; then \
 	  git describe --dirty --always > $@ ; \

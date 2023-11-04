@@ -100,3 +100,25 @@ the process is:
 After each package change, run `make bootstrap` as a one-shot to rebuild the
 javascript outputs, or run `make ts-watch` for continuous rebuild (although this
 might be tricky during typescript updates/etc.).
+
+## Releasing a new version
+
+Decide new version strings. For "CalVer", use:
+
+```
+$ date +'%Y.%V'
+```
+
+or alternatively, `make this-week`. This will generate the baseline calver
+version number. Append a '.0' as patch level, or if already on the same week,
+just bump the patch level (and congrats!).
+
+Then:
+
+* Update `package.yaml` with new version (again, pay attention to if it's the
+  same).
+* Build, test, etc.
+* `git tag` the new version
+* Push everything to github.
+* Upload new version to [demo.corydalis.io](http://demo.corydalis.io).
+* Party!

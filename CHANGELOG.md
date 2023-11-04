@@ -1,8 +1,11 @@
 # Changelog
 
-## v0.4.1
+## v2023.44.0
 
-*unreleased*
+*Sat, 04 Nov 2023*
+
+A new release (at a rather arbitrary point in time), and switching to
+calendar-based versioning since it makes more sense for this application.
 
 ### HiDPI displays
 
