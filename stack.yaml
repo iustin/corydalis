@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-21.19
+resolver: lts-22.4
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -67,3 +67,8 @@ system-ghc: true
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+
+# These are needed until https://github.com/cocreature/lrucaching/issues/8 is fixed.
+allow-newer-deps:
+  - lrucaching
+allow-newer: true
