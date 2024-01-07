@@ -54,9 +54,9 @@ Corydalis shows. You can also see the documentation online at
 
 ## Bugs/features
 
-There is a raw list of ideas/issues in the [todo
-list](docs/todo.md). Otherwise, feel free to [file
-bugs](https://github.com/iustin/corydalis/issues).
+There is a raw list of ideas/issues in the [todo list](docs/todo.md). Otherwise,
+feel free to [file bugs](https://github.com/iustin/corydalis/issues), or support
+me on [ko-fi](https://ko-fi.com/iustin).
 
 [![Continuous Integration](https://github.com/iustin/corydalis/actions/workflows/ci.yml/badge.svg)](https://github.com/iustin/corydalis/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/iustin/corydalis)](https://codecov.io/gh/iustin/corydalis)
