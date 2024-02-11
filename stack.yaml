@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-22.4
+resolver: lts-22.10
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -41,7 +41,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 # hlint and later are just for hlint, until newer version in LTS.
 extra-deps:
-  - lrucaching-0.3.3@sha256:ca831e94c8bad99c6a56ec515b86b5e6835975c20721706bf609602a12318449,2010
+  - lrucaching-0.3.4@sha256:d101c884e5b13c1788c20ac98ab7501a2b8d1a33153970ea432b2b87e9970258,1985
   - vector-0.12.3.1@sha256:39141f312871b7c793a63be76635999e84d442aa3290aec59f30638ec0bf23a7,8218
 
 # Override default flag values for local packages and extra-deps
@@ -67,8 +67,3 @@ system-ghc: true
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
-
-# These are needed until https://github.com/cocreature/lrucaching/issues/8 is fixed.
-allow-newer-deps:
-  - lrucaching
-allow-newer: true

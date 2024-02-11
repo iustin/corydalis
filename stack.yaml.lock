@@ -5,12 +5,12 @@
 
 packages:
 - completed:
-    hackage: lrucaching-0.3.3@sha256:ca831e94c8bad99c6a56ec515b86b5e6835975c20721706bf609602a12318449,2010
+    hackage: lrucaching-0.3.4@sha256:d101c884e5b13c1788c20ac98ab7501a2b8d1a33153970ea432b2b87e9970258,1985
     pantry-tree:
-      sha256: fe85c56346e04bec7ebd6502bc6c6f484960ed6987a671b77eb3ab134e3b9fd1
+      sha256: e33f6d54f7e426d45a5988fc7dcc5aff39c03dcc1efbd8006b40aa5d470b98cf
       size: 784
   original:
-    hackage: lrucaching-0.3.3@sha256:ca831e94c8bad99c6a56ec515b86b5e6835975c20721706bf609602a12318449,2010
+    hackage: lrucaching-0.3.4@sha256:d101c884e5b13c1788c20ac98ab7501a2b8d1a33153970ea432b2b87e9970258,1985
 - completed:
     hackage: vector-0.12.3.1@sha256:39141f312871b7c793a63be76635999e84d442aa3290aec59f30638ec0bf23a7,8218
     pantry-tree:
@@ -20,7 +20,7 @@ packages:
     hackage: vector-0.12.3.1@sha256:39141f312871b7c793a63be76635999e84d442aa3290aec59f30638ec0bf23a7,8218
 snapshots:
 - completed:
-    sha256: 8b211c5a6aad3787e023dfddaf7de7868968e4f240ecedf14ad1c5b2199046ca
-    size: 714097
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/4.yaml
-  original: lts-22.4
+    sha256: 1ecd36c6af82cd6940fd16e4ecf40ac6e3844ba8f49873e34f1cf12bd1f9dfb1
+    size: 712886
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/10.yaml
+  original: lts-22.10
