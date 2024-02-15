@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-$(document).ready(function() {
+$(function() {
   'use strict';
   $.fancybox.defaults.animationEffect = false;
   $.fancybox.defaults.transitionEffect = false;

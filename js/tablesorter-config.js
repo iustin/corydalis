@@ -8,6 +8,6 @@
     widgets: ['uitheme', 'filter'],
   });
 })(jQuery);
-$(document).ready(function() {
+$(function() {
   $('.tablesorter').tablesorter();
 });

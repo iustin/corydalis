@@ -1,6 +1,6 @@
 /// <reference types="plotly.js"/>
 
-$(document).ready(function() {
+$(function() {
   function onDataReceived(series: any) {
     const lensLayout = {
       xaxis: {
