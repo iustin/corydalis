@@ -6,6 +6,7 @@
 /static/font-awesome/css/solid.css
 /config/client_session_key.aes
 /node_modules
+/lcov.info
 *.hi
 *.o
 *.prof_o
