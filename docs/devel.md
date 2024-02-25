@@ -26,7 +26,7 @@ Operating system:
 Haskell:
 
 * stack itself, from distribution or upstream.
-* yesod binary, used for `make devel`, via `stack install yesod`.
+* yesod binary, used for `make devel`, via `stack install yesod-bin`.
 * hlint tool, via `stack install hlint`.
 * todo tool, via `stack install lentil`.
 * run a `make git-version` if a clean source dir, otherwise next step
