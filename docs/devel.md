@@ -29,6 +29,7 @@ Haskell:
 * yesod binary, used for `make devel`, via `stack install yesod-bin`.
 * hlint tool, via `stack install hlint`.
 * todo tool, via `stack install lentil`.
+* lcov coverage generator, via `stack install hpc-lcov`.
 * run a `make git-version` if a clean source dir, otherwise next step
   will fail.
 * run a `stack build`, `make test` and `make devel`, to ensure all

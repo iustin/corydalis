@@ -97,6 +97,7 @@ really-clean: clean
 
 test:
 	stack --work-dir .stack-coverage test --coverage --flag corydalis:dev
+	STACK_WORK=.stack-coverage hpc-lcov
 
 fast-tests:
 	stack --work-dir .stack-test test --file-watch --flag corydalis:dev
