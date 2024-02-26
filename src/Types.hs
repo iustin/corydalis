@@ -278,7 +278,7 @@ type UrlParams = [(Text, Text)]
 
 $(makeStore ''Config)
 
-type LogFn = LogStr -> IO ()
+type LogFn = LogLevel -> LogStr -> IO ()
 
 -- | Represents an error during processing.
 data ProgressError = ProgressError

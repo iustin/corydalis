@@ -32,7 +32,7 @@ main = do
 
     let config = appConfig settings
 
-    ctx <- atomically $ initContext config (const $ return ())
+    ctx <- atomically $ initContext config (\_ _ -> return ())
     -- Scan repository
     t1m <- getTime Monotonic
     t1p <- getTime ProcessCPUTime

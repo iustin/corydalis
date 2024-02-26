@@ -1098,10 +1098,10 @@ cleanCacheFile prefix logger path = do
   res <- deleteCacheFile prefix path
   case res of
     Just err -> do
-      logger $ "Failed to delete path: " <> toLogStr err
+      logger LevelError $ "Failed to delete path: " <> toLogStr err
       return $ incErrors (Text.pack path) err
     Nothing  -> do
-      logger $ "Cleaned obsolete path '" <> toLogStr path <> "'"
+      logger LevelDebug $ "Cleaned obsolete path '" <> toLogStr path <> "'"
       return incDone
 
 -- | Cleanups given directories under the cache dir.
@@ -1152,9 +1152,9 @@ launchScanFileSystem ctx =
       case currentSC of
         Nothing -> return ()
         Just t -> do
-          logfn "Cancelling previous scanner"
+          logfn LevelInfo "Cancelling previous scanner"
           cancel t
-          logfn "Cancel done"
+          logfn LevelInfo "Cancel done"
       return ()
      where rc = ctxRepo ctx
            logfn = ctxLogger ctx
@@ -1174,16 +1174,16 @@ scanFilesystem ctx newrepo = do
   let logfn = ctxLogger ctx
       config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
-  logfn "Launching scan filesystem"
+  logfn LevelInfo "Launching scan filesystem"
   r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
   let srcdirs = map (, True)  (cfgSourceDirs config)
       outdirs = map (, False) (cfgOutputDirs config)
       alldirs = map fst $ srcdirs ++ outdirs
       alldirsAsRelative = map makeRel alldirs
-  logfn $ "Counting images under " <> toLogStr (show alldirs)
+  logfn LevelInfo $ "Counting images under " <> toLogStr (show alldirs)
   itemcounts <- mapConcurrently (countDir config 1) alldirs
   let cachePaths = map (cfgCacheDir config </>) alldirsAsRelative
-  logfn $ "Counting cache items under " ++ toLogStr (show cachePaths)
+  logfn LevelInfo $ "Counting cache items under " ++ toLogStr (show cachePaths)
   -- Ensure cache top dirs are created if missing (likely only during
   -- bootstrap, but better to always redo during scanning).
   mapConcurrently_ (createDirectoryIfMissing True) cachePaths
@@ -1195,7 +1195,7 @@ scanFilesystem ctx newrepo = do
   r2 <- tryUpdateRepo ctx (r1 { repoStatus = RepoScanning { rsScanGoal = ws } })
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir ctx))
                  $ srcdirs ++ outdirs
-  logfn "Finished scanning directories"
+  logfn LevelInfo "Finished scanning directories"
   scanned <- readTVarIO scanProgress
   end <- getZonedTime
   let repo = foldl' (flip (addDirToRepo config)) Map.empty $ concat asyncDirs
@@ -1221,7 +1221,7 @@ scanFilesystem ctx newrepo = do
                                                                  rsRenderGoal = wsrender }
                                   }
   writeDiskCache config repo_as
-  logfn "Finished building repo, starting rendering"
+  logfn LevelInfo "Finished building repo, starting rendering"
   rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo_as totalrender
   endr <- getZonedTime
   let wrrender = WorkResults { wrStart = end
@@ -1234,7 +1234,7 @@ scanFilesystem ctx newrepo = do
                               }
   repo_ar' <- evaluate $ force $ repo_as { repoStatus = wrstatus }
   repo_ar <- tryUpdateRepo ctx repo_ar'
-  logfn "Finished rendering, starting cleanup"
+  logfn LevelInfo "Finished rendering, starting cleanup"
   clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative cachecounts
   endc <- getZonedTime
   let wrclean = WorkResults { wrStart = endr
@@ -1248,7 +1248,7 @@ scanFilesystem ctx newrepo = do
   repo_ac <- evaluate $ force $ repo_ar { repoStatus = status }
   r4 <- tryUpdateRepo ctx repo_ac
   writeDiskCache config r4
-  logfn "Finished cleaning up, all done"
+  logfn LevelInfo "Finished cleaning up, all done"
   return r4
 
 -- | Computes the list of images that can be rendered.
@@ -1302,19 +1302,19 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
       logfn = ctxLogger ctx
   case cachedRepo of
      Nothing    -> do
-       logfn "No cache data or data incompatible, scanning filesystem"
+       logfn LevelInfo "No cache data or data incompatible, scanning filesystem"
        launchScanFileSystem ctx
        return rescanning
      Just cached_r@(repoStatus -> RepoFinished {}) -> do
-       logfn "Cached data available, skipping scan"
+       logfn LevelInfo "Cached data available, skipping scan"
        -- Note: this shouldn't fail, since an empty repo happens only
        -- upon initial load, and (initial) empty repos have a serial
        -- number of zero while any valid cache will have a positive
        -- serial.
        tryUpdateRepo ctx cached_r
      Just unfinished -> do
-       logfn . toLogStr $ "Unfinished cache found, state: " ++ show (repoStatus unfinished)
-       logfn "Restarting scan"
+       logfn LevelWarn . toLogStr $ "Unfinished cache found, state: " ++ show (repoStatus unfinished)
+       logfn LevelInfo "Restarting scan"
        launchScanFileSystem ctx
        return rescanning
 loadCacheOrScan _ orig = return orig

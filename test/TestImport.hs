@@ -143,7 +143,7 @@ openTempContext settings = do
   tempDir <- setTempDir
   config <- updateConfig tempDir settings
   -- FIXME: use a proper logger? replace with one from yesod?
-  let logger = BS8.putStrLn . fromLogStr
+  let logger level msg = when (level >= appLogLevel settings) $ BS8.putStrLn . fromLogStr $ msg
   ctx <- atomically $ initContext config logger
   launchScanFileSystem ctx
   _ <- waitForScan ctx

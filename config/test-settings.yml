@@ -29,6 +29,7 @@ auth-dummy-login: true
 
 detailed-logging: true
 should-log-all: false
+log-level: "error"
 
 config:
   sourcedirs: []

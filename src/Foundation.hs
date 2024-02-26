@@ -404,7 +404,7 @@ instance Yesod App where
     -- in development, and warnings and errors in production.
     shouldLogIO app _source level = return $
         appShouldLogAll (appSettings app)
-            || level >= LevelInfo
+            || level >= appLogLevel (appSettings app)
 
     makeLogger = return . appLogger
 

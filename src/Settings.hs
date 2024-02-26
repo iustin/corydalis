@@ -36,6 +36,7 @@ module Settings
 
 import           ClassyPrelude.Yesod
 import           Data.Aeson                 (withObject, (.!=), (.:?))
+import           Data.Aeson.Types           (Parser, parseFail)
 import           Database.Persist.Sqlite    (SqliteConf)
 import           Language.Haskell.TH.Syntax (Exp, Name, Q)
 import           Network.Wai.Handler.Warp   (HostPreference)
@@ -82,7 +83,8 @@ data AppSettings = AppSettings
     -- ^ Use detailed request logging system
     , appShouldLogAll           :: Bool
     -- ^ Should all log messages be displayed?
-
+    , appLogLevel               :: LogLevel
+    -- ^ Log level for the application
     , appConfig                 :: Config
     -- ^ Picture-related configuration
     }
@@ -94,6 +96,13 @@ isDevel =
 #else
   False
 #endif
+
+parseLogLevel :: String -> Parser LogLevel
+parseLogLevel "debug" = return LevelDebug
+parseLogLevel "info"  = return LevelInfo
+parseLogLevel "warn"  = return LevelWarn
+parseLogLevel "error" = return LevelError
+parseLogLevel v       = parseFail $ "Invalid log level (use debug, info, warn, error): " ++ v
 
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
@@ -111,6 +120,8 @@ instance FromJSON AppSettings where
 
         appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
         appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
+        logLevel                  <- o .:? "log-level" .!= "info"
+        appLogLevel               <- parseLogLevel logLevel
 
         appConfig                 <- o .:  "config"
 
