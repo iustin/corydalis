@@ -137,6 +137,8 @@ import           Cache
 import           Compat.Orphans          ()
 import           Exif
 import           Import.NoFoundation     hiding (fileName, fileSize)
+import           Stats                   (CameraInfo (..), Occurrence (..),
+                                          Trends, ocFromSize)
 
 type Ctx = Context Repository SearchCache
 
@@ -470,83 +472,6 @@ rescanningRepository repo = repo { repoStatus = RepoStarting }
 
 type FolderClassStats = Map FolderClass Int
 
--- | Type alias for the trends keys.
-type TrendsKey = (Int, Int)
-
--- | Type alias for per-month statistics.
-type Trends = Map TrendsKey Integer
-
-data Occurrence a = Occurrence
-  { ocFiles     :: !Integer
-  , ocFileSize  :: !FileOffset
-  , ocFolders   :: !Integer
-  , ocData      :: !a
-  , ocTrends    :: !Trends
-  , ocDateRange :: !(Maybe DateRange)
-  } deriving (Show)
-
-instance Default a => Default (Occurrence a) where
-  def = Occurrence 0 0 0 def Map.empty Nothing
-
-instance (Semigroup a, Default a) => Monoid (Occurrence a) where
-  mempty = def
-
-instance Semigroup a => Semigroup (Occurrence a) where
-  x <> y = Occurrence { ocFiles = ocFiles x + ocFiles y
-                      , ocFileSize = ocFileSize x + ocFileSize y
-                      , ocFolders = ocFolders x + ocFolders y
-                      , ocData = ocData x <> ocData y
-                      , ocTrends = Map.unionWith (+) (ocTrends x) (ocTrends y)
-                      , ocDateRange = mergeMinMaxPair (ocDateRange x) (ocDateRange y)
-                      }
-
-instance NFData a => NFData (Occurrence a) where
-  rnf occ = rwhnf occ `seq` rnf (ocData occ)
-
-ocFromSize :: FileOffset -> a -> Maybe TrendsKey -> Maybe DateRange -> Occurrence a
-ocFromSize size d tk dr =
-  Occurrence { ocFiles = 1
-             , ocFileSize = size
-             , ocFolders = 0
-             , ocData = d
-             , ocTrends = maybe Map.empty (`Map.singleton` 1) tk
-             , ocDateRange = dr
-             }
-
--- | Helper type alias for a (start date, end date) interval.
-type DateRange = (LocalTime, LocalTime)
-
-data CameraInfo = CameraInfo
-  { ciName         :: !Text
-  , ciShutterCount :: !(Maybe (Integer, Integer))
-  } deriving (Eq, Show, Ord)
-
-instance NFData CameraInfo where
-  rnf CameraInfo{..} = rnf ciName `seq`
-                       rnf ciShutterCount
-
--- | Min-max merge of two pairs.
-minMaxPairMerge :: (Ord a) => (a, a) -> (a, a) -> (a, a)
-minMaxPairMerge (xmin, xmax) (ymin, ymax) =
-  (xmin `min` ymin, xmax `max` ymax)
-
--- | Merge two Maybe values using a custom function.
-mergeMM :: (a -> a -> a) -> Maybe a -> Maybe a -> Maybe a
-mergeMM _ Nothing x          = x
-mergeMM _ x Nothing          = x
-mergeMM fn (Just x) (Just y) = Just $ fn x y
-
--- | Helper for merging two Maybe values using minxMaxPairMerge.
-mergeMinMaxPair :: (Ord a) => Maybe (a, a) -> Maybe (a, a) -> Maybe (a, a)
-mergeMinMaxPair = mergeMM minMaxPairMerge
-
-instance Semigroup CameraInfo where
-  x <> y = x { ciShutterCount = mergeMinMaxPair (ciShutterCount x) (ciShutterCount y)
-             }
-
-instance Default CameraInfo where
-  def = CameraInfo unknown Nothing
-
 -- | Data type holding per-folder picture statistics.
 data Stats = Stats
   { sRaw            :: !Int
@@ -602,8 +527,6 @@ zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
 instance Default Stats where
   def = zeroStats
 
-$(makeStore ''CameraInfo)
-$(makeStore ''Occurrence)
 $(makeStore ''File)
 $(makeStore ''MediaType)
 $(makeStore ''Flags)

@@ -153,6 +153,7 @@ library:
     - Settings
     - Settings.Development
     - Settings.StaticFiles
+    - Stats
     - Types
   other-modules:
     - Compat.Orphans
