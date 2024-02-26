@@ -100,7 +100,10 @@ test:
 	STACK_WORK=.stack-coverage hpc-lcov
 
 fast-tests:
-	stack --work-dir .stack-test test --file-watch --flag corydalis:dev
+	# Fast tests with ghc options from
+	# https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
+	stack --work-dir .stack-test test --file-watch --flag corydalis:dev \
+		--ghc-options="-j +RTS -A128m -n2m -RTS"
 
 fast-build:
 	stack --work-dir .stack-test build --file-watch --flag corydalis:dev
