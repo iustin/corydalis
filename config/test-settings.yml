@@ -27,7 +27,7 @@ database:
 
 auth-dummy-login: true
 
-detailed-logging: true
+request-logging: "disabled"
 should-log-all: false
 log-level: "error"
 

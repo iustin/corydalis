@@ -63,7 +63,7 @@ import           Network.Wai.Handler.WarpTLS               (OnInsecure (..),
                                                             onInsecure, runTLS,
                                                             tlsSettings)
 import           Network.Wai.Middleware.MethodOverridePost
-import           Network.Wai.Middleware.RequestLogger      (Destination (Logger),
+import           Network.Wai.Middleware.RequestLogger      (Destination (Callback, Logger),
                                                             IPAddrSource (..),
                                                             OutputFormat (..),
                                                             destination,
@@ -154,15 +154,19 @@ makeApplication foundation = do
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =
-    mkRequestLogger def
-        { outputFormat =
-            if appDetailedRequestLogging $ appSettings foundation
-                then Detailed True
-                else Apache
+    let apacheFormat = Apache
                         (if appIpFromHeader $ appSettings foundation
                             then FromFallback
                             else FromSocket)
-        , destination = Logger $ loggerSet $ appLogger foundation
+        logDestination = Logger $ loggerSet $ appLogger foundation
+        (outputFormat, destination) = case appRequestLogging $ appSettings foundation of
+            RequestLoggingDisabled -> (apacheFormat, Callback $ \_ -> return ())
+            RequestLoggingApache   -> (apacheFormat, logDestination)
+            RequestLoggingDetailed -> (Detailed True, logDestination)
+    in
+    mkRequestLogger def
+        { outputFormat = outputFormat
+        , destination = destination
         }
 
 

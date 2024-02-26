@@ -50,7 +50,7 @@ database:
 # In development, they default to the inverse.
 #
 # development: false
-# detailed-logging: false
+# request-logging: "apache"
 # should-log-all: false
 # Log level: choose one of debug, info, warning, error. The application will
 # only log messages with this severity or higher. Note these are different

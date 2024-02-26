@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- declared in the Foundation.hs file.
 module Settings
   ( AppSettings(..)
+  , RequestLogging(..)
   , widgetFile
   , combineStylesheets
   , combineScripts
@@ -44,48 +45,60 @@ import           Yesod.Default.Util
 
 import           Types
 
+-- | Denotes the type of request logging to be performed.
+data RequestLogging = RequestLoggingDisabled
+                    | RequestLoggingApache
+                    | RequestLoggingDetailed
+                    deriving (Eq, Show)
+
+instance FromJSON RequestLogging where
+    parseJSON "disabled" = return RequestLoggingDisabled
+    parseJSON "apache"   = return RequestLoggingApache
+    parseJSON "detailed" = return RequestLoggingDetailed
+    parseJSON v          = parseFail $ "Invalid request logging type: " ++ show v
+
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
 -- theoretically even a database.
 data AppSettings = AppSettings
-    { appStaticDir              :: String
+    { appStaticDir      :: String
     -- ^ Directory from which to serve static files.
-    , appDatabaseConf           :: SqliteConf
+    , appDatabaseConf   :: SqliteConf
     -- ^ Configuration settings for accessing the database.
-    , appRoot                   :: Maybe Text
+    , appRoot           :: Maybe Text
     -- ^ Base for all generated URLs. If @Nothing@, determined
     -- from the request headers.
-    , appHost                   :: HostPreference
+    , appHost           :: HostPreference
     -- ^ Host/interface the server should bind to.
-    , appPort                   :: Int
+    , appPort           :: Int
     -- ^ Port to listen on
-    , appHttps                  :: Bool
+    , appHttps          :: Bool
     -- ^ Whether to run HTTPS or not on the configured host/port. This
     -- is mostly available for reverse proxies, where adding TLS
     -- doesn't much any additional security. For direct access
     -- (without a proxy), this is always recommended.
-    , appSecureSessions         :: Bool
+    , appSecureSessions :: Bool
     -- ^ Enable secure cookies, and set a Strict-Transport-Security
     -- header on the connections. When https is set, this is
     -- overriden, and when https is unset, this can be helpful in case
     -- of reverse proxying.
-    , appIpFromHeader           :: Bool
+    , appIpFromHeader   :: Bool
     -- ^ Get the IP address from the header when logging. Useful when sitting
     -- behind a reverse proxy.
 
-    , appLoginMessage           :: Maybe Text
+    , appLoginMessage   :: Maybe Text
     -- ^ Extra message to show on login page.
-    , appHomeMessage            :: Maybe Text
+    , appHomeMessage    :: Maybe Text
     -- ^ Extra message to show on the main page. Useful for example
     -- for demo or public sites.
 
-    , appDetailedRequestLogging :: Bool
+    , appRequestLogging :: RequestLogging
     -- ^ Use detailed request logging system
-    , appShouldLogAll           :: Bool
+    , appShouldLogAll   :: Bool
     -- ^ Should all log messages be displayed?
-    , appLogLevel               :: LogLevel
+    , appLogLevel       :: LogLevel
     -- ^ Log level for the application
-    , appConfig                 :: Config
+    , appConfig         :: Config
     -- ^ Picture-related configuration
     }
 
@@ -107,6 +120,7 @@ parseLogLevel v       = parseFail $ "Invalid log level (use debug, info, warn, e
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
         let defaultDev = isDevel
+            defaultRequestLogging = if defaultDev then RequestLoggingDetailed else RequestLoggingApache
         appStaticDir              <- o .:  "static-dir"
         appDatabaseConf           <- o .:  "database"
         appRoot                   <- o .:? "approot"
@@ -117,9 +131,8 @@ instance FromJSON AppSettings where
         appIpFromHeader           <- o .:  "ip-from-header"
         appLoginMessage           <- o .:? "login-msg"
         appHomeMessage            <- o .:? "home-msg"
-
-        appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
-        appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
+        appRequestLogging         <- o .:? "request-logging" .!= defaultRequestLogging
+        appShouldLogAll           <- o .:? "should-log-all" .!= defaultDev
         logLevel                  <- o .:? "log-level" .!= "info"
         appLogLevel               <- parseLogLevel logLevel
 
