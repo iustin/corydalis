@@ -11,7 +11,7 @@ td.date {
 }
 
 .monolight {
-    font-family: monospace,monospace;
+    font-family: monospace, monospace;
     background-color: AliceBlue;
 
 }
@@ -43,16 +43,19 @@ div:-webkit-full-screen {
     top: 0px !important;
     background-color: black;
 }
+
 div:-moz-full-screen {
     width: 100% !important;
     top: 0px !important;
     background-color: black;
 }
+
 div:-ms-fullscreen {
     width: 100% !important;
     top: 0px !important;
     background-color: black;
 }
+
 div:fullscreen {
     width: 100% !important;
     top: 0px !important;
@@ -70,11 +73,11 @@ nav#nav.nav-hidden {
 }
 
 table.vmiddle tr th {
-  vertical-align: middle;
+    vertical-align: middle;
 }
 
 table.vmiddle tr td {
-  vertical-align: middle;
+    vertical-align: middle;
 }
 
 footer {
@@ -83,7 +86,7 @@ footer {
 
 /* Bootstrap 4: point size 16px too big (for me) */
 html {
-  font-size: 14px;
+    font-size: 14px;
 }
 
 /* For masonry layouts, restrict image size to be bound by the
@@ -110,7 +113,7 @@ div#imageNav {
 
 span#messageBox {
     font-size: x-large;
-    background-color: rgb(200,200,200,0.5);
+    background-color: rgb(200, 200, 200, 0.5);
     padding-left: 0.5em;
     padding-right: 0.5em;
 }
@@ -127,6 +130,6 @@ span#persistBox {
 }
 
 /* Get rid of bottom margins with Bootstrap 5. */
-.card > .table {
+.card>.table {
     margin-bottom: 0px;
 }
