@@ -124,13 +124,15 @@ $(function () {
   }
 
   // Draws an already-loaded image into a give image element.
-  function drawImage(img: HTMLImageElement, url: string, transform: Transform,
-                     matrix: AffineMatrix, msg?: string) {
+  function drawImage(img: HTMLImageElement, info: ImageInfo, msg?: string) {
+    const url = info.view;
+    const transform = info.transform;
+    const matrix = info.matrix;
     if (!isImageReady(img)) {
       img.onload = function () {
         LOG('Late load of ', url);
         setImageState(img, true);
-        drawImage(img, url, transform, matrix, msg);
+        drawImage(img, info, msg);
       };
       return;
     }
@@ -206,8 +208,7 @@ $(function () {
   };
 
   function redrawImage() {
-    drawImage(cory.state.img, cory.state.url,
-              cory.state.transform, cory.state.matrix);
+    drawImage(cory.state.img, cory.info.current);
     maybeWriteIsMovie(cory.info.current);
   };
 
@@ -346,7 +347,7 @@ $(function () {
     const image = new Image();
     image.onload = function () {
       setImageState(image, true);
-      drawImage(image, info.view, info.transform, info.matrix, info.name);
+      drawImage(image, info, info.name);
     };
     writeMessage(`Loading ${info.name}...`);
     maybeWriteIsMovie(info);
@@ -402,10 +403,9 @@ $(function () {
       writeMessage('No ' + (forward ? 'next' : 'previous') + ' image');
       return;
     }
-    const viewurl = info.view;
     writeMessage('Loading ' + info.name, 6000);
     maybeWriteIsMovie(info);
-    drawImage(img, viewurl, info.transform, info.matrix, info.name);
+    drawImage(img, info, info.name);
     updateInfo(info.info);
   }
 
@@ -606,7 +606,7 @@ $(function () {
   image.onload = function () {
     setImageState(image, true);
     const c = bootinfo.current;
-    drawImage(image, location.href, c.transform, c.matrix, c.name);
+    drawImage(image, c, c.name);
   };
   image.src = imageUrlScaled(bootinfo.current.bytes);
 
