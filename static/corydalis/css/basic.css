@@ -111,6 +111,15 @@ div#imageNav {
     opacity: 0.5;
 }
 
+video.viewer-video {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    visibility: hidden;
+}
+
 span#messageBox {
     font-size: x-large;
     background-color: rgb(200, 200, 200, 0.5);

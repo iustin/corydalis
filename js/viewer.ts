@@ -59,6 +59,7 @@ type ViewInfo = {
 type State = {
   fullscreen: boolean,
   img: HTMLImageElement,
+  video: HTMLVideoElement | null,
   lastX: number,
   msgTimeId: number,
   transform: Transform,
@@ -91,6 +92,7 @@ $(function () {
     state: {
       fullscreen: false,
       img: new Image(),
+      video: null,
       lastX: 0,
       msgTimeId: 0,
       transform: bootinfo.current.transform,
@@ -139,6 +141,7 @@ $(function () {
     if (context == null) {
       return;
     }
+    updateStackVisibility(info);
 
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -433,10 +436,82 @@ $(function () {
     location.href = cory.info.folderurl;
   }
 
+  /** Event lander for when the movie is ready to play.
+   *
+   * It hides the (picture) canvas, and shows the video element.
+   */
+  function movieFrameAvailable(evt: Event) {
+    LOG('movie frame available');
+    const video = <HTMLVideoElement>evt.target;
+    if (video != null) {
+      video.style.visibility = 'visible';
+      canvas.style.visibility = 'hidden';
+    }
+  }
+
+  /** Starts/stops the current video.
+   *
+   * This triggers loading of the video, if not already loaded (as it
+   * is the case on the first play request).
+   *
+   */
   function launchMovie() {
-    if (cory.info.current.movie != null) {
-      LOG('Opening in separate window:', cory.info.current.movie);
-      window.open(cory.info.current.movie, '');
+    if (cory.state.video != null) {
+      if (cory.state.video.paused) {
+        cory.state.video.play();
+      } else {
+        cory.state.video.pause();
+      }
+    }
+  }
+
+  /** Drops the current video, if any.
+   *
+   * This is used to clean up the video element, such that in-flight load
+   * requests are cancelled, and later loads won't clobber a new image,
+   * in case we navigated away from the video, even if to a new video).
+   *
+   */
+  function dropCurrentVideo() {
+    if (cory.state.video != null) {
+      cory.state.video.pause();
+      cory.state.video.src = '';
+      cory.state.video.remove();
+      cory.state.video = null;
+    }
+  }
+
+  /** Switches between image and video mode.
+   *
+   * This is not entirely straightforward. On navigating to image mode, the
+   * current video is dropped, thus cancelling any pending in-flight load
+   * requests, and the new image is immediately shown (via making the canvas
+   * visible). On navigating to video mode, the video element is created, but
+   * not preloaded, so the (video) static image is shown until the user
+   * initiates the play action, and further, is kept visible until the video
+   * is loaded and ready to play.
+   *
+   * @param info the current image info
+   */
+  function updateStackVisibility(info: ImageInfo) {
+    if (info.movie != null) {
+      LOG('loading movie and prepare to switch to movie mode');
+      dropCurrentVideo();
+      var video = document.createElement('video');
+      cory.state.video = video;
+      // Don't load the video by default, to keep the UI fast and traffic low.
+      video.setAttribute('preload', 'none');
+      video.setAttribute('controls', '');
+      video.classList.add('viewer-video');
+      video.onloadeddata = movieFrameAvailable;
+      var source = document.createElement('source');
+      source.setAttribute('src', info.movie);
+      video.appendChild(source);
+      divMain.append(video);
+    } else {
+      LOG('switching to picture mode')
+      canvas.style.visibility = 'visible';
+      dropCurrentVideo();
     }
   }
 
