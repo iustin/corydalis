@@ -379,7 +379,7 @@ $(function () {
     persistBox.text(message);
   }
 
-  function maybeWriteIsMovie(info: { movie?: Url }) {
+  function maybeWriteIsMovie(info: ImageInfo) {
     writePersistent(
       info.movie != null ?
         'This is a movie. Press \'p\', click or touch to play.' :
