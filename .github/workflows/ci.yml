@@ -21,40 +21,40 @@ jobs:
     runs-on: ubuntu-latest # or macOS-latest, or windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Haskell
-        uses: haskell/actions/setup@v2
+        uses: haskell-actions/setup@v2
         with:
           enable-stack: true
           stack-version: 'latest'
 
       - name: Cache Haskell dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.stack
-          key: v1-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
-          restore-keys: v1-haskell-deps-
+          key: v2-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
+          restore-keys: v2-haskell-deps-
 
       - name: Cache node modules
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: v1-npm-deps-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: v1-npm-deps-
+          key: v2-npm-deps-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: v2-npm-deps-
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
           # Look to see if there is a cache hit for the corresponding requirements file
-          key: v1-pip-${{ runner.os }}
+          key: v2-pip-${{ runner.os }}
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
@@ -84,7 +84,7 @@ jobs:
         run: stack test --coverage --flag corydalis:dev
 
       - name: Generate coverage report
-        uses: 8c6794b6/hpc-codecov-action@v2
+        uses: 8c6794b6/hpc-codecov-action@v3
         with:
           target: stack:test
           excludes: Main
