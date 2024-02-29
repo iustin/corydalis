@@ -473,12 +473,12 @@ $(function () {
     if (cory.state.video != null) {
       if (cory.state.video.paused) {
         cory.state.video.play();
-        moviePlaySpan?.classList.remove('fa-play');
-        moviePlaySpan?.classList.add('fa-pause');
+        moviePlaySpan.classList.remove('fa-play');
+        moviePlaySpan.classList.add('fa-pause');
       } else {
         cory.state.video.pause();
-        moviePlaySpan?.classList.remove('fa-pause');
-        moviePlaySpan?.classList.add('fa-play');
+        moviePlaySpan.classList.remove('fa-pause');
+        moviePlaySpan.classList.add('fa-play');
       }
     }
   }
