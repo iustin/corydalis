@@ -119,24 +119,24 @@ parseLogLevel v       = parseFail $ "Invalid log level (use debug, info, warn, e
 
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
-        let defaultDev = isDevel
+        let defaultDev            = isDevel
             defaultRequestLogging = if defaultDev then RequestLoggingDetailed else RequestLoggingApache
-        appStaticDir              <- o .:  "static-dir"
-        appDatabaseConf           <- o .:  "database"
-        appRoot                   <- o .:? "approot"
-        appHost                   <- fromString <$> o .: "host"
-        appPort                   <- o .:  "port"
-        appHttps                  <- o .:  "https"
-        appSecureSessions         <- o .:  "secure-sessions"
-        appIpFromHeader           <- o .:  "ip-from-header"
-        appLoginMessage           <- o .:? "login-msg"
-        appHomeMessage            <- o .:? "home-msg"
-        appRequestLogging         <- o .:? "request-logging" .!= defaultRequestLogging
-        appShouldLogAll           <- o .:? "should-log-all" .!= defaultDev
-        logLevel                  <- o .:? "log-level" .!= "info"
-        appLogLevel               <- parseLogLevel logLevel
+        appStaticDir      <- o .:  "static-dir"
+        appDatabaseConf   <- o .:  "database"
+        appRoot           <- o .:? "approot"
+        appHost           <-  fromString <$> o .: "host"
+        appPort           <- o .:  "port"
+        appHttps          <- o .:  "https"
+        appSecureSessions <- o .:  "secure-sessions"
+        appIpFromHeader   <- o .:  "ip-from-header"
+        appLoginMessage   <- o .:? "login-msg"
+        appHomeMessage    <- o .:? "home-msg"
+        appRequestLogging <- o .:? "request-logging" .!= defaultRequestLogging
+        appShouldLogAll   <- o .:? "should-log-all" .!= defaultDev
+        logLevel          <- o .:? "log-level" .!= "info"
+        appLogLevel       <- parseLogLevel logLevel
 
-        appConfig                 <- o .:  "config"
+        appConfig         <- o .:  "config"
 
         return AppSettings {..}
 
