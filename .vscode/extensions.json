@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "ryanluker.vscode-coverage-gutters",
+        "haskell.haskell",
+        "justusadam.language-haskell"
+    ]
+}
