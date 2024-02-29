@@ -74,7 +74,7 @@ type Cory = {
 }
 
 
-$(document).ready(function() {
+$(function () {
   const bootdiv = $('#boot');
   const bootinfo = bootdiv.data('view-info');
   const debug = bootdiv.data('debug');
@@ -484,7 +484,7 @@ $(document).ready(function() {
 
   setupHammer();
 
-  $(document).keydown(function(e) {
+  $(document).on("keydown", function (e) {
     if (e.altKey || e.ctrlKey) {
       return;
     }
@@ -575,25 +575,25 @@ $(document).ready(function() {
       'left': 0,
       'right': 0,
     });
-    $('#imageFull').click(function(ev) {
+    $('#imageFull').on("click", function (ev) {
       toggleFullScreen();
     });
-    $('#imageRand').click(function(ev) {
+    $('#imageRand').on("click", function (ev) {
       gotoRandomImage();
     });
-    $('#imageUp').click(function(ev) {
+    $('#imageUp').on("click", function (ev) {
       window.location.href = cory.info.folderurl;
     });
-    $('#imagePrev').click(function(ev) {
+    $('#imagePrev').on("click", function (ev) {
       advanceImage(false);
     });
-    $('#imageNext').click(function(ev) {
+    $('#imageNext').on("click", function (ev) {
       advanceImage(true);
     });
-    $('#folderPrev').click(function(ev) {
+    $('#folderPrev').on("click", function (ev) {
       advanceFolder(false);
     });
-    $('#folderNext').click(function(ev) {
+    $('#folderNext').on("click", function (ev) {
       advanceFolder(true);
     });
   }
