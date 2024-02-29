@@ -108,6 +108,8 @@ $(function () {
   const context = canvas.getContext('2d');
   const msgBox = $('#messageBox');
   const persistBox = $('#persistBox');
+  const moviePlaySpan = $('#moviePlay>span')[0];
+  const seekBar = <HTMLInputElement>$('#seekBar')[0];
 
   // Virtual (not-in-DOM) canvas that is used to for pre-rendering
   // images. The alternative would be to use putImageData() instead,
@@ -119,7 +121,9 @@ $(function () {
   if (canvas == null ||
     context == null ||
     offCanvas == null ||
-    offContext == null) {
+    offContext == null ||
+    moviePlaySpan == null ||
+    seekBar == null) {
     LOG('Initialising canvas elements failed!');
     window.alert('Cannot fully initialise the application, aborting!');
     return;
@@ -436,6 +440,15 @@ $(function () {
     location.href = cory.info.folderurl;
   }
 
+  /** Change display state for elements maching a given class */
+  function changeVisibility(className: string, visible: boolean) {
+    document.querySelectorAll(className).forEach(function (v) {
+      if (v instanceof HTMLElement) {
+        v.style.display = visible ? 'block' : 'none';
+      }
+    });
+  }
+
   /** Event lander for when the movie is ready to play.
    *
    * It hides the (picture) canvas, and shows the video element.
@@ -459,9 +472,22 @@ $(function () {
     if (cory.state.video != null) {
       if (cory.state.video.paused) {
         cory.state.video.play();
+        moviePlaySpan?.classList.remove('fa-play');
+        moviePlaySpan?.classList.add('fa-pause');
       } else {
         cory.state.video.pause();
+        moviePlaySpan?.classList.remove('fa-pause');
+        moviePlaySpan?.classList.add('fa-play');
       }
+    }
+  }
+
+  /** Moves forward or backward in the movie.
+   *
+   */
+  function movieRewind(forward: boolean) {
+    if (cory.state.video != null) {
+      cory.state.video.currentTime += forward ? 10 : -10;
     }
   }
 
@@ -501,16 +527,25 @@ $(function () {
       cory.state.video = video;
       // Don't load the video by default, to keep the UI fast and traffic low.
       video.setAttribute('preload', 'none');
-      video.setAttribute('controls', '');
       video.classList.add('viewer-video');
       video.onloadeddata = movieFrameAvailable;
       var source = document.createElement('source');
       source.setAttribute('src', info.movie);
       video.appendChild(source);
       divMain.append(video);
+      seekBar.style.visibility = 'visible';
+      changeVisibility('.nav-only-image', false);
+      changeVisibility('.nav-only-video', true);
+      video.addEventListener('timeupdate', function () {
+        var value = (100 / video.duration) * video.currentTime;
+        seekBar.valueAsNumber = value;
+      });
     } else {
       LOG('switching to picture mode')
       canvas.style.visibility = 'visible';
+      seekBar.style.visibility = 'hidden';
+      changeVisibility('.nav-only-image', true);
+      changeVisibility('.nav-only-video', false);
       dropCurrentVideo();
     }
   }
@@ -670,6 +705,24 @@ $(function () {
     });
     $('#folderNext').on("click", function (ev) {
       advanceFolder(true);
+    });
+
+    // movie-specific controls
+    $('#moviePlay').on("click", function (ev) {
+      launchMovie();
+    });
+    $('#movieRewind').on("click", function (ev) {
+      movieRewind(false);
+    });
+    $('#movieForward').on("click", function (ev) {
+      movieRewind(true);
+    });
+
+    seekBar.addEventListener('input', function () {
+      if (cory.state.video != null) {
+        var time = cory.state.video.duration * (seekBar.valueAsNumber / 100);
+        cory.state.video.currentTime = time;
+      }
     });
   }
 

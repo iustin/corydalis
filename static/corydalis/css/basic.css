@@ -103,7 +103,7 @@ html {
     opacity: 0.9;
 }
 
-div#imageNav {
+div#imageNavGroup {
     z-index: 2;
     position: absolute;
     bottom: 0.5em;

@@ -10,25 +10,45 @@
 <div #persistDiv width="96%" height="1em" style="height: 2em; left: 1em; width: 90%; top: 3em; position: absolute;">
  <span #persistBox>
 
-<div #imageNav .btn-group role="group" aria="Navigation buttons">
-    <button type="button" .btn .btn-light #folderPrev
+<div #imageNavGroup>
+  <div #seekBarDiv width="100%">
+    <input type="range" #seekBar value="0" style="width: 100%">
+  <div #imageNav .btn-group role="group" aria="Navigation buttons">
+    $# Image previous folder and movie rewind.
+    <button type="button" .btn .btn-light .nav-only-image #folderPrev
       title="Go to the first image in the previous folder">
-      <span .fa-solid .fa-2x .fa-angle-double-left>
+      <span .fa-solid .fa-fw .fa-2x .fa-angle-double-left>
+    <button type="button" .btn .btn-light .nav-only-video #movieRewind
+      title="Jump back in the movie">
+      <span .fa-solid .fa-fw .fa-2x .fa-backward>
+
     <button type="button" .btn .btn-light #imagePrev
       title="Go to the previous image">
-      <span .fa-solid .fa-2x .fa-angle-left>
-    <button type="button" .btn .btn-light #imageUp
+      <span .fa-solid .fa-fw .fa-2x .fa-angle-left>
+
+    $# image random, vs movie play/pause.
+    <button type="button" .btn .btn-light .nav-only-video #moviePlay
+      title="Play/pause the movie">
+      <span .fa-solid .fa-fw .fa-2x .fa-play>
+    <button type="button" .btn .btn-light .nav-only-image #imageUp
       title="Go to the parent folder">
-      <span .fa-solid .fa-2x .fa-angle-up>
-    <button type="button" .btn .btn-light #imageFull
-      title="Toggle full-screen state">
-      <span .fa-solid .fa-2x .fa-arrows-alt>
+      <span .fa-solid .fa-fw .fa-2x .fa-angle-up>
+
+    $# Common buttons.
     <button type="button" .btn .btn-light #imageRand
       title="Go to a random image">
-      <span .fa-solid .fa-2x .fa-random>
+      <span .fa-solid .fa-fw .fa-2x .fa-random>
+    <button type="button" .btn .btn-light #imageFull
+      title="Toggle full-screen state">
+      <span .fa-solid .fa-fw .fa-2x .fa-arrows-alt>
     <button type="button" .btn .btn-light #imageNext
       title="Go to the next image">
-      <span .fa-solid .fa-2x .fa-angle-right>
-    <button type="button" .btn .btn-light #folderNext
+      <span .fa-solid .fa-fw .fa-2x .fa-angle-right>
+
+    $# Image folder next, movie forward.
+    <button type="button" .btn .btn-light .nav-only-video #movieForward
+      title="Jump forward in the movie">
+      <span .fa-solid .fa-fw .fa-2x .fa-forward>
+    <button type="button" .btn .btn-light .nav-only-image #folderNext
       title="Go to the first image in the next folder">
-      <span .fa-solid .fa-2x .fa-angle-double-right>
+      <span .fa-solid .fa-fw .fa-2x .fa-angle-double-right>
