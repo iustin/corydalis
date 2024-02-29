@@ -457,6 +457,7 @@ $(function () {
     LOG('movie frame available');
     const video = <HTMLVideoElement>evt.target;
     if (video != null) {
+      seekBar.disabled = false;
       video.style.visibility = 'visible';
       canvas.style.visibility = 'hidden';
     }
@@ -534,8 +535,10 @@ $(function () {
       video.appendChild(source);
       divMain.append(video);
       seekBar.style.visibility = 'visible';
+      seekBar.disabled = true;
       changeVisibility('.nav-only-image', false);
       changeVisibility('.nav-only-video', true);
+      seekBar.valueAsNumber = 0;
       video.addEventListener('timeupdate', function () {
         var value = (100 / video.duration) * video.currentTime;
         seekBar.valueAsNumber = value;
