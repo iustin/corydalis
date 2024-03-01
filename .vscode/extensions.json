@@ -3,6 +3,7 @@
     "ryanluker.vscode-coverage-gutters",
     "haskell.haskell",
     "justusadam.language-haskell",
+    "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode"
   ]
 }

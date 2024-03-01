@@ -596,13 +596,13 @@ $(function () {
     if (info.movie != null) {
       LOG('loading movie and prepare to switch to movie mode');
       dropCurrentVideo();
-      var video = document.createElement('video');
+      const video = document.createElement('video');
       cory.state.video = video;
       // Don't load the video by default, to keep the UI fast and traffic low.
       video.setAttribute('preload', 'none');
       video.classList.add('viewer-video');
       video.onloadeddata = movieFrameAvailable;
-      var source = document.createElement('source');
+      const source = document.createElement('source');
       source.setAttribute('src', info.movie);
       video.appendChild(source);
       divMain.append(video);
@@ -612,7 +612,7 @@ $(function () {
       changeVisibility('.nav-only-video', true);
       seekBar.valueAsNumber = 0;
       video.addEventListener('timeupdate', function () {
-        var value = (100 / video.duration) * video.currentTime;
+        const value = (100 / video.duration) * video.currentTime;
         seekBar.valueAsNumber = value;
       });
     } else {
@@ -664,10 +664,10 @@ $(function () {
     });
     // mc.on("swipedown", function(ev) {toggleFullScreen();});
     // mc.on("swipeup", function(ev) {gotoRandomImage();});
-    mc.on('doubletap', function (ev) {
+    mc.on('doubletap', function () {
       toggleFullScreen();
     });
-    mc.on('singletap', function (ev) {
+    mc.on('singletap', function () {
       launchMovie();
     });
   }
@@ -773,42 +773,42 @@ $(function () {
       left: 0,
       right: 0,
     });
-    $('#imageFull').on('click', function (ev) {
+    $('#imageFull').on('click', function () {
       toggleFullScreen();
     });
-    $('#imageRand').on('click', function (ev) {
+    $('#imageRand').on('click', function () {
       gotoRandomImage();
     });
-    $('#imageUp').on('click', function (ev) {
+    $('#imageUp').on('click', function () {
       window.location.href = cory.info.folderurl;
     });
-    $('#imagePrev').on('click', function (ev) {
+    $('#imagePrev').on('click', function () {
       advanceImage(false);
     });
-    $('#imageNext').on('click', function (ev) {
+    $('#imageNext').on('click', function () {
       advanceImage(true);
     });
-    $('#folderPrev').on('click', function (ev) {
+    $('#folderPrev').on('click', function () {
       advanceFolder(false);
     });
-    $('#folderNext').on('click', function (ev) {
+    $('#folderNext').on('click', function () {
       advanceFolder(true);
     });
 
     // movie-specific controls
-    $('#moviePlay').on('click', function (ev) {
+    $('#moviePlay').on('click', function () {
       launchMovie();
     });
-    $('#movieRewind').on('click', function (ev) {
+    $('#movieRewind').on('click', function () {
       movieRewind(false);
     });
-    $('#movieForward').on('click', function (ev) {
+    $('#movieForward').on('click', function () {
       movieRewind(true);
     });
 
     seekBar.addEventListener('input', function () {
       if (cory.state.video != null) {
-        var time = cory.state.video.duration * (seekBar.valueAsNumber / 100);
+        const time = cory.state.video.duration * (seekBar.valueAsNumber / 100);
         cory.state.video.currentTime = time;
       }
     });
