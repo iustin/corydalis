@@ -13,5 +13,6 @@
   },
   "[jsonl]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "rewrap.wrappingColumn": 74
 }
