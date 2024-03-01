@@ -35,9 +35,12 @@ $(function () {
     $grid.masonry('layout');
     // $grid.packery();
   });
+
   // get Masonry instance
   const msnry = $grid.data('masonry');
   // infinite scrolling
+  // eslint-disable-next-line
+  // @ts-ignore
   $grid.infiniteScroll({
     // options
     // path: '.pagination-next',
@@ -45,17 +48,18 @@ $(function () {
     append: '.grid-item',
     outlayer: msnry,
     history: 'replace',
+    // eslint-disable-next-line
+    // @ts-ignore
     checkLastPage: '.pagination-next',
     prefill: true,
-    onInit: function () {
-      this.pageIndex = pageindex;
-      this.on('append', function (response, path, items) {
-        count = count + items.length;
-        $howmany.text(count);
-        console.log('now viewing', count);
-      });
-    },
     hideNav: '.pagination',
     debug: debug,
   });
+  $grid.on('append.infiniteScroll', (event, response, path, items) => {
+    count = count + items.length;
+    $howmany.text(count);
+    console.log('now viewing', count);
+  });
+  const infScroll = $grid.data('infiniteScroll');
+  infScroll.pageIndex = pageindex;
 });
