@@ -65,7 +65,7 @@ dist:
 	stack --work-dir .stack-release install --local-bin-path dist/
 
 # An entire clean build and install in dist.
-release: clean lint doc regen-git-version
+release: clean lint doc regen-git-version bootstrap
 	rm -rf .stack-release
 	stack --work-dir .stack-release build --pedantic $(FLAGS)
 	stack --work-dir .stack-release install --local-bin-path dist/ $(FLAGS)
