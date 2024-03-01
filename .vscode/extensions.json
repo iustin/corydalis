@@ -1,7 +1,8 @@
 {
-    "recommendations": [
-        "ryanluker.vscode-coverage-gutters",
-        "haskell.haskell",
-        "justusadam.language-haskell"
-    ]
+  "recommendations": [
+    "ryanluker.vscode-coverage-gutters",
+    "haskell.haskell",
+    "justusadam.language-haskell",
+    "esbenp.prettier-vscode"
+  ]
 }

@@ -25,63 +25,62 @@ type Transform = [number, boolean, boolean];
 
 type AffineMatrix = [number, number, number, number];
 
-type Url = string
+type Url = string;
 
 type ImageInfo = {
-  info: Url,
-  bytes: Url,
-  movie?: Url,
-  view: Url,
-  flag: Url,
-  name: string,
-  transform: Transform,
-  matrix: AffineMatrix,
-}
+  info: Url;
+  bytes: Url;
+  movie?: Url;
+  view: Url;
+  flag: Url;
+  name: string;
+  transform: Transform;
+  matrix: AffineMatrix;
+};
 
 type ViewInfo = {
-  year: string,
-  yearurl: Url,
-  folder: string,
-  folderurl: Url,
-  image: string,
-  imageurl: Url,
-  first: ImageInfo,
-  prevfolder?: ImageInfo,
-  prev?: ImageInfo,
-  current: ImageInfo,
-  next?: ImageInfo,
-  nextfolder?: ImageInfo,
-  last: ImageInfo,
-}
+  year: string;
+  yearurl: Url;
+  folder: string;
+  folderurl: Url;
+  image: string;
+  imageurl: Url;
+  first: ImageInfo;
+  prevfolder?: ImageInfo;
+  prev?: ImageInfo;
+  current: ImageInfo;
+  next?: ImageInfo;
+  nextfolder?: ImageInfo;
+  last: ImageInfo;
+};
 
 // Internal state
 
 type State = {
-  fullscreen: boolean,
-  img: HTMLImageElement,
-  video: HTMLVideoElement | null,
-  lastX: number,
-  msgTimeId: number,
-  transform: Transform,
-  matrix: AffineMatrix,
-  url: string,
-}
+  fullscreen: boolean;
+  img: HTMLImageElement;
+  video: HTMLVideoElement | null;
+  lastX: number;
+  msgTimeId: number;
+  transform: Transform;
+  matrix: AffineMatrix;
+  url: string;
+};
 
 type Cory = {
-  info: ViewInfo,
-  prev: HTMLImageElement,
-  next: HTMLImageElement,
-  state: State,
-}
-
+  info: ViewInfo;
+  prev: HTMLImageElement;
+  next: HTMLImageElement;
+  state: State;
+};
 
 $(function () {
   const bootdiv = $('#boot');
   const bootinfo = bootdiv.data('view-info');
   const debug = bootdiv.data('debug');
-  const LOG = debug ? console.log.bind(console) : function () { };
-  const T_START = debug ? console.time.bind(console) : function () { };
-  const T_STOP = debug ? console.timeEnd.bind(console) : function () { };
+  const LOG = debug ? console.log.bind(console) : function () {};
+  const T_START = debug ? console.time.bind(console) : function () {};
+  const T_STOP = debug ? console.timeEnd.bind(console) : function () {};
 
   LOG('bootinfo ', bootinfo);
 
@@ -119,19 +118,26 @@ $(function () {
   const offCanvas = document.createElement('canvas');
   const offContext = offCanvas.getContext('2d');
 
-  if (canvas == null ||
+  if (
+    canvas == null ||
     context == null ||
     offCanvas == null ||
     offContext == null ||
     moviePlaySpan == null ||
-    seekBar == null) {
+    seekBar == null
+  ) {
     LOG('Initialising canvas elements failed!');
     window.alert('Cannot fully initialise the application, aborting!');
     return;
   }
 
   // Draws an already-loaded image into a give image element.
-  function drawImage(img: HTMLImageElement, info: ImageInfo, msg?: string, skipStackChange?: boolean) {
+  function drawImage(
+    img: HTMLImageElement,
+    info: ImageInfo,
+    msg?: string,
+    skipStackChange?: boolean,
+  ) {
     const url = info.view;
     const transform = info.transform;
     const matrix = info.matrix;
@@ -180,14 +186,35 @@ $(function () {
     const targetH = Math.round(img.height / scale);
     let offX = targetW < cW ? Math.round((cW - targetW) / 2) : 0;
     let offY = targetH < cH ? Math.round((cH - targetH) / 2) : 0;
-    LOG('pre-draw; imgW:', imgW, 'imgH:', imgH,
-      'cW:', cW, 'cH:', cH,
-      'scaleX:', scaleX, 'scaleY:', scaleY,
-      'targetW:', targetW, 'targetH', targetH);
+    LOG(
+      'pre-draw; imgW:',
+      imgW,
+      'imgH:',
+      imgH,
+      'cW:',
+      cW,
+      'cH:',
+      cH,
+      'scaleX:',
+      scaleX,
+      'scaleY:',
+      scaleY,
+      'targetW:',
+      targetW,
+      'targetH',
+      targetH,
+    );
     cory.state.lastX = offX;
     T_START('drawImage');
     LOG('transform call:', matrix, cW / 2, cH / 2);
-    context.transform(matrix[0], matrix[1], matrix[2], matrix[3], cW / 2, cH / 2);
+    context.transform(
+      matrix[0],
+      matrix[1],
+      matrix[2],
+      matrix[3],
+      cW / 2,
+      cH / 2,
+    );
     offX -= cW / 2;
     offY -= cH / 2;
     LOG('draw call:', offX, offY, targetW, targetH);
@@ -206,7 +233,7 @@ $(function () {
     if (msg != null) {
       writeMessage(msg);
     }
-  };
+  }
 
   function updateInfo(url: string) {
     LOG('Requesting info from ', url);
@@ -215,42 +242,55 @@ $(function () {
       type: 'GET',
       dataType: 'json',
     }).done(onInfoReceived);
-  };
+  }
 
   function redrawImage() {
     drawImage(cory.state.img, cory.info.current, undefined, true);
     maybeWriteIsMovie(cory.info.current);
-  };
+  }
 
   function resizeCanvas() {
     if (context == null) {
       return;
     }
     // Reset main div top position, in case navbar changed size.
-    divMain.css({ 'top': computeNavBarHeight() });
+    divMain.css({ top: computeNavBarHeight() });
     // Read the computed (display) dimensions...
     const width = $(context.canvas).width();
     const height = $(context.canvas).height();
     if (width == null || height == null) {
       // Unlikely, but...
-      LOG('Resizing canvas, failed to compute w/h, width: ',
-        width, ', height: ', height, ', aborting.');
+      LOG(
+        'Resizing canvas, failed to compute w/h, width: ',
+        width,
+        ', height: ',
+        height,
+        ', aborting.',
+      );
       return;
     }
     const scale = window.devicePixelRatio;
     const scaledWidth = Math.floor(width * scale);
     const scaledHeight = Math.floor(height * scale);
-    LOG('Resizing canvas, width ', width, ', height ', height,
-      'scaled: ', scaledWidth, ' x ', scaledHeight);
+    LOG(
+      'Resizing canvas, width ',
+      width,
+      ', height ',
+      height,
+      'scaled: ',
+      scaledWidth,
+      ' x ',
+      scaledHeight,
+    );
     // to set the model (coordinate) dimension.
     context.canvas.width = scaledWidth;
     context.canvas.height = scaledHeight;
-  };
+  }
 
   function resizeCanvasAndRedraw() {
     resizeCanvas();
     redrawImage();
-  };
+  }
 
   function setImageState(img: HTMLImageElement, done: boolean) {
     $(img).data('done', done);
@@ -293,8 +333,11 @@ $(function () {
     return url.toString();
   }
 
-  function requestOffscreenImage(img: HTMLImageElement,
-    info: ImageInfo | undefined, text: string) {
+  function requestOffscreenImage(
+    img: HTMLImageElement,
+    info: ImageInfo | undefined,
+    text: string,
+  ) {
     if (info != null) {
       img.onload = function () {
         handleOffscreenImageLoad(img, text);
@@ -314,7 +357,7 @@ $(function () {
     requestOffscreenImage(cory.prev, cory.info.prev, 'prev');
     cory.next = new Image();
     requestOffscreenImage(cory.next, cory.info.next, 'next');
-  };
+  }
 
   function enterFullScreen() {
     const div = divMain[0];
@@ -329,7 +372,7 @@ $(function () {
       divMain.addClass('fake-fullscreen');
       resizeCanvasAndRedraw();
     }
-  };
+  }
 
   function leaveFullScreen() {
     if (screenfull.isEnabled) {
@@ -406,9 +449,10 @@ $(function () {
 
   function maybeWriteIsMovie(info: ImageInfo) {
     writePersistent(
-      info.movie != null ?
-        'This is a movie. Press \'p\', click or touch to play.' :
-        '');
+      info.movie != null
+        ? "This is a movie. Press 'p', click or touch to play."
+        : '',
+    );
   }
 
   function updateNavbar(topinfo: ViewInfo) {
@@ -572,7 +616,7 @@ $(function () {
         seekBar.valueAsNumber = value;
       });
     } else {
-      LOG('switching to picture mode')
+      LOG('switching to picture mode');
       canvas.style.visibility = 'visible';
       seekBar.style.visibility = 'hidden';
       changeVisibility('.nav-only-image', true);
@@ -586,11 +630,15 @@ $(function () {
       url: cory.info.current.flag,
       type: flag ? 'PUT' : 'DELETE',
       dataType: 'json',
-    }).done(function (json) {
-      writeMessage(json.text, 2000);
-    }).fail(function (xhr, status, details) {
-      writeMessage('Error flagging image: ' + status + ', details: ' + details);
-    });
+    })
+      .done(function (json) {
+        writeMessage(json.text, 2000);
+      })
+      .fail(function (xhr, status, details) {
+        writeMessage(
+          'Error flagging image: ' + status + ', details: ' + details,
+        );
+      });
   }
 
   function setupHammer() {
@@ -610,7 +658,8 @@ $(function () {
         case Hammer.DIRECTION_RIGHT:
           advanceImage(false);
           break;
-        default: return;
+        default:
+          return;
       }
     });
     // mc.on("swipedown", function(ev) {toggleFullScreen();});
@@ -625,7 +674,7 @@ $(function () {
 
   setupHammer();
 
-  $(document).on("keydown", function (e) {
+  $(document).on('keydown', function (e) {
     if (e.altKey || e.ctrlKey) {
       return;
     }
@@ -718,42 +767,42 @@ $(function () {
     LOG('navbar at ', navBarH);
     // And convert to absolute at same location.
     divMain.css({
-      'top': navBarH,
-      'position': 'fixed',
-      'bottom': 0,
-      'left': 0,
-      'right': 0,
+      top: navBarH,
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
     });
-    $('#imageFull').on("click", function (ev) {
+    $('#imageFull').on('click', function (ev) {
       toggleFullScreen();
     });
-    $('#imageRand').on("click", function (ev) {
+    $('#imageRand').on('click', function (ev) {
       gotoRandomImage();
     });
-    $('#imageUp').on("click", function (ev) {
+    $('#imageUp').on('click', function (ev) {
       window.location.href = cory.info.folderurl;
     });
-    $('#imagePrev').on("click", function (ev) {
+    $('#imagePrev').on('click', function (ev) {
       advanceImage(false);
     });
-    $('#imageNext').on("click", function (ev) {
+    $('#imageNext').on('click', function (ev) {
       advanceImage(true);
     });
-    $('#folderPrev').on("click", function (ev) {
+    $('#folderPrev').on('click', function (ev) {
       advanceFolder(false);
     });
-    $('#folderNext').on("click", function (ev) {
+    $('#folderNext').on('click', function (ev) {
       advanceFolder(true);
     });
 
     // movie-specific controls
-    $('#moviePlay').on("click", function (ev) {
+    $('#moviePlay').on('click', function (ev) {
       launchMovie();
     });
-    $('#movieRewind').on("click", function (ev) {
+    $('#movieRewind').on('click', function (ev) {
       movieRewind(false);
     });
-    $('#movieForward').on("click", function (ev) {
+    $('#movieForward').on('click', function (ev) {
       movieRewind(true);
     });
 
