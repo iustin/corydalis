@@ -110,6 +110,7 @@ $(function () {
   const persistBox = $('#persistBox');
   const moviePlaySpan = $('#moviePlay>span')[0];
   const seekBar = <HTMLInputElement>$('#seekBar')[0];
+  const fullScreenIcon = $('#imageFull>span');
 
   // Virtual (not-in-DOM) canvas that is used to for pre-rendering
   // images. The alternative would be to use putImageData() instead,
@@ -316,7 +317,6 @@ $(function () {
   };
 
   function enterFullScreen() {
-    cory.state.fullscreen = true;
     const div = divMain[0];
     if (screenfull.isEnabled) {
       LOG('entering full screen via screenfull');
@@ -324,6 +324,7 @@ $(function () {
       (screenfull as screenfull.Screenfull).request(div);
     } else {
       LOG('entering fake full screen');
+      cory.state.fullscreen = true;
       navMenu.addClass('nav-hidden');
       divMain.addClass('fake-fullscreen');
       resizeCanvasAndRedraw();
@@ -331,15 +332,28 @@ $(function () {
   };
 
   function leaveFullScreen() {
-    cory.state.fullscreen = false;
     if (screenfull.isEnabled) {
       LOG('exiting full screen via screenfull');
       (screenfull as screenfull.Screenfull).exit();
     } else {
       LOG('exiting fake full screen');
+      cory.state.fullscreen = false;
       navMenu.removeClass('nav-hidden');
       divMain.removeClass('fake-fullscreen');
       resizeCanvasAndRedraw();
+    }
+  }
+
+  /**
+   * Updates the full screen icon based on the current fullscreen state.
+   */
+  function updateFullScreenIcon() {
+    if (cory.state.fullscreen) {
+      fullScreenIcon.removeClass('fa-mazimize');
+      fullScreenIcon.addClass('fa-minimize');
+    } else {
+      fullScreenIcon.removeClass('fa-minimize');
+      fullScreenIcon.addClass('fa-mazimize');
     }
   }
 
@@ -349,6 +363,7 @@ $(function () {
     } else {
       enterFullScreen();
     }
+    updateFullScreenIcon();
   }
 
   // Switches to a non-preloaded image.
@@ -654,6 +669,12 @@ $(function () {
     if (handled) {
       e.preventDefault();
     }
+  });
+
+  document.addEventListener('fullscreenchange', function () {
+    cory.state.fullscreen = document.fullscreenElement != null;
+    updateFullScreenIcon();
+    resizeCanvasAndRedraw();
   });
 
   function computeNavBarHeight(): number {

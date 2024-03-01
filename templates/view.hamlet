@@ -40,7 +40,7 @@
       <span .fa-solid .fa-fw .fa-2x .fa-random>
     <button type="button" .btn .btn-light #imageFull
       title="Toggle full-screen state">
-      <span .fa-solid .fa-fw .fa-2x .fa-arrows-alt>
+      <span .fa-solid .fa-fw .fa-2x .fa-maximize>
     <button type="button" .btn .btn-light #imageNext
       title="Go to the next image">
       <span .fa-solid .fa-fw .fa-2x .fa-angle-right>
