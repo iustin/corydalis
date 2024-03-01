@@ -12,7 +12,7 @@
 
 <div #imageNavGroup>
   <div #seekBarDiv width="100%">
-    <input type="range" #seekBar value="0" style="width: 100%">
+    <input type="range" .form-range #seekBar value="0" style="width: 100%">
   <div #imageNav .btn-group role="group" aria="Navigation buttons">
     $# Image previous folder and movie rewind.
     <button type="button" .btn .btn-light .nav-only-image #folderPrev
