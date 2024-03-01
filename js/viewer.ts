@@ -420,6 +420,17 @@ $(function () {
     $('#navtext3').text(topinfo.image);
   }
 
+  /**
+   * Advances to the next image or, in movie move, starts playing the movie.
+   */
+  function advanceOrPlay() {
+    if (cory.info.current.movie != null) {
+      launchMovie();
+    } else {
+      advanceImage(true);
+    }
+  }
+
   function advanceImage(forward: boolean) {
     const img = forward ? cory.next : cory.prev;
     const info = forward ? cory.info.next : cory.info.prev;
@@ -647,6 +658,8 @@ $(function () {
         advanceImage(false);
         break;
       case 32: // space
+        advanceOrPlay();
+        break;
       case 39: // right arrow
         advanceImage(true);
         break;
