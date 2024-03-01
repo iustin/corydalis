@@ -543,6 +543,9 @@ $(function () {
    */
   function launchMovie() {
     if (cory.state.video != null) {
+      // Clear out the video message, as once the user starts interacting
+      // with the video, it's no longer relevant.
+      writePersistent('');
       if (cory.state.video.paused) {
         cory.state.video.play();
         moviePlaySpan.classList.remove('fa-play');
