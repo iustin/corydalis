@@ -130,7 +130,7 @@ $(function () {
   }
 
   // Draws an already-loaded image into a give image element.
-  function drawImage(img: HTMLImageElement, info: ImageInfo, msg?: string) {
+  function drawImage(img: HTMLImageElement, info: ImageInfo, msg?: string, skipStackChange?: boolean) {
     const url = info.view;
     const transform = info.transform;
     const matrix = info.matrix;
@@ -138,14 +138,16 @@ $(function () {
       img.onload = function () {
         LOG('Late load of ', url);
         setImageState(img, true);
-        drawImage(img, info, msg);
+        drawImage(img, info, msg, skipStackChange);
       };
       return;
     }
     if (context == null) {
       return;
     }
-    updateStackVisibility(info);
+    if (!skipStackChange) {
+      updateStackVisibility(info);
+    }
 
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -215,7 +217,7 @@ $(function () {
   };
 
   function redrawImage() {
-    drawImage(cory.state.img, cory.info.current);
+    drawImage(cory.state.img, cory.info.current, undefined, true);
     maybeWriteIsMovie(cory.info.current);
   };
 
