@@ -1,5 +1,5 @@
-name:    corydalis
-version: "2023.44.0"
+name: corydalis
+version: '2023.44.0'
 license: AGPL-3
 license-file: LICENCE
 category: Image
@@ -44,7 +44,6 @@ extra-source-files:
   - config/test-settings.yml
   - app/devel.hs
   - .ghci
-  - .dir-locals.el
   - Makefile
   - git-version
 
@@ -159,30 +158,30 @@ library:
     - Compat.Orphans
 
   when:
-  - condition: (flag(dev)) || (flag(library-only))
-    then:
-      ghc-options:
-      - -Wall
-      - -Wcompat
-      - -Wincomplete-record-updates
-      - -Wincomplete-uni-patterns
-      - -Wredundant-constraints
-      - -Werror
-      - -fwarn-tabs
-      - -O0
-      cpp-options: -DDEVELOPMENT
-    else:
-      ghc-options:
-      - -Wall
-      - -Wcompat
-      - -Wincomplete-record-updates
-      - -Wincomplete-uni-patterns
-      - -Wredundant-constraints
-      - -Werror
-      - -fwarn-tabs
-      - -O2
-  - condition: flag(public-site)
-    cpp-options: -DPUBLIC_SITE
+    - condition: (flag(dev)) || (flag(library-only))
+      then:
+        ghc-options:
+          - -Wall
+          - -Wcompat
+          - -Wincomplete-record-updates
+          - -Wincomplete-uni-patterns
+          - -Wredundant-constraints
+          - -Werror
+          - -fwarn-tabs
+          - -O0
+        cpp-options: -DDEVELOPMENT
+      else:
+        ghc-options:
+          - -Wall
+          - -Wcompat
+          - -Wincomplete-record-updates
+          - -Wincomplete-uni-patterns
+          - -Wredundant-constraints
+          - -Werror
+          - -fwarn-tabs
+          - -O2
+    - condition: flag(public-site)
+      cpp-options: -DPUBLIC_SITE
 
 # Runnable executable for our application
 executables:
@@ -190,38 +189,38 @@ executables:
     main: main.hs
     source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - corydalis
+      - corydalis
     when:
-    - condition: flag(library-only)
-      buildable: false
+      - condition: flag(library-only)
+        buildable: false
   scanner:
     main: scanner.hs
     source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - corydalis
+      - corydalis
     when:
-    - condition: flag(library-only)
-      buildable: false
+      - condition: flag(library-only)
+        buildable: false
   db-util:
     main: db-util.hs
     source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - corydalis
+      - corydalis
     when:
-    - condition: flag(library-only)
-      buildable: false
+      - condition: flag(library-only)
+        buildable: false
 
 # Test suite
 tests:
@@ -229,17 +228,17 @@ tests:
     main: Main.hs
     source-dirs: test
     dependencies:
-    - corydalis
-    - clientsession
-    - hspec >=2.0.0
-    - hspec-expectations-lifted
-    - http-types
-    - yesod-test
+      - corydalis
+      - clientsession
+      - hspec >=2.0.0
+      - hspec-expectations-lifted
+      - http-types
+      - yesod-test
     ghc-options:
-    - -Wall
-    - -threaded
-    - -rtsopts
-    - '"-with-rtsopts=-N -qg"'
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - '"-with-rtsopts=-N -qg"'
 
 # Define flags used by "yesod devel" to make compilation faster
 flags:
