@@ -1,6 +1,6 @@
 /// <reference types="plotly.js"/>
 
-$(function() {
+$(function () {
   function onDataReceived(series: any) {
     const cameraLayout = {
       xaxis: {

@@ -1,11 +1,11 @@
 {
-   "compilerOptions": {
-       "strict" : true,
-       "target" : "es5",
-       "module" : "none",
-       "moduleResolution": "node",
-       "baseUrl": "./",
-       "outDir": "../static/corydalis/js/",
-       "allowJs": true
-   }
+  "compilerOptions": {
+    "strict": true,
+    "target": "es5",
+    "module": "none",
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "outDir": "../static/corydalis/js/",
+    "allowJs": true
+  }
 }

@@ -1,4 +1,4 @@
-;(function($) {
+(function ($) {
   'use strict';
   const ts = $.tablesorter || {};
 
@@ -8,6 +8,6 @@
     widgets: ['uitheme', 'filter'],
   });
 })(jQuery);
-$(function() {
+$(function () {
   $('.tablesorter').tablesorter();
 });

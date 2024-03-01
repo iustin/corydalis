@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-$(function() {
+$(function () {
   'use strict';
   const bootdiv = $('#boot');
   const pathurl = bootdiv.data('path-url');
@@ -30,8 +30,8 @@ $(function() {
     percentPosition: true,
     horizontalOrder: false,
   });
-    // layout Packery after each image loads
-  $grid.imagesLoaded().progress( function() {
+  // layout Packery after each image loads
+  $grid.imagesLoaded().progress(function () {
     $grid.masonry('layout');
     // $grid.packery();
   });
@@ -47,9 +47,9 @@ $(function() {
     history: 'replace',
     checkLastPage: '.pagination-next',
     prefill: true,
-    onInit: function() {
+    onInit: function () {
       this.pageIndex = pageindex;
-      this.on('append', function(response, path, items) {
+      this.on('append', function (response, path, items) {
         count = count + items.length;
         $howmany.text(count);
         console.log('now viewing', count);

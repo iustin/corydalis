@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-$(function() {
+$(function () {
   'use strict';
   $.fancybox.defaults.animationEffect = false;
   $.fancybox.defaults.transitionEffect = false;
@@ -26,7 +26,7 @@ $(function() {
 
   // Custom after show to scroll the background item into view, in
   // order to trigger infinite scroll to load more images.
-  $.fancybox.defaults.afterShow = function(instance, current) {
+  $.fancybox.defaults.afterShow = function (instance, current) {
     if (!current) {
       return;
     }
@@ -55,7 +55,7 @@ $(function() {
   <span class="fas fa-external-link-alt">
 </button>`;
 
-  $('body').on('click', '[data-fancybox-view]', function() {
+  $('body').on('click', '[data-fancybox-view]', function () {
     const instance = $.fancybox.getInstance();
     const current = instance.current || null;
     if (!current) {
@@ -72,14 +72,13 @@ $(function() {
   });
 
   // Custom view item info button.
-  $.fancybox.defaults.btnTpl.info =
-        `<button data-fancybox-info
+  $.fancybox.defaults.btnTpl.info = `<button data-fancybox-info
                  class="fancybox-button fancybox-button--info"
                  title="View image info">
           <span class="fas fa-info-circle">
         </button>`;
 
-  $('body').on('click', '[data-fancybox-info]', function() {
+  $('body').on('click', '[data-fancybox-info]', function () {
     const instance = $.fancybox.getInstance();
     const current = instance.current || null;
     if (!current) {
@@ -95,28 +94,25 @@ $(function() {
     window.open(current.opts.infourl, '');
   });
 
-  $.fancybox.defaults.buttons = [
-    'view',
-    'info',
-    'zoom',
-    'close',
-  ];
+  $.fancybox.defaults.buttons = ['view', 'info', 'zoom', 'close'];
 
   // Listen to grid expansion and update any in-progress slideshow.
-  $('.grid').on( 'append.infiniteScroll',
-                 function( event, response, path, items ) {
-                   // console.log( 'Loaded: ', path );
-                   // console.info(items);
-                   const instance = $.fancybox.getInstance();
-                   const current = instance.current || null;
-                   if (!current) {
-                     return;
-                   }
-                   const imgs = Array.from(items, (d) => d.firstChild);
-                   // console.log( 'Adding items: ', imgs);
+  $('.grid').on(
+    'append.infiniteScroll',
+    function (event, response, path, items) {
+      // console.log( 'Loaded: ', path );
+      // console.info(items);
+      const instance = $.fancybox.getInstance();
+      const current = instance.current || null;
+      if (!current) {
+        return;
+      }
+      const imgs = Array.from(items, (d) => d.firstChild);
+      // console.log( 'Adding items: ', imgs);
 
-                   instance.addContent(imgs);
-                 });
+      instance.addContent(imgs);
+    },
+  );
 
   // Trigger fancybox.
   $().fancybox({

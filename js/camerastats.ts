@@ -1,6 +1,6 @@
 /// <reference types="plotly.js"/>
 
-$(function() {
+$(function () {
   function onDataReceived(series: any) {
     const cameraLayout = {
       yaxis: {
@@ -21,33 +21,41 @@ $(function() {
         title: 'Images',
       },
       updatemenus: [
-        {y: 1,
-         yanchor: yBottom,
-         x: 0,
-         xanchor: xLeft,
-         buttons: [{
-           method: restyle,
-           args: ['stackgroup', 'one'],
-           label: 'stacked',
-         }, {
-           method: restyle,
-           args: ['stackgroup', null],
-           label: 'line',
-         }],
+        {
+          y: 1,
+          yanchor: yBottom,
+          x: 0,
+          xanchor: xLeft,
+          buttons: [
+            {
+              method: restyle,
+              args: ['stackgroup', 'one'],
+              label: 'stacked',
+            },
+            {
+              method: restyle,
+              args: ['stackgroup', null],
+              label: 'line',
+            },
+          ],
         },
-        {y: 1,
-         yanchor: yBottom,
-         x: 0.1,
-         xanchor: xLeft,
-         buttons: [{
-           method: restyle,
-           args: ['groupnorm', ''],
-           label: 'absolute',
-         }, {
-           method: restyle,
-           args: ['groupnorm', 'percent'],
-           label: 'normalized',
-         }],
+        {
+          y: 1,
+          yanchor: yBottom,
+          x: 0.1,
+          xanchor: xLeft,
+          buttons: [
+            {
+              method: restyle,
+              args: ['groupnorm', ''],
+              label: 'absolute',
+            },
+            {
+              method: restyle,
+              args: ['groupnorm', 'percent'],
+              label: 'normalized',
+            },
+          ],
         },
       ],
     };

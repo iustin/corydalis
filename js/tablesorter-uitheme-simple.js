@@ -1,5 +1,5 @@
 /* Simplification of bootstrap-theme in widget-uitheme.js */
-;(function($) {
+(function ($) {
   'use strict';
   const ts = $.tablesorter || {};
 
