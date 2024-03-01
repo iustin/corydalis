@@ -593,6 +593,16 @@ $(function () {
    * @param info the current image info
    */
   function updateStackVisibility(info: ImageInfo) {
+    // First, show the canvas, and hide the video. The reason why is because
+    // this function is only ever called from drawImage(), which will draw
+    // either the (real) image or the video poster image on the canvas anyway.
+    // And if the canvas is not shown, switching between videos (by chance or
+    // based on filtering) the output will be a white page.
+    //
+    // Note we don't set the controls to picture, just the canvas/video
+    // visibility.
+    canvas.style.visibility = 'visible';
+    seekBar.style.visibility = 'hidden';
     if (info.movie != null) {
       LOG('loading movie and prepare to switch to movie mode');
       dropCurrentVideo();
@@ -600,6 +610,7 @@ $(function () {
       cory.state.video = video;
       // Don't load the video by default, to keep the UI fast and traffic low.
       video.setAttribute('preload', 'none');
+      //video.setAttribute('poster', imageUrlScaled(info.bytes));
       video.classList.add('viewer-video');
       video.onloadeddata = movieFrameAvailable;
       const source = document.createElement('source');
@@ -617,8 +628,6 @@ $(function () {
       });
     } else {
       LOG('switching to picture mode');
-      canvas.style.visibility = 'visible';
-      seekBar.style.visibility = 'hidden';
       changeVisibility('.nav-only-image', true);
       changeVisibility('.nav-only-video', false);
       dropCurrentVideo();
