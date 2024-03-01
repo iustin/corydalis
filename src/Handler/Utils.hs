@@ -442,6 +442,8 @@ bestMovie img =
     m:_ -> Just m
     _   -> imgMasterMov img
 
+-- | Parses the parameters to the (real) handler and build search-related
+-- attributes.
 searchContext :: Handler (Ctx, Config, [(Text, Text)], Atom, Text, Repository)
 searchContext = do
   ctx <- getContext
