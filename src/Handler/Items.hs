@@ -81,13 +81,12 @@ formatter :: Symbol -> (Text -> Text)
 formatter TPerson = formatPerson True
 formatter _       = id
 
-itemHeader :: Bool -> Symbol -> Widget
-itemHeader nolink symbol =
+itemHeader :: Symbol -> Widget
+itemHeader symbol =
   [whamlet|
           <div .card-header .py-2>
-            <a href="@{ListItemsR symbol}" .btn .btn-light .py-1 .w-100 .text-start :nolink:.disabled>
-              <span class="#{atomIcon symbol} fa-fw">
-              #{symbolPlCap symbol}
+            <span class="#{atomIcon symbol} fa-fw">
+            #{symbolPlCap symbol}
           |]
 
 itemDiv :: Symbol -> Bool -> ([Text], [Text]) -> Widget

@@ -1,7 +1,7 @@
 <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
   <div .card class="#{dclass symbol}">
      $if null items
-        ^{itemHeader True symbol}
+        ^{itemHeader symbol}
         <div .card-body>
           $case symbol
             $of TProblem
@@ -10,7 +10,7 @@
             $of k
               No pictures have a #{symbolName k} defined ☹
     $else
-        ^{itemHeader False symbol}
+        ^{itemHeader symbol}
         $if buttons
          <div .card-body>
            $forall p <- items
@@ -18,7 +18,7 @@
              <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,searchParams)}">#{formatter symbol p}
 
            $if rcount > 0
-             <a .btn .btn-light href="@{ListItemsR symbol}">
+             <a .btn .btn-light .float-end href="@{ListItemsR symbol}">
                <i>(#{rcount} more)
         $else
            <ul .list-group .list-group-flush>
