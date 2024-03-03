@@ -150,14 +150,21 @@ basicSvg msg =
         go ws lns = let (tw, lw) = splitAt 7 ws
                     in go lw (unwords tw:lns)
 
+-- | Returns an image saying the given image is not viewable.
 imageNotViewable :: TypedContent
 imageNotViewable =
   TypedContent typeSvg . toContent $ basicSvg "Image has no viewable version ☹"
 
+
+-- | Returns an error image (an image containting an error message).
 imageError :: Text -> TypedContent
 imageError msg =
   TypedContent typeSvg . toContent $ basicSvg ("Error: " <> msg)
 
+-- | Returns the image bytes for a given image.
+--
+-- This always returns the image bytes, even for a movie (in which case
+-- the poster image is returned), potentially at the requested resolution.
 getImageBytesR :: Text -> ImageName -> Handler ()
 getImageBytesR folder iname = do
   config <- getConfig
@@ -172,6 +179,10 @@ getImageBytesR folder iname = do
     Right (_, ctype, rpath) ->
       sendFile (Text.encodeUtf8 ctype) rpath
 
+-- | Returns the movie bytes for a given image.
+--
+-- Note this always hardcodes the mime type to video/mp4, as we don't
+-- handle file types well.
 getMovieBytesR :: Text -> ImageName -> Handler ()
 getMovieBytesR folder iname = do
   img <- getImage folder iname
@@ -181,6 +192,11 @@ getMovieBytesR folder iname = do
                 (TextL.unpack $ filePath f)
     _      -> sendResponse imageNotViewable
 
+-- | Builds the complete view information for a given image.
+--
+-- This builds the full view information for a given image, including
+-- previous/next images, previous/next folders, etc. so that the view page
+-- can quickly navigate between images.
 viewInfoForImage :: UrlParams -> SearchResults -> Text -> ImageName -> Handler ViewInfo
 viewInfoForImage params (images, folders) folder iname = do
   picdir <- getFolder folder
@@ -208,12 +224,14 @@ viewInfoForImage params (images, folders) folder iname = do
       (mk imgFirst) (mk <$> fldPrev) (mk <$> imgPrev) (mk img)
       (mk <$> imgNext) (mk <$> fldNext)(mk imgLast)
 
+-- | Get the image information for a given image.
 getImageInfoR :: Text -> ImageName -> Handler Value
 getImageInfoR folder iname = do
   (params, _, images) <- getAtomAndSearch
   vi <- viewInfoForImage params images folder iname
   return $ toJSON vi
 
+-- | Get the image information for a random image.
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
   (_, _, (images, _)) <- getAtomAndSearch
