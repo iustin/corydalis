@@ -71,6 +71,7 @@ release: clean lint doc regen-git-version bootstrap
 	stack --work-dir .stack-release install --local-bin-path dist/ $(FLAGS)
 	rsync -aL static dist/
 	rm -rf dist/static/tmp/
+	mkdir dist/static/tmp/
 
 .PHONY: demo-release
 demo-release:
