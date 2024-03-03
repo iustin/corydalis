@@ -55,14 +55,14 @@ Corydalis does and how does it look like.
 
 ## Features
 
-* file-type independent (customisable extensions for raw files,
+- file-type independent (customisable extensions for raw files,
   processed files, sidecar files, etc.), as long as ImageMagick and
   exiftool can work with the files (parse EXIF data, process the
   files, etc.).
-* independent of the program that edits the files.
-* tracks files also for panorama/HDR outputs (multiple raw files
+- independent of the program that edits the files.
+- tracks files also for panorama/HDR outputs (multiple raw files
   combined into a single output file).
-* computes list of unprocessed files, orphan sidecar files, etc.
-* view the output/processed files, with navigation facilities allowing
+- computes list of unprocessed files, orphan sidecar files, etc.
+- view the output/processed files, with navigation facilities allowing
   the browsing of the entire collection (requires a recent browser
   with HTML5 support; tested on Firefox, Chrome and partially Safari).

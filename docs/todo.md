@@ -1,6 +1,6 @@
 # Random notes and TODOs
 
-## Unit tests!
+## Unit tests
 
 The coverage over the entire codebase is quite low. Most of the
 handlers are tested for very basic things, but the main logic of

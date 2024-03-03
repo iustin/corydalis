@@ -2,7 +2,7 @@
 
 ## Requirements
 
-#### Frontend
+### Frontend
 
 Being a web application, Corydalis has a quite a bit of JavaScript
 dependencies. These are installed via `npm`, and to get everything up
@@ -37,17 +37,16 @@ CPU; on my own collection, a cold start will probably take many hours
 (for initial, required EXIF gathering) and follow-up work possibly a
 day or so (for the pre-rendering).
 
-
 ## Building from source
 
 Using stack:
 
-    $ echo install npm packages and pre-process them
-    $ make bootstrap
-    $ echo build the backend
-    $ stack build
-    $ stack install --local-bin-path /path/to/target
-    $ cp -aL static /path/to/target/
+    echo install npm packages and pre-process them
+    make bootstrap
+    echo build the backend
+    stack build
+    stack install --local-bin-path /path/to/target
+    cp -aL static /path/to/target/
 
 That should be it about the "build" phase, although if you don't
 already have a stack work space already, this will take a bit of time
@@ -67,24 +66,24 @@ This step will generate three binaries:
 
 Create a few needed directories:
 
-    $ cd /path/to/target
-    $ mkdir config db
+    cd /path/to/target
+    mkdir config db
 
 At runtime, the application depends on ImageMagick and exiftool, so
 make sure to install them before you run the application, e.g.:
 
-    $ sudo apt install imagemagick libimage-exiftool-perl
+    sudo apt install imagemagick libimage-exiftool-perl
 
 The application is configured to work only over https; as such, you
 must install the certificate in `config/cert.pem` and the key in
 `config/cert.key` in the target directory:
 
-    $ mkdir /path/to/target/config
-    $ cp cert.pem cert.key /path/to/target/config
+    mkdir /path/to/target/config
+    cp cert.pem cert.key /path/to/target/config
 
 Install the sample configuration file from the source code:
 
-    $ cp config/settings.yml.sample /path/to/target/settings.yml
+    cp config/settings.yml.sample /path/to/target/settings.yml
 
 ## Basic configuration
 
@@ -101,7 +100,7 @@ normally I expect only one or at most a few users - family - to be
 defined, but it was easier to use a database than (e.g.) something
 like htpasswd. The `db-util` tool can add users:
 
-    $ ./db-util -c /path/to/target/config add <USER>
+    ./db-util -c /path/to/target/config add <USER>
 
 This will prompt for the password and then add (or update, if the user
 already existed) the user. It can also list and delete users.
@@ -113,8 +112,8 @@ upgrade) the required database tables.
 
 Once the configuration is updated, simply run the application:
 
-    $ cd /path/to/target
-    $ ./corydalis settings.yml
+    cd /path/to/target
+    ./corydalis settings.yml
 
 Note that at the first run, it will start scanning the configured
 directories and parse metadata, so it will take a long while - maybe
@@ -126,7 +125,7 @@ the filename tracking, the periodic idle GCs use non-trivial amount of
 CPU time; increasing the idle GC timeout helps - I use slightly more
 than one minute:
 
-    $ ./corydalis +RTS -I63
+    ./corydalis +RTS -I63
 
 ### Note about the session key
 

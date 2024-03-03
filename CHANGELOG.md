@@ -2,7 +2,7 @@
 
 ## v2023.44.0
 
-*Sat, 04 Nov 2023*
+Released: _Sat, 04 Nov 2023_.
 
 A new release (at a rather arbitrary point in time), and switching to
 calendar-based versioning since it makes more sense for this application.
@@ -34,12 +34,12 @@ unrated, otherwise the explicit rating.
 Added new search atoms _season_, _month_, _day_, _rating_,
 _people-count_, _keyword-count_.
 
-Season is usual *English* name for season, i.e. _winter_, _spring_,
+Season is the usual _English_ name for season, i.e. _winter_, _spring_,
 _summer_, _autumn_, and the season computation is based on month
 boundaries: winter lasts from December to January, and the rest
 follow.
 
-Month is usual *English* name for the month, or alternatively the
+Month is the usual _English_ name for the month, or alternatively the
 numeric value (1-12).
 
 Day is a bit more complex. It can take any of: day-of-week (English
@@ -83,7 +83,7 @@ simplify future development.
 
 ## v0.4.0
 
-*Sun, 26 May 2019*
+Released: _Sun, 26 May 2019_.
 
 This is yet another major release, getting closer to a friendly UI for
 photo viewing in parallel with the expansion of the library curation
@@ -159,15 +159,15 @@ so initial load (after task restart) is _much_ faster.
 
 More search atoms, which means higher chance of confusion. Anyway ☺
 
-* added title and caption (string) atoms
-* added folder (string) atom which allow usual searches on folder name
-* added filename (string) atom which allows searching on image name,
+- added title and caption (string) atoms
+- added folder (string) atom which allow usual searches on folder name
+- added filename (string) atom which allows searching on image name,
   including any intermediate directories (such as
   `day1/dsc_0590.jpg`).
-* added image status (set) atom, which replaces the old by-status view.
-* added folder class (set) atom, which replaces the old by-folder-type
+- added image status (set) atom, which replaces the old by-status view.
+- added folder class (set) atom, which replaces the old by-folder-type
   view.
-* added a lens (string) search atom.
+- added a lens (string) search atom.
 
 The addition of image status and folder class atoms allowed completely
 removing the old style "by-category" views, completing the unification
@@ -267,7 +267,7 @@ statistics).
 
 ## v0.3.0
 
-*Fri, 09 Mar 2018*
+Released: _Fri, 09 Mar 2018_.
 
 A major release, with close to 300 commits.
 
@@ -277,67 +277,68 @@ should proceed automatically, but as there is no versioning of the
 cache, it might be a good idea to remove the files manually (as
 there's no automated cleanup procedure yet):
 
-```
-$ find /path/to/cache/dir -name '*-bexif' -delete
-$ find /path/to/cache/dir -name '*-exif' -delete
+```shell
+find /path/to/cache/dir -name '*-bexif' -delete
+find /path/to/cache/dir -name '*-exif' -delete
 ```
 
 New features:
 
-* Rewritten search system; besides just location and people/keyword
+- Rewritten search system; besides just location and people/keyword
   searches, a number of other atoms have been added, and now the
   search supports arbitrary combinations of these.
-* Image viewing/browsing have moved from folder-based (view all images
+- Image viewing/browsing have moved from folder-based (view all images
   in folder A, move to folder B, etc.) to the above search/filter
   based: show me (and view in order) all images with keyword flowers,
   no matter in which folders they are located.
-* Exif parsing has been reworked, and a number of new fields have been
+- Exif parsing has been reworked, and a number of new fields have been
   added (e.g. ISO, shutter speed; location fields are now split into
   country/province/city/etc.)
-* Exif parsing failures are recorded, can be viewed on the curate page
+- Exif parsing failures are recorded, can be viewed on the curate page
   and searched by the 'problem' atom.
-* The security requirements have been somewhat relaxed, allowing the
+- The security requirements have been somewhat relaxed, allowing the
   application to run in non-secure (https) mode, recommended only when
   using behind a reverse proxy, and to allow non-logged in browsing,
   recommended for a website/demo site.
 
 Improvements:
 
-* Directory scanning has been parallelised, leading to 2.5× and more
+- Directory scanning has been parallelised, leading to 2.5× and more
   speed-ups.
-* Exif metadata is now cached even in the case of failures, and is
+- Exif metadata is now cached even in the case of failures, and is
   only regenerated in case the source file is updated; this should
   allow for (much) faster rescans if there are many images that fail
   parsing.
-* This might have been present in 0.2 too, but: exif metadata is now
+- This might have been present in 0.2 too, but: exif metadata is now
   updated automatically if the source file is updated.
-* The CSS and part of JS dependencies are combined and served as
+- The CSS and part of JS dependencies are combined and served as
   single file; this (the CSS part) has eliminated some flickering when
   used with Firefox.
-* Added a lens statistics page.
-* Added an about page, pointing back to GitHub for the sources and
+- Added a lens statistics page.
+- Added an about page, pointing back to GitHub for the sources and
   explaining a bit the application.
 
 Bugs fixed:
 
-* Exif parsing had significant issues with related to people parsing
+- Exif parsing had significant issues with related to people parsing
   (at image level), and with folder-level aggregation (which was
   actually plain broken); these should be fixed now.
-* UI usability on small screens was very low, mostly fixed now (but
+- UI usability on small screens was very low, mostly fixed now (but
   this can be always improved).
-* Image viewer handles keystrokes better, eliminating their interception
+- Image viewer handles keystrokes better, eliminating their interception
   when modifiers are used; e.g. `CTRL+r` for reload was previously
   also triggering a `r` random image view.
 
 UI changes/additions:
 
-* Moved to Bootstrap 4, which allowed fixing the UI responsiveness fixed.
-* Moved to Font Awesome 5 (new icon look).
-* Small updates to the other dependencies as well.
-
+- Moved to Bootstrap 4, which allowed fixing the UI responsiveness fixed.
+- Moved to Font Awesome 5 (new icon look).
+- Small updates to the other dependencies as well.
 
 ## v0.2.0
 
-*Released Thu, 08 Feb 2018*
+Released: _Released Thu, 08 Feb 2018_.
 
 Initial public release, after a very long bake time ☺
+
+<!-- markdownlint-configure-file { "headings": { "siblings_only": true } } -->
