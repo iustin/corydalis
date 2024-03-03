@@ -96,3 +96,21 @@ jobs:
 
       - name: Build documentation
         run: make doc
+
+      - name: Build normal release
+        run: make release
+
+      - name: Upload normal release artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: release
+          path: ./dist/
+
+      - name: Build public release
+        run: make demo-release
+
+      - name: Upload public release artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: demo-release
+          path: ./dist/
