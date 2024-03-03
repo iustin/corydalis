@@ -2,9 +2,8 @@
   $maybe ri <- randomImage
     <div .card>
       <div .card-header .py-2>
-        <a href="" .btn .btn-light .py-1 .w-100 .text-start .disabled>
-          <span class="fas fa-images fa-fw">
-          Welcome!
+        <span class="fas fa-images fa-fw">
+        Welcome!
       <div .card-body>
         <p>You can start here, or in one of the other cards.
         <a .btn .btn-light .py-1 .my-1 href="@{SearchR}">
