@@ -68,7 +68,7 @@ getLensInfoR lensname = do
                                         in case cd of
                                              Nothing  -> a
                                              Just cd' -> (cd', cam):a) [] $ images
-                  in maybe Nothing (\nn -> Just (head nn, last nn)) $ fromNullable cds
+                  in fromNullable cds >>= (\nn -> Just (head nn, last nn))
       obj = buildLensApFL images
       html = do
         setTitle "Corydalis: lens information"
