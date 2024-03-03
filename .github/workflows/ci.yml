@@ -71,6 +71,9 @@ jobs:
       - name: Setup GHC for the resolver
         run: stack setup --no-terminal
 
+      - name: Install hlint
+        run: stack install hlint
+
       - name: Build the dependencies
         run: stack build --only-dependencies
 
