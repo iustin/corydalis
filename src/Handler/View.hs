@@ -38,7 +38,6 @@ import qualified Data.Map                    as Map
 import qualified Data.Text                   as Text
 import qualified Data.Text.Encoding          as Text (encodeUtf8)
 import qualified Data.Text.Lazy              as TextL
-import           System.Random               (getStdRandom, randomR)
 import qualified Text.Blaze.Svg              as Svg
 import           Text.Blaze.Svg11            (Svg, docTypeSvg, rect, text_,
                                               tspan, (!))
@@ -182,13 +181,6 @@ getMovieBytesR folder iname = do
                 (TextL.unpack $ filePath f)
     _      -> sendResponse imageNotViewable
 
-randomPick :: Map (Text, ImageTimeKey) Image -> IO Image
-randomPick images = do
-  idx <- getStdRandom $ randomR (0, Map.size images - 1)
-  -- This _should_ be safe, since idx in the right range. If not,
-  -- well...
-  return . snd . Map.elemAt idx $ images
-
 viewInfoForImage :: UrlParams -> SearchResults -> Text -> ImageName -> Handler ViewInfo
 viewInfoForImage params (images, folders) folder iname = do
   picdir <- getFolder folder
@@ -225,6 +217,7 @@ getImageInfoR folder iname = do
 getRandomImageInfoR :: Handler Value
 getRandomImageInfoR = do
   (_, _, (images, _)) <- getAtomAndSearch
-  when (null images) notFound
-  image <- liftIO $ randomPick images
-  getImageInfoR (imgParent image) (imgName image)
+  mimage <- liftIO $ randomPick images
+  case mimage of
+    Nothing  -> notFound
+    Just img -> getImageInfoR (imgParent img) (imgName img)

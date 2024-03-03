@@ -36,7 +36,9 @@ import qualified Data.Text             as Text
 import qualified Data.Text.Lazy        as TL
 import           Data.Time
 import           Data.Time.Clock.POSIX
+import           System.Random         (getStdRandom, randomR)
 import           Text.Blaze            (Markup, ToMarkup, string, toMarkup)
+
 
 -- | Formats a double as a percent value. NaN values are transformed
 -- into a Nothing.
@@ -481,3 +483,14 @@ formatFlashSource f =
     Just FlashSourceNone     -> "no flash used"
     Just FlashSourceInternal -> "camera internal flash"
     Just FlashSourceExternal -> "external flash"
+
+-- | Pick a random image from a list of images.
+randomPick :: Map (Text, ImageTimeKey) Image -> IO (Maybe Image)
+randomPick images = do
+  if Map.null images
+    then return Nothing
+    else do
+      idx <- getStdRandom $ randomR (0, Map.size images - 1)
+      -- This _should_ be safe, since idx in the right range. If not,
+      -- well...
+      return . Just . snd . Map.elemAt idx $ images
