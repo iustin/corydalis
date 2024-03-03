@@ -25,6 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Indexer ( Symbol(..)
                , Atom(..)
+               , NumOp(..)
+               , MonthOp(..)
+               , DayOp(..)
                , symbolNames
                , symbolName
                , negSymbolName
@@ -45,6 +48,8 @@ module Indexer ( Symbol(..)
                , atomFindsFiles
                -- TODO: move to some more basic module, unify with pics
                , parseDecimalPlain
+               , intToMonth
+               , intToWeekDay
                ) where
 
 import           Control.Monad               (foldM, when)

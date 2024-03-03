@@ -12,6 +12,13 @@
         <a .btn .btn-light .py-1 .my-1 href="@{ViewR (imgParent ri) (imgName ri)}">
           <span class="fas fa-up-down-left-right">
           View a random image
+        <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,onThisDate)}">
+          <span class="fas fa-calendar-day">
+          On this date…
+        <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,onThisDoW)}">
+          <span class="fas fa-calendar-week">
+          On #{show dow}s…
+
   $nothing
     <div .card .border-warning>
       <div .card-header .py-2>
