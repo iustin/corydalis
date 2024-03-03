@@ -114,7 +114,6 @@ coverage-tests:
 lint:
 	@rm -f lint-report.html
 	hlint \
-	  --ignore 'Use =<<' \
 	  --cross \
 	  --report=lint-report.html -c \
 	  --cpp-define=DEVELOPMENT=1 \

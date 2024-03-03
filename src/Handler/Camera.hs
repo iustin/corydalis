@@ -83,7 +83,7 @@ getCameraInfoR cameraname = do
                                         in case cd of
                                              Nothing  -> a
                                              Just cd' -> (cd', lens):a) [] $ images
-                  in maybe Nothing (\nn -> Just (head nn, last nn)) $ fromNullable cds
+                  in fromNullable cds >>= (\nn -> Just (head nn, last nn))
       keepR = formatKeeperRate <$> keeperRate camera
       obj = buildLensApFL images
       html = do

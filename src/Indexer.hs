@@ -1291,8 +1291,8 @@ rpnParser (x:xs) ("not", _) =
             Not y -> y
             _     -> Not x
   in Right $ a:xs
-rpnParser xs ("all", c) = either Left (anyAllParser allAtom xs) $ parseDecimalPlain c
-rpnParser xs ("any", c) = either Left (anyAllParser anyAtom xs) $ parseDecimalPlain c
+rpnParser xs ("all", c) = parseDecimalPlain c >>= anyAllParser allAtom xs
+rpnParser xs ("any", c) = parseDecimalPlain c >>= anyAllParser anyAtom xs
 rpnParser xs (an, av) =
   let v = parseAtom an av
   in case v of
