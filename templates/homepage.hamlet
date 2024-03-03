@@ -5,6 +5,8 @@ $maybe msg <- homeMessage
    #{preEscapedToMarkup msg}
 
 <div .row data-masonry=#{dataMasonry}>
+  ^{allPicsDiv randomImage}
+
   ^{itemDiv TYear True (years, [])}
 
   ^{itemDiv TPerson True topPeople}

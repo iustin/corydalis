@@ -1,0 +1,23 @@
+<div .col-12 .col-sm-6 .col-lg-4 .mb-4>
+  $maybe ri <- randomImage
+    <div .card>
+      <div .card-header .py-2>
+        <a href="" .btn .btn-light .py-1 .w-100 .text-start .disabled>
+          <span class="fas fa-images fa-fw">
+          Welcome!
+      <div .card-body>
+        <p>You can start here, or in one of the other cards.
+        <a .btn .btn-light .py-1 .my-1 href="@{SearchR}">
+          <span class="fas fa-play">
+          Start at the beginning
+        <a .btn .btn-light .py-1 .my-1 href="@{ViewR (imgParent ri) (imgName ri)}">
+          <span class="fas fa-up-down-left-right">
+          View a random image
+  $nothing
+    <div .card .border-warning>
+      <div .card-header .py-2>
+        <a href="" .btn .btn-light .py-1 .w-100 .text-start .disabled>
+          <span class="fas fa-images fa-fw">
+          Here should be all pictures, but there are actually none…
+      <div .card-body>
+        There are no images in the database! Go out and take some photos!

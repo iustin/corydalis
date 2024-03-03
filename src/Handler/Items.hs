@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Items
   ( itemDiv
+  , allPicsDiv
   , symbolPlCap
   ) where
 
@@ -37,6 +38,7 @@ import           Exif          (formatPerson)
 import           Handler.Utils
 import           Import
 import           Indexer
+import           Pics          (Image (..))
 
 symbolPlCap :: Symbol -> Text
 symbolPlCap TCountry      = "Countries"
@@ -95,3 +97,7 @@ itemDiv symbol buttons (items, length -> rcount) = do
                then divClassForNoAtom
                else divClassForAtom
   $(widgetFile "itemdiv")
+
+allPicsDiv :: Maybe Image -> Widget
+allPicsDiv randomImage = do
+  $(widgetFile "alldiv")
