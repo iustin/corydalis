@@ -153,7 +153,7 @@ basicSvg msg =
 -- | Returns an image saying the given image is not viewable.
 imageNotViewable :: TypedContent
 imageNotViewable =
-  TypedContent typeSvg . toContent $ basicSvg "Image has no viewable version ☹"
+  imageError "Image has no viewable version ☹"
 
 
 -- | Returns an error image (an image containting an error message).
