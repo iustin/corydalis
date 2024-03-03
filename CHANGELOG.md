@@ -1,5 +1,61 @@
 # Changelog
 
+## v2024.9.0
+
+Released: _Sun, 03 Mar 2024_.
+
+A medium sized release, with both internal and user-visible changes.
+
+### New user features
+
+The simple viewer (see view-vs-browse in the user manual) now has the
+ability to play videos inline, rather than simply opening the raw video in
+a new browser tab. This is new functionality, bugs are expected, and
+please report them.
+
+On the home page, a new card is present that allows browsing all pictures,
+start at a random picture, "on this day" functionality, and on this
+day-of-the-week. This will likely be expanded in the future, I assume
+there are more interesting features to expose that are so to say
+"cross-section" in the repository, rather than "city X, location Y, person
+Z".
+
+### Server admin changes
+
+Two new config settings were introduced and one was deprecated:
+
+- `request-logging` can now configure the HTTP logs as one of `none`,
+  `apache`, and `detailed`; this replaces the old `detailed_logging`,
+  which only toggled between `apache` and `detailed`;
+- `log-level` can no configure the level of application logging; this
+  overlaps with `should-log-all` (which, when set to true, is equivalent
+  to `log-level: debug`, and when unset, it was previously equivalent to
+  `info`); there are not many application logs, but a switch between the
+  default of `info` and `warning` might be appropriate unless one wants to
+  debug the server behaviour;
+- it's likely that `should-log-all` will be removed in the future.
+
+For installation, there's now an additional option to use pre-built amd64
+binaries generated automatically by the GitHub Actions (at each commit).
+Of course, building from source is still best, as it will use the exact
+environment (rather than just Ubuntu latest).
+
+### Internal changes
+
+I've switched my editor environment from Emacs to VSCode, and as a result,
+a lot of associated tooling has changed as well. This did result in quite
+a bit of code churn due to formatting changes, and this might continue a
+bit more as I investigate newer tooling.
+
+Biggest miss: there's no meaningful unit test coverage improvement 🙁. I
+still need to come up with a strategy here, and especially one that can
+cover/integrates both Haskell and Typescript testing. On the slightly
+positive side, the new logging changes (were written for and) allow very
+clean test output, as all the logging noise is now hidden. This should
+allow a more positive attitude to tests 😁.
+
+Very minor notice: the code now builds with GHC 9.6.
+
 ## v2023.44.0
 
 Released: _Sat, 04 Nov 2023_.
