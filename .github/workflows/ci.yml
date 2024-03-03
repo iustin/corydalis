@@ -33,8 +33,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.stack
-          key: v2-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
-          restore-keys: v2-haskell-deps-
+          key: v3-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
+          restore-keys: |
+            v3-haskell-deps-${{ runner.os }}-store-
+            v3-haskell-deps-
+            v2-haskell-deps-
 
       - name: Cache node modules
         uses: actions/cache@v4
