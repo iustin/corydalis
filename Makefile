@@ -31,15 +31,18 @@ this-week:
 .PHONY: this-week
 
 git-version:
-	if test -d .git; then \
+	@if test -d .git; then \
 	  git describe --dirty --always > $@ ; \
 	elif test ! -f $@ ; then \
 	  echo "Error: cannot generate the '$@' file!"; exit 1; \
 	fi
+	@echo "New git version:"
+	@cat $@
 
 .PHONY: clean-git-version
 clean-git-version:
-	rm -f git-version
+	@echo "Force cleaning the git-version file..."
+	@rm -f git-version
 
 .PHONY: regen-git-version
 regen-git-version: clean-git-version git-version
