@@ -24,7 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch_tags: true
+          fetch-tags: true
 
       - name: Setup Haskell
         uses: haskell-actions/setup@v2
