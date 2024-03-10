@@ -14,5 +14,8 @@
   "[jsonl]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[markdown]": {
+    "editor.rulers": [72, 80, 120]
+  },
   "rewrap.wrappingColumn": 74
 }
