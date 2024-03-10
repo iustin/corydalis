@@ -734,6 +734,12 @@ $(function () {
       case 'End':
         switchToImage(cory.info.last);
         break;
+      case 'Backspace':
+      case 'Delete':
+        // Allow these two keys to navigate backwards. Useful in
+        // full-screen mode.
+        window.history.back();
+        break;
       default:
         handled = false;
         break;

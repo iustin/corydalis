@@ -1,5 +1,19 @@
 # Changelog
 
+## vNext
+
+Unreleased.
+
+Improvements to the image viewer:
+
+- enable the `Tab` key to navigate to random images, similar to existing
+  `r`; the reason being that in full screen, some browsers restrict
+  alphanumeric input, but whitespace keys (such as tab/enter) are allowed.
+- fix history navigation (backward/forward), by correctly tracking state;
+  previous half-implementation didn't actually work.
+- add `Backspace`/`Delete` as history backward navigation, again useful in
+  full screen mode.
+
 ## v2024.9.0
 
 Released: _Sun, 03 Mar 2024_.

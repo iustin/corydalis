@@ -49,6 +49,8 @@ controls:
 - `p` (key): play the current movie (if any);
 - `home`/`end` (key): go to the first, respectively last, image in the
   current folder;
+- `backspace`/`delete` (keys): navigate backwards in history (useful in
+  full screen mode).
 
 And that is it. The image advancing flows continuously from one folder
 to the next, so in theory you could go to the first every image in
