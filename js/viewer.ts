@@ -686,7 +686,7 @@ $(function () {
 
   setupHammer();
 
-  $(document).on('keydown', function (e) {
+  document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey) {
       return;
     }
@@ -695,45 +695,46 @@ $(function () {
       return;
     }
     let handled = true;
-    switch (e.keyCode) {
-      case 40: // up arrow
-      case 70: // 'f'
+    LOG("key: '", e.key, "'");
+    switch (e.key) {
+      case 'UpArrow':
+      case 'f':
         toggleFullScreen();
         break;
-      case 80: // 'p'
+      case 'p':
         launchMovie();
         break;
-      case 82: // 'r'
+      case 'r':
         gotoRandomImage();
         break;
-      case 85: // 'u'
+      case 'u':
         gotoFolder();
         break;
-      case 88: // 'x'
+      case 'x':
         flagImage(true);
         break;
-      case 78: // 'n'
+      case 'n':
         flagImage(false);
         break;
-      case 37: // left arrow
+      case 'ArrowLeft':
         advanceImage(false);
         break;
-      case 32: // space
+      case ' ':
         advanceOrPlay();
         break;
-      case 39: // right arrow
+      case 'ArrowRight':
         advanceImage(true);
         break;
-      case 33: // pg up
+      case 'PageUp':
         advanceFolder(false);
         break;
-      case 34: // pg down
+      case 'PageDown':
         advanceFolder(true);
         break;
-      case 36: // home key
+      case 'Home':
         switchToImage(cory.info.first);
         break;
-      case 35: // end key
+      case 'End':
         switchToImage(cory.info.last);
         break;
       default:
