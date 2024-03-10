@@ -316,14 +316,8 @@ $(function () {
   }
 
   function imageUrlScaled(baseUrl: string): string {
-    let w = $(canvas).width();
-    if (w == null) {
-      w = 300;
-    }
-    let h = $(canvas).height();
-    if (h == null) {
-      h = 300;
-    }
+    const w = $(canvas).width() ?? 300;
+    const h = $(canvas).height() ?? 300;
     const scale = window.devicePixelRatio;
     // LOG('Scale is ', scale);
     const r = Math.floor((w > h ? w : h) * scale);
@@ -770,11 +764,7 @@ $(function () {
       return 0;
     } else {
       const navbar = $('nav.navbar');
-      let h = navbar.outerHeight();
-      if (h == null) {
-        h = 0;
-      }
-      return h;
+      return navbar.outerHeight() ?? 0;
     }
   }
 
