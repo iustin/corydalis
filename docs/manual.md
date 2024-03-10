@@ -40,15 +40,13 @@ controls:
 - left/right (keyboard keys, or swipe for touchscreens): move backward
   (previous) and forward (next) in the list of pictures; this switches
   automatically to next folders, based on the current search;
-- space key: move forward (next picture);
+- space key: move forward (next picture), or play movie (if the current
+  picture is a movie);
 - `f` (key), or tap the image with two fingers: go full-screen, if the
   browser allows it;
 - `r` (key), or tab: go to a random image in the whole library;
 - `u` (key): go back to the folder view;
-- `p` (key): if the current image has a movie associated, open it in
-  another browser window (which will be prevented by default in
-  current browsers), in order to have a fully native view without the
-  Corydalis controls;
+- `p` (key): play the current movie (if any);
 - `home`/`end` (key): go to the first, respectively last, image in the
   current folder;
 
