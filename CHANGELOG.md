@@ -11,8 +11,8 @@ Improvements to the image viewer:
   alphanumeric input, but whitespace keys (such as tab/enter) are allowed.
 - fix history navigation (backward/forward), by correctly tracking state;
   previous half-implementation didn't actually work.
-- add `Backspace`/`Delete` as history backward navigation, again useful in
-  full screen mode.
+- add `Backspace`/`Delete`/`<` as history backward navigation, again useful in
+  full screen mode, and `>` for forward navigation.
 
 ## v2024.9.0
 

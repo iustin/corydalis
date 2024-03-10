@@ -736,9 +736,15 @@ $(function () {
         break;
       case 'Backspace':
       case 'Delete':
+      case '<':
         // Allow these two keys to navigate backwards. Useful in
         // full-screen mode.
         window.history.back();
+        break;
+      case '>':
+        // Allow this to navigate forwards. Useful in full-screen mode, to
+        // provide parity with backwards.
+        window.history.forward();
         break;
       default:
         handled = false;
