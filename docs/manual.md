@@ -43,7 +43,7 @@ controls:
 - space key: move forward (next picture);
 - `f` (key), or tap the image with two fingers: go full-screen, if the
   browser allows it;
-- `r` (key): go to a random image in the whole library;
+- `r` (key), or tab: go to a random image in the whole library;
 - `u` (key): go back to the folder view;
 - `p` (key): if the current image has a movie associated, open it in
   another browser window (which will be prevented by default in
@@ -55,6 +55,10 @@ controls:
 And that is it. The image advancing flows continuously from one folder
 to the next, so in theory you could go to the first every image in
 your collection and keep scrolling through all of them.
+
+Note: some browsers prevent alphanumeric key entry in full screen mode.
+Thus, keys such as `u`, `p` or `r` don't work in this mode, and one has to
+use "whitespace" keys such as left/right arrows, space, tab, etc.
 
 If you want to understand more how Corydalis looks at pictures, read
 on.

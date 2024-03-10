@@ -705,6 +705,7 @@ $(function () {
         launchMovie();
         break;
       case 'r':
+      case 'Tab':
         gotoRandomImage();
         break;
       case 'u':
