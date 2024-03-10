@@ -224,7 +224,9 @@ $(function () {
     LOG('url: ', url, 'location: ', location.href);
     // Prevent double entries.
     if (url != location.href && url != undefined) {
-      history.pushState(null, '', url);
+      history.pushState(info, '', url);
+    } else {
+      LOG('skipping history pushState', url, location.href);
     }
     cory.state.img = img;
     cory.state.url = url;
@@ -751,6 +753,16 @@ $(function () {
     cory.state.fullscreen = document.fullscreenElement != null;
     updateFullScreenIcon();
     resizeCanvasAndRedraw();
+  });
+
+  // Handle forward/back buttons. If a state has been provided, we jump
+  // back to that state (as an ImageInfo).
+  window.addEventListener('popstate', (event) => {
+    LOG('popstate event: ', event.state);
+    if (event.state) {
+      // Simulate the loading of the previous page
+      switchToImage(event.state);
+    }
   });
 
   function computeNavBarHeight(): number {
