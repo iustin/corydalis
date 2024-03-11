@@ -272,9 +272,9 @@ getLastViewMode = do
   cookie <- lookupCookie viewCookieName
   return $ cookie >>= parseViewMode
 
-setViewMode :: ViewMode -> Handler ()
-setViewMode vm =
-  setCookie $ lastViewCookie vm
+setViewMode :: Bool -> ViewMode -> Handler ()
+setViewMode secureCookies vm =
+  setCookie $ lastViewCookie secureCookies vm
 
 clientSessionKeyFile :: FilePath
 clientSessionKeyFile = "config/client_session_key.aes"
@@ -338,8 +338,9 @@ instance Yesod App where
         -- passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
 
+        secureCookies <- appSecureSessions . appSettings <$> getYesod
         route <- getCurrentRoute
-        forM_ (route >>= viewMode) setViewMode
+        forM_ (route >>= viewMode) (setViewMode secureCookies)
 
         pc <- widgetToPageContent $ do
           -- Compute and ship the page-specific CSS and JS

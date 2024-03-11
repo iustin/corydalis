@@ -47,6 +47,8 @@ baseViewCookie =
       }
 
 -- | Actual view cookie for a view mode.
-lastViewCookie :: ViewMode -> SetCookie
-lastViewCookie vm =
-  baseViewCookie { setCookieValue = formatViewMode vm }
+lastViewCookie :: Bool -> ViewMode -> SetCookie
+lastViewCookie secureCookies vm =
+  baseViewCookie { setCookieValue  = formatViewMode vm
+                 , setCookieSecure = secureCookies
+                 }
