@@ -45,7 +45,7 @@ spec = parallel $ withApp $ do
     it "loads empty folder=1900 page and checks it looks right" $ do
       login
       -- Force mode so that we dont' rely on defaults.
-      testSetCookie $ lastViewCookie (ViewFolders PresentationGrid)
+      testSetCookie $ lastViewCookie False (ViewFolders PresentationGrid)
       get $ SearchFoldersByYearR 1900
       checkRedirAndHeader
       htmlAnyContain "div.card-header" "Nothing found"
