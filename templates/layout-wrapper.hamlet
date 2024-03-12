@@ -10,6 +10,8 @@ $doctype 5
 
     <meta name="viewport" content="width=device-width,initial-scale=1">
 
+    <link rel="manifest" href=@{StaticR corydalis_manifest_json} />
+
     ^{pageHead pc}
 
   <body>

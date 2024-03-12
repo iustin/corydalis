@@ -14,6 +14,20 @@ Improvements to the image viewer:
 - add `Backspace`/`Delete`/`<` as history backward navigation, again useful in
   full screen mode, and `>` for forward navigation.
 
+### Experimental features
+
+Corydalis web endpoint now presents a manifest file, allowing installation
+as a [Progressive Web
+App](https://en.wikipedia.org/wiki/Progressive_web_app), running in
+"standalone" mode. This means that on small screens, more of the available
+screen space is used for Corydalis, even in normal mode, leading to a more
+pleasant experience. To enable this, use the normal action for your
+platform, for example on Apple devices, open the share menu, and select
+"Add to home screen" (iOS/iPadOS) or "Add to doc" (MacOS).
+
+Note this feature is experimental, and it is lacking good a good user
+model, for example, forward/backward navigation on all pages.
+
 ## v2024.9.0
 
 Released: _Sun, 03 Mar 2024_.

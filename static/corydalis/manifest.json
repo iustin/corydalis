@@ -1,0 +1,7 @@
+{
+  "name": "Corydalis",
+  "description": "Web app for Corydalis (github.com/iustin/corydalis)",
+  "start_url": "/",
+  "icons": [],
+  "display": "standalone"
+}
