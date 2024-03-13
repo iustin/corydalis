@@ -21,7 +21,7 @@ $doctype 5
           <li .nav-item>
             <a .nav-link href=@{HomeR}>
               <span .fa-solid .fa-home>
-              <span .d-none .d-lg-inline>
+              <span .d-none .d-xxl-inline>
                 Corydalis
           <li .nav-item .nav-link .px-0 .d-none .d-md-block>
               <span .fa-solid .fa-caret-right>
@@ -48,33 +48,33 @@ $doctype 5
                 <input type="hidden" name="unused" value="unused">
                 <button .btn .btn-light type="submit" title="Rescan directories and image information" .d-none .d-sm-inline>
                   <span .fa-solid .fa-sync>
-                  <span .d-none .d-lg-inline>
+                  <span .d-none .d-xl-inline>
                     Rescan
             <a .nav-item .nav-link href=@{StatusR}>
                 <span class="#{repoStatusIcon repoState}"`>
-                <span .d-none .d-lg-inline>
+                <span .d-none .d-xl-inline>
                   Status
             <a .nav-item .nav-link href=@{CurateR}>
                 <span .fa-solid .fa-tasks>
-                <span .d-none .d-lg-inline>
+                <span .d-none .d-xl-inline>
                   Curate
             <a .nav-item .nav-link .d-none .d-sm-inline href=@{SettingsR}>
                 <span .fa-solid .fa-cog>
-                <span .d-none .d-lg-inline>
+                <span .d-none .d-xl-inline>
                   Settings
             <a .nav-item .nav-link href=@{AboutR}>
               <span .fa-solid .fa-question>
-              <span .d-none .d-lg-inline>
+              <span .d-none .d-xl-inline>
                 About
             $if is_auth
               <a .nav-item .nav-link href=@{AuthR LogoutR}>
                   <span .fa-solid .fa-sign-out-alt>
-                  <span .d-none .d-lg-inline>
+                  <span .d-none .d-xl-inline>
                     Logout
             $else
               <a .nav-item .nav-link href=@{AuthR LoginR}>
                   <span .fa-solid .fa-sign-in-alt>
-                  <span .d-none .d-lg-inline>
+                  <span .d-none .d-xl-inline>
                     Login
 
     <div .container-fluid #main role="main">
