@@ -10,6 +10,99 @@
 <div #persistDiv width="96%" height="1em" style="height: 2em; left: 1em; width: 90%; top: 3em; position: absolute;">
  <span #persistBox>
 
+<div #helpDiv .modal tabindex="-1" aria-hidden="true">
+  <div .modal-dialog .modal-dialog-centered .modal-dialog-scrollable .modal-lg>
+    <div .modal-content>
+      <div .modal-header>
+        <h1 .modal-title>Keyboard Shortcuts
+        <button type="button" .btn-close data-bs-dismiss="modal" aria-label="Close"></button>
+      <div .modal-body>
+        <p>
+          All navigation is in the current search context, and follows
+          chronological order.
+        <table width="100%">
+          <tr>
+            <td colspan="2" .keyHeader>
+              <b>Image navigation
+          <tr>
+            <td .keyName>
+              <kbd>⟵
+            <td .keyDesc>
+              Go to the previous picture.
+          <tr>
+            <td .keyName>
+              <kbd>⟶
+            <td .keyDesc>
+              Go to the next picture.
+          <tr>
+            <td .keyName>
+              <kbd>space
+            <td .keyDesc>
+              Go to the next picture, or play the movie.
+          <tr>
+            <td .keyName>
+              <kbd>Tab
+              /
+              <kbd>r
+            <td .keyDesc>
+              Go to a random picture.
+          <tr>
+            <td colspan="2" .keyHeader>
+              <b>Folder navigation
+          <tr>
+            <td .keyName>
+              <kbd>u
+            <td .keyDesc>
+              Go to the parent folder, exiting the viewer.
+          <tr>
+            <td .keyName>
+              <kbd>PgUp
+            <td .keyDesc>
+              Go to the previous folder.
+          <tr>
+            <td .keyName>
+              <kbd>PgDn
+            <td .keyDesc>
+              Go to the next folder.
+          <tr>
+            <td colspan="2" .keyHeader>
+              <b>Browser history navigation
+          <tr>
+            <td .keyName>
+              <kbd>Delete
+            <td .keyDesc>
+              Go back in the browsing history.
+          <tr>
+            <td .keyName>
+              <kbd>&lt;
+              /
+              <kbd>&gt;
+            <td .keyDesc>
+              Go backwards, respectively forwards in the browsing history.
+          <tr>
+            <td colspan="2" .keyHeader>
+              <b>Image flagging
+          <tr>
+            <td .keyName>
+              <kbd>x
+            <td .keyDesc>
+              Flag image for review
+          <tr>
+            <td .keyName>
+              <kbd>n
+            <td .keyDesc>
+              Un-flag image
+          <tr>
+            <td colspan="2" .keyHeader>
+              <b>Help
+          <tr>
+            <td .keyName>
+              <kbd>?
+              /
+              <kbd>h
+            <td .keyDesc>
+              Show this help
+
 <div #imageNavGroup>
   <div #seekBarDiv width="100%">
     <input type="range" .form-range #seekBar value="0" style="width: 100%">

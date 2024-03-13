@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /// <reference types="jquery"/>
 /// <reference types="hammerjs"/>
 /// <reference types="screenfull"/>
+/// <reference types="bootstrap"/>
 
 // The Haskell types.
 
@@ -74,6 +75,20 @@ type Cory = {
   state: State;
 };
 
+/// Relocate the helpDiv element to the top level of the document.
+///
+/// This is a big hack, but it works. The help div is not in the
+/// layout-wrapper, but in the viewer, hence it can't statically be
+/// moved to top level. But were we can relocate it before we create
+/// the modal.
+function relocateHelpDiv(): HTMLElement | null {
+  let helpDiv = document.getElementById('helpDiv');
+  if (helpDiv != null) {
+    helpDiv = document.body.appendChild(helpDiv);
+  }
+  return helpDiv;
+}
+
 $(function () {
   const bootdiv = $('#boot');
   const bootinfo = bootdiv.data('view-info');
@@ -111,6 +126,8 @@ $(function () {
   const seekBar = <HTMLInputElement>$('#seekBar')[0];
   const fullScreenIcon = $('#imageFull>span');
 
+  const helpDiv = relocateHelpDiv();
+
   // Virtual (not-in-DOM) canvas that is used to for pre-rendering
   // images. The alternative would be to use putImageData() instead,
   // and pre-render explicitly the images, tracking said rendering,
@@ -124,12 +141,15 @@ $(function () {
     offCanvas == null ||
     offContext == null ||
     moviePlaySpan == null ||
-    seekBar == null
+    seekBar == null ||
+    helpDiv == null
   ) {
     LOG('Initialising canvas elements failed!');
     window.alert('Cannot fully initialise the application, aborting!');
     return;
   }
+
+  const helpModal = new bootstrap.Modal(helpDiv, { backdrop: true });
 
   // Draws an already-loaded image into a give image element.
   function drawImage(
@@ -682,8 +702,19 @@ $(function () {
 
   setupHammer();
 
+  /// Toggles the help div.
+  function toggleHelp() {
+    helpModal.toggle();
+  }
+
   document.addEventListener('keydown', function (e) {
-    if (e.altKey || e.ctrlKey) {
+    // Ignore pressses of just the modifier key.
+    if (
+      e.key === 'Shift' ||
+      e.key === 'Control' ||
+      e.key === 'Alt' ||
+      e.key === 'Meta'
+    ) {
       return;
     }
     const active = document.activeElement;
@@ -692,6 +723,21 @@ $(function () {
     }
     let handled = true;
     LOG("key: '", e.key, "'");
+
+    // Handle the modal first, as it's a special case. Any key press here
+    // closes the modal, and does nothing else (and doesn't propagate).
+    if (helpDiv.classList.contains('show')) {
+      helpModal.hide();
+      e.preventDefault();
+      return;
+    }
+
+    // Currently we don't handle complex key shortcuts, so if any modifier
+    // key is pressed, return. Shift is special as it's used for capital
+    // letters and reflects in the key value, so we don't check for it.
+    if (e.altKey || e.ctrlKey || e.metaKey) {
+      return;
+    }
     switch (e.key) {
       case 'UpArrow':
       case 'f':
@@ -745,6 +791,10 @@ $(function () {
         // Allow this to navigate forwards. Useful in full-screen mode, to
         // provide parity with backwards.
         window.history.forward();
+        break;
+      case '?':
+      case 'h':
+        toggleHelp();
         break;
       default:
         handled = false;

@@ -156,6 +156,19 @@ span#persistBox {
     font-size: large;
 }
 
+td.keyName {
+    font-weight: bold;
+    text-align: right;
+    padding-right: 0.5em;
+    white-space: nowrap;
+}
+
+td.keyHeader {
+    font-size: large;
+    font-weight: bold;
+    margin-left: 3em;
+}
+
 /* Bootstrap 5 enforces bottom borders. Bootstrap 4 did top borders, but that
  * was less visible due to .card-header colour. With v5, need to fix this. */
 .card .table tr:last-child td {
