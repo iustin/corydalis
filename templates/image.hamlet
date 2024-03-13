@@ -3,8 +3,9 @@
   Image #
     <small>#{folder}/#{iname}
 
-$# Note that masonry doesn't work very well for image page. So disable for now.
-<div .row data-xmasonry=#{dataMasonry}>
+$# Note that masonry needs well-behaving elements, that can fit into the
+$# expected grid size, so it's important to allow overflow-break.
+<div .row data-masonry=#{dataMasonry}>
   <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header>Merged image information

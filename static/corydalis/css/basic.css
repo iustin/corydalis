@@ -13,7 +13,13 @@ td.date {
 .monolight {
     font-family: monospace, monospace;
     background-color: AliceBlue;
-
+    /* This is needed othwerwise the wider monospaced text, especially in
+    * path names, can ruin the intended responsive layout. 'anywhere' is
+    * also needed since 'word-break' doesn't allow changing min-content
+    * intrinsic sizes, per
+    * https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-wrap#values.
+    */
+    overflow-wrap: anywhere;
 }
 
 .no-padding {

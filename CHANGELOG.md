@@ -16,6 +16,12 @@ Improvements to the image viewer:
 - implement a small key shortcuts help page, activated by either `?` or
   `h`.
 
+Other improvements:
+
+- the image info page is now better organised, due to re-enabling the
+  dynamic layout (via the masonry library); a CSS issue that preventent
+  was finally identified and fixed.
+
 ### Experimental features
 
 Corydalis web endpoint now presents a manifest file, allowing installation
