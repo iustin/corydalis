@@ -3,8 +3,8 @@
   Folder #
     <small>#{name}
 
-<div .row>
-  <div .col-12 .col-md-5>
+<div .row data-masonry=#{dataMasonry}>
+  <div .col-12 .col-md-5 .mb-4>
     <div .card>
       <div .card-header>Folder storage
       <div .card-body>
@@ -21,13 +21,13 @@
                 <li>
                   <span .monolight>#{quoteMarkup $ path}
 
-  <div .col-12 .col-md-3>
+  <div .col-12 .col-md-3 .mb-4>
     <div .card>
       <div .card-header>Folder type
       <div .card-body>
         #{fcName fc}: folder #{fcDescription fc}
 
-  <div .col-12 .col-md-3>
+  <div .col-12 .col-md-3 .mb-4>
     <div .card>
       <div .card-header>Picture contents
       <div .card-body>
@@ -39,7 +39,7 @@
           $if numStandalonePics dir > 0
             <li>#{numStandalonePics dir} final files without a source raw file
 
-  <div .col-12 .col-md-4>
+  <div .col-12 .col-md-4 .mb-4>
    <div .card>
     <div .card-header>Folder size
     <div .card-body>
@@ -58,7 +58,7 @@
         $if sUntrackedSize stats > 0
           <li>#{showBinary $ sUntrackedSize stats} untracked files
 
-  <div .col-6 .col-md-3>
+  <div .col-6 .col-md-3 .mb-4>
    <div .card>
     <div .card-header>Camera(s)
     <table .table>
@@ -71,7 +71,7 @@
               ^{showCameraLink c'}
             <td .number>#{cnt}
 
-  <div .col-6 .col-md-4>
+  <div .col-6 .col-md-4 .mb-4>
    <div .card>
     <div .card-header>Lens information
     <table .table>
