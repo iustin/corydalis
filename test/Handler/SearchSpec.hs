@@ -22,8 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.SearchSpec (spec) where
 
+import qualified Data.Map        as Map
 import           Formatting
 import           Handler.Cookies
+import           Pics            (getSearchResults, launchScanFileSystem,
+                                  waitForScan)
 import           TestImport
 import           Types
 
@@ -73,3 +76,26 @@ spec = parallel $ withApp $ do
         --liftIO $ location `shouldBe` Right route
         followRedirectOK
         liftIO $ pendingWith "route parsing is broken"
+
+  describe "SearchView" $ do
+    it "Reports no images on empty repository" $ do
+      login
+      get SearchViewR
+      htmlAnyContain "div.card-header" "Nothing found"
+    it "Redirects to first image when there is one" $ do
+      app <- getTestYesod
+      let ctx = appContext app
+      -- force scan filesystem
+      liftIO $ launchScanFileSystem ctx
+      _ <- liftIO $ waitForScan ctx
+      -- populate cache
+      let image = simpleImage (ctxConfig ctx)
+          results = (Map.singleton ("a", (Nothing, "b")) image, Map.singleton "a" image)
+          allparams = ("all", "0")
+      liftIO $ getSearchResults ctx results  [allparams] `shouldReturn` results
+      login
+      request $ do
+        uncurry addGetParam allparams
+        setMethod "GET"
+        setUrl SearchViewR
+      checkRedirect

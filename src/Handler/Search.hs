@@ -19,19 +19,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE TemplateHaskell   #-}
+
 
 module Handler.Search ( getQuickSearchR
                       , getSearchFoldersByYearR
                       , getSearchFoldersNoYearR
                       , getSearchR
+                      , getSearchViewR
                       ) where
 
-import qualified Data.Text     as Text
+import qualified Data.Map        as Map
+import qualified Data.Text       as Text
 
 import           Handler.Utils
+import           Handler.Widgets (noItemsFound)
 import           Import
 import           Indexer
+import           Pics            (imgName, imgParent)
 
 -- | Default presentation when no preference is found.
 defaultPresentation :: ViewPresentation
@@ -61,6 +67,19 @@ getBestFolderHandler :: Maybe ViewMode -> Route App
 getBestFolderHandler Nothing                = handlerFolders defaultPresentation
 getBestFolderHandler (Just (ViewFolders p)) = handlerFolders p
 getBestFolderHandler (Just (ViewImages p))  = handlerFolders p
+
+getSearchViewR :: Handler Html
+getSearchViewR = do
+    (ctx, _, _, atom, search_string, pics) <- searchContext
+    images <- fst <$> liftIO (searchImages ctx atom pics)
+    case Map.minView images of
+      Just (i, _) -> redirect (ViewR (imgParent i) (imgName i))
+      Nothing     -> defaultLayout $ do
+        setHtmlTitle "Searching images"
+        [whamlet|
+          <h1>Image search failed
+          ^{noItemsFound search_string True}
+         |]
 
 getQuickSearchR :: Handler Html
 getQuickSearchR = do

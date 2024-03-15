@@ -259,6 +259,7 @@ routeStyle StaticR{}              = PageBasic
 routeStyle StatusR                = PageBasic
 routeStyle StatusErrorsR          = PageTable
 routeStyle ViewR{}                = PageView
+routeStyle SearchViewR            = PageBasic
 
 viewMode :: Route App -> Maybe ViewMode
 viewMode ListFoldersR      = Just $ ViewFolders PresentationList
@@ -449,6 +450,7 @@ instance YesodBreadcrumbs App where
   breadcrumb (BrowseImagesR _)   = return ("Search images",     Nothing)
   breadcrumb QuickSearchR        = return ("Quick search",      Nothing)
   breadcrumb SearchR             = return ("Search redirector", Nothing)
+  breadcrumb SearchViewR         = return ("View images by search", Nothing)
   breadcrumb SettingsR           = return ("Settings",          Nothing)
   breadcrumb LensStatsR          = return ("Lens statistics",   Just CurateR)
   breadcrumb CameraStatsR        = return ("Camera statistics", Just CurateR)
