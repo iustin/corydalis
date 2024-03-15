@@ -21,6 +21,8 @@ Other improvements:
 - the image info page is now better organised, due to re-enabling the
   dynamic layout (via the masonry library); a CSS issue that preventent
   was finally identified and fixed.
+- slight improvement to formatting of filters for a date (day of the
+  month).
 
 ### Experimental features
 

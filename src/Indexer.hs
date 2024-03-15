@@ -574,6 +574,10 @@ describeNumHaving t (OpGe v) = sformat ("with " % int % " " % stext % " or more"
 describeNumHaving t (OpGt v) = sformat ("with more than " % int % " " % stext) v t
 describeNumHaving t OpNa     = sformat ("with unknown number of " % stext) t
 
+-- | Formats a day of the month, e.g. "March 15th".
+formatDayOfTheMonth :: Int -> MonthOp -> Text
+formatDayOfTheMonth d m =   "taken on " <> toText m <> " " <> showOrdinal d
+
 atomDescription :: Atom -> Text
 atomDescription (Country  place) = describeStr "country"  place
 
@@ -700,7 +704,8 @@ atomDescription (FlashSrc v)           = formatFlashSource v
 
 atomDescription (FlashMode mode)       = describeStr "flash mode" mode
 
-
+atomDescription (And (Month m) (Day (MonthDay d))) = formatDayOfTheMonth d m
+atomDescription (And (Day (MonthDay d)) (Month m)) = formatDayOfTheMonth d m
 
 atomDescription (And a b) =
   mconcat [ "("
