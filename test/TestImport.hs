@@ -34,8 +34,9 @@ import           Database.Persist.Sql           (SqlPersistM,
                                                  runSqlPersistMPool)
 import           Foundation                     as X
 import           Model                          as X
-import           Pics                           (Ctx, initContext,
-                                                 launchScanFileSystem,
+import           Pics                           (Ctx, File (File), Image,
+                                                 MediaType (..), initContext,
+                                                 launchScanFileSystem, mkImage,
                                                  waitForScan)
 import           Test.Hspec                     as X hiding (shouldSatisfy)
 import           Test.Hspec.Expectations.Lifted as X (shouldSatisfy)
@@ -47,6 +48,7 @@ import           Yesod.Test                     as X
 
 import qualified Control.Exception              as E
 import qualified Data.ByteString.Char8          as BS8
+import           Data.Default
 import           Data.Either
 import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
@@ -241,3 +243,11 @@ followRedirectOK = do
     statusIs 303
     checkRedirect
     statusIs 200
+
+-- Picture mocking functions
+
+simpleImage :: Config -> Image
+simpleImage config =
+  let f = File "a.nef" 0 0 0 "/no-such-file" def
+  in mkImage config "a" "b" (Just f) Nothing []
+             Nothing [] [] Nothing MediaImage def

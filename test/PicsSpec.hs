@@ -22,18 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module PicsSpec (spec) where
 
-import           Data.Default
-import qualified Data.Map     as Map
+import qualified Data.Map   as Map
 
 import           Pics
 import           TestImport
-import           Types        (Config, ctxConfig)
-
-simpleImage :: Config -> Image
-simpleImage config =
-  let f = File "a.nef" 0 0 0 "/no-such-file" def
-  in mkImage config "a" "b" (Just f) Nothing []
-             Nothing [] [] Nothing MediaImage def
+import           Types      (ctxConfig)
 
 spec :: Spec
 spec = parallel $ withContext $
