@@ -266,6 +266,8 @@ viewMode ListFoldersR      = Just $ ViewFolders PresentationList
 viewMode ListImagesR       = Just $ ViewImages PresentationList
 viewMode BrowseFoldersR {} = Just $ ViewFolders PresentationGrid
 viewMode BrowseImagesR {}  = Just $ ViewImages PresentationGrid
+viewMode SearchViewR {}    = Just ViewSingleImage
+viewMode ViewR {}          = Just ViewSingleImage
 viewMode _                 = Nothing
 
 getLastViewMode :: Handler (Maybe ViewMode)

@@ -19,7 +19,8 @@
            Currently viewing <span id="howmany">#{pageSize}</span> #{elem_text} starting at index #{currentStart}. #
            $if page > 0
              Go back to the <a href="@?{(handler 0, params)}">first page</a>. #
-           Switch to the <a href="@?{(list_handler 0, params)}">list view</a>
+           Switch to the <a href="@?{(SearchViewR, params)}">image view mode</a> or
+           to the (technical) <a href="@?{(list_handler 0, params)}">list view</a>
            $if show_alt_view
              , or go to the <a href="@?{(alt_handler 0, params)}">#{alt_text} grid</a> or
              <a href="@?{(alt_listh 0, params)}">#{alt_text} list</a> view

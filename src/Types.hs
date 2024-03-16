@@ -400,12 +400,14 @@ data ViewPresentation = PresentationGrid | PresentationList
   deriving (Eq, Show)
 
 -- | View mode type.
-data ViewMode = ViewImages ViewPresentation
+data ViewMode = ViewSingleImage
+              | ViewImages ViewPresentation
               | ViewFolders ViewPresentation
   deriving (Eq, Show)
 
 -- | Poor man's view mode encoding.
 formatViewMode :: ViewMode -> ByteString
+formatViewMode ViewSingleImage                = "images-view"
 formatViewMode (ViewImages PresentationGrid)  = "images-grid"
 formatViewMode (ViewImages PresentationList)  = "images-list"
 formatViewMode (ViewFolders PresentationGrid) = "folders-grid"
@@ -413,6 +415,7 @@ formatViewMode (ViewFolders PresentationList) = "folders-list"
 
 -- | Poor man's view mode decoding.
 parseViewMode :: Text -> Maybe ViewMode
+parseViewMode "images-view"  = Just ViewSingleImage
 parseViewMode "images-grid"  = Just $ ViewImages PresentationGrid
 parseViewMode "images-list"  = Just $ ViewImages PresentationList
 parseViewMode "folders-grid" = Just $ ViewFolders PresentationGrid

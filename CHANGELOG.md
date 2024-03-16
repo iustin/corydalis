@@ -4,6 +4,18 @@
 
 Unreleased.
 
+### Features
+
+A new "presentation" mode is available, where the image viewere is
+directly entered from any search. Previously, this was only either grid or
+list mode (for images or folders, respectively), and this additional mode
+enters the image viewer mode directly (without going through either grid
+or list first). This mode is activated whenever the image view is
+selected, which might not be optimal, so there might be tweaking to this
+in the future.
+
+### Improvements
+
 Improvements to the image viewer:
 
 - enable the `Tab` key to navigate to random images, similar to existing

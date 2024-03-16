@@ -55,9 +55,12 @@ handlerImages PresentationList = ListImagesR
 
 -- | Computes the best handler, given a potential view mode and
 -- presence of files in the results.
-getBestHandler :: Maybe ViewMode -> Bool -> Route App
+getBestHandler :: Maybe ViewMode  -- ^ View mode, if already selected
+               -> Bool            -- ^ Whether images (True) or folders are desired
+               -> Route App       -- ^ Best handler
 getBestHandler Nothing True                = handlerImages defaultPresentation
 getBestHandler Nothing False               = handlerFolders defaultPresentation
+getBestHandler (Just ViewSingleImage) _    = SearchViewR
 getBestHandler (Just (ViewFolders p)) _    = handlerFolders p
 getBestHandler (Just (ViewImages p)) False = handlerFolders p
 getBestHandler (Just (ViewImages p)) True  = handlerImages p
@@ -65,6 +68,7 @@ getBestHandler (Just (ViewImages p)) True  = handlerImages p
 -- | Computes best folder presentation, based on existing preference.
 getBestFolderHandler :: Maybe ViewMode -> Route App
 getBestFolderHandler Nothing                = handlerFolders defaultPresentation
+getBestFolderHandler (Just ViewSingleImage) = SearchViewR
 getBestFolderHandler (Just (ViewFolders p)) = handlerFolders p
 getBestFolderHandler (Just (ViewImages p))  = handlerFolders p
 
