@@ -117,26 +117,30 @@ div#imageNavGroup {
     opacity: 0.5;
 }
 
+div#imageNavGroup.revealed {
+    opacity: 1;
+}
+
 @media(min-width: 0) {
-    div#imageNav>button {
+    div#imageNav>button, div#imageNav>div>button {
         font-size: xx-small;
     }
 }
 
 @media(min-width: 48em) {
-    div#imageNav>button {
+    div#imageNav>button, div#imageNav>div>button {
         font-size: x-small;
     }
 }
 
 @media(min-width:62em) {
-    div#imageNav>button {
+    div#imageNav>button, div#imageNav>div>button {
         font-size: small;
     }
 }
 
 @media(min-width:75em) {
-    div#imageNav>button {
+    div#imageNav>button, div#imageNav>div>button {
         font-size: medium;
     }
 }

@@ -118,9 +118,29 @@
     <button type="button" .btn .btn-light #imagePrev
       title="Go to the previous image">
       <span .fa-solid .fa-fw .fa-2x .fa-angle-left>
-    <button type="button" .btn .btn-light #imageUp
-      title="Go to the parent folder">
-      <span .fa-solid .fa-fw .fa-2x .fa-angle-up>
+    <div .dropup .btn-group role="group">
+      <button type="button" .btn .btn-light data-bs-toggle="dropdown" aria-expanded="false"
+        title="Show image menu" #menuToggle>
+        <span .fa-solid .fa-fw .fa-2x .fa-bars>
+      <ul .dropdown-menu  #imageMenu>
+        <li>
+          <button type="button" .btn .btn-light .dropdown-item #goBrowse .disabled
+            title="Exit the viewer and go to the image browsing page">
+            Switch to browse mode
+        <li>
+          <button type="button" .btn .btn-light .dropdown-item #goList .disabled
+            title="Exit the viewer and go to the image list page">
+            Switch to list mode
+        <li>
+          <hr .dropdown-divider>
+        <li>
+          <button type="button" .btn .btn-light .dropdown-item #goImageInfo .disabled
+            title="Exit the viewer and go to the image information page">
+            View image info
+        <li>
+          <button type="button" .btn .btn-light .dropdown-item #goParent .disabled
+            title="Exit the viewer and go to the parent folder">
+            Go to the parent folder
 
     $# image zoom, vs movie play/pause.
     <button type="button" .btn .btn-light .nav-only-image #imageZoom

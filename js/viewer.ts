@@ -135,6 +135,9 @@ $(function () {
   const offCanvas = document.createElement('canvas');
   const offContext = offCanvas.getContext('2d');
 
+  const menuToggle = document.getElementById('menuToggle');
+  const imageNavGroup = document.getElementById('imageNavGroup');
+
   if (
     canvas == null ||
     context == null ||
@@ -142,7 +145,9 @@ $(function () {
     offContext == null ||
     moviePlaySpan == null ||
     seekBar == null ||
-    helpDiv == null
+    helpDiv == null ||
+    menuToggle == null ||
+    imageNavGroup == null
   ) {
     LOG('Initialising canvas elements failed!');
     window.alert('Cannot fully initialise the application, aborting!');
@@ -819,6 +824,13 @@ $(function () {
       // Simulate the loading of the previous page
       switchToImage(event.state);
     }
+  });
+
+  menuToggle.addEventListener('hidden.bs.dropdown', function () {
+    imageNavGroup.classList.remove('revealed');
+  });
+  menuToggle.addEventListener('shown.bs.dropdown', function () {
+    imageNavGroup.classList.add('revealed');
   });
 
   function computeNavBarHeight(): number {
