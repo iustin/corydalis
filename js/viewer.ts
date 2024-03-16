@@ -860,6 +860,9 @@ $(function () {
     $('#imageUp').on('click', function () {
       window.location.href = cory.info.folderurl;
     });
+    $('#imageZoom').on('click', function () {
+      writeMessage('Zoom not implemented yet - sorry 😔!');
+    });
     $('#imagePrev').on('click', function () {
       advanceImage(false);
     });

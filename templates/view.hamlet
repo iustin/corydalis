@@ -118,14 +118,17 @@
     <button type="button" .btn .btn-light #imagePrev
       title="Go to the previous image">
       <span .fa-solid .fa-fw .fa-2x .fa-angle-left>
+    <button type="button" .btn .btn-light #imageUp
+      title="Go to the parent folder">
+      <span .fa-solid .fa-fw .fa-2x .fa-angle-up>
 
-    $# image random, vs movie play/pause.
+    $# image zoom, vs movie play/pause.
+    <button type="button" .btn .btn-light .nav-only-image #imageZoom
+      title="Zoom image">
+      <span .fa-solid .fa-fw .fa-2x .fa-magnifying-glass>
     <button type="button" .btn .btn-light .nav-only-video #moviePlay
       title="Play/pause the movie">
       <span .fa-solid .fa-fw .fa-2x .fa-play>
-    <button type="button" .btn .btn-light .nav-only-image #imageUp
-      title="Go to the parent folder">
-      <span .fa-solid .fa-fw .fa-2x .fa-angle-up>
 
     $# Common buttons.
     <button type="button" .btn .btn-light #imageRand
