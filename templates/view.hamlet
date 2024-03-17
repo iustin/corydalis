@@ -123,6 +123,11 @@
             <span .fa-solid .fa-fw .fa-circle-info>
             View image info
         <li>
+          <button type="button" .btn .btn-light .dropdown-item #downloadImage
+            title="Download the current picture">
+            <span .fa-solid .fa-fw .fa-download>
+            Download image
+        <li>
           <hr .dropdown-divider>
         <li>
           <button type="button" .btn .btn-light .dropdown-item #goParent

@@ -89,6 +89,27 @@ function relocateHelpDiv(): HTMLElement | null {
   return helpDiv;
 }
 
+/// Helper to download an image.
+///
+/// Straight out copied from MDN's AI help…
+function downloadFile(url: string, fileName: string) {
+  // Create an 'a' element
+  const a = document.createElement('a');
+
+  // Set the href and download attributes for the anchor element
+  a.href = url;
+  a.download = fileName || 'defaultFileName';
+
+  // Append the anchor to the document
+  document.body.appendChild(a);
+
+  // Trigger the download by simulating click
+  a.click();
+
+  // Clean up by removing the element
+  document.body.removeChild(a);
+}
+
 $(function () {
   const bootdiv = $('#boot');
   const bootinfo = bootdiv.data('view-info');
@@ -862,6 +883,9 @@ $(function () {
     });
     $('#goImageInfo').on('click', function () {
       window.location.href = cory.info.imageurl;
+    });
+    $('#downloadImage').on('click', function () {
+      downloadFile(cory.info.current.bytes, cory.info.current.name);
     });
     $('#goParent').on('click', function () {
       window.location.href = cory.info.folderurl;
