@@ -134,11 +134,11 @@
         <li>
           <hr .dropdown-divider>
         <li>
-          <button type="button" .btn .btn-light .dropdown-item #goImageInfo .disabled
+          <button type="button" .btn .btn-light .dropdown-item #goImageInfo
             title="Exit the viewer and go to the image information page">
             View image info
         <li>
-          <button type="button" .btn .btn-light .dropdown-item #goParent .disabled
+          <button type="button" .btn .btn-light .dropdown-item #goParent
             title="Exit the viewer and go to the parent folder">
             Go to the parent folder
 

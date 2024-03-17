@@ -869,7 +869,10 @@ $(function () {
     $('#imageRand').on('click', function () {
       gotoRandomImage();
     });
-    $('#imageUp').on('click', function () {
+    $('#goImageInfo').on('click', function () {
+      window.location.href = cory.info.imageurl;
+    });
+    $('#goParent').on('click', function () {
       window.location.href = cory.info.folderurl;
     });
     $('#imageZoom').on('click', function () {
