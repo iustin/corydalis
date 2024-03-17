@@ -107,40 +107,50 @@
   <div #seekBarDiv width="100%">
     <input type="range" .form-range #seekBar value="0" style="width: 100%">
   <div #imageNav .btn-group role="group" aria="Navigation buttons">
-    $# Image previous folder and movie rewind.
-    <button type="button" .btn .btn-light .nav-only-image #folderPrev
-      title="Go to the first image in the previous folder">
-      <span .fa-solid .fa-fw .fa-2x .fa-angle-double-left>
-    <button type="button" .btn .btn-light .nav-only-video #movieRewind
-      title="Jump back in the movie">
-      <span .fa-solid .fa-fw .fa-2x .fa-backward>
 
     <button type="button" .btn .btn-light #imagePrev
       title="Go to the previous image">
       <span .fa-solid .fa-fw .fa-2x .fa-angle-left>
+
     <div .dropup .btn-group role="group">
       <button type="button" .btn .btn-light data-bs-toggle="dropdown" aria-expanded="false"
         title="Show image menu" #menuToggle>
         <span .fa-solid .fa-fw .fa-2x .fa-bars>
       <ul .dropdown-menu  #imageMenu>
         <li>
+          <button type="button" .btn .btn-light .dropdown-item #goImageInfo
+            title="Exit the viewer and go to the image information page">
+            <span .fa-solid .fa-fw .fa-circle-info>
+            View image info
+        <li>
+          <hr .dropdown-divider>
+        <li>
+          <button type="button" .btn .btn-light .dropdown-item #goParent
+            title="Exit the viewer and go to the parent folder">
+            <span .fa-solid .fa-fw .fa-caret-up>
+            Go to the parent folder
+        <li>
+          <button type="button" .btn .btn-light .dropdown-item #folderPrev
+            title="Go to the first image in the previous folder">
+            <span .fa-solid .fa-fw .fa-angle-double-left>
+            View previous folder
+        <li>
+          <button type="button" .btn .btn-light .dropdown-item #folderNext
+            title="Go to the first image in the next folder">
+            <span .fa-solid .fa-fw .fa-angle-double-right>
+            View next folder
+        <li>
+          <hr .dropdown-divider>
+        <li>
           <button type="button" .btn .btn-light .dropdown-item #goBrowse .disabled
             title="Exit the viewer and go to the image browsing page">
+            <span .fa-solid .fa-fw .fa-table-cells>
             Switch to browse mode
         <li>
           <button type="button" .btn .btn-light .dropdown-item #goList .disabled
             title="Exit the viewer and go to the image list page">
+            <span .fa-solid .fa-fw .fa-table-list>
             Switch to list mode
-        <li>
-          <hr .dropdown-divider>
-        <li>
-          <button type="button" .btn .btn-light .dropdown-item #goImageInfo
-            title="Exit the viewer and go to the image information page">
-            View image info
-        <li>
-          <button type="button" .btn .btn-light .dropdown-item #goParent
-            title="Exit the viewer and go to the parent folder">
-            Go to the parent folder
 
     $# image zoom, vs movie play/pause.
     <button type="button" .btn .btn-light .nav-only-image #imageZoom
@@ -160,11 +170,3 @@
     <button type="button" .btn .btn-light #imageNext
       title="Go to the next image">
       <span .fa-solid .fa-fw .fa-2x .fa-angle-right>
-
-    $# Image folder next, movie forward.
-    <button type="button" .btn .btn-light .nav-only-video #movieForward
-      title="Jump forward in the movie">
-      <span .fa-solid .fa-fw .fa-2x .fa-forward>
-    <button type="button" .btn .btn-light .nav-only-image #folderNext
-      title="Go to the first image in the next folder">
-      <span .fa-solid .fa-fw .fa-2x .fa-angle-double-right>

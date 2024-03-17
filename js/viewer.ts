@@ -579,15 +579,6 @@ $(function () {
     }
   }
 
-  /** Moves forward or backward in the movie.
-   *
-   */
-  function movieRewind(forward: boolean) {
-    if (cory.state.video != null) {
-      cory.state.video.currentTime += forward ? 10 : -10;
-    }
-  }
-
   /** Drops the current video, if any.
    *
    * This is used to clean up the video element, such that in-flight load
@@ -894,12 +885,6 @@ $(function () {
     // movie-specific controls
     $('#moviePlay').on('click', function () {
       launchMovie();
-    });
-    $('#movieRewind').on('click', function () {
-      movieRewind(false);
-    });
-    $('#movieForward').on('click', function () {
-      movieRewind(true);
     });
 
     seekBar.addEventListener('input', function () {
