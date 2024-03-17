@@ -34,6 +34,8 @@ type ImageInfo = {
   movie?: Url;
   view: Url;
   flag: Url;
+  list: Url;
+  browse: Url;
   name: string;
   transform: Transform;
   matrix: AffineMatrix;
@@ -889,6 +891,12 @@ $(function () {
     });
     $('#goParent').on('click', function () {
       window.location.href = cory.info.folderurl;
+    });
+    $('#goBrowse').on('click', function () {
+      window.location.href = cory.info.current.browse;
+    });
+    $('#goList').on('click', function () {
+      window.location.href = cory.info.current.list;
     });
     $('#imageZoom').on('click', function () {
       writeMessage('Zoom not implemented yet - sorry 😔!');

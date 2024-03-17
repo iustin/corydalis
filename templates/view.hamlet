@@ -147,12 +147,12 @@
         <li>
           <hr .dropdown-divider>
         <li>
-          <button type="button" .btn .btn-light .dropdown-item #goBrowse .disabled
+          <button type="button" .btn .btn-light .dropdown-item #goBrowse
             title="Exit the viewer and go to the image browsing page">
             <span .fa-solid .fa-fw .fa-table-cells>
             Switch to browse mode
         <li>
-          <button type="button" .btn .btn-light .dropdown-item #goList .disabled
+          <button type="button" .btn .btn-light .dropdown-item #goList
             title="Exit the viewer and go to the image list page">
             <span .fa-solid .fa-fw .fa-table-list>
             Switch to list mode
