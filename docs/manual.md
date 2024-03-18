@@ -52,6 +52,8 @@ controls:
 - `backspace`/`delete`/ `<` (keys): navigate backwards in history (useful
   in full screen mode).
 - `>` (greater than): navigate forwards in history.
+- `m`: open the navigation menu (bottom right).
+- `?`/`h`: show shortcuts help.
 
 And that is it. The image advancing flows continuously from one folder
 to the next, so in theory you could go to the first every image in

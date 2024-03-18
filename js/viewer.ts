@@ -811,6 +811,9 @@ $(function () {
         // provide parity with backwards.
         window.history.forward();
         break;
+      case 'm':
+        menuToggle.click();
+        break;
       case '?':
       case 'h':
         toggleHelp();

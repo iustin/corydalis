@@ -94,7 +94,12 @@
               Un-flag image
           <tr>
             <td colspan="2" .keyHeader>
-              <b>Help
+              <b>Miscellaneous
+          <tr>
+            <td .keyName>
+              <kbd>m
+            <td .keyDesc>
+              Open the navigation menu
           <tr>
             <td .keyName>
               <kbd>?
