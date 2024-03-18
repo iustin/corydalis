@@ -192,7 +192,7 @@ $(function () {
     if (!isImageReady(img)) {
       img.onload = function () {
         LOG('Late load of ', url);
-        setImageState(img, true);
+        setImageReady(img, true);
         drawImage(img, info, msg, skipStackChange);
       };
       return;
@@ -347,11 +347,11 @@ $(function () {
   /// This must be the only place that sets the `src` attribute to
   /// somthing, to keep the resolution handling abstract.
   function loadImage(img: HTMLImageElement, url: string) {
-    setImageState(img, false);
+    setImageReady(img, false);
     img.src = imageUrlScaled(url);
   }
 
-  function setImageState(img: HTMLImageElement, done: boolean) {
+  function setImageReady(img: HTMLImageElement, done: boolean) {
     $(img).data('done', done);
   }
 
@@ -360,7 +360,7 @@ $(function () {
   }
 
   function handleOffscreenImageLoad(img: HTMLImageElement, kind: string) {
-    setImageState(img, true);
+    setImageReady(img, true);
     LOG('Loaded', kind, ' image');
     T_START('post-load');
     // Hack to force pre-rendering. Seems to work, at least in FF
@@ -465,7 +465,7 @@ $(function () {
   function switchToImage(info: ImageInfo) {
     const image = new Image();
     image.onload = function () {
-      setImageState(image, true);
+      setImageReady(image, true);
       drawImage(image, info, info.name);
     };
     writeMessage(`Loading ${info.name}...`);
@@ -944,7 +944,7 @@ $(function () {
 
   const image = new Image();
   image.onload = function () {
-    setImageState(image, true);
+    setImageReady(image, true);
     const c = bootinfo.current;
     drawImage(image, c, c.name);
   };
