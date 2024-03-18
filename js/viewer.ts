@@ -342,6 +342,15 @@ $(function () {
     redrawImage();
   }
 
+  /// The function that actually loads the image URL/bytes.
+  ///
+  /// This must be the only place that sets the `src` attribute to
+  /// somthing, to keep the resolution handling abstract.
+  function loadImage(img: HTMLImageElement, url: string) {
+    setImageState(img, false);
+    img.src = imageUrlScaled(url);
+  }
+
   function setImageState(img: HTMLImageElement, done: boolean) {
     $(img).data('done', done);
   }
@@ -386,8 +395,7 @@ $(function () {
       img.onload = function () {
         handleOffscreenImageLoad(img, text);
       };
-      $(img).data('done', false);
-      img.src = imageUrlScaled(info.bytes);
+      loadImage(img, info.bytes);
     } else {
       LOG('skipping', text, 'image as unavailable');
     }
@@ -462,7 +470,7 @@ $(function () {
     };
     writeMessage(`Loading ${info.name}...`);
     maybeWriteIsMovie(info);
-    image.src = imageUrlScaled(info.bytes);
+    loadImage(image, info.bytes);
     updateInfo(info.info);
   }
 
@@ -940,7 +948,7 @@ $(function () {
     const c = bootinfo.current;
     drawImage(image, c, c.name);
   };
-  image.src = imageUrlScaled(bootinfo.current.bytes);
+  loadImage(image, bootinfo.current.bytes);
 
   // Process the rest of info (load prev/next images) only after the
   // current image loading has been triggered, for faster startup.
