@@ -786,6 +786,15 @@ $(function () {
       case 'n':
         flagImage(false);
         break;
+      case 'b':
+        triggerBrowseMode();
+        break;
+      case 'l':
+        triggerListMode();
+        break;
+      case 'D':
+        triggerImageDownload();
+        break;
       case 'ArrowLeft':
         advanceImage(false);
         break;
@@ -795,9 +804,11 @@ $(function () {
       case 'ArrowRight':
         advanceImage(true);
         break;
+      case '[':
       case 'PageUp':
         advanceFolder(false);
         break;
+      case ']':
       case 'PageDown':
         advanceFolder(true);
         break;
@@ -819,6 +830,7 @@ $(function () {
         // provide parity with backwards.
         window.history.forward();
         break;
+      case '.':
       case 'm':
         menuToggle.click();
         break;
@@ -867,6 +879,18 @@ $(function () {
     }
   }
 
+  function triggerImageDownload() {
+    downloadFile(cory.info.current.bytes, cory.info.current.name);
+  }
+
+  function triggerBrowseMode() {
+    window.location.href = cory.info.current.browse;
+  }
+
+  function triggerListMode() {
+    window.location.href = cory.info.current.list;
+  }
+
   // Based on current layout, convert the div#main to fixed
   // position, keeping - hopefully - same absolute location inside
   // the window.
@@ -897,18 +921,10 @@ $(function () {
     $('#goImageInfo').on('click', function () {
       window.location.href = cory.info.imageurl;
     });
-    $('#downloadImage').on('click', function () {
-      downloadFile(cory.info.current.bytes, cory.info.current.name);
-    });
-    $('#goParent').on('click', function () {
-      window.location.href = cory.info.folderurl;
-    });
-    $('#goBrowse').on('click', function () {
-      window.location.href = cory.info.current.browse;
-    });
-    $('#goList').on('click', function () {
-      window.location.href = cory.info.current.list;
-    });
+    $('#downloadImage').on('click', triggerImageDownload);
+    $('#goParent').on('click', gotoFolder);
+    $('#goBrowse').on('click', triggerBrowseMode);
+    $('#goList').on('click', triggerListMode);
     $('#imageZoom').on('click', function () {
       writeMessage('Zoom not implemented yet - sorry 😔!');
     });

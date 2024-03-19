@@ -47,6 +47,21 @@
             <td .keyDesc>
               Go to a random picture.
           <tr>
+            <td .keyName>
+              <kbd>Home
+            <td .keyDesc>
+              Go to the first picture.
+          <tr>
+            <td .keyName>
+              <kbd>End
+            <td .keyDesc>
+              Go to the last picture.
+          <tr>
+            <td .keyName>
+              <kbd>b
+            <td .keyDesc>
+              Switch to browsing mode.
+          <tr>
             <td colspan="2" .keyHeader>
               <b>Folder navigation
           <tr>
@@ -56,11 +71,15 @@
               Go to the parent folder, exiting the viewer.
           <tr>
             <td .keyName>
+              <kbd>[
+              /
               <kbd>PgUp
             <td .keyDesc>
               Go to the previous folder.
           <tr>
             <td .keyName>
+              <kbd>]
+              /
               <kbd>PgDn
             <td .keyDesc>
               Go to the next folder.
@@ -97,6 +116,8 @@
               <b>Miscellaneous
           <tr>
             <td .keyName>
+              <kbd>.
+              /
               <kbd>m
             <td .keyDesc>
               Open the navigation menu
@@ -124,43 +145,69 @@
       <ul .dropdown-menu  #imageMenu>
         <li>
           <button type="button" .btn .btn-light .dropdown-item #goImageInfo
+            .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the image information page">
-            <span .fa-solid .fa-fw .fa-circle-info>
-            View image info
+            <span>
+              <span .fa-solid .fa-fw .fa-arrow-right-long>
+              Open image info page
         <li>
           <button type="button" .btn .btn-light .dropdown-item #downloadImage
+            .d-flex .justify-content-between .align-items-center
             title="Download the current picture">
-            <span .fa-solid .fa-fw .fa-download>
-            Download image
+            <span>
+              <span .fa-solid .fa-fw .fa-download>
+              Download image
+            <kbd .ms-2>
+              D
         <li>
           <hr .dropdown-divider>
         <li>
           <button type="button" .btn .btn-light .dropdown-item #goParent
+            .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the parent folder">
-            <span .fa-solid .fa-fw .fa-caret-up>
-            Go to the parent folder
+            <span>
+              <span .fa-solid .fa-fw .fa-caret-up>
+              Go to the parent folder
+            <kbd .ms-2>
+              u
         <li>
           <button type="button" .btn .btn-light .dropdown-item #folderPrev
+            .d-flex .justify-content-between .align-items-center
             title="Go to the first image in the previous folder">
-            <span .fa-solid .fa-fw .fa-angle-double-left>
-            View previous folder
+            <span>
+              <span .fa-solid .fa-fw .fa-angle-double-left>
+              View previous folder
+            <kbd .ms-2>
+              [
         <li>
           <button type="button" .btn .btn-light .dropdown-item #folderNext
+            .d-flex .justify-content-between .align-items-center
             title="Go to the first image in the next folder">
-            <span .fa-solid .fa-fw .fa-angle-double-right>
-            View next folder
+            <span>
+              <span .fa-solid .fa-fw .fa-angle-double-right>
+              View next folder
+            <kbd .ms-2>
+              ]
         <li>
           <hr .dropdown-divider>
         <li>
           <button type="button" .btn .btn-light .dropdown-item #goBrowse
+            .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the image browsing page">
-            <span .fa-solid .fa-fw .fa-table-cells>
-            Switch to browse mode
+            <span>
+              <span .fa-solid .fa-fw .fa-table-cells>
+              Switch to browse mode
+            <kbd .ms-2>
+              b
         <li>
           <button type="button" .btn .btn-light .dropdown-item #goList
+            .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the image list page">
-            <span .fa-solid .fa-fw .fa-table-list>
-            Switch to list mode
+            <span>
+              <span .fa-solid .fa-fw .fa-table-list>
+              Switch to list mode
+            <kbd .ms-2>
+              l
 
     $# image zoom, vs movie play/pause.
     <button type="button" .btn .btn-light .nav-only-image #imageZoom
