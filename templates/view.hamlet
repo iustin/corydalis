@@ -129,7 +129,7 @@
             <td .keyDesc>
               Show this help
 
-<div #imageNavGroup>
+<div #imageNavGroup style="touch-action: manipulation">
   <div #seekBarDiv width="100%">
     <input type="range" .form-range #seekBar value="0" style="width: 100%">
   <div #imageNav .btn-group role="group" aria="Navigation buttons">
