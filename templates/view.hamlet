@@ -129,6 +129,8 @@
             <td .keyDesc>
               Show this help
 
+$# The style attribute is for disabling zooming, for context see
+$# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
 <div #imageNavGroup style="touch-action: manipulation">
   <div #seekBarDiv width="100%">
     <input type="range" .form-range #seekBar value="0" style="width: 100%">
