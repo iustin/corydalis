@@ -1,8 +1,13 @@
 # Changelog
 
-## vNext
+## v2024.12.0 - "No accidental zooming"
 
-Unreleased.
+Released: _Wed, 20 Mar 2024_.
+
+For me, the highlight of this release is the disabling of unintended, and
+accidental zomming in the image viewer, when using the navigation bar with
+fast tapping. The viewer zoom level is now stable, except when
+(intentionally) double tapping on the top navbar or search entry.
 
 ### Features
 
@@ -27,6 +32,11 @@ Improvements to the image viewer:
   useful in full screen mode, and `>` for forward navigation.
 - implement a small key shortcuts help page, activated by either `?` or
   `h`.
+- disable "tap-to-zoom" on the navigation bar, since this was, in my own
+  experience, one of the most confusing outcomes of trying to navigate
+  fast by tappin (rather than swipping), and getting out of zoomed state
+  was difficult since the canvas (which doesn't interact for this) takes
+  90% of the page.
 
 Other improvements:
 
