@@ -17,5 +17,9 @@
   "[markdown]": {
     "editor.rulers": [72, 80, 120]
   },
-  "rewrap.wrappingColumn": 74
+  "rewrap.wrappingColumn": 74,
+  "cSpell.language": "en-GB",
+  "spellright.language": ["en_GB"],
+  "spellright.documentTypes": ["markdown", "latex", "plaintext"],
+  "spellright.groupDictionaries": false
 }
