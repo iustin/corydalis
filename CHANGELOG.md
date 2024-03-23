@@ -5,13 +5,13 @@
 Released: _Wed, 20 Mar 2024_.
 
 For me, the highlight of this release is the disabling of unintended, and
-accidental zomming in the image viewer, when using the navigation bar with
+accidental zooming in the image viewer, when using the navigation bar with
 fast tapping. The viewer zoom level is now stable, except when
 (intentionally) double tapping on the top navbar or search entry.
 
 ### Features
 
-A new "presentation" mode is available, where the image viewere is
+A new "presentation" mode is available, where the image viewer is
 directly entered from any search. Previously, this was only either grid or
 list mode (for images or folders, respectively), and this additional mode
 enters the image viewer mode directly (without going through either grid
@@ -34,14 +34,14 @@ Improvements to the image viewer:
   `h`.
 - disable "tap-to-zoom" on the navigation bar, since this was, in my own
   experience, one of the most confusing outcomes of trying to navigate
-  fast by tappin (rather than swipping), and getting out of zoomed state
+  fast by tapping (rather than swiping), and getting out of zoomed state
   was difficult since the canvas (which doesn't interact for this) takes
   90% of the page.
 
 Other improvements:
 
 - the image info page is now better organised, due to re-enabling the
-  dynamic layout (via the masonry library); a CSS issue that preventent
+  dynamic layout (via the masonry library); a CSS issue that prevented
   was finally identified and fixed.
 - slight improvement to formatting of filters for a date (day of the
   month).
@@ -244,7 +244,7 @@ same to folder views and to image views.
 
 On the folder view, selecting an image leads into the image viewer for
 that folder, whereas for the image view, it just opens the image or
-the movie in a "lightbox", allowing to view the image in more detail
+the movie in a "light box", allowing to view the image in more detail
 (even at full resolution, which is better than the previous image
 view) without losing track of browsing position.
 
@@ -309,7 +309,7 @@ There is so much more data that could be shown here, but not yet…
 ### Performance improvements
 
 Some folder statistics are now pre-computed and cached, leading to
-significant speedups (up to one order of magnitude) in some cases
+significant speed-ups (up to one order of magnitude) in some cases
 (e.g. the folder list view).
 
 Quick search atoms now can be prefixed with an atom keyword followed
@@ -391,7 +391,7 @@ A major release, with close to 300 commits.
 will be regenerated, so the first startup should be slower. This
 should proceed automatically, but as there is no versioning of the
 cache, it might be a good idea to remove the files manually (as
-there's no automated cleanup procedure yet):
+there's no automated clean-up procedure yet):
 
 ```shell
 find /path/to/cache/dir -name '*-bexif' -delete

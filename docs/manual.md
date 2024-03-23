@@ -21,9 +21,9 @@ you're in folder browse mode. You can now scroll up/down now, and:
 
 - in folder browse mode, clicking on a picture takes you to the
   dedicated image viewer (see below);
-- in image browse mode, it opens up a "lightbox" with the image or
+- in image browse mode, it opens up a "light box" with the image or
   movie (with integrated player) and you can switch between
-  images (left/right, via keyboard or swipe) while the lightbox is
+  images (left/right, via keyboard or swipe) while the light box is
   open, in effect providing another infinite scroll experience.
 
 This "browse mode" is one of the three available modes for looking at
@@ -494,7 +494,7 @@ algorithm was: the processed file is older than the most recent
 changes to the raw or sidecar file, modulo a configurable delta).
 
 However, this was too unreliable. It is perfectly valid to do some
-work on the source file that would update the mtime of the
+work on the source file that would update the modification time of the
 source/sidecar, but which however do not influence the output file, or
 not enough to warrant reprocessing. Thus, tracking a "processed" vs an
 "outdated" file doesn't make sense. On top of that, in some cases,
