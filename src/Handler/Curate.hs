@@ -170,7 +170,10 @@ getCurateR = do
                                                        fromIntegral $ totalStatsCount s,
                                                        k):l) [] stats
       (yssize, yscount, ysyears) = unzip3 perYearStats
-      years_values = map (fromIntegral . fromMaybe 0) ysyears
+      -- FIXME: map the "no-year" case to something better. For now, use -
+      -- 2, so there's a clear gap.
+      no_year = maybe 0 (\x -> minimum x - 2) . fromNullable . catMaybes $ ysyears
+      years_values = map (fromIntegral . fromMaybe no_year) ysyears
       json_years_count = def
         { xgdName = "Count"
         , xgdType = "scatter"
