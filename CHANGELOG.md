@@ -1,5 +1,13 @@
 # Changelog
 
+## vNext
+
+Small improvements:
+
+- the curate page shows a yearly image count/size graph, to give an
+  overview on how the photo collection evolved over time; this is a
+  simplification compared the lens/camera timelines.
+
 ## v2024.12.0 - "No accidental zooming"
 
 Released: _Wed, 20 Mar 2024_.

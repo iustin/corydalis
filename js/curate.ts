@@ -1,6 +1,7 @@
 /// <reference types="plotly.js"/>
 
 $(function () {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function onDataReceived(series: any) {
     const cameraLayout = {
       xaxis: {
@@ -43,6 +44,20 @@ $(function () {
       },
       title: 'Folder file/size stats',
     };
+    const yearLayout = {
+      xaxis: {
+        title: 'Year',
+        automargin: true,
+      },
+      yaxis: { title: 'Image count' },
+      yaxis2: {
+        title: 'Size',
+        overlaying: 'y' as const,
+        side: 'right' as const,
+      },
+      legend: { orientation: 'h' as const },
+      title: 'Yearly image count and size',
+    };
     const config = {
       showLink: false,
       sendData: false,
@@ -52,6 +67,7 @@ $(function () {
     Plotly.newPlot('cameraChart', series.global, cameraLayout, config);
     Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
     Plotly.newPlot('folderChart', series.folders, folderLayout, config);
+    Plotly.newPlot('yearChart', series.years, yearLayout, config);
   }
 
   const bootdiv = $('#boot');

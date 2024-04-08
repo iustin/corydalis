@@ -43,13 +43,15 @@ import           Indexer
 import           Pics
 
 data XGraphData a b = XGraphData
-  { xgdName :: Text
-  , xgdType :: Text
-  , xgdX    :: [a]
-  , xgdY    :: [b]
-  , xgdText :: Maybe [Text]
+  { xgdName       :: Text
+  , xgdType       :: Text
+  , xgdX          :: [a]
+  , xgdY          :: [b]
+  , xgdText       :: Maybe [Text]
 --  , gdYAxis :: Maybe Text
-  , xgdMode :: Maybe Text
+  , xgdMode       :: Maybe Text
+  , xgdYaxis      :: Maybe Text
+  , xgdMarkerSize :: Maybe Int
   }
 
 instance Default (XGraphData a b) where
@@ -59,6 +61,8 @@ instance Default (XGraphData a b) where
                    , xgdY = []
                    , xgdText = Nothing
                    , xgdMode = Nothing
+                   , xgdYaxis = Nothing
+                   , xgdMarkerSize = Just 15
                   }
 
 instance (ToJSON a, ToJSON b) => ToJSON (XGraphData a b) where
@@ -68,9 +72,9 @@ instance (ToJSON a, ToJSON b) => ToJSON (XGraphData a b) where
            , "x"     .= xgdX
            , "y"     .= xgdY
            , "text"  .= xgdText
-           --, "yaxis" .= gdYAxis
+           , "yaxis" .= xgdYaxis
            , "mode"  .= xgdMode
-           , "marker" .= object [ "size" .= map (const (15::Int)) xgdX]
+           , "marker" .= maybe (object []) (\ms -> object [ "size" .= map (const ms) xgdX]) xgdMarkerSize
            ]
 
 -- | Holds words that should be filtered out from the lens graph.
@@ -156,6 +160,37 @@ getCurateR = do
                  , xgdText = Just textdata
                  }::XGraphData Int64 Int64
            ]
+      perYearStats = let stats = Map.foldl'
+                          (\l f -> Map.foldl' (\l' p ->
+                            let picYear = imageYear p
+                                is = updateStatsWithPic zeroStats p
+                            in Map.insertWith sumStats picYear is l') l (pdImages f)
+                          ) Map.empty (repoDirs pics)
+                      in Map.foldlWithKey' (\l k s -> (fromIntegral $ totalStatsSize s,
+                                                       fromIntegral $ totalStatsCount s,
+                                                       k):l) [] stats
+      (yssize, yscount, ysyears) = unzip3 perYearStats
+      years_values = map (fromIntegral . fromMaybe 0) ysyears
+      json_years_count = def
+        { xgdName = "Count"
+        , xgdType = "scatter"
+        , xgdMode = Nothing
+        , xgdX = years_values
+        , xgdY = map fromInteger yscount
+        , xgdText = Nothing
+        , xgdMarkerSize = Nothing
+        }::XGraphData Int64 Int64
+      json_years_size = def
+        { xgdName = "Size"
+        , xgdType = "scatter"
+        , xgdMode = Nothing
+        , xgdX = years_values
+        , xgdY = map fromInteger yssize
+        , xgdText = Nothing
+        , xgdYaxis = Just "y2"
+        , xgdMarkerSize = Nothing
+        }::XGraphData Int64 Int64
+
       problems = topN 3 $ repoProblems pics
       exifstats = repoExif pics
       imageFilter s = (ListImagesR, atomToParams (Status s))
@@ -167,4 +202,5 @@ getCurateR = do
   defaultLayoutJson html (return $ object [ "global" .= json
                                           , "folders" .= j2
                                           , "lenses"  .= jsonl
+                                          , "years"   .= [json_years_size, json_years_count]
                                           ])

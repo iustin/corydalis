@@ -100,6 +100,7 @@ module Pics ( PicDir(..)
             , repoProblems
             , transformForFile
             , transformForImage
+            , updateStatsWithPic
             -- Test export :/
             , mkImage
             ) where
