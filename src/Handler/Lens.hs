@@ -73,7 +73,6 @@ getLensInfoR lensname = do
       html = do
         setTitle "Corydalis: lens information"
         $(widgetFile "lensinfo")
-        addScript $ StaticR corydalis_js_lensinfo_js
   defaultLayoutJson html (return obj)
 
 getLensStatsR :: Handler TypedContent
@@ -86,5 +85,4 @@ getLensStatsR = do
   let html = do
         setTitle "Corydalis: lens statistics"
         $(widgetFile "lensstats")
-        addScript $ StaticR corydalis_js_lensstats_js
   defaultLayoutJson html (return obj)

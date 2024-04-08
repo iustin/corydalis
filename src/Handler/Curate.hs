@@ -198,7 +198,6 @@ getCurateR = do
   let html = do
         setTitle "Corydalis: curate"
         $(widgetFile "curate")
-        addScript $ StaticR corydalis_js_curate_js
   defaultLayoutJson html (return $ object [ "global" .= json
                                           , "folders" .= j2
                                           , "lenses"  .= jsonl

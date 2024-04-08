@@ -200,6 +200,11 @@ pageJSResources PagePlot =
      , corydalis_js_tablesorter_uitheme_simple_js
      , corydalis_js_tablesorter_config_js
      , plotly_js_plotly_cartesian_js
+     , corydalis_js_camerainfo_js
+     , corydalis_js_camerastats_js
+     , corydalis_js_lensinfo_js
+     , corydalis_js_lensstats_js
+     , corydalis_js_curate_js
      ])
 
 pageJSResources PageGrid =

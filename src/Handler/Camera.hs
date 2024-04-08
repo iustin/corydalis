@@ -89,7 +89,6 @@ getCameraInfoR cameraname = do
       html = do
         setTitle "Corydalis: camera information"
         $(widgetFile "camerainfo")
-        addScript $ StaticR corydalis_js_camerainfo_js
   defaultLayoutJson html (return obj)
 
 getCameraStatsR :: Handler TypedContent
@@ -102,5 +101,4 @@ getCameraStatsR = do
   let html = do
         setTitle "Corydalis: camera statistics"
         $(widgetFile "camerastats")
-        addScript $ StaticR corydalis_js_camerastats_js
   defaultLayoutJson html (return obj)
