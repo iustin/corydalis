@@ -72,8 +72,10 @@ release: clean lint doc regen-git-version bootstrap
 	rm -rf .stack-release
 	stack --work-dir .stack-release build --pedantic $(FLAGS)
 	stack --work-dir .stack-release install --local-bin-path dist/ $(FLAGS)
-	rsync -aL static dist/
-	rm -rf dist/static/tmp/
+	mkdir dist/static
+	cp -aL static/combined dist/static/
+	mkdir -p dist/static/font-awesome/
+	cp -aL static/font-awesome/webfonts dist/static/font-awesome/
 	mkdir dist/static/tmp/
 
 .PHONY: demo-release
