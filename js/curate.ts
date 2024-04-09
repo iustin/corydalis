@@ -54,6 +54,7 @@ $(function () {
         title: 'Size',
         overlaying: 'y' as const,
         side: 'right' as const,
+        exponentformat: 'SI' as const,
       },
       legend: { orientation: 'h' as const },
       title: 'Yearly image count and size',
