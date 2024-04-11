@@ -49,12 +49,16 @@ $(function () {
         title: 'Year',
         automargin: true,
       },
-      yaxis: { title: 'Image count' },
+      yaxis: {
+        title: 'Image count',
+        rangemode: 'tozero' as const,
+      },
       yaxis2: {
         title: 'Size',
         overlaying: 'y' as const,
         side: 'right' as const,
         exponentformat: 'SI' as const,
+        rangemode: 'tozero' as const,
       },
       legend: { orientation: 'h' as const },
       title: 'Yearly image count and size',
