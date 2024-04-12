@@ -1,6 +1,7 @@
 /// <reference types="plotly.js"/>
 
 $(function () {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function onDataReceived(series: any) {
     const cameraLayout = {
       yaxis: {
