@@ -20,6 +20,7 @@ $(function () {
       sendData: false,
       displaylogo: false,
       modeBarButtonsToRemove: ['toImage' as const, 'sendDataToCloud' as const],
+      responsive: true,
     };
     Plotly.newPlot('lensFlApChart', series.lensflap, cameraLayout, config);
   }

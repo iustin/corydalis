@@ -88,6 +88,7 @@ $(function () {
       sendData: false,
       displaylogo: false,
       modeBarButtonsToRemove: ['toImage' as const, 'sendDataToCloud' as const],
+      responsive: true,
     };
     Plotly.newPlot('cameraChart', series.global, cameraLayout, config);
     Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
