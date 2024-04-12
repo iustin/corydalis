@@ -104,3 +104,6 @@ You can also
   <input type="hidden" name="unused" value="unused">
   <button .btn .btn-light .no-padding type="submit" style="vertical-align: baseline">reload
 the cache, or view the <a href=@{SettingsR}>settings</a>.
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => curateReady());

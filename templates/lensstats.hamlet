@@ -63,3 +63,6 @@
                    <td>
                    <td>
                    <td>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => lensStatsReady());

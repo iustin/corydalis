@@ -79,3 +79,6 @@
                  \ (#{cmax})
        $nothing
            <tr>No available image date information
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => cameraInfoReady());

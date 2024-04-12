@@ -58,3 +58,6 @@
                  <td>
                  <td>
                  <td>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => cameraStatsReady());

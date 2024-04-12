@@ -1,6 +1,8 @@
 /// <reference types="plotly.js"/>
 
-$(function () {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function cameraInfoReady() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function onDataReceived(series: any) {
     const cameraLayout = {
       xaxis: {
@@ -34,4 +36,4 @@ $(function () {
     dataType: 'json',
     success: onDataReceived,
   });
-});
+}

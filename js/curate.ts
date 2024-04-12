@@ -1,6 +1,7 @@
 /// <reference types="plotly.js"/>
 
-$(function () {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function curateReady() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function onDataReceived(series: any) {
     const cameraLayout = {
@@ -106,4 +107,4 @@ $(function () {
     dataType: 'json',
     success: onDataReceived,
   });
-});
+}
