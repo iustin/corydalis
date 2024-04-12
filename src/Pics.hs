@@ -90,6 +90,7 @@ module Pics ( PicDir(..)
             , imageHasMovies
             , imageHasUntracked
             , imageYear
+            , imageYearMonth
             , imageTimeKey
             , SearchResults
             , SearchResultsPics

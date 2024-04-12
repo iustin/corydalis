@@ -194,6 +194,41 @@ getCurateR = do
         , xgdMarkerSize = Nothing
         }::XGraphData Int64 Int64
 
+      perMonthStats = let stats = Map.foldl'
+                            (\l f -> Map.foldl' (\l' p ->
+                              let picYM = imageYearMonth p
+                                  is = updateStatsWithPic zeroStats p
+                              in Map.insertWith sumStats picYM is l') l (pdImages f)
+                            ) Map.empty (repoDirs pics)
+                      in Map.foldlWithKey' (\l k s -> (fromIntegral $ totalStatsSize s,
+                                                       fromIntegral $ totalStatsCount s,
+                                                       k):l) [] stats
+      (mssize, mscount, msdates) = unzip3 perMonthStats
+      -- FIXME: map the "no-date" case to something better. For now, use -
+      -- 2, so there's a clear gap.
+      no_date = maybe (0, 1) (\x -> let (y, m) = minimum x in (y-2, m)) . fromNullable . catMaybes $ msdates
+      formatMonth (y, m) = sformat (left 4 '0' % "-" % left 2 '0') y m
+      month_values = map (formatMonth . fromMaybe no_date) msdates
+      json_months_count = def
+        { xgdName = "Count"
+        , xgdType = "scatter"
+        , xgdMode = Nothing
+        , xgdX = month_values
+        , xgdY = map fromInteger mscount
+        , xgdText = Nothing
+        , xgdMarkerSize = Nothing
+        }::XGraphData Text Int64
+      json_months_size = def
+        { xgdName = "Size"
+        , xgdType = "scatter"
+        , xgdMode = Nothing
+        , xgdX = month_values
+        , xgdY = map fromInteger mssize
+        , xgdText = Nothing
+        , xgdYaxis = Just "y2"
+        , xgdMarkerSize = Nothing
+        }::XGraphData Text Int64
+
       problems = topN 3 $ repoProblems pics
       exifstats = repoExif pics
       imageFilter s = (ListImagesR, atomToParams (Status s))
@@ -205,4 +240,5 @@ getCurateR = do
                                           , "folders" .= j2
                                           , "lenses"  .= jsonl
                                           , "years"   .= [json_years_size, json_years_count]
+                                          , "months"  .= [json_months_size, json_months_count]
                                           ])

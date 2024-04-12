@@ -89,6 +89,8 @@ $if allpics > 0
       <div #folderChart .graph>
     <div .col-12 .col-md-6 .col-lg-6>
       <div #yearChart .graph>
+    <div .col-12 .col-md-6 .col-lg-6>
+      <div #monthChart .graph>
 
 $else
  <div .card .border-warning>

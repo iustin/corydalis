@@ -63,6 +63,26 @@ $(function () {
       legend: { orientation: 'h' as const },
       title: 'Yearly image count and size',
     };
+    const monthLayout = {
+      xaxis: {
+        title: 'Month',
+        automargin: true,
+        type: 'date' as const,
+      },
+      yaxis: {
+        title: 'Image count',
+        rangemode: 'tozero' as const,
+      },
+      yaxis2: {
+        title: 'Size',
+        overlaying: 'y' as const,
+        side: 'right' as const,
+        exponentformat: 'SI' as const,
+        rangemode: 'tozero' as const,
+      },
+      legend: { orientation: 'h' as const },
+      title: 'Monthly image count and size',
+    };
     const config = {
       showLink: false,
       sendData: false,
@@ -73,6 +93,7 @@ $(function () {
     Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
     Plotly.newPlot('folderChart', series.folders, folderLayout, config);
     Plotly.newPlot('yearChart', series.years, yearLayout, config);
+    Plotly.newPlot('monthChart', series.months, monthLayout, config);
   }
 
   const bootdiv = $('#boot');
