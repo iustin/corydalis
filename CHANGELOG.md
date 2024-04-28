@@ -2,6 +2,13 @@
 
 ## vNext
 
+Bug fixes:
+
+- When going to image view from a search, preserve (as intended) the
+  search parameters; before it was going to the first image that matches
+  the search, but the search filter was dropped, so it was simply jumping
+  into all image search at a specific position.
+
 Small improvements:
 
 - the curate page shows a yearly image count/size graph, to give an

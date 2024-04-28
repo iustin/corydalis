@@ -74,10 +74,10 @@ getBestFolderHandler (Just (ViewImages p))  = handlerFolders p
 
 getSearchViewR :: Handler Html
 getSearchViewR = do
-    (ctx, _, _, atom, search_string, pics) <- searchContext
+    (ctx, _, search_params, atom, search_string, pics) <- searchContext
     images <- fst <$> liftIO (searchImages ctx atom pics)
     case Map.minView images of
-      Just (i, _) -> redirect (ViewR (imgParent i) (imgName i))
+      Just (i, _) -> redirect (ViewR (imgParent i) (imgName i), search_params)
       Nothing     -> defaultLayout $ do
         setHtmlTitle "Searching images"
         [whamlet|
