@@ -93,6 +93,8 @@ data ViewInfo = ViewInfo
   , viYearUrl    :: Text
   , viFolder     :: Text
   , viFldUrl     :: Text
+  , viFldList    :: Text
+  , viFldBrowse  :: Text
   , viImage      :: ImageName
   , viImgUrl     :: Text
   , viFirst      :: ImageInfo
@@ -106,19 +108,21 @@ data ViewInfo = ViewInfo
 
 instance ToJSON ViewInfo where
   toJSON ViewInfo {..} =
-    object [ "year"        .= viYear
-           , "yearurl"     .= viYearUrl
-           , "folder"      .= viFolder
-           , "folderurl"   .= viFldUrl
-           , "image"       .= viImage
-           , "imageurl"    .= viImgUrl
-           , "first"       .= viFirst
-           , "prevfolder"  .= viPrevFolder
-           , "prev"        .= viPrev
-           , "current"     .= viCurrent
-           , "next"        .= viNext
-           , "nextfolder"  .= viNextFolder
-           , "last"        .= viLast
+    object [ "year"         .= viYear
+           , "yearurl"      .= viYearUrl
+           , "folder"       .= viFolder
+           , "folderurl"    .= viFldUrl
+           , "folderlist"   .= viFldList
+           , "folderbrowse" .= viFldBrowse
+           , "image"        .= viImage
+           , "imageurl"     .= viImgUrl
+           , "first"        .= viFirst
+           , "prevfolder"   .= viPrevFolder
+           , "prev"         .= viPrev
+           , "current"      .= viCurrent
+           , "next"         .= viNext
+           , "nextfolder"   .= viNextFolder
+           , "last"         .= viLast
            ]
 
 -- | Ensure that requested image is present in the (filtered) map.
@@ -226,6 +230,7 @@ viewInfoForImage params (images, folders) folder iname = do
   return $
     ViewInfo y (render yurl [])
       folder (render (FolderR folder) params)
+      (render ListFoldersR params) (render (BrowseFoldersR 0) params)
       (imgName img) (render (ImageR folder (imgName img)) params)
       (mk imgFirst) (mk <$> fldPrev) (mk <$> imgPrev) (mk img)
       (mk <$> imgNext) (mk <$> fldNext)(mk imgLast)

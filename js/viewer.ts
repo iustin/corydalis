@@ -46,6 +46,8 @@ type ViewInfo = {
   yearurl: Url;
   folder: string;
   folderurl: Url;
+  folderlist: Url;
+  folderbrowse: Url;
   image: string;
   imageurl: Url;
   first: ImageInfo;
@@ -792,6 +794,12 @@ $(function () {
       case 'l':
         triggerListMode();
         break;
+      case 'B':
+        triggerFolderBrowseMode();
+        break;
+      case 'L':
+        triggerFolderListMode();
+        break;
       case 'D':
         triggerImageDownload();
         break;
@@ -891,6 +899,14 @@ $(function () {
     window.location.href = cory.info.current.list;
   }
 
+  function triggerFolderBrowseMode() {
+    window.location.href = cory.info.folderbrowse;
+  }
+
+  function triggerFolderListMode() {
+    window.location.href = cory.info.folderlist;
+  }
+
   // Based on current layout, convert the div#main to fixed
   // position, keeping - hopefully - same absolute location inside
   // the window.
@@ -925,6 +941,8 @@ $(function () {
     $('#goParent').on('click', gotoFolder);
     $('#goBrowse').on('click', triggerBrowseMode);
     $('#goList').on('click', triggerListMode);
+    $('#goFolderBrowse').on('click', triggerFolderBrowseMode);
+    $('#goFolderList').on('click', triggerFolderListMode);
     $('#imageZoom').on('click', function () {
       writeMessage('Zoom not implemented yet - sorry 😔!');
     });
