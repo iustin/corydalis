@@ -84,6 +84,7 @@ getHomeR = do
       topLocations  = topN'  7 gExifLocations
       topPeople     = topN' 15 gExifPeople
       topKeywords   = topN' 10 gExifKeywords
+      seasons       = map (sformat shown) $ catMaybes $ Map.keys $ seasonStats pics
   ctx <- getContext
   (allImages, _) <- liftIO $ searchImages ctx ConstTrue pics
   randomImage <- liftIO $ randomPick allImages

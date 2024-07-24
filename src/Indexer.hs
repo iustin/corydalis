@@ -50,6 +50,7 @@ module Indexer ( Symbol(..)
                , parseDecimalPlain
                , intToMonth
                , intToWeekDay
+               , seasonStats
                ) where
 
 import           Control.Monad               (foldM, when)

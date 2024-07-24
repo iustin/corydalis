@@ -21,6 +21,8 @@ $maybe msg <- homeMessage
 
   ^{itemDiv TLocation True topLocations}
 
+  ^{itemDiv TSeason True (seasons, [])}
+
   <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header .py-2>
