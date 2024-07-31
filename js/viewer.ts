@@ -209,18 +209,11 @@ $(function () {
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
     const deviceScale = window.devicePixelRatio;
-    let cW = $(context.canvas).width();
-    if (cW == null) {
-      // Unlikely, as we pass a DOM object, but TS...
-      cW = 300;
-    }
-    cW = Math.floor(cW * deviceScale);
-    let cH = $(context.canvas).height();
-    if (cH == null) {
-      // Unlikely, as we pass a DOM object, but TS...
-      cH = 300;
-    }
-    cH = Math.floor(cH * deviceScale);
+    // The default values: unlikely to be used, as we pass a DOM object, but TS...
+    const contextScaler = (val: number | undefined): number =>
+      Math.floor((val ?? 300) * deviceScale);
+    const cW = contextScaler($(context.canvas).width());
+    const cH = contextScaler($(context.canvas).height());
     LOG('transform information:', transform, 'matrix information:', matrix);
     const rotation = transform[0];
     const imgW = rotation == 0 ? img.width : img.height;
