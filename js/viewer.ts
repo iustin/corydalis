@@ -192,6 +192,7 @@ $(function () {
     const transform = info.transform;
     const matrix = info.matrix;
     if (!isImageReady(img)) {
+      LOG('Image not ready, re-schedule late loading draw of %s', url);
       img.onload = function () {
         LOG('Late load of ', url);
         setImageReady(img, true);
@@ -200,16 +201,20 @@ $(function () {
       return;
     }
     if (context == null) {
+      LOG('null context?! aborting.');
       return;
     }
     if (!skipStackChange) {
       updateStackVisibility(info);
     }
 
+    // Reset the canvas transform, clear it, and prepare to draw the (new) image.
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
+    /** Used for high-res display support */
     const deviceScale = window.devicePixelRatio;
     // The default values: unlikely to be used, as we pass a DOM object, but TS...
+    /** Scale the given value based on the device scale. */
     const contextScaler = (val: number | undefined): number =>
       Math.floor((val ?? 300) * deviceScale);
     const cW = contextScaler($(context.canvas).width());
@@ -249,7 +254,12 @@ $(function () {
     );
     cory.state.lastX = offX;
     T_START('drawImage');
-    LOG('transform call:', matrix, cW / 2, cH / 2);
+    LOG(
+      'transform call: %o, %f, %f',
+      matrix,
+      cW / 2,
+      cH / 2,
+    );
     context.transform(
       matrix[0],
       matrix[1],
@@ -263,6 +273,8 @@ $(function () {
     LOG('draw call:', offX, offY, targetW, targetH);
     context.drawImage(img, offX, offY, targetW, targetH);
     T_STOP('drawImage');
+
+    // Post-draw actions.
     LOG('post-draw ', url);
     LOG('url: ', url, 'location: ', location.href);
     // Prevent double entries.
@@ -340,7 +352,7 @@ $(function () {
   /// The function that actually loads the image URL/bytes.
   ///
   /// This must be the only place that sets the `src` attribute to
-  /// somthing, to keep the resolution handling abstract.
+  /// something, to keep the resolution handling abstract.
   function loadImage(img: HTMLImageElement, url: string) {
     setImageReady(img, false);
     img.src = imageUrlScaled(url);
