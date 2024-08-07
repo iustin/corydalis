@@ -79,6 +79,42 @@ type Cory = {
   state: State;
 };
 
+/** Represents a 2D dimension, i.e. a `{x, y}` pair */
+class Dimensions {
+  /** The horizontal (width) dimension */
+  x: number;
+  /** The vertical (height) dimension */
+  y: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  /** Returns the longest dimension */
+  public longest(): number {
+    return this.x > this.y ? this.x : this.y;
+  }
+
+  /** Returns a copy with the dimensions swapped */
+  public swapped(): Dimensions {
+    return new Dimensions(this.y, this.x);
+  }
+
+  /** Returns a copy with dimensions scaled by a given number */
+  public scaled(scale: number): Dimensions {
+    return new Dimensions(
+      Math.round(this.x * scale),
+      Math.round(this.y * scale),
+    );
+  }
+
+  /** Returns a copy with dimensions scaled each by another dimension */
+  public dividedBy(div: Dimensions): Dimensions {
+    return new Dimensions(this.x / div.x, this.y / div.y);
+  }
+}
+
 /// Relocate the helpDiv element to the top level of the document.
 ///
 /// This is a big hack, but it works. The help div is not in the
@@ -217,61 +253,61 @@ $(function () {
     /** Scale the given value based on the device scale. */
     const contextScaler = (val: number | undefined): number =>
       Math.floor((val ?? 300) * deviceScale);
-    const cW = contextScaler($(context.canvas).width());
-    const cH = contextScaler($(context.canvas).height());
-    LOG('transform information:', transform, 'matrix information:', matrix);
+    /** Context size, modified for high-res scaling */
+    const contextSize = new Dimensions(
+      contextScaler($(context.canvas).width()),
+      contextScaler($(context.canvas).height()),
+    );
+    LOG('transform information: %o matrix information: %o', transform, matrix);
     const rotation = transform[0];
-    const imgW = rotation == 0 ? img.width : img.height;
-    const imgH = rotation == 0 ? img.height : img.width;
-    const scaleX = imgW / cW;
-    const scaleY = imgH / cH;
-    const scale = scaleX >= scaleY ? scaleX : scaleY;
+    const imgSize = new Dimensions(img.width, img.height);
+    /** Image size, taking rotation into account */
+    const imgRotated = rotation == 0 ? imgSize : imgSize.swapped();
+    // Compute the potentially-zoomed scaling of the image.
+    const imgScaling = imgRotated.dividedBy(contextSize);
+    const scale = imgScaling.longest();
     // Note: target* must be in original coordinate system, not
     // rotated! So using img.width, not imgW. This is because from
     // the point of view of the image, it's drawn straight, not
     // rotated. Sigh, head hurts.
-    const targetW = Math.round(img.width / scale);
-    const targetH = Math.round(img.height / scale);
-    let offX = targetW < cW ? Math.round((cW - targetW) / 2) : 0;
-    let offY = targetH < cH ? Math.round((cH - targetH) / 2) : 0;
+    const targetSize = imgSize.scaled(1 / scale);
+    let offX =
+      targetSize.x < contextSize.x
+        ? Math.round((contextSize.x - targetSize.x) / 2)
+        : 0;
+    let offY =
+      targetSize.y < contextSize.y
+        ? Math.round((contextSize.y - targetSize.y) / 2)
+        : 0;
     LOG(
-      'pre-draw; imgW:',
-      imgW,
-      'imgH:',
-      imgH,
-      'cW:',
-      cW,
-      'cH:',
-      cH,
-      'scaleX:',
-      scaleX,
-      'scaleY:',
-      scaleY,
-      'targetW:',
-      targetW,
-      'targetH',
-      targetH,
+      'pre-draw, contextSize: %o imgSize: %o imgRotated: %o imgScaling: %o scale: %f targetSize: %o',
+      contextSize,
+      imgSize,
+      imgRotated,
+      imgScaling,
+      scale,
+      targetSize,
     );
     cory.state.lastX = offX;
     T_START('drawImage');
     LOG(
       'transform call: %o, %f, %f',
       matrix,
-      cW / 2,
-      cH / 2,
+      contextSize.x / 2,
+      contextSize.y / 2,
     );
     context.transform(
       matrix[0],
       matrix[1],
       matrix[2],
       matrix[3],
-      cW / 2,
-      cH / 2,
+      contextSize.x / 2,
+      contextSize.y / 2,
     );
-    offX -= cW / 2;
-    offY -= cH / 2;
-    LOG('draw call:', offX, offY, targetW, targetH);
-    context.drawImage(img, offX, offY, targetW, targetH);
+    offX -= contextSize.x / 2;
+    offY -= contextSize.y / 2;
+    LOG('draw call:', offX, offY, targetSize);
+    context.drawImage(img, offX, offY, targetSize.x, targetSize.y);
     T_STOP('drawImage');
 
     // Post-draw actions.
