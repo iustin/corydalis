@@ -271,11 +271,11 @@ $(function () {
     // the point of view of the image, it's drawn straight, not
     // rotated. Sigh, head hurts.
     const targetSize = imgSize.scaled(1 / scale);
-    let offX =
+    const offX =
       targetSize.x < contextSize.x
         ? Math.round((contextSize.x - targetSize.x) / 2)
         : 0;
-    let offY =
+    const offY =
       targetSize.y < contextSize.y
         ? Math.round((contextSize.y - targetSize.y) / 2)
         : 0;
@@ -290,22 +290,7 @@ $(function () {
     );
     cory.state.lastX = offX;
     T_START('drawImage');
-    LOG(
-      'transform call: %o, %f, %f',
-      matrix,
-      contextSize.x / 2,
-      contextSize.y / 2,
-    );
-    context.transform(
-      matrix[0],
-      matrix[1],
-      matrix[2],
-      matrix[3],
-      contextSize.x / 2,
-      contextSize.y / 2,
-    );
-    offX -= contextSize.x / 2;
-    offY -= contextSize.y / 2;
+    context.transform(matrix[0], matrix[1], matrix[2], matrix[3], 0, 0);
     LOG('draw call:', offX, offY, targetSize);
     context.drawImage(img, offX, offY, targetSize.x, targetSize.y);
     T_STOP('drawImage');
