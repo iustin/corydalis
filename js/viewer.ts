@@ -113,6 +113,19 @@ class Dimensions {
   public dividedBy(div: Dimensions): Dimensions {
     return new Dimensions(this.x / div.x, this.y / div.y);
   }
+
+  /** Returns a copy with dimensions decreased each by another dimension */
+  public minus(sub: Dimensions): Dimensions {
+    return new Dimensions(this.x - sub.x, this.y - sub.y);
+  }
+
+  /** Return a copy with dimensions clamped on the bottom by the given value */
+  public clampMin(min: number): Dimensions {
+    return new Dimensions(
+      this.x < min ? min : this.x,
+      this.y < min ? min : this.y,
+    );
+  }
 }
 
 /// Relocate the helpDiv element to the top level of the document.
@@ -271,14 +284,11 @@ $(function () {
     // the point of view of the image, it's drawn straight, not
     // rotated. Sigh, head hurts.
     const targetSize = imgSize.scaled(1 / scale);
-    const offX =
-      targetSize.x < contextSize.x
-        ? Math.round((contextSize.x - targetSize.x) / 2)
-        : 0;
-    const offY =
-      targetSize.y < contextSize.y
-        ? Math.round((contextSize.y - targetSize.y) / 2)
-        : 0;
+    // Compute the draw offsets, to center the image, if it's smaller than the canvas.
+    const drawOffsets = contextSize
+      .minus(targetSize)
+      .scaled(1 / 2)
+      .clampMin(0);
     LOG(
       'pre-draw, contextSize: %o imgSize: %o imgRotated: %o imgScaling: %o scale: %f targetSize: %o',
       contextSize,
@@ -288,11 +298,17 @@ $(function () {
       scale,
       targetSize,
     );
-    cory.state.lastX = offX;
+    cory.state.lastX = drawOffsets.x;
     T_START('drawImage');
     context.transform(matrix[0], matrix[1], matrix[2], matrix[3], 0, 0);
-    LOG('draw call:', offX, offY, targetSize);
-    context.drawImage(img, offX, offY, targetSize.x, targetSize.y);
+    LOG('draw call: drawOffsets: %o targetSize: %o', drawOffsets, targetSize);
+    context.drawImage(
+      img,
+      drawOffsets.x,
+      drawOffsets.y,
+      targetSize.x,
+      targetSize.y,
+    );
     T_STOP('drawImage');
 
     // Post-draw actions.
