@@ -1537,6 +1537,7 @@ extractFirstFrame config path = do
   let pathS = TextL.unpack path
       outputPath = embeddedImagePath config pathS
       args = [
+        "-nostdin",
         "-y",
         "-i",
         pathS,
