@@ -30,6 +30,7 @@ module Stats ( DateRange
             , Trends
             , ocFromSize
             , CameraInfo(..)
+            , mergeMinMaxPair
 )  where
 
 import           Control.DeepSeq

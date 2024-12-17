@@ -37,6 +37,7 @@ import           Import
 import           Pics
 
 import qualified Data.Map        as Map
+import qualified Data.Set        as Set
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do
@@ -47,6 +48,8 @@ getFolderR name = do
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     let stats = computeFolderStats dir
+        people = sPeople stats
+        daterange = sDateRange stats
         fc = folderClassFromStats stats
         images = map snd . Map.toList $ pdImages dir
         exifs = map imgExif images

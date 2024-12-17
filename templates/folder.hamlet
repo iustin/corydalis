@@ -23,6 +23,28 @@
 
   <div .col-12 .col-md-3 .mb-4>
     <div .card>
+      <div .card-header>Date information
+      <div .card-body>
+        $maybe (begin, end) <- daterange
+          This folder contains pictures taken between
+          #{showLocalDate begin} and
+          #{showLocalDate end}.
+        $nothing
+          No date information.
+
+  <div .col-12 .col-md-3 .mb-4>
+    <div .card>
+      <div .card-header>People
+      <div .card-body>
+        $if Set.null people
+          No people information.
+        $else
+          <ul>
+            $forall p <- Set.elems people
+              #{p}
+
+  <div .col-12 .col-md-3 .mb-4>
+    <div .card>
       <div .card-header>Folder type
       <div .card-body>
         #{fcName fc}: folder #{fcDescription fc}

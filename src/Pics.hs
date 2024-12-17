@@ -139,8 +139,9 @@ import           Cache
 import           Compat.Orphans          ()
 import           Exif
 import           Import.NoFoundation     hiding (fileName, fileSize)
-import           Stats                   (CameraInfo (..), Occurrence (..),
-                                          Trends, ocFromSize)
+import           Stats                   (CameraInfo (..), DateRange,
+                                          Occurrence (..), Trends,
+                                          mergeMinMaxPair, ocFromSize)
 
 type Ctx = Context Repository SearchCache
 
@@ -490,6 +491,8 @@ data Stats = Stats
   , sMovieSize      :: !FileOffset
   , sByCamera       :: !(Map Text (Occurrence CameraInfo))
   , sByLens         :: !(Map Text (Occurrence LensInfo))
+  , sPeople         :: !(Set Text)
+  , sDateRange      :: !(Maybe DateRange)
   } deriving Show
 
 instance NFData Stats where
@@ -524,7 +527,7 @@ emptySearchCache = LRU.empty 10
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
-zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty
+zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty Set.empty Nothing
 
 instance Default Stats where
   def = zeroStats
@@ -554,13 +557,16 @@ totalStatsCount stats =
          + sMovies stats
 
 sumStats :: Stats -> Stats -> Stats
-sumStats (Stats r1 s1 p1 h1 u1 m1 rs1 ps1 ss1 sd1 us1 ms1 sc1 sl1)
-         (Stats r2 s2 p2 h2 u2 m2 rs2 ps2 ss2 sd2 us2 ms2 sc2 sl2 ) =
+sumStats (Stats r1 s1 p1 h1 u1 m1 rs1 ps1 ss1 sd1 us1 ms1 sc1 sl1 sp1 sdr1)
+         (Stats r2 s2 p2 h2 u2 m2 rs2 ps2 ss2 sd2 us2 ms2 sc2 sl2 sp2 sdr2) =
   Stats (r1 + r2) (s1 + s2) (p1 + p2) (h1 + h2) (u1 + u2) (m1 + m2)
         (rs1 + rs2) (ps1 + ps2) (ss1 + ss2) (sd1 + sd2) (us1 + us2) (ms1 + ms2)
-        sc sl
+        sc sl sp sdr
+
   where sc = Map.unionWith mappend sc1 sc2
         sl = Map.unionWith (<>) sl1 sl2
+        sp = Set.union sp1 sp2
+        sdr = mergeMinMaxPair sdr1 sdr2
 
 updateStatsWithPic :: Stats -> Image -> Stats
 updateStatsWithPic orig img =
@@ -609,6 +615,7 @@ updateStatsWithPic orig img =
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
       us' = sUntrackedSize orig + us
+      people = sPeople stats `Set.union` exifPeople exif
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'
@@ -617,6 +624,8 @@ updateStatsWithPic orig img =
            , sUntrackedSize = us'
            , sByCamera = Map.insertWith (<>) camera cameraOcc (sByCamera orig)
            , sByLens = Map.insertWith (<>) (liName lens) lensOcc(sByLens orig)
+           , sPeople = people
+           , sDateRange = mergeMinMaxPair (sDateRange orig) captureDate
            }
 
 computeImagesStats :: Map ImageName Image -> Stats
