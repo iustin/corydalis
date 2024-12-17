@@ -26,12 +26,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 module Stats ( DateRange
-            , DayRange
-            ,  Occurrence(..)
-            , Trends
-            , ocFromSize
-            , CameraInfo(..)
-            , mergeMinMaxPair
+             , DayRange
+             ,  Occurrence(..)
+             , Trends
+             , ocFromSize
+             , CameraInfo(..)
+             , mergeMinMaxPair
 )  where
 
 import           Control.DeepSeq
