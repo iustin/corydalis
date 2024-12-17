@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 module Stats ( DateRange
+            , DayRange
             ,  Occurrence(..)
             , Trends
             , ocFromSize
@@ -45,6 +46,11 @@ import           Import.NoFoundation hiding (fileName, fileSize)
 
 -- | Helper type alias for a (start date, end date) interval.
 type DateRange = (LocalTime, LocalTime)
+
+-- | Helper type alias for a (start day, end day) interval.
+--
+-- This is more useful for the day-level statistics.
+type DayRange = (Day, Day)
 
 -- | Type alias for the trends keys.
 type TrendsKey = (Int, Int)

@@ -26,9 +26,13 @@
       <div .card-header>Date information
       <div .card-body>
         $maybe (begin, end) <- daterange
-          This folder contains pictures taken between
-          #{showLocalDate begin} and
-          #{showLocalDate end}.
+          $if begin == end
+            This folder contains pictures taken on
+            #{showLocalDateWithFormat dayFormat begin}.
+          $else
+            This folder contains pictures taken between
+            #{showLocalDateWithFormat dayFormat begin} and
+            #{showLocalDateWithFormat dayFormat end} (#{showDaysDuration (diffGregorianDurationClip (addDays 1 end) begin)}).
         $nothing
           No date information.
 

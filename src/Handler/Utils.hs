@@ -157,9 +157,20 @@ showLocalTime =
 showExifTime :: ExifTime -> Text
 showExifTime = showLocalTime . etTime
 
-showLocalDate :: LocalTime -> Text
-showLocalDate=
-  Text.pack . formatTime defaultTimeLocale "%F"
+showLocalDateWithFormat :: (FormatTime t) => String -> t -> Text
+showLocalDateWithFormat fmt =
+  Text.pack . formatTime defaultTimeLocale fmt
+
+showLocalDate :: (FormatTime t) => t -> Text
+showLocalDate = showLocalDateWithFormat "%F"
+
+-- | Formats a duration in days as a human-readable string.
+showDaysDuration :: CalendarDiffDays -> Text
+showDaysDuration dd@(CalendarDiffDays m _) =
+  Text.pack $ formatTime defaultTimeLocale fmt dd
+  where fmt = if m > 0
+              then "%b months and %d days"
+              else "%d days"
 
 showExifDate :: Image -> Text
 showExifDate =
