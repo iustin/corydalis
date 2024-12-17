@@ -27,18 +27,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.Widgets where
 
-import           Data.Aeson.Text (encodeToLazyText)
-import qualified Data.Map        as Map
+import           Data.Aeson.Text     (encodeToLazyText)
+import qualified Data.Map            as Map
 import           Data.Ord
-import qualified Data.Set        as Set
-import qualified Data.Text       as Text
+import qualified Data.Set            as Set
+import qualified Data.Text           as Text
+import           Data.Time.Calendar  (addDays, diffGregorianDurationClip)
 import           Formatting
 
+import           Data.Time.LocalTime (LocalTime (localDay))
 import           Exif
 import           Handler.Utils
 import           Import
 import           Indexer
 import           Pics
+import           Stats               (DateRange)
 
 showFile :: Pics.File -> Widget
 showFile f =
@@ -294,3 +297,21 @@ showCameraLink (Just camera) =
   toWidget [hamlet|<a href=@{CameraInfoR camera}>#{camera}|]
 showCameraLink Nothing =
   toWidget [hamlet|#{unknown}|]
+
+showDateRange :: Text -> Maybe DateRange -> Widget
+showDateRange _ Nothing =
+  toWidget [hamlet|No date information.|]
+showDateRange kind (Just (begin, end)) =
+  let formatter = showLocalDateWithFormat "%A, %B %d %Y"
+      begin' = localDay begin
+      end' = localDay end
+  in toWidget
+   [hamlet|
+            $if begin' == end'
+              This #{kind} contains pictures taken on
+              #{formatter begin'}.
+            $else
+              This #{kind} contains pictures taken between
+              #{formatter begin'} and
+              #{formatter end'} (#{showDaysDuration (diffGregorianDurationClip (addDays 1 end') begin')}).
+           |]

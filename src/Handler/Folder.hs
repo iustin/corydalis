@@ -36,9 +36,8 @@ import           Handler.Widgets
 import           Import
 import           Pics
 
-import qualified Data.Map           as Map
-import qualified Data.Set           as Set
-import           Data.Time.Calendar (addDays, diffGregorianDurationClip)
+import qualified Data.Map        as Map
+import qualified Data.Set        as Set
 
 getFolderR :: Text -> Handler Html
 getFolderR name = do
@@ -56,6 +55,5 @@ getFolderR name = do
         exifs = map imgExif images
         cameras = countItems . map exifCamera $ exifs
         lenses = countItems . map exifLens $ exifs
-        dayFormat = "%A, %B %d %Y"
     setHtmlTitle $ "folder " <> name
     $(widgetFile "folder")

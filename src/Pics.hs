@@ -139,7 +139,7 @@ import           Cache
 import           Compat.Orphans          ()
 import           Exif
 import           Import.NoFoundation     hiding (fileName, fileSize)
-import           Stats                   (CameraInfo (..), DayRange,
+import           Stats                   (CameraInfo (..), DateRange,
                                           Occurrence (..), Trends,
                                           mergeMinMaxPair, ocFromSize)
 
@@ -492,7 +492,7 @@ data Stats = Stats
   , sByCamera       :: !(Map Text (Occurrence CameraInfo))
   , sByLens         :: !(Map Text (Occurrence LensInfo))
   , sPeople         :: !(Set Text)
-  , sDateRange      :: !(Maybe DayRange)
+  , sDateRange      :: !(Maybe DateRange)
   } deriving Show
 
 instance NFData Stats where
@@ -625,7 +625,7 @@ updateStatsWithPic orig img =
            , sByCamera = Map.insertWith (<>) camera cameraOcc (sByCamera orig)
            , sByLens = Map.insertWith (<>) (liName lens) lensOcc(sByLens orig)
            , sPeople = people
-           , sDateRange = mergeMinMaxPair (sDateRange orig) $ doubleUp . localDay <$> exifLocalCreateDate exif
+           , sDateRange = mergeMinMaxPair (sDateRange orig) captureDate
            }
 
 computeImagesStats :: Map ImageName Image -> Stats
