@@ -32,6 +32,12 @@ $if allpics > 0
 
     <div .col-12 .col-md-4 .mb-4>
       <div .card>
+        <div .card-header>Time range
+        <div .card-body>
+          ^{showDateRange "repository" daterange}
+
+    <div .col-12 .col-md-4 .mb-4>
+      <div .card>
         <div .card-header>Folders
         <div .card-body #folders>
           The repository is split across #{numfolders} <a href=@{ListFoldersR}>folders</a>, classified as follows:

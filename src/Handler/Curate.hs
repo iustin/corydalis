@@ -30,15 +30,16 @@ module Handler.Curate
   ( getCurateR
   ) where
 
-import qualified Data.Map      as Map
-import qualified Data.Set      as Set
-import qualified Data.Text     as Text
+import qualified Data.Map        as Map
+import qualified Data.Set        as Set
+import qualified Data.Text       as Text
 
-import           Exif          (gExifFlashMode, gExifFlashSrc, lensShortName,
-                                liName, liSpec, unknownLens)
+import           Exif            (gExifFlashMode, gExifFlashSrc, lensShortName,
+                                  liName, liSpec, unknownLens)
 import           Handler.Items
 import           Handler.Utils
-import           Import        hiding (Status)
+import           Handler.Widgets (showDateRange)
+import           Import          hiding (Status)
 import           Indexer
 import           Pics
 
@@ -104,7 +105,7 @@ getCurateR = do
   let RepoStats
         (Stats unprocessed standalone processed orphaned untracked movies
              rawsize procsize standalonesize sidecarsize untrksize moviesize
-             bycamera bylens _pplcnt _daterange) fcm =
+             bycamera bylens _pplcnt daterange) fcm =
           repoStats pics
       allpics = unprocessed + standalone + processed + movies
       totalsize = rawsize + procsize + standalonesize + sidecarsize + untrksize + moviesize
