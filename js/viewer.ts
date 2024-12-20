@@ -300,12 +300,31 @@ $(function () {
     );
     cory.state.lastX = drawOffsets.x;
     T_START('drawImage');
-    context.transform(matrix[0], matrix[1], matrix[2], matrix[3], 0, 0);
-    LOG('draw call: drawOffsets: %o targetSize: %o', drawOffsets, targetSize);
+    // The halved context size in transform then doing the opposite in
+    // drawOffsets is required for rotated images. For straight images,
+    // this could be skipped, but (and I don't understand well why), the
+    // rotated images, or rather likely flipped ones, need this formula
+    // that I came up with very early. So this needs to stay, at least
+    // until I understand better my own reasoning.
+    const halvedContext = contextSize.scaled(0.5);
+    context.transform(
+      matrix[0],
+      matrix[1],
+      matrix[2],
+      matrix[3],
+      halvedContext.x,
+      halvedContext.y,
+    );
+    const offsetDrawOffsets = drawOffsets.minus(halvedContext);
+    LOG(
+      'draw call: adjustedDrawOffsets: %o targetSize: %o',
+      offsetDrawOffsets,
+      targetSize,
+    );
     context.drawImage(
       img,
-      drawOffsets.x,
-      drawOffsets.y,
+      offsetDrawOffsets.x,
+      offsetDrawOffsets.y,
       targetSize.x,
       targetSize.y,
     );
