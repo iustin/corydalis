@@ -34,6 +34,7 @@ import           Exif
 import           Handler.Utils
 import           Handler.Widgets
 import           Import
+import           Indexer         (Symbol (TPerson), symbolName)
 import           Pics
 
 import qualified Data.Map        as Map

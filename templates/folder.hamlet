@@ -34,9 +34,10 @@
         $if Set.null people
           No people information.
         $else
-          <ul>
-            $forall p <- Set.elems people
-              #{p}
+          $forall p <- Set.elems people
+            $with searchParams <- [(symbolName TPerson, p)]
+              <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,searchParams)}">
+                #{formatPerson True p}
 
   <div .col-12 .col-md-3 .mb-4>
     <div .card>
