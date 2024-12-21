@@ -22,5 +22,6 @@
   "spellright.language": ["en_GB"],
   "spellright.documentTypes": ["markdown", "latex", "plaintext"],
   "spellright.groupDictionaries": false,
-  "todo-tree.regex.regex": "(//|#|<!--|;|--\\s*|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)"
+  "todo-tree.regex.regex": "(//|#|<!--|;|--\\s*|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)",
+  "todo-tree.general.statusBar": "tags"
 }
