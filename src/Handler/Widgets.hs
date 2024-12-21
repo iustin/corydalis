@@ -56,6 +56,9 @@ folderCover size browsing params atom folder = do
       bytes_fn = if browsing
         then imageBytesForFolder
         else imageBytes
+      link_wrapper = if atomFindsFiles atom
+        then imageLinkWrapper
+        else folderLinkWrapper
   case images' of
     []    -> if browsing
              then toWidget [hamlet|<div .card .mx-1 .my-1>
@@ -65,22 +68,30 @@ folderCover size browsing params atom folder = do
                                       Folder '#{name}' contains no viewable images
                                       |]
              else toWidget [hamlet|<span .disabled>N/A|]
-    img:_ -> bytes_fn size params name (imgName img)
+    img:_ -> link_wrapper name (imgName img) params $ bytes_fn size name (imgName img)
 
-imageBytes :: Int -> UrlParams -> Text -> ImageName -> Widget
-imageBytes thumbsize params folder image =
-  toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
-                     <img
-                       src="@?{imageBytesAtRes folder image thumbsize}"
-                       width=#{thumbsize} height=#{thumbsize}
-                       loading="lazy"
-                       >|]
+-- | Wraps a widget in a link to an image.
+imageLinkWrapper :: Text -> ImageName -> [(Text, Text)] -> Widget -> Widget
+imageLinkWrapper folder image params w =
+  [whamlet|<a href=@?{(ViewR folder image, params)}>^{w}|]
 
-imageBytesForFolder :: Int -> UrlParams -> Text -> ImageName -> Widget
-imageBytesForFolder size params folder image =
-  toWidget [hamlet|<a href=@?{(ViewR folder image, params)}>
-                     <img
-                       .grid-item-image
+-- | Wraps a widget in a link to a folder.
+folderLinkWrapper :: Text -> ImageName -> [(Text, Text)] -> Widget -> Widget
+folderLinkWrapper folder _ params w =
+  [whamlet|<a href=@?{(FolderR folder, params)}>^{w}|]
+
+imageBytes :: Int -> Text -> ImageName -> Widget
+imageBytes thumbsize folder image =
+  toWidget [hamlet|<img
+                      src="@?{imageBytesAtRes folder image thumbsize}"
+                      width=#{thumbsize} height=#{thumbsize}
+                      loading="lazy"
+                      >|]
+
+imageBytesForFolder :: Int -> Text -> ImageName -> Widget
+imageBytesForFolder size folder image =
+  toWidget [hamlet|<img
+                      .grid-item-image
                        src="@?{imageBytesAtRes folder image size}"
                        >|]
 
