@@ -17,7 +17,7 @@
                 $forall img@Image{imgExif=e, imgParent=p, imgStatus=s} <- images
                   <tr .#{imgRowClass img}>
                     <td>
-                      ^{imageLinkWrapper p (imgName img) params $ imageBytes thumbsize p (imgName img)}
+                      ^{imageLinkWrapper img params $ imageBytes thumbsize img}
                     $if showParent
                       <td>
                         <a href=@{FolderR p}>

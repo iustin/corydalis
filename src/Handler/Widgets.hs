@@ -68,28 +68,28 @@ folderCover size browsing params atom folder = do
                                       Folder '#{name}' contains no viewable images
                                       |]
              else toWidget [hamlet|<span .disabled>N/A|]
-    img:_ -> link_wrapper name (imgName img) params $ bytes_fn size name (imgName img)
+    img:_ -> link_wrapper img params $ bytes_fn size img
 
 -- | Wraps a widget in a link to an image.
-imageLinkWrapper :: Text -> ImageName -> [(Text, Text)] -> Widget -> Widget
-imageLinkWrapper folder image params w =
+imageLinkWrapper :: Image -> [(Text, Text)] -> Widget -> Widget
+imageLinkWrapper Image{imgParent = folder, imgName = image} params w =
   [whamlet|<a href=@?{(ViewR folder image, params)}>^{w}|]
 
 -- | Wraps a widget in a link to a folder.
-folderLinkWrapper :: Text -> ImageName -> [(Text, Text)] -> Widget -> Widget
-folderLinkWrapper folder _ params w =
+folderLinkWrapper :: Image -> [(Text, Text)] -> Widget -> Widget
+folderLinkWrapper Image{imgParent = folder} params w =
   [whamlet|<a href=@?{(FolderR folder, params)}>^{w}|]
 
-imageBytes :: Int -> Text -> ImageName -> Widget
-imageBytes thumbsize folder image =
+imageBytes :: Int -> Image -> Widget
+imageBytes thumbsize Image{imgParent = folder, imgName = image} =
   toWidget [hamlet|<img
                       src="@?{imageBytesAtRes folder image thumbsize}"
                       width=#{thumbsize} height=#{thumbsize}
                       loading="lazy"
                       >|]
 
-imageBytesForFolder :: Int -> Text -> ImageName -> Widget
-imageBytesForFolder size folder image =
+imageBytesForFolder :: Int -> Image -> Widget
+imageBytesForFolder size Image{imgParent = folder, imgName = image} =
   toWidget [hamlet|<img
                       .grid-item-image
                        src="@?{imageBytesAtRes folder image size}"
