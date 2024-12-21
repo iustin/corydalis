@@ -21,5 +21,6 @@
   "cSpell.language": "en-GB",
   "spellright.language": ["en_GB"],
   "spellright.documentTypes": ["markdown", "latex", "plaintext"],
-  "spellright.groupDictionaries": false
+  "spellright.groupDictionaries": false,
+  "todo-tree.regex.regex": "(//|#|<!--|;|--\\s*|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)"
 }
