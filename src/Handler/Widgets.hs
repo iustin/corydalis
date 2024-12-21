@@ -81,18 +81,18 @@ folderLinkWrapper Image{imgParent = folder} params w =
   [whamlet|<a href=@?{(FolderR folder, params)}>^{w}|]
 
 imageBytes :: Int -> Image -> Widget
-imageBytes thumbsize Image{imgParent = folder, imgName = image} =
+imageBytes thumbsize img =
   toWidget [hamlet|<img
-                      src="@?{imageBytesAtRes folder image thumbsize}"
+                      src="@?{imageBytesAtRes img thumbsize}"
                       width=#{thumbsize} height=#{thumbsize}
                       loading="lazy"
                       >|]
 
 imageBytesForFolder :: Int -> Image -> Widget
-imageBytesForFolder size Image{imgParent = folder, imgName = image} =
+imageBytesForFolder size img =
   toWidget [hamlet|<img
                       .grid-item-image
-                       src="@?{imageBytesAtRes folder image size}"
+                       src="@?{imageBytesAtRes img size}"
                        >|]
 
 -- | Generates srcset for an image based on all auto-built versions.
@@ -125,7 +125,7 @@ imageBytesNoStyle config imagesize params folder img = do
                          >
                          <img
                            .grid-item-image
-                           src="@?{imageBytesAtRes folder image imagesize}"
+                           src="@?{imageBytesAtRes img imagesize}"
                            >
                            <span class="fa-solid fa-file-video fa-2x icon-overlay"></span>
                            |]
@@ -141,7 +141,7 @@ imageBytesNoStyle config imagesize params folder img = do
                          >
                          <img
                            .grid-item-image
-                           src="@?{imageBytesAtRes folder image imagesize}"
+                           src="@?{imageBytesAtRes img imagesize}"
                            >
                            |]
 

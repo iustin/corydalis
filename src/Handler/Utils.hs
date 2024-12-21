@@ -312,8 +312,8 @@ getResParam = do
       Right res' -> return . Just . ImageSize $ res'
 
 -- | Helper to build an image bytes URL for a specific resolution.
-imageBytesAtRes :: Text -> ImageName -> Int -> (Route App, [(Text, Text)])
-imageBytesAtRes folder iname res =
+imageBytesAtRes :: Image -> Int -> (Route App, [(Text, Text)])
+imageBytesAtRes Image{imgParent = folder, imgName = iname} res =
   (ImageBytesR folder iname, makeResParam res)
 
 setHtmlTitle :: Text -> Widget
