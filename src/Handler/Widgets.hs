@@ -56,6 +56,8 @@ folderCover size browsing params atom folder = do
       bytes_fn = if browsing
         then imageBytesForFolder
         else imageBytes
+      -- FIXME: this function is called in a loop, with the same atom, so
+      -- this if block is called repeatedly. [performance]
       link_wrapper = if atomFindsFiles atom
         then imageLinkWrapper
         else folderLinkWrapper

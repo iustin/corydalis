@@ -302,10 +302,10 @@ $(function () {
     T_START('drawImage');
     // The halved context size in transform then doing the opposite in
     // drawOffsets is required for rotated images. For straight images,
-    // this could be skipped, but (and I don't understand well why), the
-    // rotated images, or rather likely flipped ones, need this formula
-    // that I came up with very early. So this needs to stay, at least
-    // until I understand better my own reasoning.
+    // this could be skipped, for rotated, it's needed to center the image
+    // rotation point, so that rotation is around the center of the
+    // screen, not the top-left corner. Otherwise, rotation (e.g. CCW 90)
+    // would move the image "on top" of the actual screen.
     const halvedContext = contextSize.scaled(0.5);
     context.transform(
       matrix[0],
