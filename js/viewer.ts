@@ -70,6 +70,9 @@ type State = {
   transform: Transform;
   matrix: AffineMatrix;
   url: string;
+  scale: number;
+  originX: number;
+  originY: number;
 };
 
 type Cory = {
@@ -180,6 +183,7 @@ $(function () {
   const LOG = debug ? console.log.bind(console) : function () {};
   const T_START = debug ? console.time.bind(console) : function () {};
   const T_STOP = debug ? console.timeEnd.bind(console) : function () {};
+  const ZOOM_FACTOR = 1.1;
 
   LOG('bootinfo ', bootinfo);
 
@@ -196,6 +200,9 @@ $(function () {
       transform: bootinfo.current.transform,
       matrix: bootinfo.current.matrix,
       url: location.href,
+      scale: 1.0,
+      originX: 0.5,
+      originY: 0.5,
     },
   };
 
@@ -281,13 +288,14 @@ $(function () {
       contextScaler($(context.canvas).width()),
       contextScaler($(context.canvas).height()),
     );
+    const zoomedContext = contextSize.scaled(cory.state.scale);
     LOG('transform information: %o matrix information: %o', transform, matrix);
     const rotation = transform[0];
     const imgSize = new Dimensions(img.width, img.height);
     /** Image size, taking rotation into account */
     const imgRotated = rotation == 0 ? imgSize : imgSize.swapped();
     // Compute the potentially-zoomed scaling of the image.
-    const imgScaling = imgRotated.dividedBy(contextSize);
+    const imgScaling = imgRotated.dividedBy(zoomedContext);
     const scale = imgScaling.longest();
     // Note: target* must be in original coordinate system, not
     // rotated! So using img.width, not imgW. This is because from
@@ -300,15 +308,19 @@ $(function () {
       .scaled(1 / 2)
       .clampMin(0);
     LOG(
-      'pre-draw, contextSize: %o imgSize: %o imgRotated: %o imgScaling: %o scale: %f targetSize: %o',
+      'pre-draw, contextSize: %o zoomedContext: %o imgSize(R=%i): %o imgScaling: %o scale: %f zoom: %f targetSize: %o offsets: %o',
       contextSize,
-      imgSize,
+      zoomedContext,
+      rotation,
       imgRotated,
       imgScaling,
       scale,
+      cory.state.scale,
       targetSize,
+      drawOffsets,
     );
     cory.state.lastX = drawOffsets.x;
+    LOG('matrix: %o', matrix);
     T_START('drawImage');
     // The halved context size in transform then doing the opposite in
     // drawOffsets is required for rotated images. For straight images,
@@ -370,6 +382,47 @@ $(function () {
   function redrawImage() {
     drawImage(cory.state.img, cory.info.current, undefined, true);
     maybeWriteIsMovie(cory.info.current);
+  }
+
+  function incZoom() {
+    adjustZoom(ZOOM_FACTOR);
+  }
+
+  function decZoom() {
+    adjustZoom(1 / ZOOM_FACTOR);
+  }
+
+  // Adjust zoom by a factor.
+  function adjustZoom(scaleRelative: number) {
+    setZoom(cory.state.scale * scaleRelative);
+  }
+
+  // Set zoom to a specific value.
+  function setZoom(scale: number) {
+    // Check if at initial, or weird state.
+    if (scale == 0) {
+      scale = 1;
+    }
+    if (scale <= 1) {
+      writeMessage('Minimum zoom reached', 1000);
+      scale = 1;
+    } else if (scale > 100) {
+      writeMessage('Maximum zoom reached', 1000);
+      scale = 100;
+    }
+    cory.state.scale = scale;
+    if (cory.state.img.dataset.fullres == 'false') {
+      requestFullResImage();
+    } else {
+      redrawImage();
+    }
+  }
+
+  function resetZoom() {
+    cory.state.scale = 1.0;
+    cory.state.originX = 0.5;
+    cory.state.originY = 0.5;
+    redrawImage();
   }
 
   function requestFullResImage() {
@@ -915,6 +968,16 @@ $(function () {
       return;
     }
     switch (e.key) {
+      case '+':
+      case '=':
+        incZoom();
+        break;
+      case '-':
+        decZoom();
+        break;
+      case '0':
+        resetZoom();
+        break;
       case 'UpArrow':
       case 'f':
         toggleFullScreen();
