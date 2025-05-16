@@ -964,8 +964,34 @@ $(function () {
     // Currently we don't handle complex key shortcuts, so if any modifier
     // key is pressed, return. Shift is special as it's used for capital
     // letters and reflects in the key value, so we don't check for it.
-    if (e.altKey || e.ctrlKey || e.metaKey) {
+    // And Command/Control is handled separately, so basically only
+    // Alt/Meta is ignored.
+    if (e.altKey || e.metaKey) {
       return;
+    }
+    if (e.ctrlKey) {
+      handled = true;
+      switch (e.key) {
+        case 'UpArrow':
+          cory.state.originY -= 0.1;
+          break;
+        case 'DownArrow':
+          cory.state.originY += 0.1;
+          break;
+        case 'ArrowLeft':
+          cory.state.originX -= 0.1;
+          break;
+        case 'ArrowRight':
+          cory.state.originX += 0.1;
+          break;
+        default:
+          handled = false;
+          break;
+      }
+      if (handled) {
+        e.preventDefault();
+        return;
+      }
     }
     switch (e.key) {
       case '+':
@@ -978,7 +1004,6 @@ $(function () {
       case '0':
         resetZoom();
         break;
-      case 'UpArrow':
       case 'f':
         toggleFullScreen();
         break;
@@ -1013,14 +1038,17 @@ $(function () {
       case 'D':
         triggerImageDownload();
         break;
+      case 'UpArrow':
+        toggleFullScreen();
+        break;
       case 'ArrowLeft':
         advanceImage(false);
         break;
-      case ' ':
-        advanceOrPlay();
-        break;
       case 'ArrowRight':
         advanceImage(true);
+        break;
+      case ' ':
+        advanceOrPlay();
         break;
       case '[':
       case 'PageUp':
