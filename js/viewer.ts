@@ -38,6 +38,7 @@ type ImageInfo = {
   name: string;
   transform: Transform;
   matrix: AffineMatrix;
+  fullres: boolean;
 };
 
 type ViewInfo = {
@@ -371,6 +372,24 @@ $(function () {
     maybeWriteIsMovie(cory.info.current);
   }
 
+  function requestFullResImage() {
+    const img = cory.state.img;
+    if (img == null || img.dataset.fullres == 'true') {
+      return;
+    }
+    writeMessage('Requesting full screen image…', 2000);
+    setImageReady(img, false);
+    img.onload = function () {
+      LOG('got full size image, calling drawImage');
+      setImageReady(img, true);
+      const c = cory.info.current;
+      drawImage(img, c, c.name);
+    };
+    LOG('Requestiong full size image from', cory.info.current.bytes);
+    img.dataset.fullres = 'true';
+    img.src = cory.info.current.bytes;
+  }
+
   function resizeCanvas() {
     if (context == null) {
       return;
@@ -420,6 +439,7 @@ $(function () {
   /// something, to keep the resolution handling abstract.
   function loadImage(img: HTMLImageElement, url: string) {
     setImageReady(img, false);
+    img.dataset.fullres = 'false';
     img.src = imageUrlScaled(url);
   }
 
@@ -1071,7 +1091,7 @@ $(function () {
     $('#goFolderBrowse').on('click', triggerFolderBrowseMode);
     $('#goFolderList').on('click', triggerFolderListMode);
     $('#imageZoom').on('click', function () {
-      writeMessage('Zoom not implemented yet - sorry 😔!');
+      requestFullResImage();
     });
     $('#imagePrev').on('click', function () {
       advanceImage(false);
