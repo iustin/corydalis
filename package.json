@@ -4,7 +4,6 @@
   "description": "Frontend package/dependencies for corydalis",
   "private": true,
   "dependencies": {
-    "@types/hammerjs": "^2.0.45",
     "@types/jquery": "^3.5.29"
   },
   "devDependencies": {
@@ -22,7 +21,6 @@
     "eslint": "^8.57.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^9.1.0",
-    "hammerjs": "^2.0.8",
     "imagesloaded": "^4.1.4",
     "infinite-scroll": "^4.0.1",
     "jquery": "^3.7.1",

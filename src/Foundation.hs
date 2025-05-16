@@ -187,7 +187,6 @@ pageJSResources PageView =
   $(combineScripts 'StaticR
      [ jquery_js_jquery_js
      , bootstrap_js_bootstrap_bundle_js
-     , hammer_js_hammer_js
      , screenfull_js_screenfull_js
      , corydalis_js_viewer_js
      ])

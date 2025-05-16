@@ -16,7 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /// <reference types="jquery"/>
-/// <reference types="hammerjs"/>
 /// <reference types="screenfull"/>
 /// <reference types="bootstrap"/>
 
@@ -78,6 +77,16 @@ type Cory = {
   next: HTMLImageElement;
   state: State;
 };
+
+// Constants for gesture detection
+/** Maximum duration (ms) for a gesture to be considered a swipe rather than a pan */
+const SWIPE_DURATION_THRESHOLD = 300;
+/** Maximum time (ms) between taps to be considered a double-tap */
+const DOUBLE_TAP_THRESHOLD = 300;
+/** Maximum movement (px) for a gesture to be considered a tap rather than a swipe */
+const TAP_MOVEMENT_THRESHOLD = 10;
+/** Minimum distance (px) for a gesture to be considered a swipe */
+const SWIPE_DISTANCE_THRESHOLD = 100;
 
 /** Represents a 2D dimension, i.e. a `{x, y}` pair */
 class Dimensions {
@@ -759,39 +768,96 @@ $(function () {
       });
   }
 
-  function setupHammer() {
-    const mc = new Hammer.Manager(canvas, {});
-    // mc.add( new Hammer.Swipe({direction: Hammer.DIRECTION_HORIZONTAL}));
-    mc.add(new Hammer.Pan({ direction: Hammer.DIRECTION_HORIZONTAL }));
-    const singleTap = new Hammer.Tap({ event: 'singletap' });
-    mc.add(singleTap);
-    // mc.on("swiperight", function(ev) {advanceImage(false);});
-    // mc.on("swipeleft", function(ev) {advanceImage(true);});
-    mc.on('panend', function (ev) {
-      LOG('end pan, direction ', ev.direction);
-      switch (ev.direction) {
-        case Hammer.DIRECTION_LEFT:
-          advanceImage(true);
-          break;
-        case Hammer.DIRECTION_RIGHT:
+  function setupTouchAndGestureHandlers() {
+    // Track pointer start position and time for gesture detection
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let pointerStartTime = 0;
+    let lastTapTime = 0;
+    let pointerId = -1;
+    LOG('X: setupTouchAndGestureHandlers()');
+
+    // Handle pointer down
+    canvas.addEventListener('pointerdown', function (e) {
+      LOG('X: pointerdown');
+      pointerId = e.pointerId;
+      pointerStartX = e.clientX;
+      pointerStartY = e.clientY;
+      pointerStartTime = Date.now();
+
+      // Capture pointer to ensure we get all events
+      canvas.setPointerCapture(e.pointerId);
+    });
+
+    // Handle pointer up for gesture detection
+    canvas.addEventListener('pointerup', function (e) {
+      // Only process if it's the same pointer that started the gesture
+      if (e.pointerId !== pointerId) return;
+
+      LOG('X: pointerup');
+      const pointerEndTime = Date.now();
+      const pointerDuration = pointerEndTime - pointerStartTime;
+      const pointerEndX = e.clientX;
+      const pointerEndY = e.clientY;
+      const deltaX = pointerEndX - pointerStartX;
+      const deltaY = pointerEndY - pointerStartY;
+      const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      // First check for swipe - fast movement with significant horizontal distance
+      if (
+        pointerDuration < SWIPE_DURATION_THRESHOLD &&
+        Math.abs(deltaX) > SWIPE_DISTANCE_THRESHOLD &&
+        Math.abs(deltaX) > Math.abs(deltaY)
+      ) {
+        if (deltaX > 0) {
+          // Right swipe
+          LOG('swipe right detected');
           advanceImage(false);
-          break;
-        default:
-          return;
+        } else {
+          // Left swipe
+          LOG('swipe left detected');
+          advanceImage(true);
+        }
+        return;
+      }
+
+      // If not a swipe, check for tap (minimal movement)
+      if (totalMovement < TAP_MOVEMENT_THRESHOLD) {
+        // Check for double tap
+        const tapTimeDiff = pointerEndTime - lastTapTime;
+        if (tapTimeDiff < DOUBLE_TAP_THRESHOLD) {
+          // This is a double tap
+          LOG('X: double tap detected');
+          toggleFullScreen();
+          lastTapTime = 0; // Reset to prevent triple tap detection
+        } else {
+          // This is a single tap
+          LOG('X: single tap detected, launching movie');
+          launchMovie();
+          lastTapTime = pointerEndTime;
+        }
       }
     });
-    // mc.on("swipedown", function(ev) {toggleFullScreen();});
-    // mc.on("swipeup", function(ev) {gotoRandomImage();});
-    mc.on('doubletap', function () {
-      toggleFullScreen();
+
+    // Handle pointer cancel to clean up state
+    canvas.addEventListener('pointercancel', function (e) {
+      if (e.pointerId === pointerId) {
+        pointerId = -1;
+      }
     });
-    mc.on('singletap', function () {
-      launchMovie();
-    });
+
+    // Prevent default for touch pointers to avoid browser handling conflicts
+    canvas.addEventListener(
+      'pointerdown',
+      function (e) {
+        if (e.pointerType === 'touch') {
+          e.preventDefault();
+        }
+      },
+      { passive: false },
+    );
   }
-
-  setupHammer();
-
+  setupTouchAndGestureHandlers();
   /// Toggles the help div.
   function toggleHelp() {
     helpModal.toggle();
