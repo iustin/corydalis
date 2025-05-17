@@ -985,7 +985,7 @@ $(function () {
       return;
     }
     let handled = true;
-    LOG("key: '", e.key, "'");
+    LOG('key: %o, full event: %o', e.key, e);
 
     // Handle the modal first, as it's a special case. Any key press here
     // closes the modal, and does nothing else (and doesn't propagate).
