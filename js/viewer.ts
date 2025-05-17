@@ -976,6 +976,37 @@ $(function () {
       }
     });
 
+    // Prevent all gesture events at the document level to stop Safari's
+    // behavior.
+    // TODO: enable gesture handling, for example trackpad
+    // pinch/zoom, which is different than touch pinch-zoom. Sigh.
+    document.addEventListener(
+      'gesturestart',
+      function (e) {
+        LOG('X: gesturestart prevented');
+        e.preventDefault();
+      },
+      { passive: false },
+    );
+
+    document.addEventListener(
+      'gesturechange',
+      function (e) {
+        LOG('X: gesturechange prevented');
+        e.preventDefault();
+      },
+      { passive: false },
+    );
+
+    document.addEventListener(
+      'gestureend',
+      function (e) {
+        LOG('X: gestureend prevented');
+        e.preventDefault();
+      },
+      { passive: false },
+    );
+
     // Prevent default for touch pointers to avoid browser handling conflicts
     canvas.addEventListener(
       'pointerdown',
