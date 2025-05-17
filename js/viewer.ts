@@ -133,11 +133,37 @@ class Dimensions {
   }
 
   /** Return a copy with dimensions clamped on the bottom by the given value */
-  public clampMin(min: number): Dimensions {
-    return new Dimensions(
-      this.x < min ? min : this.x,
-      this.y < min ? min : this.y,
-    );
+  public clampMin(min: number): Dimensions;
+  public clampMin(min: Dimensions): Dimensions;
+  public clampMin(min: number | Dimensions): Dimensions {
+    if (typeof min === 'number') {
+      return new Dimensions(
+        this.x < min ? min : this.x,
+        this.y < min ? min : this.y,
+      );
+    } else {
+      return new Dimensions(
+        this.x < min.x ? min.x : this.x,
+        this.y < min.y ? min.y : this.y,
+      );
+    }
+  }
+
+  /** Return a copy with dimensions clamped on the top by the given value */
+  public clampMax(max: number): Dimensions;
+  public clampMax(max: Dimensions): Dimensions;
+  public clampMax(max: number | Dimensions): Dimensions {
+    if (typeof max === 'number') {
+      return new Dimensions(
+        this.x > max ? max : this.x,
+        this.y > max ? max : this.y,
+      );
+    } else {
+      return new Dimensions(
+        this.x > max.x ? max.x : this.x,
+        this.y > max.y ? max.y : this.y,
+      );
+    }
   }
 }
 
