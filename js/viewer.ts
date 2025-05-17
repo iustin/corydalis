@@ -232,8 +232,8 @@ $(function () {
       matrix: bootinfo.current.matrix,
       url: location.href,
       scale: 1.0,
-      originX: 0.5,
-      originY: 0.5,
+      originX: 0.0,
+      originY: 0.0,
     },
   };
 
@@ -454,8 +454,8 @@ $(function () {
 
   function resetZoom() {
     cory.state.scale = 1.0;
-    cory.state.originX = 0.5;
-    cory.state.originY = 0.5;
+    cory.state.originX = 0.0;
+    cory.state.originY = 0.0;
     redrawImage();
   }
 
@@ -1023,6 +1023,10 @@ $(function () {
           break;
       }
       if (handled) {
+        cory.state.originX = Math.min(1, Math.max(-1, cory.state.originX));
+        cory.state.originY = Math.min(1, Math.max(-1, cory.state.originY));
+        LOG('origin', cory.state.originX, cory.state.originY);
+        redrawImage();
         e.preventDefault();
         return;
       }
