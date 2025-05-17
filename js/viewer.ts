@@ -1000,23 +1000,25 @@ $(function () {
     // letters and reflects in the key value, so we don't check for it.
     // And Command/Control is handled separately, so basically only
     // Alt/Meta is ignored.
-    if (e.altKey || e.metaKey) {
+    if (e.metaKey) {
+      LOG('Ignoring key with meta modifier');
       return;
     }
-    if (e.ctrlKey) {
+    if (e.altKey) {
       handled = true;
+      const modifier = e.shiftKey ? 0.2 : 0.1;
       switch (e.key) {
         case 'ArrowUp':
-          cory.state.originY -= 0.1;
+          cory.state.originY -= modifier;
           break;
         case 'ArrowDown':
-          cory.state.originY += 0.1;
+          cory.state.originY += modifier;
           break;
         case 'ArrowLeft':
-          cory.state.originX -= 0.1;
+          cory.state.originX -= modifier;
           break;
         case 'ArrowRight':
-          cory.state.originX += 0.1;
+          cory.state.originX += modifier;
           break;
         default:
           handled = false;
