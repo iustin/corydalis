@@ -1036,7 +1036,17 @@ $(function () {
         decZoom();
         break;
       case '0':
+      case '1':
         resetZoom();
+        break;
+      case '2':
+        setZoom(2);
+        break;
+      case '3':
+        setZoom(3);
+        break;
+      case '4':
+        setZoom(4);
         break;
       case 'f':
         toggleFullScreen();
