@@ -132,6 +132,11 @@ class Dimensions {
     return new Dimensions(this.x - sub.x, this.y - sub.y);
   }
 
+  /** Returns a copy with dimensions increased each by another dimension */
+  public plus(add: Dimensions): Dimensions {
+    return new Dimensions(this.x + add.x, this.y + add.y);
+  }
+
   /** Return a copy with dimensions clamped on the bottom by the given value */
   public clampMin(min: number): Dimensions;
   public clampMin(min: Dimensions): Dimensions;
