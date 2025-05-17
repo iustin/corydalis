@@ -91,6 +91,8 @@ const DOUBLE_TAP_THRESHOLD = 300;
 const TAP_MOVEMENT_THRESHOLD = 10;
 /** Minimum distance (px) for a gesture to be considered a swipe */
 const SWIPE_DISTANCE_THRESHOLD = 100;
+/** Minimum change in distance between pointers to trigger zoom */
+const PINCH_ZOOM_THRESHOLD = 10;
 
 /** Represents a 2D dimension, i.e. a `{x, y}` pair */
 class Dimensions {
@@ -170,6 +172,16 @@ class Dimensions {
       );
     }
   }
+}
+
+// Helper function to calculate distance between two points
+function getDistanceBetweenPoints(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): number {
+  return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
 
 /// Relocate the helpDiv element to the top level of the document.
@@ -905,72 +917,172 @@ $(function () {
     let pointerStartTime = 0;
     let lastTapTime = 0;
     let pointerId = -1;
+
+    // Add pinch-zoom tracking
+    const activePointers = new Map();
+    let initialPinchDistance = 0;
     LOG('X: setupTouchAndGestureHandlers()');
 
     // Handle pointer down
-    canvas.addEventListener('pointerdown', function (e) {
-      LOG('X: pointerdown');
-      pointerId = e.pointerId;
-      pointerStartX = e.clientX;
-      pointerStartY = e.clientY;
-      pointerStartTime = Date.now();
+    canvas.addEventListener(
+      'pointerdown',
+      function (e) {
+        LOG('X: pointerdown ' + e.pointerId);
 
-      // Capture pointer to ensure we get all events
-      canvas.setPointerCapture(e.pointerId);
-    });
+        // Store this pointer
+        activePointers.set(e.pointerId, {
+          x: e.clientX,
+          y: e.clientY,
+        });
+
+        // If this is the first or only pointer, track for swipe/tap
+        if (activePointers.size === 1) {
+          pointerId = e.pointerId;
+          pointerStartX = e.clientX;
+          pointerStartY = e.clientY;
+          pointerStartTime = Date.now();
+        }
+        // If this is the second pointer, initialize pinch-zoom
+        else if (activePointers.size === 2) {
+          const pointers = Array.from(activePointers.values());
+          initialPinchDistance = getDistanceBetweenPoints(
+            pointers[0].x,
+            pointers[0].y,
+            pointers[1].x,
+            pointers[1].y,
+          );
+          LOG('X: pinch start, initial distance: ' + initialPinchDistance);
+        }
+
+        // Always capture the pointer
+        canvas.setPointerCapture(e.pointerId);
+
+        // Prevent default to stop Safari's native zoom
+        if (e.pointerType === 'touch') {
+          e.preventDefault();
+        }
+      },
+      { passive: false },
+    );
+
+    // Handle pointer move for pinch-zoom
+    canvas.addEventListener(
+      'pointermove',
+      function (e) {
+        // Update this pointer position
+        if (activePointers.has(e.pointerId)) {
+          activePointers.set(e.pointerId, {
+            x: e.clientX,
+            y: e.clientY,
+          });
+        }
+
+        // Handle pinch-zoom if we have exactly 2 pointers
+        if (activePointers.size === 2) {
+          const pointers = Array.from(activePointers.values());
+          const currentDistance = getDistanceBetweenPoints(
+            pointers[0].x,
+            pointers[0].y,
+            pointers[1].x,
+            pointers[1].y,
+          );
+
+          // Only act if we've moved enough to consider it intentional
+          if (
+            Math.abs(currentDistance - initialPinchDistance) >
+            PINCH_ZOOM_THRESHOLD
+          ) {
+            // Calculate new scale
+            const scaleFactor = currentDistance / initialPinchDistance;
+            LOG('X: pinch zoom, scale factor: ' + scaleFactor);
+
+            // Apply zoom - note relative, not absolute, as absolute would
+            // reset the zoom on a very small distance in pinch (rather
+            // than incrementally changing the zoom factor).
+            adjustZoom(scaleFactor);
+
+            // Update initial distance for smoother zooming
+            initialPinchDistance = currentDistance;
+          }
+
+          // Prevent default to stop Safari's native zoom
+          if (e.pointerType === 'touch') {
+            e.preventDefault();
+          }
+        }
+      },
+      { passive: false },
+    );
 
     // Handle pointer up for gesture detection
     canvas.addEventListener('pointerup', function (e) {
-      // Only process if it's the same pointer that started the gesture
-      if (e.pointerId !== pointerId) return;
+      LOG('X: pointerup ' + e.pointerId);
 
-      LOG('X: pointerup');
-      const pointerEndTime = Date.now();
-      const pointerDuration = pointerEndTime - pointerStartTime;
-      const pointerEndX = e.clientX;
-      const pointerEndY = e.clientY;
-      const deltaX = pointerEndX - pointerStartX;
-      const deltaY = pointerEndY - pointerStartY;
-      const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      // Remove this pointer
+      activePointers.delete(e.pointerId);
 
-      // First check for swipe - fast movement with significant horizontal distance
-      if (
-        pointerDuration < SWIPE_DURATION_THRESHOLD &&
-        Math.abs(deltaX) > SWIPE_DISTANCE_THRESHOLD &&
-        Math.abs(deltaX) > Math.abs(deltaY)
-      ) {
-        if (deltaX > 0) {
-          // Right swipe
-          LOG('swipe right detected');
-          advanceImage(false);
-        } else {
-          // Left swipe
-          LOG('swipe left detected');
-          advanceImage(true);
+      // Only process tap/swipe if this was the initial pointer
+      if (e.pointerId === pointerId) {
+        // Track pointer end position and time for gesture detection
+        const pointerEndTime = Date.now();
+        const pointerDuration = pointerEndTime - pointerStartTime;
+        const pointerEndX = e.clientX;
+        const pointerEndY = e.clientY;
+        const deltaX = pointerEndX - pointerStartX;
+        const deltaY = pointerEndY - pointerStartY;
+        const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // First check for short touches (mostly swipes)
+        if (pointerDuration < SWIPE_DURATION_THRESHOLD) {
+          // Check if regular horizontal swipe
+          if (
+            Math.abs(deltaX) > SWIPE_DISTANCE_THRESHOLD &&
+            Math.abs(deltaX) > Math.abs(deltaY)
+          ) {
+            if (deltaX > 0) {
+              // Right swipe
+              LOG('swipe right detected');
+              advanceImage(false);
+            } else {
+              // Left swipe
+              LOG('swipe left detected');
+              advanceImage(true);
+            }
+          } else {
+            // This is a no movement, or vertical movement swipe.
+            // TODO: what do do with vertical swipes?
+          }
         }
-        return;
-      }
-
-      // If not a swipe, check for tap (minimal movement)
-      if (totalMovement < TAP_MOVEMENT_THRESHOLD) {
-        // Check for double tap
-        const tapTimeDiff = pointerEndTime - lastTapTime;
-        if (tapTimeDiff < DOUBLE_TAP_THRESHOLD) {
-          // This is a double tap
-          LOG('X: double tap detected');
-          toggleFullScreen();
-          lastTapTime = 0; // Reset to prevent triple tap detection
-        } else {
-          // This is a single tap
-          LOG('X: single tap detected, launching movie');
-          launchMovie();
-          lastTapTime = pointerEndTime;
+        // Now handle long-duration events
+        else {
+          if (totalMovement < TAP_MOVEMENT_THRESHOLD) {
+            // Check for double tap
+            const tapTimeDiff = pointerEndTime - lastTapTime;
+            if (tapTimeDiff < DOUBLE_TAP_THRESHOLD) {
+              // This is a double tap
+              LOG('X: double tap detected');
+              toggleFullScreen();
+              lastTapTime = 0; // Reset to prevent triple tap detection
+            } else {
+              // This is a single tap
+              LOG('X: single tap detected, launching movie');
+              launchMovie();
+              lastTapTime = pointerEndTime;
+            }
+          } else {
+            // This is a pan. We need to convert the distance into picture
+            // movement, but we keep the pan state as ratios, not absolute
+            // values.
+            // TODO: implement panning.
+          }
         }
       }
     });
 
     // Handle pointer cancel to clean up state
     canvas.addEventListener('pointercancel', function (e) {
+      LOG('X: pointercancel ' + e.pointerId);
+      activePointers.delete(e.pointerId);
       if (e.pointerId === pointerId) {
         pointerId = -1;
       }
