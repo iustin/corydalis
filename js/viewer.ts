@@ -302,7 +302,10 @@ $(function () {
     // the point of view of the image, it's drawn straight, not
     // rotated. Sigh, head hurts.
     const targetSize = imgSize.scaled(1 / scale);
-    // Compute the draw offsets, to center the image, if it's smaller than the canvas.
+    // Compute the draw offsets, to center the image, if it's smaller than
+    // the canvas. Note this is in a positive coordinates system, not in
+    // the (0, 0) being the center of the screen. Later we subtract the
+    // halvedCanvas to align it with the actual canvas coordinates.
     const drawOffsets = contextSize
       .minus(targetSize)
       .scaled(1 / 2)
