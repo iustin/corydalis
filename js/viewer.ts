@@ -992,6 +992,37 @@ $(function () {
             Math.abs(currentDistance - initialPinchDistance) >
             PINCH_ZOOM_THRESHOLD
           ) {
+            // Calculate pinch center point
+            const centerX = (pointers[0].x + pointers[1].x) / 2;
+            const centerY = (pointers[0].y + pointers[1].y) / 2;
+
+            // Convert center to relative position (as a ratio from -1 to 1)
+            // First get canvas dimensions and position
+            const rect = canvas.getBoundingClientRect();
+            const canvasCenterX = rect.left + rect.width / 2;
+            const canvasCenterY = rect.top + rect.height / 2;
+
+            // Calculate offset from center as a ratio (-1 to 1)
+            const relativeX = (centerX - canvasCenterX) / (rect.width / 2);
+            const relativeY = (centerY - canvasCenterY) / (rect.height / 2);
+
+            // Clamp values to [-1, 1] range
+            const clampedX = Math.min(1, Math.max(-1, relativeX));
+            const clampedY = Math.min(1, Math.max(-1, relativeY));
+
+            LOG(
+              'X: pinch center at',
+              centerX,
+              centerY,
+              'relative:',
+              clampedX,
+              clampedY,
+            );
+
+            // Update origin to center the view on the pinch point
+            cory.state.originX = clampedX;
+            cory.state.originY = clampedY;
+
             // Calculate new scale
             const scaleFactor = currentDistance / initialPinchDistance;
             LOG('X: pinch zoom, scale factor: ' + scaleFactor);
