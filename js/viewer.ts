@@ -371,11 +371,34 @@ $(function () {
       halvedContext.x,
       halvedContext.y,
     );
-    const offsetDrawOffsets = drawOffsets.minus(halvedContext);
+    // Now we have to both center the image (the minus halvedContext) and
+    // must take into account any panning offsets. For images smaller than
+    // the context, we ignore panning, for larger images:
+    // * we take the overflow (image size - canvas size), and halve it
+    // * this is the allowed shift for panning (in each direction)
+    // * we then apply the panning offsets, which are in the range [-1, 1],
+    //   but note that for full left pan, the offset (pixels) should be zero,
+    //   i.e. drawing exactly at the canvas left-side edge, whereas for a full
+    //   right pan, we need remove the overflow once (image is centered), then
+    //   remove the overflow again (image is fully panned right). So in effect,
+    //   we translate the [-1, 1] range to [0, 2].
+    const centeredDrawOffsets = drawOffsets.minus(halvedContext);
+    const overflows = targetSize.minus(contextSize);
+    const panningOffsets = new Dimensions(
+      overflows.x > 0 ? (overflows.x / 2) * (cory.state.originX + 1) : 0,
+      overflows.y > 0 ? (overflows.y / 2) * (cory.state.originY + 1) : 0,
+    );
+    const offsetDrawOffsets = centeredDrawOffsets.minus(panningOffsets);
     LOG(
-      'draw call: adjustedDrawOffsets: %o targetSize: %o',
-      offsetDrawOffsets,
+      'Panning offsets: canvas size=%o, scale=%o, target size=%o, ' +
+        'overflows=%o, centered=%o, pan=%o, offsetDraw=%o',
+      contextSize,
+      scale,
       targetSize,
+      overflows,
+      centeredDrawOffsets,
+      panningOffsets,
+      offsetDrawOffsets,
     );
     context.drawImage(
       img,
