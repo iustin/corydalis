@@ -1006,10 +1006,10 @@ $(function () {
     if (e.ctrlKey) {
       handled = true;
       switch (e.key) {
-        case 'UpArrow':
+        case 'ArrowUp':
           cory.state.originY -= 0.1;
           break;
-        case 'DownArrow':
+        case 'ArrowDown':
           cory.state.originY += 0.1;
           break;
         case 'ArrowLeft':
