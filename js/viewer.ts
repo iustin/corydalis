@@ -965,9 +965,12 @@ $(function () {
       function (e) {
         // Handle the simplest and most common case.
         if (activePointers.size === 0) return;
+        // After this, there's at least one pointer down.
+        const prevPointer = Array.from(activePointers.values())[0];
+        const pointer = new Dimensions(e.clientX, e.clientY);
         // Update this pointer position.
         if (activePointers.has(e.pointerId)) {
-          activePointers.set(e.pointerId, new Dimensions(e.clientX, e.clientY));
+          activePointers.set(e.pointerId, pointer);
         }
 
         // Handle pinch-zoom if we have exactly 2 pointers.
