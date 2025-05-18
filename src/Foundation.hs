@@ -496,14 +496,16 @@ instance YesodAuth App where
       case x of
         Just (Entity uid _) -> return $ Authenticated uid
         Nothing ->
-          case credsPlugin creds of
 #if DEVELOPMENT
+          case credsPlugin creds of
             "dummy"  -> Authenticated <$> insert User
                         { userName = ident
                         , userPassword = Nothing
                         }
-#endif
             _ -> return $ UserError InvalidUsernamePass
+#else
+          return $ UserError InvalidUsernamePass
+#endif
       where ident = credsIdent creds
 
     -- Simple HashDB auth and in test/dev dummy auth.
