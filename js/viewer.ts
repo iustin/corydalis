@@ -1099,21 +1099,26 @@ $(function () {
         if (pointerDuration < TAP_DURATION_THRESHOLD) {
           // Check if swipe (non-trivial movement)
           if (totalMovement > TAP_MOVEMENT_THRESHOLD) {
-            // Check if regular horizontal swipe
-            if (Math.abs(delta.x) > Math.abs(delta.y)) {
-              if (delta.x > 0) {
-                // Right swipe
-                LOG('swipe right detected');
-                advanceImage(false);
+            // But make sure we're not in zoomed mode, in which case the
+            // action is pan, and was handled in the 'pointermove' event
+            // handler.
+            if (cory.state.scale === 1.0) {
+              // Check if regular horizontal swipe
+              if (Math.abs(delta.x) > Math.abs(delta.y)) {
+                if (delta.x > 0) {
+                  // Right swipe
+                  LOG('swipe right detected');
+                  advanceImage(false);
+                } else {
+                  // Left swipe
+                  LOG('swipe left detected');
+                  advanceImage(true);
+                }
               } else {
-                // Left swipe
-                LOG('swipe left detected');
-                advanceImage(true);
+                // This is a no movement, or vertical movement swipe.
+                // TODO: what do do with vertical swipes?
+                LOG('Ignored vertical swipe');
               }
-            } else {
-              // This is a no movement, or vertical movement swipe.
-              // TODO: what do do with vertical swipes?
-              LOG('Ignored vertical swipe');
             }
           } else {
             // Check for double tap.
