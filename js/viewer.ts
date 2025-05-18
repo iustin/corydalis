@@ -71,6 +71,10 @@ type State = {
   matrix: AffineMatrix;
   url: string;
   scale: number;
+  /** The internal bitmap dimesions, scaled from the the CSS pixels on high-DPI displays */
+  canvasSize: Dimensions;
+  /** The image native dimesions, before any downscaling to fit in the canvas */
+  imageSize: Dimensions;
   originX: number;
   originY: number;
 };
@@ -95,6 +99,8 @@ class Cory {
       matrix: bootinfo.current.matrix,
       url: location.href,
       scale: 1.0,
+      canvasSize: new Dimensions(0, 0),
+      imageSize: new Dimensions(0, 0),
       originX: 0.0,
       originY: 0.0,
     };
@@ -352,23 +358,15 @@ $(function () {
     // Reset the canvas transform, clear it, and prepare to draw the (new) image.
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
-    /** Used for high-res display support */
-    const deviceScale = window.devicePixelRatio;
-    // The default values: unlikely to be used, as we pass a DOM object, but TS...
-    /** Scale the given value based on the device scale. */
-    const contextScaler = (val: number | undefined): number =>
-      Math.floor((val ?? 300) * deviceScale);
-    /** Context size, modified for high-res scaling */
-    const contextSize = new Dimensions(
-      contextScaler($(context.canvas).width()),
-      contextScaler($(context.canvas).height()),
-    );
-    const zoomedContext = contextSize.scaled(cory.state.scale);
+    const contextSize = state.canvasSize;
+    const zoomedContext = state.canvasSize.scaled(cory.state.scale);
     LOG('transform information: %o matrix information: %o', transform, matrix);
     const rotation = transform[0];
     const imgSize = new Dimensions(img.width, img.height);
     /** Image size, taking rotation into account */
     const imgRotated = rotation == 0 ? imgSize : imgSize.swapped();
+    // And record the image native size.
+    state.imageSize = imgRotated;
     // Compute the potentially-zoomed scaling of the image.
     const imgScaling = imgRotated.dividedBy(zoomedContext);
     const scale = imgScaling.longest();
@@ -544,6 +542,7 @@ $(function () {
   }
 
   function resizeCanvas() {
+    // TODO: Also add a resize observer to the canvas.
     if (context == null) {
       return;
     }
@@ -559,13 +558,12 @@ $(function () {
         width,
         ', height: ',
         height,
-        ', aborting.',
+        ', assuming 300 pixels.',
       );
-      return;
     }
     const scale = window.devicePixelRatio;
-    const scaledWidth = Math.floor(width * scale);
-    const scaledHeight = Math.floor(height * scale);
+    const scaledWidth = Math.floor((width ?? 300) * scale);
+    const scaledHeight = Math.floor((height ?? 300) * scale);
     LOG(
       'Resizing canvas, width ',
       width,
@@ -579,6 +577,8 @@ $(function () {
     // to set the model (coordinate) dimension.
     context.canvas.width = scaledWidth;
     context.canvas.height = scaledHeight;
+    // And store it in the state.
+    cory.state.canvasSize = new Dimensions(scaledWidth, scaledHeight);
   }
 
   function resizeCanvasAndRedraw() {
