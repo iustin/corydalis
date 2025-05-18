@@ -75,12 +75,31 @@ type State = {
   originY: number;
 };
 
-type Cory = {
+class Cory {
   info: ViewInfo;
   prev: HTMLImageElement;
   next: HTMLImageElement;
   state: State;
-};
+
+  constructor(bootinfo: ViewInfo) {
+    this.info = bootinfo;
+    this.prev = new Image();
+    this.next = new Image();
+    this.state = {
+      fullscreen: false,
+      img: new Image(),
+      video: null,
+      lastX: 0,
+      msgTimeId: 0,
+      transform: bootinfo.current.transform,
+      matrix: bootinfo.current.matrix,
+      url: location.href,
+      scale: 1.0,
+      originX: 0.0,
+      originY: 0.0,
+    };
+  }
+}
 
 // Constants for gesture detection
 /** Maximum duration (ms) for a gesture to be considered a swipe rather than a pan */
@@ -228,24 +247,7 @@ $(function () {
 
   LOG('bootinfo ', bootinfo);
 
-  const cory: Cory = {
-    info: bootinfo,
-    prev: new Image(),
-    next: new Image(),
-    state: {
-      fullscreen: false,
-      img: new Image(),
-      video: null,
-      lastX: 0,
-      msgTimeId: 0,
-      transform: bootinfo.current.transform,
-      matrix: bootinfo.current.matrix,
-      url: location.href,
-      scale: 1.0,
-      originX: 0.0,
-      originY: 0.0,
-    },
-  };
+  const cory = new Cory(bootinfo);
 
   const divMain = $('#main');
   const navMenu = $('#nav');
