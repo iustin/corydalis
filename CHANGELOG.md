@@ -22,7 +22,7 @@ Released: _Wed, 20 Mar 2024_.
 For me, the highlight of this release is the disabling of unintended, and
 accidental zooming in the image viewer, when using the navigation bar with
 fast tapping. The viewer zoom level is now stable, except when
-(intentionally) double tapping on the top navbar or search entry.
+(intentionally) double tapping on the top navigation bar or search entry.
 
 ### Features
 
@@ -110,10 +110,10 @@ Two new config settings were introduced and one was deprecated:
   debug the server behaviour;
 - it's likely that `should-log-all` will be removed in the future.
 
-For installation, there's now an additional option to use pre-built amd64
-binaries generated automatically by the GitHub Actions (at each commit).
-Of course, building from source is still best, as it will use the exact
-environment (rather than just Ubuntu latest).
+For installation, there's now an additional option to use pre-built
+`amd64` binaries generated automatically by the GitHub Actions (at each
+commit). Of course, building from source is still best, as it will use the
+exact environment (rather than just Ubuntu latest).
 
 ### Internal changes
 
