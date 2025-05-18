@@ -364,7 +364,6 @@ $(function () {
       drawOffsets,
     );
     cory.state.lastX = drawOffsets.x;
-    LOG('matrix: %o', matrix);
     T_START('drawImage');
     // The halved context size in transform then doing the opposite in
     // drawOffsets is required for rotated images. For straight images,
