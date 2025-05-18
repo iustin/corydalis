@@ -910,8 +910,7 @@ $(function () {
 
   function setupTouchAndGestureHandlers() {
     // Track pointer start position and time for gesture detection
-    let pointerStartX = 0;
-    let pointerStartY = 0;
+    const pointerStart = new Dimensions(0, 0);
     let pointerStartTime = 0;
     let lastTapTime = 0;
     let pointerId = -1;
@@ -934,8 +933,8 @@ $(function () {
         // If this is the first or only pointer, track for swipe/tap
         if (activePointers.size === 1) {
           pointerId = e.pointerId;
-          pointerStartX = e.clientX;
-          pointerStartY = e.clientY;
+          pointerStart.x = e.clientX;
+          pointerStart.y = e.clientY;
           pointerStartTime = Date.now();
         }
         // If this is the second pointer, initialize pinch-zoom
@@ -1068,11 +1067,9 @@ $(function () {
         // Track pointer end position and time for gesture detection
         const pointerEndTime = Date.now();
         const pointerDuration = pointerEndTime - pointerStartTime;
-        const pointerEndX = e.clientX;
-        const pointerEndY = e.clientY;
-        const deltaX = pointerEndX - pointerStartX;
-        const deltaY = pointerEndY - pointerStartY;
-        const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const pointerEnd = new Dimensions(e.clientX, e.clientY);
+        const delta = pointerEnd.minus(pointerStart);
+        const totalMovement = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
 
         LOG(
           'X: pointerup ' +
@@ -1087,8 +1084,8 @@ $(function () {
           // Check if swipe (non-trivial movement)
           if (totalMovement > TAP_MOVEMENT_THRESHOLD) {
             // Check if regular horizontal swipe
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
-              if (deltaX > 0) {
+            if (Math.abs(delta.x) > Math.abs(delta.y)) {
+              if (delta.x > 0) {
                 // Right swipe
                 LOG('swipe right detected');
                 advanceImage(false);
