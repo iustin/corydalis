@@ -175,13 +175,13 @@ class Dimensions {
 }
 
 // Helper function to calculate distance between two points
-function getDistanceBetweenPoints(
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-): number {
-  return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+function getDistanceBetweenPoints(p1: Dimensions, p2: Dimensions): number {
+  return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+}
+
+// Helper function to compute the midpoint between two points
+function getMidpoint(p1: Dimensions, p2: Dimensions) {
+  return new Dimensions((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
 }
 
 /// Relocate the helpDiv element to the top level of the document.
@@ -921,6 +921,7 @@ $(function () {
     // Add pinch-zoom tracking
     const activePointers = new Map();
     let initialPinchDistance = 0;
+    let prevCenter = new Dimensions(0, 0);
     LOG('X: setupTouchAndGestureHandlers()');
 
     // Handle pointer down
@@ -930,10 +931,7 @@ $(function () {
         LOG('X: pointerdown ' + e.pointerId);
 
         // Store this pointer
-        activePointers.set(e.pointerId, {
-          x: e.clientX,
-          y: e.clientY,
-        });
+        activePointers.set(e.pointerId, new Dimensions(e.clientX, e.clientY));
 
         // If this is the first or only pointer, track for swipe/tap
         if (activePointers.size === 1) {
@@ -946,11 +944,10 @@ $(function () {
         else if (activePointers.size === 2) {
           const pointers = Array.from(activePointers.values());
           initialPinchDistance = getDistanceBetweenPoints(
-            pointers[0].x,
-            pointers[0].y,
-            pointers[1].x,
-            pointers[1].y,
+            pointers[0],
+            pointers[1],
           );
+          prevCenter = getMidpoint(pointers[0], pointers[1]);
           LOG('X: pinch start, initial distance: ' + initialPinchDistance);
         }
 
@@ -969,71 +966,87 @@ $(function () {
     canvas.addEventListener(
       'pointermove',
       function (e) {
-        // Update this pointer position
+        // Handle the simplest and most common case.
+        if (activePointers.size === 0) return;
+        // Update this pointer position.
         if (activePointers.has(e.pointerId)) {
-          activePointers.set(e.pointerId, {
-            x: e.clientX,
-            y: e.clientY,
-          });
+          activePointers.set(e.pointerId, new Dimensions(e.clientX, e.clientY));
         }
 
-        // Handle pinch-zoom if we have exactly 2 pointers
+        // Handle pinch-zoom if we have exactly 2 pointers.
         if (activePointers.size === 2) {
           const pointers = Array.from(activePointers.values());
           const currentDistance = getDistanceBetweenPoints(
-            pointers[0].x,
-            pointers[0].y,
-            pointers[1].x,
-            pointers[1].y,
+            pointers[0],
+            pointers[1],
           );
 
-          // Only act if we've moved enough to consider it intentional
-          if (
+          // Calculate current pinch center point.
+          const center = getMidpoint(pointers[0], pointers[1]);
+
+          // Calculate movement delta (how much the center moved)
+          const centerDelta = center.minus(prevCenter);
+
+          // Convert to ratio of canvas size for panning
+          const rect = canvas.getBoundingClientRect();
+          const panFactorX = centerDelta.x / rect.width;
+          const panFactorY = centerDelta.y / rect.height;
+
+          // Only process if we've moved enough to consider it intentional
+          const hasPanned =
+            Math.abs(centerDelta.x) > 1 || Math.abs(centerDelta.y) > 1;
+          const hasZoomed =
             Math.abs(currentDistance - initialPinchDistance) >
-            PINCH_ZOOM_THRESHOLD
-          ) {
-            // Calculate pinch center point
-            const centerX = (pointers[0].x + pointers[1].x) / 2;
-            const centerY = (pointers[0].y + pointers[1].y) / 2;
+            PINCH_ZOOM_THRESHOLD;
+          LOG('PinchPan, hasPanned=%o, hasZoomed=%o', hasPanned, hasZoomed);
+          if (hasPanned || hasZoomed) {
+            // Apply pan - move against the finger direction
+            if (hasPanned) {
+              // Adjust pan speed based on zoom level - make panning more sensitive at higher zoom
+              const panMultiplier =
+                cory.state.scale > 1 ? 2 * cory.state.scale : 2;
+              cory.state.originX -= panFactorX * panMultiplier;
+              cory.state.originY -= panFactorY * panMultiplier;
+              // Clamp values to [-1, 1] range
+              cory.state.originX = Math.min(
+                1,
+                Math.max(-1, cory.state.originX),
+              );
+              cory.state.originY = Math.min(
+                1,
+                Math.max(-1, cory.state.originY),
+              );
 
-            // Convert center to relative position (as a ratio from -1 to 1)
-            // First get canvas dimensions and position
-            const rect = canvas.getBoundingClientRect();
-            const canvasCenterX = rect.left + rect.width / 2;
-            const canvasCenterY = rect.top + rect.height / 2;
+              LOG(
+                'X: panning by',
+                panFactorX,
+                panFactorY,
+                'new origin:',
+                cory.state.originX,
+                cory.state.originY,
+              );
+            }
 
-            // Calculate offset from center as a ratio (-1 to 1)
-            const relativeX = (centerX - canvasCenterX) / (rect.width / 2);
-            const relativeY = (centerY - canvasCenterY) / (rect.height / 2);
+            // Apply zoom if distance changed
+            if (hasZoomed) {
+              // Calculate new scale
+              const scaleFactor = currentDistance / initialPinchDistance;
+              LOG('X: pinch zoom, scale factor: ' + scaleFactor);
 
-            // Clamp values to [-1, 1] range
-            const clampedX = Math.min(1, Math.max(-1, relativeX));
-            const clampedY = Math.min(1, Math.max(-1, relativeY));
+              // Apply zoom
+              adjustZoom(scaleFactor);
 
-            LOG(
-              'X: pinch center at',
-              centerX,
-              centerY,
-              'relative:',
-              clampedX,
-              clampedY,
-            );
+              // Update initial distance for smoother zooming
+              initialPinchDistance = currentDistance;
+            }
 
-            // Update origin to center the view on the pinch point
-            cory.state.originX = clampedX;
-            cory.state.originY = clampedY;
+            // Save current center as previous for next move
+            prevCenter = center;
 
-            // Calculate new scale
-            const scaleFactor = currentDistance / initialPinchDistance;
-            LOG('X: pinch zoom, scale factor: ' + scaleFactor);
-
-            // Apply zoom - note relative, not absolute, as absolute would
-            // reset the zoom on a very small distance in pinch (rather
-            // than incrementally changing the zoom factor).
-            adjustZoom(scaleFactor);
-
-            // Update initial distance for smoother zooming
-            initialPinchDistance = currentDistance;
+            // Only redraw once
+            if (!hasZoomed) {
+              redrawImage();
+            }
           }
 
           // Prevent default to stop Safari's native zoom
