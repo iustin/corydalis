@@ -99,6 +99,32 @@ class Cory {
       originY: 0.0,
     };
   }
+
+  /**
+   * modifyOriginX - changes the originX coordinate, and returns whether
+   * a change was applied or not.
+   */
+  public modifyOriginX(x: number): boolean {
+    const oldX = this.state.originX;
+    this.state.originX = limitNumber(-1.0, 1.0, oldX + x);
+    return oldX !== this.state.originX;
+  }
+  /**
+   * modifyOriginY - changes the originY coordinate, and returns whether
+   * a change was applied or not.
+   */
+  public modifyOriginY(y: number): boolean {
+    const oldY = this.state.originY;
+    this.state.originY = limitNumber(-1.0, 1.0, oldY + y);
+    return oldY != this.state.originY;
+  }
+  /**
+   * modifyOrigin - changes the originX/Y coordinates, and returns whether
+   * a change was applied or not.
+   */
+  public modifyOrigin(x: number, y: number): boolean {
+    return this.modifyOriginX(x) || this.modifyOriginY(y);
+  }
 }
 
 // Constants for gesture detection
@@ -199,6 +225,11 @@ function getDistanceBetweenPoints(p1: Dimensions, p2: Dimensions): number {
 // Helper function to compute the midpoint between two points
 function getMidpoint(p1: Dimensions, p2: Dimensions) {
   return new Dimensions((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+}
+
+// Helper function to limit a number between two values
+function limitNumber(min: number, max: number, num: number): number {
+  return Math.min(Math.max(num, min), max);
 }
 
 /// Relocate the helpDiv element to the top level of the document.
@@ -982,12 +1013,14 @@ $(function () {
             const rect = canvas.getBoundingClientRect();
             const panFactorX = delta.x / rect.width;
             const panFactorY = delta.y / rect.height;
-            cory.state.originX -= panFactorX * panMultiplier;
-            cory.state.originY -= panFactorY * panMultiplier;
-            // Clamp values to [-1, 1] range
-            cory.state.originX = Math.min(1, Math.max(-1, cory.state.originX));
-            cory.state.originY = Math.min(1, Math.max(-1, cory.state.originY));
-            redrawImage();
+            if (
+              cory.modifyOrigin(
+                -panFactorX * panMultiplier,
+                -panFactorY * panMultiplier,
+              )
+            ) {
+              redrawImage();
+            }
             break;
           }
           case 2: {
@@ -1018,17 +1051,11 @@ $(function () {
             LOG('PinchPan, hasPanned=%o, hasZoomed=%o', hasPanned, hasZoomed);
             if (hasPanned || hasZoomed) {
               // Apply pan - move against the finger direction
+              let panDidMove = false;
               if (hasPanned) {
-                cory.state.originX -= panFactorX * panMultiplier;
-                cory.state.originY -= panFactorY * panMultiplier;
-                // Clamp values to [-1, 1] range
-                cory.state.originX = Math.min(
-                  1,
-                  Math.max(-1, cory.state.originX),
-                );
-                cory.state.originY = Math.min(
-                  1,
-                  Math.max(-1, cory.state.originY),
+                panDidMove = cory.modifyOrigin(
+                  -panFactorX * panMultiplier,
+                  -panFactorY * panMultiplier,
                 );
 
                 LOG(
@@ -1058,7 +1085,7 @@ $(function () {
               prevCenter = center;
 
               // Only redraw once
-              if (!hasZoomed) {
+              if (!hasZoomed && panDidMove) {
                 redrawImage();
               }
             }
@@ -1239,28 +1266,28 @@ $(function () {
     if (e.altKey) {
       handled = true;
       const modifier = e.shiftKey ? 0.2 : 0.1;
+      let didPan = false;
       switch (e.key) {
         case 'ArrowUp':
-          cory.state.originY -= modifier;
+          didPan = cory.modifyOriginY(-modifier);
           break;
         case 'ArrowDown':
-          cory.state.originY += modifier;
+          didPan = cory.modifyOriginY(modifier);
           break;
         case 'ArrowLeft':
-          cory.state.originX -= modifier;
+          didPan = cory.modifyOriginX(-modifier);
           break;
         case 'ArrowRight':
-          cory.state.originX += modifier;
+          didPan = cory.modifyOriginX(modifier);
           break;
         default:
           handled = false;
           break;
       }
       if (handled) {
-        cory.state.originX = Math.min(1, Math.max(-1, cory.state.originX));
-        cory.state.originY = Math.min(1, Math.max(-1, cory.state.originY));
-        LOG('origin', cory.state.originX, cory.state.originY);
-        redrawImage();
+        if (didPan) {
+          redrawImage();
+        }
         e.preventDefault();
         return;
       }
