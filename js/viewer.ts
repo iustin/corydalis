@@ -84,13 +84,11 @@ type Cory = {
 
 // Constants for gesture detection
 /** Maximum duration (ms) for a gesture to be considered a swipe rather than a pan */
-const SWIPE_DURATION_THRESHOLD = 300;
+const TAP_DURATION_THRESHOLD = 300;
 /** Maximum time (ms) between taps to be considered a double-tap */
 const DOUBLE_TAP_THRESHOLD = 300;
 /** Maximum movement (px) for a gesture to be considered a tap rather than a swipe */
-const TAP_MOVEMENT_THRESHOLD = 10;
-/** Minimum distance (px) for a gesture to be considered a swipe */
-const SWIPE_DISTANCE_THRESHOLD = 100;
+const TAP_MOVEMENT_THRESHOLD = 100;
 /** Minimum change in distance between pointers to trigger zoom */
 const PINCH_ZOOM_THRESHOLD = 10;
 
@@ -1076,31 +1074,36 @@ $(function () {
         const deltaY = pointerEndY - pointerStartY;
         const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
+        LOG(
+          'X: pointerup ' +
+            e.pointerId +
+            ' duration ' +
+            pointerDuration +
+            ' movement ' +
+            totalMovement,
+        );
         // First check for short touches (mostly swipes)
-        if (pointerDuration < SWIPE_DURATION_THRESHOLD) {
-          // Check if regular horizontal swipe
-          if (
-            Math.abs(deltaX) > SWIPE_DISTANCE_THRESHOLD &&
-            Math.abs(deltaX) > Math.abs(deltaY)
-          ) {
-            if (deltaX > 0) {
-              // Right swipe
-              LOG('swipe right detected');
-              advanceImage(false);
+        if (pointerDuration < TAP_DURATION_THRESHOLD) {
+          // Check if swipe (non-trivial movement)
+          if (totalMovement > TAP_MOVEMENT_THRESHOLD) {
+            // Check if regular horizontal swipe
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+              if (deltaX > 0) {
+                // Right swipe
+                LOG('swipe right detected');
+                advanceImage(false);
+              } else {
+                // Left swipe
+                LOG('swipe left detected');
+                advanceImage(true);
+              }
             } else {
-              // Left swipe
-              LOG('swipe left detected');
-              advanceImage(true);
+              // This is a no movement, or vertical movement swipe.
+              // TODO: what do do with vertical swipes?
+              LOG('Ignored vertical swipe');
             }
           } else {
-            // This is a no movement, or vertical movement swipe.
-            // TODO: what do do with vertical swipes?
-          }
-        }
-        // Now handle long-duration events
-        else {
-          if (totalMovement < TAP_MOVEMENT_THRESHOLD) {
-            // Check for double tap
+            // Check for double tap.
             const tapTimeDiff = pointerEndTime - lastTapTime;
             if (tapTimeDiff < DOUBLE_TAP_THRESHOLD) {
               // This is a double tap
@@ -1113,12 +1116,11 @@ $(function () {
               launchMovie();
               lastTapTime = pointerEndTime;
             }
-          } else {
-            // This is a pan. We need to convert the distance into picture
-            // movement, but we keep the pan state as ratios, not absolute
-            // values.
-            // TODO: implement panning.
           }
+        } else {
+          // This is a pan _end_. However, we should have handled the
+          // actual pan during the pointermove events, so nothing to do
+          // here.
         }
       }
     });
