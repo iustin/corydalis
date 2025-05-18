@@ -323,6 +323,7 @@ $(function () {
 
   // Draws an already-loaded image into a give image element.
   function drawImage(
+    state: State,
     img: HTMLImageElement,
     info: ImageInfo,
     msg?: string,
@@ -336,7 +337,7 @@ $(function () {
       img.onload = function () {
         LOG('Late load of ', url);
         setImageReady(img, true);
-        drawImage(img, info, msg, skipStackChange);
+        drawImage(state, img, info, msg, skipStackChange);
       };
       return;
     }
@@ -479,7 +480,7 @@ $(function () {
   }
 
   function redrawImage() {
-    drawImage(cory.state.img, cory.info.current, undefined, true);
+    drawImage(cory.state, cory.state.img, cory.info.current, undefined, true);
     maybeWriteIsMovie(cory.info.current);
   }
 
@@ -535,7 +536,7 @@ $(function () {
       LOG('got full size image, calling drawImage');
       setImageReady(img, true);
       const c = cory.info.current;
-      drawImage(img, c, c.name);
+      drawImage(cory.state, img, c, c.name);
     };
     LOG('Requestiong full size image from', cory.info.current.bytes);
     img.dataset.fullres = 'true';
@@ -710,7 +711,7 @@ $(function () {
     const image = new Image();
     image.onload = function () {
       setImageReady(image, true);
-      drawImage(image, info, info.name);
+      drawImage(cory.state, image, info, info.name);
     };
     writeMessage(`Loading ${info.name}...`);
     maybeWriteIsMovie(info);
@@ -780,7 +781,7 @@ $(function () {
     }
     writeMessage('Loading ' + info.name, 6000);
     maybeWriteIsMovie(info);
-    drawImage(img, info, info.name);
+    drawImage(cory.state, img, info, info.name);
     updateInfo(info.info);
   }
 
@@ -1527,7 +1528,7 @@ $(function () {
   image.onload = function () {
     setImageReady(image, true);
     const c = bootinfo.current;
-    drawImage(image, c, c.name);
+    drawImage(cory.state, image, c, c.name);
   };
   loadImage(image, bootinfo.current.bytes);
 
