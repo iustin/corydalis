@@ -111,7 +111,7 @@ html {
 
 div#imageNavGroup {
     z-index: 2;
-    position: absolute;
+    position: fixed;
     bottom: 0.5em;
     right: 0.5em;
     opacity: 0.5;
