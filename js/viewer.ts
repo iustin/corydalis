@@ -551,6 +551,10 @@ $(function () {
 
   // Set zoom to a specific value.
   function setZoom(scale: number) {
+    // If no-op, just return.
+    if (scale == cory.state.scale) {
+      return;
+    }
     // Check if at initial, or weird state.
     if (scale == 0) {
       scale = 1;
@@ -586,6 +590,9 @@ $(function () {
   }
 
   function resetZoom() {
+    if (cory.state.scale == 1.0) {
+      return;
+    }
     cory.state.scale = 1.0;
     cory.state.originX = 0.0;
     cory.state.originY = 0.0;
