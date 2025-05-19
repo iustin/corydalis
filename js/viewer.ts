@@ -1078,6 +1078,14 @@ $(function () {
         // After this, there's at least one pointer down.
         const prevPointer = Array.from(activePointers.values())[0];
         const pointer = new Dimensions(e.clientX, e.clientY);
+        const delta = pointer.minus(prevPointer);
+        const minimumMove = cory.state.devicePixelRatio;
+        // If this pointer hasn't moved at least 1px, ignore the event
+        // entirely. The movement will accumulate, and a series of small
+        // movements should be reflected once it jumps enough.
+        if (delta.absMagnitude() < minimumMove) {
+          return;
+        }
         // Update this pointer position.
         if (activePointers.has(e.pointerId)) {
           activePointers.set(e.pointerId, pointer);
@@ -1085,9 +1093,7 @@ $(function () {
         switch (activePointers.size) {
           case 1: {
             // Handle panning if we have exactly 1 pointer.
-            const delta = pointer.minus(prevPointer);
-            LOG('One pointer pan by %o', delta);
-            if (delta.absMagnitude() > 0 && cory.pan(delta.x, delta.y)) {
+            if (cory.pan(delta.x, delta.y)) {
               redrawImage();
             }
             break;
@@ -1108,7 +1114,8 @@ $(function () {
 
             // Only process if we've moved enough to consider it intentional
             const hasPanned =
-              Math.abs(centerDelta.x) > 1 || Math.abs(centerDelta.y) > 1;
+              Math.abs(centerDelta.x) > minimumMove ||
+              Math.abs(centerDelta.y) > minimumMove;
             const hasZoomed =
               Math.abs(currentDistance - initialPinchDistance) >
               PINCH_ZOOM_THRESHOLD;
