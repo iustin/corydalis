@@ -75,6 +75,16 @@ type State = {
   canvasSize: Dimensions;
   /** The image native dimesions, before any downscaling to fit in the canvas */
   imageSize: Dimensions;
+  /** Holds the amount of panning available based on image-vs-canvas
+   * sizes. This represents half of the total limit, i.e. it's a ± of this
+   * value.
+   */
+  panLimits: Dimensions;
+  /** Holds the current pan offsets, in absolute pixels. A positive value
+   * means the image is shifted to right/bottom, i.e. more of the left/top
+   * side is visible. The absolute value of the components must be within
+   * the {@link State.panLimits} value. */
+  panOffsets: Dimensions;
   /** The scale for a 1:1 pixel mapping */
   scale11: number;
   originX: number;
@@ -103,6 +113,8 @@ class Cory {
       scale: 1.0,
       canvasSize: new Dimensions(0, 0),
       imageSize: new Dimensions(0, 0),
+      panLimits: new Dimensions(0, 0),
+      panOffsets: new Dimensions(0, 0),
       scale11: 1.0,
       originX: 0.0,
       originY: 0.0,
@@ -475,6 +487,11 @@ $(function () {
       centeredDrawOffsets,
       panningOffsets,
       offsetDrawOffsets,
+    );
+    LOG(
+      'Cory state: limits %o, offsets %o',
+      cory.state.panLimits,
+      cory.state.panOffsets,
     );
     context.drawImage(
       img,
