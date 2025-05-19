@@ -153,7 +153,9 @@ class Cory {
    * a change was applied or not.
    */
   public pan(x: number, y: number): boolean {
-    return this.panX(x) || this.panY(y);
+    const didPanX = this.panX(x);
+    const didPanY = this.panY(y);
+    return didPanX || didPanY;
   }
 }
 
