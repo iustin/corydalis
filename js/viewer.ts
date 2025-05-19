@@ -75,6 +75,8 @@ type State = {
   canvasSize: Dimensions;
   /** The image native dimesions, before any downscaling to fit in the canvas */
   imageSize: Dimensions;
+  /** The scale for a 1:1 pixel mapping */
+  scale11: number;
   originX: number;
   originY: number;
 };
@@ -101,6 +103,7 @@ class Cory {
       scale: 1.0,
       canvasSize: new Dimensions(0, 0),
       imageSize: new Dimensions(0, 0),
+      scale11: 1.0,
       originX: 0.0,
       originY: 0.0,
     };
@@ -375,6 +378,9 @@ $(function () {
     // Compute the potentially-zoomed scaling of the image.
     const imgScaling = imgRotated.dividedBy(zoomedContext);
     const scale = imgScaling.longest();
+    // Also compute the absolute (unzoomed) 1:1 scale;
+    state.scale11 = imgRotated.dividedBy(contextSize).longest();
+    LOG('context %o, image %o, scale: %f', contextSize, imgRotated, scale);
     // Note: target* must be in original coordinate system, not
     // rotated! So using img.width, not imgW. This is because from
     // the point of view of the image, it's drawn straight, not
@@ -518,6 +524,21 @@ $(function () {
       requestFullResImage();
     } else {
       redrawImage();
+    }
+  }
+
+  // Set zoom to a specific value of pixel ratio. E.g. 1 is 1:1 pixel mapping, 2 is 200%, etc.
+  function setPixelZoomRatio(pixelRatio: number) {
+    if (cory.state.img.dataset.fullres == 'false') {
+      LOG('load later!');
+      requestFullResImage(() => setPixelZoomRatio(pixelRatio));
+    } else {
+      LOG(
+        'setting pixel ration to %f, absolute zoom %f',
+        pixelRatio,
+        pixelRatio * cory.state.scale11,
+      );
+      setZoom(pixelRatio * cory.state.scale11);
     }
   }
 
@@ -1314,17 +1335,19 @@ $(function () {
         decZoom();
         break;
       case '0':
-      case '1':
         resetZoom();
         break;
+      case '1':
+        setPixelZoomRatio(1);
+        break;
       case '2':
-        setZoom(2);
+        setPixelZoomRatio(2);
         break;
       case '3':
-        setZoom(3);
+        setPixelZoomRatio(3);
         break;
       case '4':
-        setZoom(4);
+        setPixelZoomRatio(4);
         break;
       case 'f':
         toggleFullScreen();
