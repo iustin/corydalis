@@ -1263,6 +1263,12 @@ $(function () {
     helpModal.toggle();
   }
 
+  /// Toggles between fit and 100% pixel ratios.
+  function toggleZoomFit() {
+    if (cory.state.scale == 1) setPixelZoomRatio(1);
+    else setZoom(1);
+  }
+
   document.addEventListener('keydown', function (e) {
     // Ignore pressses of just the modifier key.
     if (
@@ -1373,6 +1379,9 @@ $(function () {
         break;
       case 'l':
         triggerListMode();
+        break;
+      case 'z':
+        toggleZoomFit();
         break;
       case 'B':
         triggerFolderBrowseMode();
@@ -1508,9 +1517,7 @@ $(function () {
     $('#goList').on('click', triggerListMode);
     $('#goFolderBrowse').on('click', triggerFolderBrowseMode);
     $('#goFolderList').on('click', triggerFolderListMode);
-    $('#imageZoom').on('click', function () {
-      requestFullResImage();
-    });
+    $('#imageZoom').on('click', toggleZoomFit);
     $('#imagePrev').on('click', function () {
       advanceImage(false);
     });
