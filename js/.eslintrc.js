@@ -17,7 +17,7 @@ module.exports = {
     'new-cap': [
       'error',
       {
-        capIsNewExceptions: ['LOG', 'T_START', 'T_STOP'],
+        capIsNewExceptions: ['LOG', 'LOG_GROUP_START', 'LOG_GROUP_END', 'LOG_TABLE', 'T_START', 'T_STOP'],
       },
     ],
   },
