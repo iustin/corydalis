@@ -87,8 +87,6 @@ type State = {
   panOffsets: Dimensions;
   /** The scale for a 1:1 pixel mapping */
   scale11: number;
-  originX: number;
-  originY: number;
 };
 
 class Cory {
@@ -116,8 +114,6 @@ class Cory {
       panLimits: new Dimensions(0, 0),
       panOffsets: new Dimensions(0, 0),
       scale11: 1.0,
-      originX: 0.0,
-      originY: 0.0,
     };
   }
 
@@ -126,18 +122,20 @@ class Cory {
    * a change was applied or not.
    */
   public modifyOriginX(x: number): boolean {
-    const oldX = this.state.originX;
-    this.state.originX = limitNumber(-1.0, 1.0, oldX + x);
-    return oldX !== this.state.originX;
+    const oldX = this.state.panOffsets.x;
+    const lim = this.state.panLimits.x;
+    this.state.panOffsets.x = limitNumber(-lim, lim, oldX + x);
+    return oldX !== this.state.panOffsets.x;
   }
   /**
    * modifyOriginY - changes the originY coordinate, and returns whether
    * a change was applied or not.
    */
   public modifyOriginY(y: number): boolean {
-    const oldY = this.state.originY;
-    this.state.originY = limitNumber(-1.0, 1.0, oldY + y);
-    return oldY != this.state.originY;
+    const oldY = this.state.panOffsets.y;
+    const lim = this.state.panLimits.y;
+    this.state.panOffsets.y = limitNumber(-lim, lim, oldY + y);
+    return oldY != this.state.panOffsets.y;
   }
   /**
    * modifyOrigin - changes the originX/Y coordinates, and returns whether
@@ -425,25 +423,16 @@ $(function () {
     // rotated. Sigh, head hurts.
     /** The image target size, after scaling */
     const targetSize = imgSize.scaled(1 / scale);
-    // Compute the draw offsets, to center the image, if it's smaller than
-    // the canvas. Note this is in a positive coordinates system, not in
-    // the (0, 0) being the center of the screen. Later we subtract the
-    // halvedCanvas to align it with the actual canvas coordinates.
-    const drawOffsets = contextSize
-      .minus(targetSize)
-      .scaled(1 / 2)
-      .clampMin(0);
+
     LOG(
-      'pre-draw, contextSize: %o imgSize(R=%i): %o imgscaling: %f zoom: %f targetSize: %o draw offsets: %o',
+      'Pre-draw, contextSize: %o imgSize(R=%i): %o imgscaling: %f zoom: %f targetSize: %o',
       contextSize,
       rotation,
       imgRotated,
       scale,
       cory.state.scale,
       targetSize,
-      drawOffsets,
     );
-    cory.state.lastX = drawOffsets.x;
     T_START('drawImage');
     // The halved context size in transform then doing the opposite in
     // drawOffsets is required for rotated images. For straight images,
@@ -460,33 +449,25 @@ $(function () {
       halvedContext.x,
       halvedContext.y,
     );
-    // Now we have to both center the image (the minus halvedContext) and
-    // must take into account any panning offsets. For images smaller than
-    // the context, we ignore panning, for larger images:
-    // * we take the overflow (image size - canvas size), and halve it
-    // * this is the allowed shift for panning (in each direction)
-    // * we then apply the panning offsets, which are in the range [-1, 1],
-    //   but note that for full left pan, the offset (pixels) should be zero,
-    //   i.e. drawing exactly at the canvas left-side edge, whereas for a full
-    //   right pan, we need remove the overflow once (image is centered), then
-    //   remove the overflow again (image is fully panned right). So in effect,
-    //   we translate the [-1, 1] range to [0, 2].
-    const centeredDrawOffsets = drawOffsets.minus(halvedContext);
-    const overflows = targetSize.minus(contextSize);
-    const panningOffsets = new Dimensions(
-      overflows.x > 0 ? (overflows.x / 2) * (cory.state.originX + 1) : 0,
-      overflows.y > 0 ? (overflows.y / 2) * (cory.state.originY + 1) : 0,
-    );
-    const offsetDrawOffsets = centeredDrawOffsets.minus(panningOffsets);
+    /** The centered draw offsets (numerical) for the image, whether
+     * smaller or bigger than the canvas, in a positive axis system. If
+     * the image is smaller than the canvas on a given axis, the value
+     * will be positive, and viceversa. For an image fully fitting the
+     * canvas, the value will be zero on that axis. */
+    const centeredDrawOffsets = targetSize.negated().scaled(1 / 2);
+    /** The overflows of the image over the canvas, if any. Underflows
+     * (whitespace) are zeroed. */
+    const overflows = targetSize.minus(contextSize).clampMin(0);
+    state.panLimits = overflows.scaled(1 / 2);
+    // Re-check and limit panning to stay within panLimits
+    // TODO: proportionally scale the offsets if the limits changed.
+    state.panOffsets = state.panOffsets.clampLoHi(state.panLimits);
+    const offsetDrawOffsets = centeredDrawOffsets.plus(state.panOffsets);
     LOG(
-      'Panning offsets: canvas size=%o, scale=%o, target size=%o, ' +
-        'overflows=%o, centered=%o, pan=%o, offsetDraw=%o',
-      contextSize,
-      scale,
-      targetSize,
+      'Panning offsets: overflows=%o, centered=%o, pan=%o, offsetDraw=%o',
       overflows,
       centeredDrawOffsets,
-      panningOffsets,
+      state.panOffsets,
       offsetDrawOffsets,
     );
     LOG(
@@ -594,8 +575,7 @@ $(function () {
       return;
     }
     cory.state.scale = 1.0;
-    cory.state.originX = 0.0;
-    cory.state.originY = 0.0;
+    cory.state.panOffsets = new Dimensions(0, 0);
     redrawImage();
   }
 
@@ -1088,20 +1068,14 @@ $(function () {
         if (activePointers.has(e.pointerId)) {
           activePointers.set(e.pointerId, pointer);
         }
-        // Adjust pan speed based on zoom level - make panning more sensitive at higher zoom
-        const panMultiplier = cory.state.scale > 1 ? 1 * cory.state.scale : 1;
         switch (activePointers.size) {
           case 1: {
             // Handle panning if we have exactly 1 pointer.
             const delta = pointer.minus(prevPointer);
-            const rect = canvas.getBoundingClientRect();
-            const panFactorX = delta.x / rect.width;
-            const panFactorY = delta.y / rect.height;
+            LOG('One pointer pan by %o', delta);
             if (
-              cory.modifyOrigin(
-                -panFactorX * panMultiplier,
-                -panFactorY * panMultiplier,
-              )
+              delta.absMagnitude() > 0 &&
+              cory.modifyOrigin(delta.x, delta.y)
             ) {
               redrawImage();
             }
@@ -1121,11 +1095,6 @@ $(function () {
             // Calculate movement delta (how much the center moved)
             const centerDelta = center.minus(prevCenter);
 
-            // Convert to ratio of canvas size for panning
-            const rect = canvas.getBoundingClientRect();
-            const panFactorX = centerDelta.x / rect.width;
-            const panFactorY = centerDelta.y / rect.height;
-
             // Only process if we've moved enough to consider it intentional
             const hasPanned =
               Math.abs(centerDelta.x) > 1 || Math.abs(centerDelta.y) > 1;
@@ -1137,18 +1106,12 @@ $(function () {
               // Apply pan - move against the finger direction
               let panDidMove = false;
               if (hasPanned) {
-                panDidMove = cory.modifyOrigin(
-                  -panFactorX * panMultiplier,
-                  -panFactorY * panMultiplier,
-                );
+                panDidMove = cory.modifyOrigin(centerDelta.x, centerDelta.y);
 
                 LOG(
-                  'X: panning by',
-                  panFactorX,
-                  panFactorY,
-                  'new origin:',
-                  cory.state.originX,
-                  cory.state.originY,
+                  'X: panning by %o, new origin %o',
+                  centerDelta,
+                  cory.state.panOffsets,
                 );
               }
 
@@ -1355,7 +1318,9 @@ $(function () {
     }
     if (e.altKey) {
       handled = true;
-      const modifier = e.shiftKey ? 0.2 : 0.1;
+      // TODO: make the modifier a relative size, not absolute. Needs
+      // plugging in to canvas size.
+      const modifier = e.shiftKey ? 50 : 25;
       let didPan = false;
       switch (e.key) {
         case 'ArrowUp':
