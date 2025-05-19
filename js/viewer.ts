@@ -528,7 +528,7 @@ $(function () {
     redrawImage();
   }
 
-  function requestFullResImage() {
+  function requestFullResImage(callback?: () => void) {
     const img = cory.state.img;
     if (img == null || img.dataset.fullres == 'true') {
       return;
@@ -540,6 +540,9 @@ $(function () {
       setImageReady(img, true);
       const c = cory.info.current;
       drawImage(cory.state, img, c, c.name);
+      if (callback != null) {
+        callback();
+      }
     };
     LOG('Requestiong full size image from', cory.info.current.bytes);
     img.dataset.fullres = 'true';
