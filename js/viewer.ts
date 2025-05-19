@@ -581,7 +581,7 @@ $(function () {
       requestFullResImage(() => setPixelZoomRatio(pixelRatio));
     } else {
       LOG(
-        'setting pixel ration to %f, absolute zoom %f',
+        'setting pixel ratio to %f, absolute zoom %f',
         pixelRatio,
         pixelRatio * cory.state.scale11,
       );
