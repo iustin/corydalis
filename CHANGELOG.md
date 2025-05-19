@@ -22,11 +22,11 @@ Bug fixes:
 
 Small improvements:
 
-- the image viewer (the full page one) has been sped up by skipping some
+- The image viewer (the full page one) has been sped up by skipping some
   expensive CSS computations in the call path for every image drawing;
   this leads to a small performance improvement, but also potential visual
   bugs if display changes are missed.
-- the curate page shows a yearly image count/size graph, to give an
+- The curate page shows a yearly image count/size graph, to give an
   overview on how the photo collection evolved over time; this is a
   simplification compared the lens/camera timelines.
 
