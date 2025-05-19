@@ -158,9 +158,19 @@ class Dimensions {
     this.y = y;
   }
 
+  /** Creates a deep copy of this Dimensions object */
+  public clone(): Dimensions {
+    return new Dimensions(this.x, this.y);
+  }
+
   /** Returns the longest dimension */
   public longest(): number {
     return this.x > this.y ? this.x : this.y;
+  }
+
+  /** Return the absolute magnitude */
+  public absMagnitude(): number {
+    return Math.abs(this.x) + Math.abs(this.y);
   }
 
   /** Returns a copy with the dimensions swapped */
@@ -174,6 +184,11 @@ class Dimensions {
       Math.round(this.x * scale),
       Math.round(this.y * scale),
     );
+  }
+
+  /** Returns a copy with negated values */
+  public negated(): Dimensions {
+    return new Dimensions(-this.x, -this.y);
   }
 
   /** Check for equality between Dimensions */
@@ -228,6 +243,11 @@ class Dimensions {
         this.y > max.y ? max.y : this.y,
       );
     }
+  }
+
+  /** Return a copy with dimensions clamped between the given Dimension */
+  public clampLoHi(boundary: Dimensions): Dimensions {
+    return this.clampMin(boundary.negated()).clampMax(boundary);
   }
 }
 
