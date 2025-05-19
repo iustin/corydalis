@@ -320,6 +320,7 @@ $(function () {
   const LOG = debug ? console.log.bind(console) : function () {};
   const LOG_GROUP = debug ? console.group.bind(console) : function () {};
   const LOG_GROUP_END = debug ? console.groupEnd.bind(console) : function () {};
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const LOG_TABLE = debug ? console.table.bind(console) : function () {};
   const T_START = debug ? console.time.bind(console) : function () {};
   const T_STOP = debug ? console.timeEnd.bind(console) : function () {};
