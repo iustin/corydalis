@@ -471,9 +471,15 @@ $(function () {
     /** The overflows of the image over the canvas, if any. Underflows
      * (whitespace) are zeroed. */
     const overflows = targetSize.minus(contextSize).clampMin(0);
+    const oldLimits = state.panLimits;
     state.panLimits = overflows.scaled(1 / 2);
-    // Re-check and limit panning to stay within panLimits
-    // TODO: proportionally scale the offsets if the limits changed.
+    // Re-check and limit panning to stay within panLimits, but try to
+    // scale them based on the limits change, as that keeps a somewhat
+    // constant offset zoom position.
+    state.panOffsets.x *=
+      oldLimits.x !== 0 ? state.panLimits.x / oldLimits.x : 1;
+    state.panOffsets.y *=
+      oldLimits.y !== 0 ? state.panLimits.y / oldLimits.y : 1;
     state.panOffsets = state.panOffsets.clampLoHi(state.panLimits);
     const finalDrawOffsets = centeringPosition.plus(state.panOffsets);
     LOG(
