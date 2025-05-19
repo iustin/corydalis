@@ -70,6 +70,8 @@ type State = {
   transform: Transform;
   matrix: AffineMatrix;
   url: string;
+  /** Cache for {@link window.devicePixelRatio} */
+  devicePixelRatio: number;
   scale: number;
   /** The internal bitmap dimesions, scaled from the the CSS pixels on high-DPI displays */
   canvasSize: Dimensions;
@@ -108,6 +110,7 @@ class Cory {
       transform: bootinfo.current.transform,
       matrix: bootinfo.current.matrix,
       url: location.href,
+      devicePixelRatio: window.devicePixelRatio,
       scale: 1.0,
       canvasSize: new Dimensions(0, 0),
       imageSize: new Dimensions(0, 0),
@@ -124,7 +127,11 @@ class Cory {
   public panX(x: number): boolean {
     const oldX = this.state.panOffsets.x;
     const lim = this.state.panLimits.x;
-    this.state.panOffsets.x = limitNumber(-lim, lim, oldX + x);
+    this.state.panOffsets.x = limitNumber(
+      -lim,
+      lim,
+      oldX + x * this.state.devicePixelRatio,
+    );
     return oldX !== this.state.panOffsets.x;
   }
   /**
@@ -134,7 +141,11 @@ class Cory {
   public panY(y: number): boolean {
     const oldY = this.state.panOffsets.y;
     const lim = this.state.panLimits.y;
-    this.state.panOffsets.y = limitNumber(-lim, lim, oldY + y);
+    this.state.panOffsets.y = limitNumber(
+      -lim,
+      lim,
+      oldY + y * this.state.devicePixelRatio,
+    );
     return oldY != this.state.panOffsets.y;
   }
   /**
@@ -619,6 +630,7 @@ $(function () {
       );
     }
     const scale = window.devicePixelRatio;
+    cory.state.devicePixelRatio = scale;
     const scaledWidth = Math.floor((width ?? 300) * scale);
     const scaledHeight = Math.floor((height ?? 300) * scale);
     LOG(
