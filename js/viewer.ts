@@ -173,6 +173,11 @@ class Dimensions {
     );
   }
 
+  /** Check for equality between Dimensions */
+  public equals(other: Dimensions): boolean {
+    return this.x === other.x && this.y === other.y;
+  }
+
   /** Returns a copy with dimensions scaled each by another dimension */
   public dividedBy(div: Dimensions): Dimensions {
     return new Dimensions(this.x / div.x, this.y / div.y);
@@ -541,10 +546,10 @@ $(function () {
     img.src = cory.info.current.bytes;
   }
 
-  function resizeCanvas() {
-    // TODO: Also add a resize observer to the canvas.
+  function resizeCanvas(): boolean {
     if (context == null) {
-      return;
+      // Well, nothing makes sense here, but try to redraw.
+      return true;
     }
     // Reset main div top position, in case navbar changed size.
     divMain.css({ top: computeNavBarHeight() });
@@ -574,16 +579,22 @@ $(function () {
       ' x ',
       scaledHeight,
     );
-    // to set the model (coordinate) dimension.
+    // to set the model (coordinate) dimension, if changed.
+    const newSize = new Dimensions(scaledWidth, scaledHeight);
+    if (newSize.equals(cory.state.canvasSize)) {
+      LOG('Resizing canvas, no-op.');
+      return false;
+    }
+    // Set the canvas size to the computed dimensions.
     context.canvas.width = scaledWidth;
     context.canvas.height = scaledHeight;
     // And store it in the state.
-    cory.state.canvasSize = new Dimensions(scaledWidth, scaledHeight);
+    cory.state.canvasSize = newSize;
+    return true;
   }
 
   function resizeCanvasAndRedraw() {
-    resizeCanvas();
-    redrawImage();
+    if (resizeCanvas()) redrawImage();
   }
 
   /// The function that actually loads the image URL/bytes.
