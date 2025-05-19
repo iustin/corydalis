@@ -121,7 +121,7 @@ class Cory {
    * modifyOriginX - changes the originX coordinate, and returns whether
    * a change was applied or not.
    */
-  public modifyOriginX(x: number): boolean {
+  public panX(x: number): boolean {
     const oldX = this.state.panOffsets.x;
     const lim = this.state.panLimits.x;
     this.state.panOffsets.x = limitNumber(-lim, lim, oldX + x);
@@ -131,7 +131,7 @@ class Cory {
    * modifyOriginY - changes the originY coordinate, and returns whether
    * a change was applied or not.
    */
-  public modifyOriginY(y: number): boolean {
+  public panY(y: number): boolean {
     const oldY = this.state.panOffsets.y;
     const lim = this.state.panLimits.y;
     this.state.panOffsets.y = limitNumber(-lim, lim, oldY + y);
@@ -141,8 +141,8 @@ class Cory {
    * modifyOrigin - changes the originX/Y coordinates, and returns whether
    * a change was applied or not.
    */
-  public modifyOrigin(x: number, y: number): boolean {
-    return this.modifyOriginX(x) || this.modifyOriginY(y);
+  public pan(x: number, y: number): boolean {
+    return this.panX(x) || this.panY(y);
   }
 }
 
@@ -454,7 +454,7 @@ $(function () {
      * the image is smaller than the canvas on a given axis, the value
      * will be positive, and viceversa. For an image fully fitting the
      * canvas, the value will be zero on that axis. */
-    const centeredDrawOffsets = targetSize.negated().scaled(1 / 2);
+    const centeringPosition = targetSize.negated().scaled(1 / 2);
     /** The overflows of the image over the canvas, if any. Underflows
      * (whitespace) are zeroed. */
     const overflows = targetSize.minus(contextSize).clampMin(0);
@@ -462,13 +462,13 @@ $(function () {
     // Re-check and limit panning to stay within panLimits
     // TODO: proportionally scale the offsets if the limits changed.
     state.panOffsets = state.panOffsets.clampLoHi(state.panLimits);
-    const offsetDrawOffsets = centeredDrawOffsets.plus(state.panOffsets);
+    const finalDrawOffsets = centeringPosition.plus(state.panOffsets);
     LOG(
       'Panning offsets: overflows=%o, centered=%o, pan=%o, offsetDraw=%o',
       overflows,
-      centeredDrawOffsets,
+      centeringPosition,
       state.panOffsets,
-      offsetDrawOffsets,
+      finalDrawOffsets,
     );
     LOG(
       'Cory state: limits %o, offsets %o',
@@ -477,8 +477,8 @@ $(function () {
     );
     context.drawImage(
       img,
-      offsetDrawOffsets.x,
-      offsetDrawOffsets.y,
+      finalDrawOffsets.x,
+      finalDrawOffsets.y,
       targetSize.x,
       targetSize.y,
     );
@@ -1073,10 +1073,7 @@ $(function () {
             // Handle panning if we have exactly 1 pointer.
             const delta = pointer.minus(prevPointer);
             LOG('One pointer pan by %o', delta);
-            if (
-              delta.absMagnitude() > 0 &&
-              cory.modifyOrigin(delta.x, delta.y)
-            ) {
+            if (delta.absMagnitude() > 0 && cory.pan(delta.x, delta.y)) {
               redrawImage();
             }
             break;
@@ -1106,7 +1103,7 @@ $(function () {
               // Apply pan - move against the finger direction
               let panDidMove = false;
               if (hasPanned) {
-                panDidMove = cory.modifyOrigin(centerDelta.x, centerDelta.y);
+                panDidMove = cory.pan(centerDelta.x, centerDelta.y);
 
                 LOG(
                   'X: panning by %o, new origin %o',
@@ -1324,16 +1321,16 @@ $(function () {
       let didPan = false;
       switch (e.key) {
         case 'ArrowUp':
-          didPan = cory.modifyOriginY(-modifier);
+          didPan = cory.panY(-modifier);
           break;
         case 'ArrowDown':
-          didPan = cory.modifyOriginY(modifier);
+          didPan = cory.panY(modifier);
           break;
         case 'ArrowLeft':
-          didPan = cory.modifyOriginX(-modifier);
+          didPan = cory.panX(-modifier);
           break;
         case 'ArrowRight':
-          didPan = cory.modifyOriginX(modifier);
+          didPan = cory.panX(modifier);
           break;
         default:
           handled = false;
