@@ -551,8 +551,6 @@ $(function () {
       // Well, nothing makes sense here, but try to redraw.
       return true;
     }
-    // Reset main div top position, in case navbar changed size.
-    divMain.css({ top: computeNavBarHeight() });
     // Read the computed (display) dimensions...
     const width = $(context.canvas).width();
     const height = $(context.canvas).height();
@@ -1437,15 +1435,6 @@ $(function () {
     imageNavGroup.classList.add('revealed');
   });
 
-  function computeNavBarHeight(): number {
-    if (cory.state.fullscreen) {
-      return 0;
-    } else {
-      const navbar = $('nav.navbar');
-      return navbar.outerHeight() ?? 0;
-    }
-  }
-
   function triggerImageDownload() {
     downloadFile(cory.info.current.bytes, cory.info.current.name);
   }
@@ -1472,21 +1461,12 @@ $(function () {
   function mainToFixed() {
     // Hide footer.
     $('footer').css('display', 'none');
-    // Remove container-fluid, as here we want as much display
-    // space as possible.
+    // For viewer app, we want the divmain to be fixed-viewport, and not
+    // grow, as it is for normal "text" pages.
+    divMain.css({ overflow: 'hidden', position: 'relative' });
+    // Also remove container-fluid, as here we want as much display space
+    // as possible.
     divMain.removeClass('container-fluid');
-    // Compute current location (on screen), based on navbar
-    // height.
-    const navBarH = computeNavBarHeight();
-    LOG('navbar at ', navBarH);
-    // And convert to absolute at same location.
-    divMain.css({
-      top: navBarH,
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-    });
     $('#imageFull').on('click', function () {
       toggleFullScreen();
     });
@@ -1547,6 +1527,19 @@ $(function () {
   // current image loading has been triggered, for faster startup.
   onInfoReceived(bootinfo);
 
-  window.addEventListener('resize', resizeCanvasAndRedraw, false);
-  window.addEventListener('orientationchange', resizeCanvasAndRedraw, false);
+  if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === canvas) {
+          resizeCanvasAndRedraw();
+          break;
+        }
+      }
+    });
+    resizeObserver.observe(canvas);
+  } else {
+    // Fallback to old-style window.resize, but as I see, any platform
+    // post 2020 should support the resize observer.
+    (window as Window).addEventListener('resize', resizeCanvasAndRedraw, false);
+  }
 });

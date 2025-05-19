@@ -8,6 +8,17 @@ Bug fixes:
   search parameters; before it was going to the first image that matches
   the search, but the search filter was dropped, so it was simply jumping
   into all image search at a specific position.
+- In the image viewer, when the navigation bar changes height due to
+  wrapping (which in itself is a UI bug), the canvas was not resized
+  correctly, as the positioning was done manually. Fix that by switching
+  to a flex columnar layout, which automatically triggers a CSS resize of
+  the page layout, including the image canvas. That, coupled with
+  switching the method used to observe size changes (from window resize to
+  ResizeObserver) fixes the issue. In the new model, the canvas will
+  resize automatically with the navigation bar, which in some cases is
+  more jarring than the over or underflow, but it's more correct, as it
+  doesn't leave permanent wrong positioning, just a one-time visible
+  change.
 
 Small improvements:
 
