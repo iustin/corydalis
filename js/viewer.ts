@@ -389,25 +389,28 @@ $(function () {
     // Reset the canvas transform, clear it, and prepare to draw the (new) image.
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Here begin the computations for the image placement.
+    /// This is the real canvas size, in bitmap pixels.
     const contextSize = state.canvasSize;
-    const zoomedContext = state.canvasSize.scaled(cory.state.scale);
     LOG('transform information: %o matrix information: %o', transform, matrix);
     const rotation = transform[0];
+    /** The image size, before any rotation */
     const imgSize = new Dimensions(img.width, img.height);
     /** Image size, taking rotation into account */
     const imgRotated = rotation == 0 ? imgSize : imgSize.swapped();
     // And record the image native size.
-    state.imageSize = imgRotated;
-    // Compute the potentially-zoomed scaling of the image.
-    const imgScaling = imgRotated.dividedBy(zoomedContext);
-    const scale = imgScaling.longest();
-    // Also compute the absolute (unzoomed) 1:1 scale;
+    state.imageSize = imgRotated.clone();
+    // Compute the absolute (unzoomed) 1:1 scale.
     state.scale11 = imgRotated.dividedBy(contextSize).longest();
+    /** The image scale, taking into account any zooming */
+    const scale = state.scale11 / cory.state.scale;
     LOG('context %o, image %o, scale: %f', contextSize, imgRotated, scale);
     // Note: target* must be in original coordinate system, not
     // rotated! So using img.width, not imgW. This is because from
     // the point of view of the image, it's drawn straight, not
     // rotated. Sigh, head hurts.
+    /** The image target size, after scaling */
     const targetSize = imgSize.scaled(1 / scale);
     // Compute the draw offsets, to center the image, if it's smaller than
     // the canvas. Note this is in a positive coordinates system, not in
@@ -418,12 +421,10 @@ $(function () {
       .scaled(1 / 2)
       .clampMin(0);
     LOG(
-      'pre-draw, contextSize: %o zoomedContext: %o imgSize(R=%i): %o imgScaling: %o scale: %f zoom: %f targetSize: %o offsets: %o',
+      'pre-draw, contextSize: %o imgSize(R=%i): %o imgscaling: %f zoom: %f targetSize: %o draw offsets: %o',
       contextSize,
-      zoomedContext,
       rotation,
       imgRotated,
-      imgScaling,
       scale,
       cory.state.scale,
       targetSize,
