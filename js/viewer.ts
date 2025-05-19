@@ -398,7 +398,7 @@ $(function () {
     if (!skipStackChange) {
       updateStackVisibility(info);
     }
-
+    LOG_GROUP('Draw image');
     // Reset the canvas transform, clear it, and prepare to draw the (new) image.
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -519,6 +519,7 @@ $(function () {
     if (msg != null) {
       writeMessage(msg);
     }
+    LOG_GROUP_END();
   }
 
   function updateInfo(url: string) {
