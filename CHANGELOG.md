@@ -26,10 +26,12 @@ Small improvements:
   expensive CSS computations in the call path for every image drawing;
   this leads to a small performance improvement, but also potential visual
   bugs if display changes are missed.
-- The image viewer's image navigation bar is now centred on small
-  screens, which finally solves a very old UI annoyance (on small screens
-  in portrait mode, it was consuming ~70% of the screen width, but not
-  centred).
+- The image viewer's image navigation bar is now centred on small screens,
+  which finally solves a very old UI annoyance (on small screens in
+  portrait mode, it was consuming ~70% of the screen width, but not
+  centred). Additionally, move the nav bar a bit higher, so that on iOS
+  phones or tablets, it doesn't conflict with the bottom "swipe-up"
+  element (the black bar used to go to the home screen).
 - The curate page shows a yearly image count/size graph, to give an
   overview on how the photo collection evolved over time; this is a
   simplification compared the lens/camera timelines.

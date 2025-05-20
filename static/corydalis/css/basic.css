@@ -112,7 +112,7 @@ html {
 div#imageNavGroup {
     z-index: 2;
     position: fixed;
-    bottom: 0.5em;
+    bottom: 1rem;
     opacity: 0.5;
     /* Center the nav by default (for small screens) */
     left: 50%;
@@ -136,7 +136,7 @@ div#imageNavGroup .btn {
     div#imageNavGroup {
         left: auto;
         transform: none;
-        right: 0.5em;
+        right: 1rem;
         font-size: x-small;
     }
 }
