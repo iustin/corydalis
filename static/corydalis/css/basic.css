@@ -113,8 +113,10 @@ div#imageNavGroup {
     z-index: 2;
     position: fixed;
     bottom: 0.5em;
-    right: 0.5em;
     opacity: 0.5;
+    /* Center the nav by default (for small screens) */
+    left: 50%;
+    transform: translate(-50%, 0);
 }
 
 div#imageNavGroup.revealed {
@@ -130,6 +132,11 @@ div#imageNavGroup.revealed {
 }
 
 @media(min-width: 48em) {
+    div#imageNavGroup {
+        left: auto;
+        transform: none;
+        right: 0.5em;
+    }
 
     div#imageNav>button,
     div#imageNav>div>button {
