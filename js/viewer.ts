@@ -630,33 +630,29 @@ $(function () {
     if (width == null || height == null) {
       // Unlikely, but...
       LOG(
-        'Resizing canvas, failed to compute w/h, width: ',
+        'Resizing canvas, failed to compute w/h, got %o x %o, assuming 300 pixels.',
         width,
-        ', height: ',
         height,
-        ', assuming 300 pixels.',
       );
     }
     const scale = window.devicePixelRatio;
     cory.state.devicePixelRatio = scale;
     const scaledWidth = Math.floor((width ?? 300) * scale);
     const scaledHeight = Math.floor((height ?? 300) * scale);
-    LOG(
-      'Resizing canvas, width ',
-      width,
-      ', height ',
-      height,
-      'scaled: ',
-      scaledWidth,
-      ' x ',
-      scaledHeight,
-    );
     // to set the model (coordinate) dimension, if changed.
     const newSize = new Dimensions(scaledWidth, scaledHeight);
     if (newSize.equals(cory.state.canvasSize)) {
       LOG('Resizing canvas, no-op.');
       return false;
     }
+    LOG(
+      'Resizing canvas, display %f x %f, devicePixelRatio %i, scaled %f x %f',
+      width,
+      height,
+      scale,
+      scaledWidth,
+      scaledHeight,
+    );
     // Set the canvas size to the computed dimensions.
     context.canvas.width = scaledWidth;
     context.canvas.height = scaledHeight;
