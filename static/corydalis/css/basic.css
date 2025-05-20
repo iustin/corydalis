@@ -117,18 +117,19 @@ div#imageNavGroup {
     /* Center the nav by default (for small screens) */
     left: 50%;
     transform: translate(-50%, 0);
+    /* Also change the font defaults for the whole nav group */
+    font-size: xx-small;
 }
 
 div#imageNavGroup.revealed {
     opacity: 1;
 }
 
-@media(min-width: 0) {
-
-    div#imageNav>button,
-    div#imageNav>div>button {
-        font-size: xx-small;
-    }
+/* Ensure all buttons under imageNavGroup inherit the font size instead of
+*  using the default Bootstrap-defined size (which is 1rem).
+*/
+div#imageNavGroup .btn {
+    font-size: inherit;
 }
 
 @media(min-width: 48em) {
@@ -136,26 +137,18 @@ div#imageNavGroup.revealed {
         left: auto;
         transform: none;
         right: 0.5em;
-    }
-
-    div#imageNav>button,
-    div#imageNav>div>button {
         font-size: x-small;
     }
 }
 
 @media(min-width:62em) {
-
-    div#imageNav>button,
-    div#imageNav>div>button {
+    div#imageNavGroup {
         font-size: small;
     }
 }
 
 @media(min-width:75em) {
-
-    div#imageNav>button,
-    div#imageNav>div>button {
+    div#imageNavGroup {
         font-size: medium;
     }
 }
