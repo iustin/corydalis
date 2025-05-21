@@ -197,3 +197,12 @@ td.keyHeader {
 .card>.table {
     margin-bottom: 0px;
 }
+
+html {
+    height: 100%;
+}
+
+body {
+    height: 100%;
+
+}
