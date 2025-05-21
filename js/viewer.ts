@@ -1134,7 +1134,11 @@ $(function () {
               if (hasZoomed) {
                 // Calculate new scale
                 const scaleFactor = currentDistance / initialPinchDistance;
-                LOG('X: pinch zoom, scale factor: ' + scaleFactor);
+                LOG(
+                  'X: pinch zoom, scale factor %f, around center %o',
+                  scaleFactor,
+                  center,
+                );
 
                 // Apply zoom
                 adjustZoom(scaleFactor);
