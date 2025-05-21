@@ -4,7 +4,7 @@
   data-debug=#{debug}
   >
 
-<canvas #imageCanvas width="100" height="100" style="height: 100%; width: 100%;"/>
+<canvas #imageCanvas width="100" height="100" style="height: 100%; width: 100%; touch-action: manipulation"/>
 <div #messageDiv width="96%" height="1em" style="height: 2em; left: 1em; width: 90%; top: 1em; position: absolute;">
  <span #messageBox style="visibility: hidden">
 <div #persistDiv width="96%" height="1em" style="height: 2em; left: 1em; width: 90%; top: 3em; position: absolute;">
