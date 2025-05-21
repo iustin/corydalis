@@ -388,12 +388,12 @@ $(function () {
     img: HTMLImageElement,
     info: ImageInfo,
     options?: {
-      msg?: string;
+      showName?: boolean;
       skipStackChange?: boolean;
     },
   ) {
     // Handle the options parameters.
-    const { msg, skipStackChange = false } = options || {};
+    const { showName = true, skipStackChange = false } = options || {};
     const url = info.view;
     const transform = info.transform;
     const matrix = info.matrix;
@@ -520,8 +520,8 @@ $(function () {
     cory.state.url = url;
     cory.state.transform = transform;
     cory.state.matrix = matrix;
-    if (msg != null) {
-      writeMessage(msg);
+    if (showName) {
+      writeMessage(info.name);
     }
     LOG_GROUP_END();
   }
@@ -537,6 +537,7 @@ $(function () {
 
   function redrawImage() {
     drawImage(cory.state, cory.state.img, cory.info.current, {
+      showName: false,
       skipStackChange: true,
     });
     maybeWriteIsMovie(cory.info.current);
@@ -615,7 +616,7 @@ $(function () {
       LOG('got full size image, calling drawImage');
       setImageReady(img, true);
       const c = cory.info.current;
-      drawImage(cory.state, img, c, { msg: c.name });
+      drawImage(cory.state, img, c);
       if (callback != null) {
         callback();
       }
@@ -791,7 +792,7 @@ $(function () {
     const image = new Image();
     image.onload = function () {
       setImageReady(image, true);
-      drawImage(cory.state, image, info, { msg: info.name });
+      drawImage(cory.state, image, info);
     };
     writeMessage(`Loading ${info.name}...`);
     maybeWriteIsMovie(info);
@@ -861,7 +862,7 @@ $(function () {
     }
     writeMessage('Loading ' + info.name, 6000);
     maybeWriteIsMovie(info);
-    drawImage(cory.state, img, info, { msg: info.name });
+    drawImage(cory.state, img, info);
     updateInfo(info.info);
   }
 
@@ -1592,7 +1593,7 @@ $(function () {
   image.onload = function () {
     setImageReady(image, true);
     const c = bootinfo.current;
-    drawImage(cory.state, image, c, c.name);
+    drawImage(cory.state, image, c);
   };
   loadImage(image, bootinfo.current.bytes);
 
