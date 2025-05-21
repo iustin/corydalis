@@ -387,9 +387,13 @@ $(function () {
     state: State,
     img: HTMLImageElement,
     info: ImageInfo,
-    msg?: string,
-    skipStackChange?: boolean,
+    options?: {
+      msg?: string;
+      skipStackChange?: boolean;
+    },
   ) {
+    // Handle the options parameters.
+    const { msg, skipStackChange = false } = options || {};
     const url = info.view;
     const transform = info.transform;
     const matrix = info.matrix;
@@ -398,7 +402,7 @@ $(function () {
       img.onload = function () {
         LOG('Late load of ', url);
         setImageReady(img, true);
-        drawImage(state, img, info, msg, skipStackChange);
+        drawImage(state, img, info, options);
       };
       return;
     }
@@ -532,7 +536,9 @@ $(function () {
   }
 
   function redrawImage() {
-    drawImage(cory.state, cory.state.img, cory.info.current, undefined, true);
+    drawImage(cory.state, cory.state.img, cory.info.current, {
+      skipStackChange: true,
+    });
     maybeWriteIsMovie(cory.info.current);
   }
 
@@ -609,7 +615,7 @@ $(function () {
       LOG('got full size image, calling drawImage');
       setImageReady(img, true);
       const c = cory.info.current;
-      drawImage(cory.state, img, c, c.name);
+      drawImage(cory.state, img, c, { msg: c.name });
       if (callback != null) {
         callback();
       }
@@ -785,7 +791,7 @@ $(function () {
     const image = new Image();
     image.onload = function () {
       setImageReady(image, true);
-      drawImage(cory.state, image, info, info.name);
+      drawImage(cory.state, image, info, { msg: info.name });
     };
     writeMessage(`Loading ${info.name}...`);
     maybeWriteIsMovie(info);
@@ -855,7 +861,7 @@ $(function () {
     }
     writeMessage('Loading ' + info.name, 6000);
     maybeWriteIsMovie(info);
-    drawImage(cory.state, img, info, info.name);
+    drawImage(cory.state, img, info, { msg: info.name });
     updateInfo(info.info);
   }
 
