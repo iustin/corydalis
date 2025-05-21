@@ -697,17 +697,11 @@ $(function () {
   }
 
   function imageUrlScaled(baseUrl: string): string {
-    // FIXME: use the cached values, don't re-read!!
-    const w = $(canvas).width() ?? 300;
-    const h = $(canvas).height() ?? 300;
-    const scale = window.devicePixelRatio;
-    // LOG('Scale is ', scale);
-    const r = Math.floor((w > h ? w : h) * scale);
-    // const r = w > h ? w : h;
-    // TODO: suply and read rendered sizes in/from boot data, and
-    // make calls only for the right image sizes.
+    /** The {@link cory.state.canvasSize} is the size of the canvas in
+     * bitmap pixels, so we can directly use it. */
+    const maxSide = cory.state.canvasSize.longest();
     const url = new URL(baseUrl);
-    url.searchParams.set('res', r.toString());
+    url.searchParams.set('res', maxSide.toString());
     return url.toString();
   }
 
