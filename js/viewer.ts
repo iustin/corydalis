@@ -72,10 +72,14 @@ type State = {
   url: string;
   /** Cache for {@link window.devicePixelRatio} */
   devicePixelRatio: number;
+  /** Current, or next scale to apply to the image. 1 means fit to canvas,
+   * not 1:1 pixels. */
   scale: number;
-  /** The internal bitmap dimesions, scaled from the the CSS pixels on high-DPI displays */
+  /** The internal bitmap dimesions, scaled from the the CSS pixels on
+   * high-DPI displays */
   canvasSize: Dimensions;
-  /** The image native dimesions, before any downscaling to fit in the canvas */
+  /** The image native dimesions, before any downscaling to fit in the
+   * canvas */
   imageSize: Dimensions;
   /** Holds the amount of panning available based on image-vs-canvas
    * sizes. This represents half of the total limit, i.e. it's a ± of this
