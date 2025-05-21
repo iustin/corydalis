@@ -697,6 +697,7 @@ $(function () {
   }
 
   function imageUrlScaled(baseUrl: string): string {
+    // FIXME: use the cached values, don't re-read!!
     const w = $(canvas).width() ?? 300;
     const h = $(canvas).height() ?? 300;
     const scale = window.devicePixelRatio;
