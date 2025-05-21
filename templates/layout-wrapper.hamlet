@@ -1,6 +1,6 @@
 $newline always
 $doctype 5
-<html lang="en">
+<html lang="en" style="overscroll-behavior: none;">
   <head>
     <meta charset="UTF-8">
 
