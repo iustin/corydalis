@@ -1303,7 +1303,8 @@ $(function () {
             if (tapTimeDiff < DOUBLE_TAP_THRESHOLD) {
               // This is a double tap
               LOG('X: double tap detected');
-              toggleFullScreen();
+              // Zoom at point.
+              toggleZoomFit(pointerEnd);
               lastTapTime = 0; // Reset to prevent triple tap detection
             } else {
               // This is a single tap
