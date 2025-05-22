@@ -1299,6 +1299,25 @@ $(function () {
       },
       { passive: false },
     );
+
+    canvas.addEventListener('wheel', (event) => {
+      // We don't want generally any scrolling on the canvas, as the
+      // sizing is now fixed to the viewport.
+      event.preventDefault();
+      LOG(
+        `MOUSEWHEEL:${event.deltaMode} ${event.deltaX} ${event.deltaY} ${event.deltaZ}`,
+      );
+      if (event.deltaY != 0) {
+        // Handle vertical scroll. This is not best, as it ignores the
+        // amount of scroll, and I see different values.
+        // FIXME: handle the actual value?
+        if (event.deltaY > 0) {
+          incZoom();
+        } else {
+          decZoom();
+        }
+      }
+    });
   }
   setupTouchAndGestureHandlers();
   /// Toggles the help div.
