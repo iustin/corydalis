@@ -1652,7 +1652,11 @@ $(function () {
     $('#goList').on('click', triggerListMode);
     $('#goFolderBrowse').on('click', triggerFolderBrowseMode);
     $('#goFolderList').on('click', triggerFolderListMode);
-    $('#imageZoom').on('click', toggleZoomFit);
+    $('#imageZoom').on('click', () => {
+      // If the zoom button is clicked, we don't want to toggle around the
+      // zoom button's location, so explicitly override to centre.
+      toggleZoomFit(cory.convertToCss(new Dimensions(0, 0)));
+    });
     $('#imagePrev').on('click', function () {
       advanceImage(false);
     });
