@@ -628,12 +628,20 @@ $(function () {
     if (scale == 0) {
       scale = 1;
     }
-    if (scale <= 1) {
-      writeMessage('Minimum zoom reached', 1000);
+    if (scale < 1) {
       scale = 1;
+      // Only show the message if we already were at minimum scale;
+      if (cory.state.scale == 1) {
+        writeMessage('Already at minimum zoom', 1000);
+      }
     } else if (scale > 100) {
       writeMessage('Maximum zoom reached', 1000);
       scale = 100;
+    }
+    // After clamping the scale to the allowed range, check again that we
+    // do actually change the scale.
+    if (scale == cory.state.scale) {
+      return;
     }
     cory.state.scale = scale;
     // If we're not at full res, we need to load the full res image first.
