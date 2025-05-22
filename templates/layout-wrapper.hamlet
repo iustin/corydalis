@@ -14,7 +14,7 @@ $doctype 5
 
     ^{pageHead pc}
 
-  <body .d-flex .flex-column>
+  <body .d-flex .flex-column style="overscroll-behavior: none;">
     <nav .navbar .navbar-light .bg-light .navbar-expand #nav>
       <div .container-fluid>
         <ul .navbar-nav .me-auto>
