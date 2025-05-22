@@ -1103,13 +1103,13 @@ $(function () {
         LOG('X: pointerdown ' + e.pointerId);
 
         // Store this pointer
-        activePointers.set(e.pointerId, new Dimensions(e.clientX, e.clientY));
+        activePointers.set(e.pointerId, new Dimensions(e.offsetX, e.offsetY));
 
         // If this is the first or only pointer, track for swipe/tap
         if (activePointers.size === 1) {
           pointerId = e.pointerId;
-          pointerStart.x = e.clientX;
-          pointerStart.y = e.clientY;
+          pointerStart.x = e.offsetX;
+          pointerStart.y = e.offsetY;
           pointerStartTime = Date.now();
         }
         // If this is the second pointer, initialize pinch-zoom
@@ -1148,7 +1148,7 @@ $(function () {
         }
         // After this, there's at least one pointer down.
         const prevPointer = Array.from(activePointers.values())[0];
-        const pointer = new Dimensions(e.clientX, e.clientY);
+        const pointer = new Dimensions(e.offsetX, e.offsetY);
         const delta = pointer.minus(prevPointer);
         const minimumMove = cory.state.devicePixelRatio;
         // If this pointer hasn't moved at least 1px, ignore the event
@@ -1252,7 +1252,7 @@ $(function () {
         // Track pointer end position and time for gesture detection
         const pointerEndTime = Date.now();
         const pointerDuration = pointerEndTime - pointerStartTime;
-        const pointerEnd = new Dimensions(e.clientX, e.clientY);
+        const pointerEnd = new Dimensions(e.offsetX, e.offsetY);
         const delta = pointerEnd.minus(pointerStart);
         const totalMovement = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
 
