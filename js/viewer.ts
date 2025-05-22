@@ -646,21 +646,22 @@ $(function () {
   }
 
   // Set zoom to a specific value of pixel ratio. E.g. 1 is 1:1 pixel mapping, 2 is 200%, etc.
-  function setPixelZoomRatio(pixelRatio: number) {
+  function setPixelZoomRatio(pixelRatio: number, centreAt?: Dimensions) {
     if (cory.state.img.dataset.fullres == 'false') {
       LOG('load later!');
       requestFullResImage(
-        () => setPixelZoomRatio(pixelRatio),
+        () => setPixelZoomRatio(pixelRatio, centreAt),
         cory.state.pointerLocation,
       );
     } else {
+      const location = centreAt ?? cory.state.pointerLocation;
       LOG(
         'setting pixel ratio to %f, absolute zoom %f, center point at %o',
         pixelRatio,
         pixelRatio * cory.state.scale11,
-        cory.state.pointerLocation,
+        location,
       );
-      setZoom(pixelRatio * cory.state.scale11, cory.state.pointerLocation);
+      setZoom(pixelRatio * cory.state.scale11, location);
     }
   }
 
@@ -1396,8 +1397,8 @@ $(function () {
   }
 
   /// Toggles between fit and 100% pixel ratios.
-  function toggleZoomFit() {
-    if (cory.state.scale == 1) setPixelZoomRatio(1);
+  function toggleZoomFit(centreAt?: Dimensions) {
+    if (cory.state.scale == 1) setPixelZoomRatio(1, centreAt);
     else setZoom(1);
   }
 
