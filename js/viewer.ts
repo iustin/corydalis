@@ -132,6 +132,13 @@ class Cory {
     };
   }
 
+  /** This converts the given canvas xy coordinates back into screen
+   * (CSS) coordinates. Slow, so should not be called in a hot path. */
+  public convertToCss(location: Dimensions): Dimensions {
+    const location00 = location.plus(this.state.canvasSize.scaled(1 / 2));
+    return location00.scaled(1 / this.state.devicePixelRatio);
+  }
+
   /**
    * modifyOriginX - changes the originX coordinate, and returns whether
    * a change was applied or not.
