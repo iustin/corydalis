@@ -75,6 +75,9 @@ type State = {
   /** Current, or next scale to apply to the image. 1 means fit to canvas,
    * not 1:1 pixels. */
   scale: number;
+  /** Last drawn scale. Used for correctly moving the {@link panOffsets}
+   * during zooming. */
+  lastScale: number;
   /** The internal bitmap dimesions, scaled from the the CSS pixels on
    * high-DPI displays */
   canvasSize: Dimensions;
@@ -93,6 +96,9 @@ type State = {
   panOffsets: Dimensions;
   /** The scale for a 1:1 pixel mapping */
   scale11: number;
+  /** Tracks the last pointer location. This helps on desktop browsers to
+   * zoom around the mouse cursor. */
+  pointerLocation: Dimensions;
 };
 
 class Cory {
@@ -116,11 +122,13 @@ class Cory {
       url: location.href,
       devicePixelRatio: window.devicePixelRatio,
       scale: 1.0,
+      lastScale: 1.0,
       canvasSize: new Dimensions(0, 0),
       imageSize: new Dimensions(0, 0),
       panLimits: new Dimensions(0, 0),
       panOffsets: new Dimensions(0, 0),
       scale11: 1.0,
+      pointerLocation: new Dimensions(0, 0),
     };
   }
 
@@ -394,10 +402,15 @@ $(function () {
     options?: {
       showName?: boolean;
       skipStackChange?: boolean;
+      centreAt?: Dimensions;
     },
   ) {
     // Handle the options parameters.
-    const { showName = true, skipStackChange = false } = options || {};
+    const {
+      showName = true,
+      skipStackChange = false,
+      centreAt = null,
+    } = options || {};
     const url = info.view;
     const transform = info.transform;
     const matrix = info.matrix;
@@ -446,12 +459,13 @@ $(function () {
     const targetSize = imgSize.scaled(1 / scale);
 
     LOG(
-      'Pre-draw, contextSize: %o imgSize(R=%i): %o imgscaling: %f zoom: %f targetSize: %o',
+      'Pre-draw, contextSize: %o imgSize(R=%i): %o imgscaling: %f zoom: %f oldzoom: %f targetSize: %o',
       contextSize,
       rotation,
       imgRotated,
       scale,
       cory.state.scale,
+      cory.state.lastScale,
       targetSize,
     );
     T_START('drawImage');
@@ -481,14 +495,50 @@ $(function () {
     const overflows = targetSize.minus(contextSize).clampMin(0);
     const oldLimits = state.panLimits;
     state.panLimits = overflows.scaled(1 / 2);
-    // Re-check and limit panning to stay within panLimits, but try to
-    // scale them based on the limits change, as that keeps a somewhat
-    // constant offset zoom position.
-    state.panOffsets.x *=
-      oldLimits.x !== 0 ? state.panLimits.x / oldLimits.x : 1;
-    state.panOffsets.y *=
-      oldLimits.y !== 0 ? state.panLimits.y / oldLimits.y : 1;
+
+    if (centreAt !== null) {
+      // We need to centre the zooming around the old coordinates at
+      // centreAt, which are in display positive coordinates.
+      const canvasCentreAt = centreAt
+        .scaled(state.devicePixelRatio)
+        .minus(halvedContext);
+      // We need to take into account the current panOffsets.
+      const canvasAndPan = canvasCentreAt.minus(state.panOffsets);
+      // Now attempt to scale the panOffsets to keep the same position
+      // _after zooming_. The way to do this is to move "out" the offsets
+      // by newScale/oldScale.
+      const newOffsets = canvasAndPan
+        .scaled(state.scale / state.lastScale - 1)
+        .negated();
+      // And finally, add back the old pan offsets, since above we only
+      // compute the delta, not the absolute move.
+      const newWithOldPan = newOffsets.plus(state.panOffsets);
+      LOG(
+        'Zooming transformations: input %o, scale to display pixel %o, ' +
+          'shifted left %o, with pan %o, scales %f→%f, shifted and scaled %o',
+        centreAt,
+        centreAt.scaled(state.devicePixelRatio),
+        canvasCentreAt,
+        canvasAndPan,
+        state.lastScale,
+        state.scale,
+        newWithOldPan.negated(),
+      );
+      state.panOffsets = newWithOldPan;
+    } else {
+      // Re-check and limit panning to stay within panLimits, but try to
+      // scale them based on the limits change, as that keeps a somewhat
+      // constant offset zoom position.
+      // TODO: think about rewriting this as we have lastScale now, which
+      // is a more direct way to compute this.
+      state.panOffsets.x *=
+        oldLimits.x !== 0 ? state.panLimits.x / oldLimits.x : 1;
+      state.panOffsets.y *=
+        oldLimits.y !== 0 ? state.panLimits.y / oldLimits.y : 1;
+    }
     state.panOffsets = state.panOffsets.clampLoHi(state.panLimits);
+    state.lastScale = state.scale;
+
     const finalDrawOffsets = centeringPosition.plus(state.panOffsets);
     LOG(
       'Panning offsets: overflows=%o, centered=%o, pan=%o, offsetDraw=%o',
@@ -539,29 +589,30 @@ $(function () {
     }).done(onInfoReceived);
   }
 
-  function redrawImage() {
+  function redrawImage(centreAt?: Dimensions) {
     drawImage(cory.state, cory.state.img, cory.info.current, {
       showName: false,
       skipStackChange: true,
+      centreAt: centreAt,
     });
     maybeWriteIsMovie(cory.info.current);
   }
 
   function incZoom() {
-    adjustZoom(ZOOM_FACTOR);
+    adjustZoom(ZOOM_FACTOR, cory.state.pointerLocation);
   }
 
   function decZoom() {
-    adjustZoom(1 / ZOOM_FACTOR);
+    adjustZoom(1 / ZOOM_FACTOR, cory.state.pointerLocation);
   }
 
   // Adjust zoom by a factor.
-  function adjustZoom(scaleRelative: number) {
-    setZoom(cory.state.scale * scaleRelative);
+  function adjustZoom(scaleRelative: number, centre?: Dimensions) {
+    setZoom(cory.state.scale * scaleRelative, centre);
   }
 
   // Set zoom to a specific value.
-  function setZoom(scale: number) {
+  function setZoom(scale: number, centre?: Dimensions) {
     // If no-op, just return.
     if (scale == cory.state.scale) {
       return;
@@ -578,10 +629,12 @@ $(function () {
       scale = 100;
     }
     cory.state.scale = scale;
+    // If we're not at full res, we need to load the full res image first.
+    // This will call drawImage() when done.
     if (cory.state.img.dataset.fullres == 'false') {
-      requestFullResImage();
+      requestFullResImage(undefined, centre);
     } else {
-      redrawImage();
+      redrawImage(centre);
     }
   }
 
@@ -589,14 +642,18 @@ $(function () {
   function setPixelZoomRatio(pixelRatio: number) {
     if (cory.state.img.dataset.fullres == 'false') {
       LOG('load later!');
-      requestFullResImage(() => setPixelZoomRatio(pixelRatio));
+      requestFullResImage(
+        () => setPixelZoomRatio(pixelRatio),
+        cory.state.pointerLocation,
+      );
     } else {
       LOG(
-        'setting pixel ratio to %f, absolute zoom %f',
+        'setting pixel ratio to %f, absolute zoom %f, center point at %o',
         pixelRatio,
         pixelRatio * cory.state.scale11,
+        cory.state.pointerLocation,
       );
-      setZoom(pixelRatio * cory.state.scale11);
+      setZoom(pixelRatio * cory.state.scale11, cory.state.pointerLocation);
     }
   }
 
@@ -609,7 +666,7 @@ $(function () {
     redrawImage();
   }
 
-  function requestFullResImage(callback?: () => void) {
+  function requestFullResImage(callback?: () => void, centreAt?: Dimensions) {
     const img = cory.state.img;
     if (img == null || img.dataset.fullres == 'true') {
       return;
@@ -620,7 +677,7 @@ $(function () {
       LOG('got full size image, calling drawImage');
       setImageReady(img, true);
       const c = cory.info.current;
-      drawImage(cory.state, img, c);
+      drawImage(cory.state, img, c, { centreAt: centreAt });
       if (callback != null) {
         callback();
       }
@@ -1082,7 +1139,13 @@ $(function () {
       'pointermove',
       function (e) {
         // Handle the simplest and most common case.
-        if (activePointers.size === 0) return;
+        if (activePointers.size === 0) {
+          if (e.isPrimary) {
+            cory.state.pointerLocation.x = e.offsetX;
+            cory.state.pointerLocation.y = e.offsetY;
+          }
+          return;
+        }
         // After this, there's at least one pointer down.
         const prevPointer = Array.from(activePointers.values())[0];
         const pointer = new Dimensions(e.clientX, e.clientY);
@@ -1152,7 +1215,7 @@ $(function () {
                 );
 
                 // Apply zoom
-                adjustZoom(scaleFactor);
+                adjustZoom(scaleFactor, center);
 
                 // Update initial distance for smoother zooming
                 initialPinchDistance = currentDistance;
