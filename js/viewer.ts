@@ -1387,12 +1387,15 @@ $(function () {
       );
       if (event.deltaY != 0) {
         // Handle vertical scroll. This is not best, as it ignores the
-        // amount of scroll, and I see different values.
-        // FIXME: handle the actual value?
+        // amount of scroll, and I see different values: one mouse wheel "click" is about
+        // "4" units, but a fast one is 300, whereas a slow trackpad scrolls is is 1.
+        const capped = Math.min(Math.abs(event.deltaY), 10);
+        const ratio = 1 + capped / 100;
+        const location = new Dimensions(event.offsetX, event.offsetY);
         if (event.deltaY > 0) {
-          incZoom();
+          adjustZoom(ratio, location);
         } else {
-          decZoom();
+          adjustZoom(1 / ratio, location);
         }
       }
     });
