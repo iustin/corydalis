@@ -1051,7 +1051,6 @@ $(function () {
     // Note we don't set the controls to picture, just the canvas/video
     // visibility.
     canvas.style.visibility = 'visible';
-    seekBar.style.visibility = 'hidden';
     if (info.movie != null) {
       LOG('loading movie and prepare to switch to movie mode');
       dropCurrentVideo();
@@ -1066,7 +1065,6 @@ $(function () {
       source.setAttribute('src', info.movie);
       video.appendChild(source);
       divMain.append(video);
-      seekBar.style.visibility = 'visible';
       seekBar.disabled = true;
       changeVisibility('.nav-only-image', false);
       changeVisibility('.nav-only-video', true);

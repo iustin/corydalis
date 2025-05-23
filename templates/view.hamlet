@@ -133,7 +133,7 @@ $# The style attribute is for disabling zooming, for context see
 $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
 <div #imageNavGroup style="touch-action: manipulation">
   <div #seekBarDiv width="100%">
-    <input type="range" .form-range #seekBar value="0" style="width: 100%">
+    <input type="range" .form-range .nav-only-video #seekBar value="0" style="width: 100%; display: none">
   <div #imageNav .btn-group role="group" aria="Navigation buttons">
 
     <button type="button" .btn .btn-light #imagePrev
@@ -233,7 +233,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
       title="Zoom image">
       <span .fa-solid .fa-fw .fa-2x .fa-magnifying-glass>
     <button type="button" .btn .btn-light .nav-only-video #moviePlay
-      title="Play/pause the movie">
+      title="Play/pause the movie" style="display: none">
       <span .fa-solid .fa-fw .fa-2x .fa-play>
 
     $# Common buttons.
