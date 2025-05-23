@@ -1385,11 +1385,16 @@ $(function () {
       LOG(
         `MOUSEWHEEL:${event.deltaMode} ${event.deltaX} ${event.deltaY} ${event.deltaZ}`,
       );
-      if (event.deltaY != 0) {
-        // Handle vertical scroll. This is not best, as it ignores the
-        // amount of scroll, and I see different values: one mouse wheel "click" is about
-        // "4" units, but a fast one is 300, whereas a slow trackpad scrolls is is 1.
-        const capped = Math.min(Math.abs(event.deltaY), 10);
+      const absX = Math.abs(event.deltaX);
+      const absY = Math.abs(event.deltaY);
+      // Handle vertical scroll, but only if it's the dominant scroll
+      // type, so that left-right scroll on the trackpad doesn't zoom by
+      // minute amounts.
+      if (event.deltaY != 0 && absY > 2 * absX) {
+        // The various devices generate different values: one mouse wheel
+        // "click" is about "4" units, but a fast one is 300, whereas a
+        // slow trackpad scrolls is is 1. So try to balance them all.
+        const capped = Math.min(absY, 10);
         const ratio = 1 + capped / 100;
         const location = new Dimensions(event.offsetX, event.offsetY);
         if (event.deltaY > 0) {
