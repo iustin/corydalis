@@ -136,6 +136,9 @@ getViewR folder iname = do
   (params, _, images) <- getAtomAndSearch
   vi <- viewInfoForImage params images folder iname
   let viewInfo = encodeToLazyText (toJSON vi)
+      isMovie = isJust (iiMovieUrl $ viCurrent vi)
+      displayPicElem = if isMovie then "none" else "block"::Text
+      displayMovElem = if isMovie then "block" else "none"::Text
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
     setHtmlTitle $ "image " <> folder <> "/" <> unImageName iname
