@@ -821,8 +821,8 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   exifShutterCount <- evalV (> tooHighShutterCount)
                       (sformat ("Unlikely shutter count: " % int))
                       rExifShutterCount
-  exifWidth        <- evalV (< 1) (const "Invalid (Exif) image width") rExifWidth
-  exifHeight       <- evalV (< 1) (const "Invalid (Exif) image height") rExifHeight
+  exifWidth        <- evalV (< 1) (sformat ("Invalid (Exif) image width " % int)) rExifWidth
+  exifHeight       <- evalV (< 1) (sformat ("Invalid (Exif) image height" % int)) rExifHeight
   exifMegapixels   <- evalV (<=0) (sformat ("Invalid (Exif) megapixels: " % float)) rExifMegapixels
   errs <- get
   let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
