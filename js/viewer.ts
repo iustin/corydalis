@@ -457,7 +457,14 @@ $(function () {
     state.scale11 = imgRotated.dividedBy(contextSize).longest();
     /** The image scale, taking into account any zooming */
     const scale = state.scale11 / cory.state.scale;
-    LOG('context %o, image %o, scale: %f', contextSize, imgRotated, scale);
+    LOG(
+      'context %o, image %o, scale: %f, natural %d×%d',
+      contextSize,
+      imgRotated,
+      scale,
+      img.naturalWidth,
+      img.naturalHeight,
+    );
     // Note: target* must be in original coordinate system, not
     // rotated! So using img.width, not imgW. This is because from
     // the point of view of the image, it's drawn straight, not
