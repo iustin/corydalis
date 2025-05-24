@@ -90,9 +90,17 @@ footer {
     font-style: italic;
 }
 
-/* Bootstrap 4: point size 16px too big (for me) */
 html {
+    /* Bootstrap 4: point size 16px too big (for me) */
     font-size: 14px;
+    /* Ensure that the whole page is at least as tall as the viewport */
+    height: 100%;
+}
+
+body {
+    /* Ensure that the whole page is at least as tall as the viewport */
+    height: 100%;
+
 }
 
 /* For masonry layouts, restrict image size to be bound by the
@@ -196,13 +204,4 @@ td.keyHeader {
 /* Get rid of bottom margins with Bootstrap 5. */
 .card>.table {
     margin-bottom: 0px;
-}
-
-html {
-    height: 100%;
-}
-
-body {
-    height: 100%;
-
 }
