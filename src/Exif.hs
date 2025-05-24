@@ -128,20 +128,25 @@ extractParsed t =
   withObject (desc ++ "/val") (.: "val")
   where desc = show t
 
+-- | Extracts a required value from the object.
 rawValue :: (FromJSON a) => Object -> Key -> Parser a
 rawValue parent key =
   parent .: key >>= extractRaw key
 
+-- | Extracts a required value from the object.
 (.!:) :: (FromJSON a) => Object -> Key -> Parser a
 (.!:) = rawValue
 
+-- | Extracts a value from the object via a parser.
 parsedValue :: (FromJSON a) => Object -> Key -> Parser a
 parsedValue parent key =
   parent .: key >>= extractParsed key
 
+-- | Extracts a value from the object via a parser.
 (.~:) :: (FromJSON a) => Object -> Key -> Parser a
 (.~:) = parsedValue
 
+-- | Extracts an optional value from the object.
 optRawValue :: (FromJSON a) => Object -> Key -> Parser (Maybe a)
 optRawValue parent key = do
   e <- parent .:? key
@@ -149,6 +154,7 @@ optRawValue parent key = do
     Nothing -> return Nothing
     Just e' -> Just <$> extractRaw key e'
 
+-- | Extracts an optional value from the object.
 (.!:?) :: (FromJSON a) => Object -> Key -> Parser (Maybe a)
 (.!:?) = optRawValue
 
@@ -159,6 +165,7 @@ optParsedValue parent key = do
     Nothing -> return Nothing
     Just e' -> Just <$> extractParsed key e'
 
+-- | Reads an optional, parsed value.
 (.~:?) :: (FromJSON a) => Object -> Key -> Parser (Maybe a)
 (.~:?) = optParsedValue
 
