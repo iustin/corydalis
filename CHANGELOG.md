@@ -26,6 +26,12 @@ Small improvements:
   be clipped (and show an ellipsis on overflow), to keep the page
   structure constant no matter the folder/image names. Before, the
   wrapping could cause reflow when navigating between images.
+- Furthermore, the breadcrumb has been customised for the viewer
+  specifically, to not show the "Viewer" final item, and on small sizes,
+  show only the folder name, since that's most representative of the
+  context, on medium sizes the image name too, and on large size also the
+  top level folder. This should result in more meaningful context of the
+  picture being viewed, as the viewer only shows (briefly) the image name.
 - The image viewer (the full page one) has been sped up by skipping some
   expensive CSS computations in the call path for every image drawing;
   this leads to a small performance improvement, but also potential visual

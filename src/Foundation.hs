@@ -362,8 +362,20 @@ instance Yesod App where
           $(widgetFile "default-layout")
 
         let inflist = [1..]::[Int]
-            lastParentIdx = length parents
-            parentsIdx = zip3 inflist parents (map (== lastParentIdx) inflist)
+            isViewer = case route of
+                Just (ViewR _ _) -> True
+                _                -> False
+            crumbsVisibilityClasses =
+              -- For viewer, where the structure is year -> folder ->
+              -- image -> View, we want to first (at small sizes) show
+              -- just the folder, since it has the most meaning, and later
+              -- show all.
+              if isViewer then "d-lg-block":"d-sm-block":repeat "d-md-block"
+              else repeat "d-sm-block"::[Text]
+            currentItemVisibilityClass =
+              if isViewer then "" else "d-sm-block"::Text
+            parentsIdx = zip3 inflist parents crumbsVisibilityClasses
+
         is_auth <- isJust <$> maybeAuthId
         withUrlRenderer $(hamletFile "templates/layout-wrapper.hamlet")
 

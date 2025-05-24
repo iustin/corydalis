@@ -23,15 +23,15 @@ $doctype 5
               <span .fa-solid .fa-home>
               <span .d-none .d-xxl-inline>
                 Corydalis
-          <li .nav-item .nav-link .px-0 .d-none .d-sm-block>
+          $forall (idx, bc, visibilityClass) <- parentsIdx
+            <li .nav-item .nav-link .px-0 .d-none .#{visibilityClass}>
               <span .fa-solid .fa-caret-right>
-          $forall (idx, bc, isLast) <- parentsIdx
-            <li .nav-item .nav-nowrap-item .d-none .d-sm-block>
-              <a .nav-link .parent-nav :isLast:.parent-nav-last href=@{fst bc} id="navlink#{idx}">
+            <li .nav-item .nav-nowrap-item .d-none .#{visibilityClass}>
+              <a .nav-link .parent-nav href=@{fst bc} id="navlink#{idx}">
                   <span id="navtext#{idx}">#{snd bc}
-            <li .nav-item .nav-link .px-0 .d-none .d-sm-block>
-              <span .fa-solid .fa-caret-right>
-          <li .nav-item .d-none .d-sm-block>
+          <li .nav-item .nav-link .px-0 .d-none .#{currentItemVisibilityClass}>
+            <span .fa-solid .fa-caret-right>
+          <li .nav-item .d-none .#{currentItemVisibilityClass}>
             <span .nav-link .active>
               #{title}
 
