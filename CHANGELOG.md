@@ -1,6 +1,8 @@
 # Changelog
 
-## vNext
+## v2025.21.0 - "Zooming for all"
+
+Released: _Sat, 24 May 2025_.
 
 ### Major improvement: image zooming and panning
 
@@ -17,6 +19,14 @@ simplification as well.
 The zoom was tested on both small images, and large images, up to a ~96
 Megapixel image from NASA (~200MiB disk size). It takes a while to load
 that, but afterwards panning and zooming is smooth.
+
+As a side effect of the changes, I redid the way the HTML elements are
+laid out in order to remove manual state management, and this uncovered
+something that seems to be a bug in Safari iOS on iPads related to
+fullscreen corrupting viewport sizing -
+<https://bugs.webkit.org/show_bug.cgi?id=293514>. There's no workaround
+for it, except either don't enter full-screen, or close the tab and open a
+new one - page reload doesn't help.
 
 Additional new feature: Added simple yearly and monthly timeline graphs to
 the curate page, to help understand the growth of the collection over
