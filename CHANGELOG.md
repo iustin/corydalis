@@ -2,7 +2,27 @@
 
 ## vNext
 
-Bug fixes:
+### Major improvement: image zooming and panning
+
+After many years, finally add image zooming to the main image viewer,
+together with mouse and gesture support for panning and pinch-zooming.
+This was on the cards since movie support was implemented, but my previous
+efforts failed to work well, for various reasons, one of them being the
+HammerJS library not being flexible enough. I used Claude (3.7 Sonnet) to
+help me implement fully-manual gesture handling, and then reverse engineer
+my code - at which it was not so good. I spent then a lot of time to
+understand the old viewer code, and it resulted in a significant
+simplification as well.
+
+The zoom was tested on both small images, and large images, up to a ~96
+Megapixel image from NASA (~200MiB disk size). It takes a while to load
+that, but afterwards panning and zooming is smooth.
+
+Additional new feature: Added simple yearly and monthly timeline graphs to
+the curate page, to help understand the growth of the collection over
+time.
+
+### Bug fixes
 
 - When going to image view from a search, preserve (as intended) the
   search parameters; before it was going to the first image that matches
@@ -19,8 +39,11 @@ Bug fixes:
   more jarring than the over or underflow, but it's more correct, as it
   doesn't leave permanent wrong positioning, just a one-time visible
   change.
+- Cover image generation for movies has been made more reliable, as
+  sometimes `ffmpeg` was trying and failing to read from standard input,
+  leading to no cover images.
 
-Small improvements:
+### Small improvements
 
 - The breadcrumbs are now so styled, that they will not wrap, but instead
   be clipped (and show an ellipsis on overflow), to keep the page
@@ -42,9 +65,8 @@ Small improvements:
   centred). Additionally, move the nav bar a bit higher, so that on iOS
   phones or tablets, it doesn't conflict with the bottom "swipe-up"
   element (the black bar used to go to the home screen).
-- The curate page shows a yearly image count/size graph, to give an
-  overview on how the photo collection evolved over time; this is a
-  simplification compared the lens/camera timelines.
+- Make all Plotly graphs responsive, as it seems this is not the default,
+  even in 2024+.
 
 ## v2024.12.0 - "No accidental zooming"
 
