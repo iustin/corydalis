@@ -376,6 +376,7 @@ data RawExif = RawExif
   , rExifFlashMode    :: Maybe Text
   , rExifWidth        :: Maybe Int
   , rExifHeight       :: Maybe Int
+  , rExifMegapixels   :: Maybe Double
   -- meta fields below
   , rExifRaw          :: Object
   , rExifWarning      :: Maybe Text
@@ -430,6 +431,7 @@ instance FromJSON RawExif where
     rExifFlashMode   <- o .~:? "FlashMode"
     rExifWidth       <- o .!:? "ImageWidth"
     rExifHeight      <- o .!:? "ImageHeight"
+    rExifMegapixels  <- o .!:? "Megapixels"
     -- meta fields below
     rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
@@ -464,6 +466,7 @@ data Exif = Exif
   , exifFlashInfo    :: !FlashInfo
   , exifWidth        :: !(Maybe Int)
   , exifHeight       :: !(Maybe Int)
+  , exifMegapixels   :: !(Maybe Double)
   -- meta field
   , exifWarning      :: !(Set Text)
   } deriving (Show, Eq)
@@ -494,6 +497,7 @@ instance NFData Exif where
                  rnf exifFlashInfo    `seq`
                  rnf exifWidth        `seq`
                  rnf exifHeight       `seq`
+                 rnf exifMegapixels   `seq`
                  rnf exifWarning
 
 instance Default Exif where
@@ -523,6 +527,7 @@ instance Default Exif where
              , exifFlashInfo    = def
              , exifWidth        = Nothing
              , exifHeight       = Nothing
+             , exifMegapixels   = Nothing
              , exifWarning      = Set.empty
              }
 
@@ -818,6 +823,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                       rExifShutterCount
   exifWidth        <- evalV (< 1) (const "Invalid (Exif) image width") rExifWidth
   exifHeight       <- evalV (< 1) (const "Invalid (Exif) image height") rExifHeight
+  exifMegapixels   <- evalV (<=0) (sformat ("Invalid (Exif) megapixels: " % float)) rExifMegapixels
   errs <- get
   let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
   return Exif{..}
@@ -885,6 +891,7 @@ promoteFileExif re se je mm me =
       exifFlashInfo'    = FlashInfo flashSource flashMode
       exifWidth'        = fjust exifWidth
       exifHeight'       = fjust exifHeight
+      exifMegapixels'   = fjust exifMegapixels
   in Exif { exifPeople       = exifPeople'
           , exifKeywords     = exifKeywords'
           , exifCountry      = exifCountry'
@@ -912,6 +919,7 @@ promoteFileExif re se je mm me =
           , exifFlashInfo    = exifFlashInfo'
           , exifWidth        = exifWidth'
           , exifHeight       = exifHeight'
+          , exifMegapixels   = exifMegapixels'
           }
 
 $(makeStore ''ExifTime)

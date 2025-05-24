@@ -25,6 +25,9 @@ $with smf <- showMaybeField "?"
     <td>Dimensions
     <td>#{dimensions}
   <tr>
+    <td>Megapixels
+    <td>#{megapixels}
+  <tr>
     <td>Equipment
     <td>
       ^{smf exifCamera} + #{lensShortName exifLens}

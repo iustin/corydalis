@@ -215,6 +215,7 @@ showExif Exif {..} = do
         (Just w, Nothing)  -> sformat (int % " wide, height missing") w
         (Nothing, Just h)  -> sformat ("width missing, " % int % " high") h
         (Just w, Just h)   -> sformat (int % "×" % int) w h
+      megapixels = maybe "unknown" (sformat (f1 % " MP")) exifMegapixels
   -- TODO: serial field, links to camera/lens?, move capture time earlier.
   $(widgetFile "exif")
 
