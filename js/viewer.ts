@@ -1337,9 +1337,9 @@ $(function () {
     });
 
     // Prevent all gesture events at the document level to stop Safari's
-    // behavior.
-    // TODO: enable gesture handling, for example trackpad
-    // pinch/zoom, which is different than touch pinch-zoom. Sigh.
+    // behavior. This is needed as a gesture event on a trackpad generates
+    // both a mousewheel, but in the wrong direction compared to normal
+    // mouse wheel.
     document.addEventListener(
       'gesturestart',
       function (e) {
