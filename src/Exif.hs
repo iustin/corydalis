@@ -367,7 +367,9 @@ data RawExif = RawExif
   , rExifRating       :: Maybe Int
   , rExifFlashSource  :: Maybe Int
   , rExifFlashMode    :: Maybe Text
-  -- met fields below
+  , rExifWidth        :: Maybe Int
+  , rExifHeight       :: Maybe Int
+  -- meta fields below
   , rExifRaw          :: Object
   , rExifWarning      :: Maybe Text
   } deriving (Show)
@@ -419,6 +421,8 @@ instance FromJSON RawExif where
     rExifRating      <- o .~:? "Rating"
     rExifFlashSource <- o .!:? "FlashSource"
     rExifFlashMode   <- o .~:? "FlashMode"
+    rExifWidth       <- o .!:? "ImageWidth"
+    rExifHeight      <- o .!:? "ImageHeight"
     -- meta fields below
     rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
@@ -451,6 +455,8 @@ data Exif = Exif
   , exifMimeType     :: !(Maybe Text)
   , exifRating       :: !(Maybe Int)
   , exifFlashInfo    :: !FlashInfo
+  , exifWidth        :: !(Maybe Int)
+  , exifHeight       :: !(Maybe Int)
   -- meta field
   , exifWarning      :: !(Set Text)
   } deriving (Show, Eq)
@@ -479,6 +485,8 @@ instance NFData Exif where
                  rnf exifMimeType     `seq`
                  rnf exifRating       `seq`
                  rnf exifFlashInfo    `seq`
+                 rnf exifWidth        `seq`
+                 rnf exifHeight       `seq`
                  rnf exifWarning
 
 instance Default Exif where
@@ -506,6 +514,8 @@ instance Default Exif where
              , exifMimeType     = Nothing
              , exifRating       = Nothing
              , exifFlashInfo    = def
+             , exifWidth        = Nothing
+             , exifHeight       = Nothing
              , exifWarning      = Set.empty
              }
 
@@ -799,6 +809,8 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   exifShutterCount <- evalV (> tooHighShutterCount)
                       (sformat ("Unlikely shutter count: " % int))
                       rExifShutterCount
+  exifWidth        <- evalV (< 1) (const "Invalid (Exif) image width") rExifWidth
+  exifHeight       <- evalV (< 1) (const "Invalid (Exif) image height") rExifHeight
   errs <- get
   let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
   return Exif{..}
@@ -864,6 +876,8 @@ promoteFileExif re se je mm me =
       flashSource       = fjust  (fiSource . exifFlashInfo)
       flashMode         = fjust  (fiMode . exifFlashInfo)
       exifFlashInfo'    = FlashInfo flashSource flashMode
+      exifWidth'        = fjust exifWidth
+      exifHeight'       = fjust exifHeight
   in Exif { exifPeople       = exifPeople'
           , exifKeywords     = exifKeywords'
           , exifCountry      = exifCountry'
@@ -889,6 +903,8 @@ promoteFileExif re se je mm me =
           , exifRating       = exifRating'
           , exifWarning      = exifWarning'
           , exifFlashInfo    = exifFlashInfo'
+          , exifWidth        = exifWidth'
+          , exifHeight       = exifHeight'
           }
 
 $(makeStore ''ExifTime)

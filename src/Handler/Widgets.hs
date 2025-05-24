@@ -210,6 +210,11 @@ showExif Exif {..} = do
                                ) exifRating
       flash_source = formatFlashSource (fiSource exifFlashInfo)
       flash_mode   = fromMaybe "unknown" (fiMode exifFlashInfo)
+      dimensions = case (exifWidth, exifHeight) of
+        (Nothing, Nothing) -> "dimensions missing entirely"
+        (Just w, Nothing)  -> sformat (int % " wide, height missing") w
+        (Nothing, Just h)  -> sformat ("width missing, " % int % " high") h
+        (Just w, Just h)   -> sformat (int % "×" % int) w h
   -- TODO: serial field, links to camera/lens?, move capture time earlier.
   $(widgetFile "exif")
 

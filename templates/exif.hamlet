@@ -22,6 +22,9 @@ $with smf <- showMaybeField "?"
     <td>Caption
     <td>^{showMaybeField "no caption" exifCaption}
   <tr>
+    <td>Dimensions
+    <td>#{dimensions}
+  <tr>
     <td>Equipment
     <td>
       ^{smf exifCamera} + #{lensShortName exifLens}
