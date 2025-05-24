@@ -549,20 +549,22 @@ type ERawExif = Either FailRExif RawExif
 type NameStats a = Map (Maybe a) Integer
 
 data GroupExif = GroupExif
-  { gExifPeople    :: !(NameStats Text)
-  , gExifKeywords  :: !(NameStats Text)
-  , gExifCountries :: !(NameStats Text)
-  , gExifProvinces :: !(NameStats Text)
-  , gExifCities    :: !(NameStats Text)
-  , gExifLocations :: !(NameStats Text)
-  , gExifCameras   :: !(NameStats Text)
-  , gExifLenses    :: !(NameStats Text)
-  , gExifTitles    :: !(NameStats Text)
-  , gExifCaptions  :: !(NameStats Text)
-  , gExifPeopleCnt :: !(NameStats Int)
-  , gExifKwdCnt    :: !(NameStats Int)
-  , gExifFlashSrc  :: !(NameStats FlashSource)
-  , gExifFlashMode :: !(NameStats Text)
+  { gExifPeople     :: !(NameStats Text)
+  , gExifKeywords   :: !(NameStats Text)
+  , gExifCountries  :: !(NameStats Text)
+  , gExifProvinces  :: !(NameStats Text)
+  , gExifCities     :: !(NameStats Text)
+  , gExifLocations  :: !(NameStats Text)
+  , gExifCameras    :: !(NameStats Text)
+  , gExifLenses     :: !(NameStats Text)
+  , gExifTitles     :: !(NameStats Text)
+  , gExifCaptions   :: !(NameStats Text)
+  , gExifPeopleCnt  :: !(NameStats Int)
+  , gExifKwdCnt     :: !(NameStats Int)
+  , gExifFlashSrc   :: !(NameStats FlashSource)
+  , gExifFlashMode  :: !(NameStats Text)
+  , gExifDimensions :: !(NameStats (Int, Int))
+  , gExifMegapixels :: !(NameStats Double)
   -- TODO: add warnings?
   } deriving (Show)
 
@@ -580,12 +582,14 @@ instance NFData GroupExif where
                       rnf gExifPeopleCnt `seq`
                       rnf gExifKwdCnt    `seq`
                       rnf gExifFlashSrc  `seq`
-                      rnf gExifFlashMode
+                      rnf gExifFlashMode `seq`
+                      rnf gExifDimensions `seq`
+                      rnf gExifMegapixels
 
 instance Default GroupExif where
   def = GroupExif Map.empty Map.empty Map.empty Map.empty
         Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
-        Map.empty Map.empty Map.empty Map.empty
+        Map.empty Map.empty Map.empty Map.empty Map.empty Map.empty
 
 exifLocalCreateDate :: Exif -> Maybe LocalTime
 exifLocalCreateDate = (zonedTimeToLocalTime . etTime <$>) . exifCreateDate
@@ -607,6 +611,8 @@ addExifToGroup g Exif{..} =
     , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
     , gExifFlashSrc  = count1  (gExifFlashSrc  g) (fiSource exifFlashInfo)
     , gExifFlashMode = count1  (gExifFlashMode g) (fiMode exifFlashInfo)
+    , gExifDimensions = count1 (gExifDimensions g) ((,) <$> exifWidth <*> exifHeight)
+    , gExifMegapixels = count1 (gExifMegapixels g) exifMegapixels
     }
     where count1 :: (Ord k, Num v) => Map.Map k v -> k -> Map.Map k v
           count1 m k = Map.insertWith (+) k 1 m
@@ -632,6 +638,8 @@ instance Semigroup GroupExif where
     , gExifKwdCnt    = gExifKwdCnt    g1 `merge` gExifKwdCnt    g2
     , gExifFlashSrc  = gExifFlashSrc  g1 `merge` gExifFlashSrc  g2
     , gExifFlashMode = gExifFlashMode g1 `merge` gExifFlashMode g2
+    , gExifDimensions = gExifDimensions g1 `merge` gExifDimensions g2
+    , gExifMegapixels = gExifMegapixels g1 `merge` gExifMegapixels g2
     }
     where
       merge :: (Ord k, Num v) => Map.Map k v -> Map.Map k v -> Map.Map k v
