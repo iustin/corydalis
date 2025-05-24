@@ -140,6 +140,21 @@ div#imageNavGroup .btn {
     font-size: inherit;
 }
 
+/* Navigation breadcrumbs handling */
+li.nav-nowrap-item {
+    min-width: 0%;
+}
+
+a.parent-nav {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+ul#nav-breadcrumbs {
+    max-width: 45%;
+}
+
 @media(min-width: 48em) {
     div#imageNavGroup {
         left: auto;
@@ -147,17 +162,29 @@ div#imageNavGroup .btn {
         right: 1rem;
         font-size: x-small;
     }
+
+    ul#nav-breadcrumbs {
+        max-width: 55%;
+    }
 }
 
 @media(min-width:62em) {
     div#imageNavGroup {
         font-size: small;
     }
+
+    ul#nav-breadcrumbs {
+        max-width: 65%;
+    }
 }
 
 @media(min-width:75em) {
     div#imageNavGroup {
         font-size: medium;
+    }
+
+    ul#nav-breadcrumbs {
+        max-width: 70%;
     }
 }
 

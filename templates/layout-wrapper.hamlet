@@ -17,21 +17,21 @@ $doctype 5
   <body .d-flex .flex-column style="overscroll-behavior: none;">
     <nav .navbar .navbar-light .bg-light .navbar-expand #nav>
       <div .container-fluid>
-        <ul .navbar-nav .me-auto>
+        <ul .navbar-nav .me-auto #nav-breadcrumbs>
           <li .nav-item>
             <a .nav-link href=@{HomeR}>
               <span .fa-solid .fa-home>
               <span .d-none .d-xxl-inline>
                 Corydalis
-          <li .nav-item .nav-link .px-0 .d-none .d-md-block>
+          <li .nav-item .nav-link .px-0 .d-none .d-sm-block>
               <span .fa-solid .fa-caret-right>
-          $forall (idx, bc) <- zip inflist parents
-            <li .nav-item .d-none .d-md-block>
-              <a .nav-link href=@{fst bc} id="navlink#{idx}">
-                 <span id="navtext#{idx}">#{snd bc}
-            <li .nav-item .nav-link .px-0 .d-none .d-md-block>
+          $forall (idx, bc, isLast) <- parentsIdx
+            <li .nav-item .nav-nowrap-item .d-none .d-sm-block>
+              <a .nav-link .parent-nav :isLast:.parent-nav-last href=@{fst bc} id="navlink#{idx}">
+                  <span id="navtext#{idx}">#{snd bc}
+            <li .nav-item .nav-link .px-0 .d-none .d-sm-block>
               <span .fa-solid .fa-caret-right>
-          <li .nav-item .d-none .d-md-block>
+          <li .nav-item .d-none .d-sm-block>
             <span .nav-link .active>
               #{title}
 

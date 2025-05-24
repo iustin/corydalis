@@ -362,6 +362,8 @@ instance Yesod App where
           $(widgetFile "default-layout")
 
         let inflist = [1..]::[Int]
+            lastParentIdx = length parents
+            parentsIdx = zip3 inflist parents (map (== lastParentIdx) inflist)
         is_auth <- isJust <$> maybeAuthId
         withUrlRenderer $(hamletFile "templates/layout-wrapper.hamlet")
 

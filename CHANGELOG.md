@@ -22,6 +22,10 @@ Bug fixes:
 
 Small improvements:
 
+- The breadcrumbs are now so styled, that they will not wrap, but instead
+  be clipped (and show an ellipsis on overflow), to keep the page
+  structure constant no matter the folder/image names. Before, the
+  wrapping could cause reflow when navigating between images.
 - The image viewer (the full page one) has been sped up by skipping some
   expensive CSS computations in the call path for every image drawing;
   this leads to a small performance improvement, but also potential visual
