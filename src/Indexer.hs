@@ -56,7 +56,8 @@ module Indexer ( Symbol(..)
 import           Control.Monad               (foldM, when)
 import           Data.List                   (foldl', nub, partition)
 import qualified Data.Map                    as Map
-import           Data.Maybe                  (fromMaybe, isNothing, mapMaybe)
+import           Data.Maybe                  (fromMaybe, isJust, isNothing,
+                                              mapMaybe)
 import           Data.Set                    (Set)
 import qualified Data.Set                    as Set
 import           Data.Text                   (Text)
@@ -102,6 +103,7 @@ data Symbol = TCountry
             | TKwdCnt
             | TFlashSrc
             | TFlashMode
+            | TMegapixels
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -134,6 +136,7 @@ instance PathPiece Symbol where
   toPathPiece TKwdCnt       = "keyword-count"
   toPathPiece TFlashSrc     = "flash-source"
   toPathPiece TFlashMode    = "flash-mode"
+  toPathPiece TMegapixels   = "megapixels"
   fromPathPiece "countries"     = Just TCountry
   fromPathPiece "provinces"     = Just TProvince
   fromPathPiece "cities"        = Just TCity
@@ -163,6 +166,7 @@ instance PathPiece Symbol where
   fromPathPiece "keyword-count" = Just TKwdCnt
   fromPathPiece "flash-source"  = Just TFlashSrc
   fromPathPiece "flash-mode"    = Just TFlashMode
+  fromPathPiece "megapixels"    = Just TMegapixels
   fromPathPiece _               = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
@@ -303,6 +307,8 @@ data Atom = Country  StrOp
           | KwdCnt   (NumOp Int)
           | FlashSrc FlashOp
           | FlashMode StrOp
+          | Megapixels (NumOp Double)
+          -- Meta atoms below
           | And Atom Atom
           | Or  Atom Atom
           | Not Atom
@@ -344,7 +350,7 @@ symbolName TPplCnt       = "people-count"
 symbolName TKwdCnt       = "keyword-count"
 symbolName TFlashSrc     = "flash-source"
 symbolName TFlashMode    = "flash-mode"
-
+symbolName TMegapixels   = "megapixels"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -379,6 +385,7 @@ parseSymbol "people-count"  = Just TPplCnt
 parseSymbol "keyword-count" = Just TKwdCnt
 parseSymbol "flash-source"  = Just TFlashSrc
 parseSymbol "flash-mode"    = Just TFlashMode
+parseSymbol "megapixels"    = Just TMegapixels
 parseSymbol _               = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -407,6 +414,7 @@ buildMissingAtom s =
     TRating       -> Rating    OpNa
     TFlashSrc     -> FlashSrc  FlashUnknown
     TFlashMode    -> FlashMode OpMissing
+    TMegapixels   -> Megapixels OpNa
     -- FIXME: these should fail instead (using Maybe).
     TFolder       -> error "No missing atom for folder"
     TFileName     -> error "No missing atom for filename"
@@ -457,7 +465,7 @@ parseAtom a v = do
     TKwdCnt       -> KwdCnt       <$> intDec
     TFlashSrc     -> FlashSrc     <$> parseFlash v
     TFlashMode    -> FlashMode    <$> str
-
+    TMegapixels   -> Megapixels   <$> double
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -491,6 +499,7 @@ quickSearch s v =
     TKwdCnt       -> KwdCnt <$> dec
     TFlashSrc     -> FlashSrc <$> parseFlash v
     TFlashMode    -> fuzzer FlashMode
+    TMegapixels   -> Megapixels <$> real
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
         dec = parseDecimal v
@@ -526,6 +535,7 @@ atomTypeDescriptions TPplCnt       = "people count"
 atomTypeDescriptions TKwdCnt       = "keyword count"
 atomTypeDescriptions TFlashSrc     = "flash source"
 atomTypeDescriptions TFlashMode    = "flash mode"
+atomTypeDescriptions TMegapixels   = "image megapixels"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -705,6 +715,14 @@ atomDescription (FlashSrc v)           = formatFlashSource v
 
 atomDescription (FlashMode mode)       = describeStr "flash mode" mode
 
+atomDescription (Megapixels (OpEq megapixels))   = "with a megapixel count of " <> toText megapixels
+atomDescription (Megapixels (OpNe megapixels))   = "with a megapixel count different from " <> toText megapixels
+atomDescription (Megapixels (OpLt megapixels))   = "with a megapixel count less than " <> toText megapixels
+atomDescription (Megapixels (OpLe megapixels))   = "with a megapixel count of at most " <> toText megapixels
+atomDescription (Megapixels (OpGe megapixels))   = "with a megapixel count of at least " <> toText megapixels
+atomDescription (Megapixels (OpGt megapixels))   = "with a megapixel count of more than" <> toText megapixels
+atomDescription (Megapixels OpNa)                = "with an unknown megapixel count"
+
 atomDescription (And (Month m) (Day (MonthDay d))) = formatDayOfTheMonth d m
 atomDescription (And (Day (MonthDay d)) (Month m)) = formatDayOfTheMonth d m
 
@@ -883,6 +901,9 @@ folderSearchFunction a@(FlashSrc _) =
 folderSearchFunction (FlashMode m) =
   nameStatsSearch m . gExifFlashMode . pdExif
 
+folderSearchFunction (Megapixels m) =
+  numStatsSearch m . gExifMegapixels . pdExif
+
 -- Generic ops below
 
 folderSearchFunction (And a b) = \p ->
@@ -1014,6 +1035,9 @@ imageSearchFunction (FlashSrc s) =
 imageSearchFunction (FlashMode m) =
   evalStr m . fiMode . exifFlashInfo . imgExif
 
+imageSearchFunction (Megapixels m) =
+  evalNum m . exifMegapixels . imgExif
+
 -- Generic ops below
 
 imageSearchFunction (And a b) = \img ->
@@ -1110,6 +1134,7 @@ getAtoms TPplCnt       = gaBuilder (sformat int) (formatZeroOneMore "person" "pe
 getAtoms TKwdCnt       = gaBuilder (sformat int) (formatZeroOneMore "keyword" "keywords") . gExifKwdCnt . repoExif
 getAtoms TFlashSrc     = gaBuilder showFlash formatFlashSource . flashStats
 getAtoms TFlashMode    = idBuilder . gExifFlashMode . repoExif
+getAtoms TMegapixels   = fancyTextBuilder (sformat (shortest % " MP")) . gExifMegapixels . repoExif
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats MediaType
@@ -1586,6 +1611,7 @@ atomToParams (PplCnt   v)     = [formatParam TPplCnt       v]
 atomToParams (KwdCnt   v)     = [formatParam TKwdCnt       v]
 atomToParams (FlashSrc v)     = [formatParam TFlashSrc     v]
 atomToParams (FlashMode v)    = [formatParam TFlashMode    v]
+atomToParams (Megapixels v)   = [formatParam TMegapixels   v]
 atomToParams (And a b)        =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)         =
