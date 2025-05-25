@@ -746,6 +746,33 @@ nameStatsSearch (OpFuzzy f) =
                        let found = maybe False (fuzzyMatch f) k && v > 0
                        in found || a) False
 
+-- | NameStats search function for numeric values.
+numStatsSearch :: (Ord a) => NumOp a -> NameStats a -> Bool
+numStatsSearch OpNa m =
+  maybe False (> 0) (Nothing `Map.lookup` m)
+numStatsSearch (OpEq v) m =
+  maybe False (> 0) (Just v `Map.lookup` m)
+numStatsSearch (OpNe v) m =
+  Map.foldrWithKey' (\k count acc ->
+                      acc || (isJust k && k /= Just v && count > 0))
+                    False m
+numStatsSearch (OpLt v) m =
+  Map.foldrWithKey' (\k count acc ->
+                      acc || (maybe False (< v) k && count > 0))
+                    False m
+numStatsSearch (OpLe v) m =
+  Map.foldrWithKey' (\k count acc ->
+                      acc || (maybe False (<= v) k && count > 0))
+                    False m
+numStatsSearch (OpGe v) m =
+  Map.foldrWithKey' (\k count acc ->
+                      acc || (maybe False (>= v) k && count > 0))
+                    False m
+numStatsSearch (OpGt v) m =
+  Map.foldrWithKey' (\k count acc ->
+                      acc || (maybe False (> v) k && count > 0))
+                    False m
+
 flashSearch :: FlashOp -> Maybe FlashSource -> Bool
 flashSearch FlashUnknown  Nothing                     = True
 flashSearch FlashUnknown  _                           = False
