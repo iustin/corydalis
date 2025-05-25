@@ -64,6 +64,7 @@ specialViews =
   , TRating
   , TPplCnt
   , TKwdCnt
+  , TMegapixels
   ]
 
 debugViews :: [Symbol]

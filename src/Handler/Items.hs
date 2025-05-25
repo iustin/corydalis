@@ -74,6 +74,7 @@ symbolPlCap TPplCnt       = "People count"
 symbolPlCap TKwdCnt       = "Keyword count"
 symbolPlCap TFlashSrc     = "Flash source"
 symbolPlCap TFlashMode    = "Flash information"
+symbolPlCap TMegapixels   = "Megapixels"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"

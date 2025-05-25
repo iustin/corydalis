@@ -142,6 +142,7 @@ atomIcon TPplCnt       = "fa-solid fa-users"
 atomIcon TKwdCnt       = "fa-solid fa-tags"
 atomIcon TFlashSrc     = "fa-solid fa-bolt"
 atomIcon TFlashMode    = "fa-solid fa-bolt" -- FIXME - maybe multi-symbol?
+atomIcon TMegapixels   = "fa-solid fa-chart-area"
 
 dataMasonry :: Text
 dataMasonry   = "{\"percentPosition\": true}"
