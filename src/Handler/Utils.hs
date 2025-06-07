@@ -398,9 +398,18 @@ buildLensApFL images =
             , "yticktext" .= map show allApertures
             ]
 
+-- | Builds statistics for UI display from occurrence data.
+-- Takes a default value for the "others" category, limits for top items to display
+-- in bar chart and trend chart, accessor functions for item names, and a map of occurrences.
+-- Returns a JSON object with two fields: "imagecount" (bar chart data) and "trends" (trend lines).
 buildCamLensStats :: Ord a
-                  => a -> Int -> Int -> (a -> Text) -> (a -> Text)
-                  -> Map Text (Occurrence a) -> Value
+                  => a                       -- ^ Default value for "others" category
+                  -> Int                     -- ^ Limit for number of items to display in bar chart
+                  -> Int                     -- ^ Limit for number of items to display in trend chart
+                  -> (a -> Text)             -- ^ Function to extract item name for bar chart
+                  -> (a -> Text)             -- ^ Function to extract item name for trend chart
+                  -> Map Text (Occurrence a) -- ^ Map of camera/lens occurrences
+                  -> Value                   -- ^ JSON object with "imagecount" and "trends"
 buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
   let top1 = buildTopNItems others stats n1
       top2 = buildTopNItems others stats n2
