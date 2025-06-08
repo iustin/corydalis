@@ -4,9 +4,12 @@
 
 ### New features
 
-The camera information page now has two more graphs: per-lens statistics
-(bar chart) and timeline, per-lens trends (line chart). This should show
-better the actual usage of a camera, and including lens pairings.
+The camera and lens information pages now have two more graphs: per the
+paired item (for a camera, the lenses, and vice-versa) statistics (bar
+chart) and timeline, per-paired item trends (line chart). This should show
+better the actual usage of a camera or lens, and including the pairings.
+Of course, these are only useful in terms of timeline for fixed-lens
+cameras.
 
 ## v2025.21.0 - "Zooming for all"
 

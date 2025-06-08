@@ -9,6 +9,14 @@
     <div #lensFlApChart .largegraph>
 
 <div .row>
+  <div .col-12>
+    <div #cameraChart .largegraph>
+
+<div .row>
+  <div .col-12>
+    <div #trendsChart .largegraph>
+
+<div .row>
  <div .col-12 .col-sm-4>
    <div .card>
      <div .card-header>Basic information
