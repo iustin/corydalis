@@ -11,6 +11,12 @@ better the actual usage of a camera or lens, and including the pairings.
 Of course, these are only useful in terms of timeline for fixed-lens
 cameras.
 
+### Dependencies
+
+The dependencies have been updated as follows:
+
+- plotly has been updated to version 3.0.
+
 ## v2025.21.0 - "Zooming for all"
 
 Released: _Sat, 24 May 2025_.

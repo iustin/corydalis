@@ -9,7 +9,7 @@ function lensStatsReady() {
         type: 'log' as const,
         exponentformat: 'SI' as const,
         rangemode: 'nonnegative' as const,
-        title: 'Images',
+        title: { text: 'Images' },
       },
       xaxis: {
         automargin: true,
@@ -20,7 +20,7 @@ function lensStatsReady() {
     const yBottom: Plotly.UpdateMenu['yanchor'] = 'bottom';
     const trendsLayout = {
       yaxis: {
-        title: 'Images',
+        title: { text: 'Images' },
       },
       updatemenus: [
         {

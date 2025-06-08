@@ -7,15 +7,15 @@ function curateReady() {
     const cameraLayout = {
       xaxis: {
         rangemode: 'nonnegative' as const,
-        title: 'File count',
+        title: { text: 'File count' },
       },
       yaxis: {
         type: 'log' as const,
         exponentformat: 'SI' as const,
         rangemode: 'nonnegative' as const,
-        title: 'Size',
+        title: { text: 'Size' },
       },
-      title: 'Camera file/size stats',
+      title: { text: 'Camera file/size stats' },
     };
     const lensLayout = {
       xaxis: {
@@ -26,63 +26,63 @@ function curateReady() {
         type: 'log' as const,
         exponentformat: 'SI' as const,
         rangemode: 'nonnegative' as const,
-        title: 'File count',
+        title: { text: 'File count' },
       },
       showlegend: true,
-      title: 'Lens image count',
+      title: { text: 'Lens image count' },
     };
     const folderLayout = {
       xaxis: {
         type: 'log' as const,
         exponentformat: 'SI' as const,
         rangemode: 'nonnegative' as const,
-        title: 'Size',
+        title: { text: 'Size' },
       },
       yaxis: {
         type: 'log' as const,
         rangemode: 'nonnegative' as const,
-        title: 'File count',
+        title: { text: 'File count' },
       },
-      title: 'Folder file/size stats',
+      title: { text: 'Folder file/size stats' },
     };
     const yearLayout = {
       xaxis: {
-        title: 'Year',
+        title: { text: 'Year' },
         automargin: true,
       },
       yaxis: {
-        title: 'Image count',
+        title: { text: 'Image count' },
         rangemode: 'tozero' as const,
       },
       yaxis2: {
-        title: 'Size',
+        title: { text: 'Size' },
         overlaying: 'y' as const,
         side: 'right' as const,
         exponentformat: 'SI' as const,
         rangemode: 'tozero' as const,
       },
       legend: { orientation: 'h' as const },
-      title: 'Yearly image count and size',
+      title: { text: 'Yearly image count and size' },
     };
     const monthLayout = {
       xaxis: {
-        title: 'Month',
+        title: { text: 'Month' },
         automargin: true,
         type: 'date' as const,
       },
       yaxis: {
-        title: 'Image count',
+        title: { text: 'Image count' },
         rangemode: 'tozero' as const,
       },
       yaxis2: {
-        title: 'Size',
+        title: { text: 'Size' },
         overlaying: 'y' as const,
         side: 'right' as const,
         exponentformat: 'SI' as const,
         rangemode: 'tozero' as const,
       },
       legend: { orientation: 'h' as const },
-      title: 'Monthly image count and size',
+      title: { text: 'Monthly image count and size' },
     };
     const config = {
       showLink: false,

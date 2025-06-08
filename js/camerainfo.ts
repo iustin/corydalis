@@ -6,10 +6,10 @@ function cameraInfoReady() {
   function onDataReceived(series: any) {
     const cameraLayout = {
       xaxis: {
-        title: 'Focal lengths used',
+        title: { text: 'Focal lengths used' },
       },
       yaxis: {
-        title: 'Aperture',
+        title: { text: 'Aperture' },
         tickprefix: 'f/',
         tickvals: series.ytickvals,
         ticktext: series.yticktext,
@@ -22,11 +22,11 @@ function cameraInfoReady() {
         type: 'log' as const,
         exponentformat: 'SI' as const,
         rangemode: 'nonnegative' as const,
-        title: 'Images',
+        title: { text: 'Images' },
       },
       xaxis: {
         automargin: true,
-        title: 'Per lens total images',
+        title: { text: 'Per lens total images' },
       },
     };
     const restyle: Plotly.UpdateMenuButton['method'] = 'restyle';
@@ -34,10 +34,10 @@ function cameraInfoReady() {
     const yBottom: Plotly.UpdateMenu['yanchor'] = 'bottom';
     const trendsLayout = {
       xaxis: {
-        title: 'Per lens timeline stats',
+        title: { text: 'Per lens timeline stats' },
       },
       yaxis: {
-        title: 'Images',
+        title: { text: 'Images' },
       },
       updatemenus: [
         {
