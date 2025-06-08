@@ -109,6 +109,7 @@ module Pics ( PicDir(..)
 import           Control.Applicative
 import           Control.DeepSeq
 import qualified Data.ByteString.Lazy    as BSL (append, length, writeFile)
+import qualified Data.Foldable
 import           Data.LruCache           (LruCache)
 import qualified Data.LruCache           as LRU
 import qualified Data.Map.Strict         as Map
@@ -628,8 +629,8 @@ updateStatsWithPic orig img =
            , sDateRange = mergeMinMaxPair (sDateRange orig) captureDate
            }
 
-computeImagesStats :: Map ImageName Image -> Stats
-computeImagesStats = Map.foldl' updateStatsWithPic zeroStats
+computeImagesStats :: (Foldable a) => a Image -> Stats
+computeImagesStats = Data.Foldable.foldl' updateStatsWithPic zeroStats
 
 computeFolderStats :: PicDir -> Stats
 computeFolderStats =
