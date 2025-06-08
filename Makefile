@@ -54,8 +54,10 @@ bootstrap:
 	npm install
 	@echo Fixing font-awesome CSS files...
 	bash build/patch-font-awesome
+	@echo One-shot checking of TypeScript syntax...
+	npm run type-check
 	@echo One-shot converting typescript to JS...
-	npx tsc -p js/ --listEmittedFiles
+	npm run build
 
 # Continuous typescript compilation
 .PHONY: ts-watch
