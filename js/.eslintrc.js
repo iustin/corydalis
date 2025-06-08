@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-undef
-module.exports = {
+export default {
   env: {
     browser: true,
     es2020: true,
@@ -17,7 +17,14 @@ module.exports = {
     'new-cap': [
       'error',
       {
-        capIsNewExceptions: ['LOG', 'LOG_GROUP', 'LOG_GROUP_END', 'LOG_TABLE', 'T_START', 'T_STOP'],
+        capIsNewExceptions: [
+          'LOG',
+          'LOG_GROUP',
+          'LOG_GROUP_END',
+          'LOG_TABLE',
+          'T_START',
+          'T_STOP',
+        ],
       },
     ],
   },

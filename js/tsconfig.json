@@ -1,11 +1,32 @@
 {
   "compilerOptions": {
-    "strict": true,
     "target": "es2021",
-    "module": "none",
-    "moduleResolution": "node",
-    "baseUrl": "./",
-    "outDir": "../static/corydalis/js/",
-    "allowJs": true
+    "module": "ESNext",
+
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true /* esbuild handles emission */,
+
+    /* Add this to include JS files */
+    "allowJs": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noImplicitAny": false /* Can adjust based on your code */,
+
+    /* Additional */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["js/*"]
+    },
+
+    /* Improvements for esbuild */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
   }
 }
