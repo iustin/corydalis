@@ -29,7 +29,14 @@ const esbuildProblemMatcherPlugin = {
 async function runBuild() {
   // Create a build context
   const ctx = await esbuild.context({
-    entryPoints: ['js/*.ts', 'js/*.js'],
+    entryPoints: [
+      'js/bundle-plot.ts',
+      'js/imagegrid.ts',
+      'js/tablesorter-config.ts',
+      'js/tablesorter-uitheme-simple.ts',
+      'js/viewer.ts',
+      'js/*.js',
+    ],
     bundle: true,
     minify: !isDev,
     format: 'iife',
