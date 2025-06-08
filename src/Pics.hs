@@ -102,6 +102,7 @@ module Pics ( PicDir(..)
             , transformForFile
             , transformForImage
             , updateStatsWithPic
+            , computeImagesStats
             -- Test export :/
             , mkImage
             ) where

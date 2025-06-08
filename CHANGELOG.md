@@ -1,5 +1,13 @@
 # Changelog
 
+## vNext
+
+### New features
+
+The camera information page now has two more graphs: per-lens statistics
+(bar chart) and timeline, per-lens trends (line chart). This should show
+better the actual usage of a camera, and including lens pairings.
+
 ## v2025.21.0 - "Zooming for all"
 
 Released: _Sat, 24 May 2025_.

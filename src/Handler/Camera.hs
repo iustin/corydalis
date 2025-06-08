@@ -85,7 +85,15 @@ getCameraInfoR cameraname = do
                                              Just cd' -> (cd', lens):a) [] $ images
                   in fromNullable cds >>= (\nn -> Just (head nn, last nn))
       keepR = formatKeeperRate <$> keeperRate camera
-      obj = buildLensApFL images
+      lensapflobj = buildLensApFL images
+      -- timeline stats
+      camerapicstats = computeImagesStats images
+      others = unknownLens { liName = "others" }
+      timelineobj = buildCamLensStats others 30 10 lensShortName liName (sByLens camerapicstats)
+      obj = object [ "lensapfl" .= lensapflobj
+                   , "trends" .= timelineobj
+                   ]
+      -- end timeline stats
       html = do
         setTitle "Corydalis: camera information"
         $(widgetFile "camerainfo")
