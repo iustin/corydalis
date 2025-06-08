@@ -39,7 +39,7 @@ async function runBuild() {
     ],
     bundle: true,
     minify: !isDev,
-    format: 'iife',
+    format: 'esm',
     outdir: 'static/corydalis/js',
     target: 'es2021',
     sourcemap: isDev,
