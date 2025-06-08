@@ -12,6 +12,7 @@
     "@types/jquery": "^3.5.32",
     "@types/masonry-layout": "^4.2.7",
     "@types/plotly.js": "^3.0.0",
+    "@types/tablesorter": "^2.31.8",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "bootstrap": "^5.3.3",
@@ -31,6 +32,7 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
+    "type-check": "tsc --noEmit -p js/tsconfig.json --watch",
     "watch": "NODE_ENV=developement node esbuild.js --watch",
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",

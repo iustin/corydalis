@@ -363,11 +363,13 @@ $(function () {
   const divMain = $('#main');
   const navMenu = $('#nav');
 
+  // @ts-ignore - TODO: Properly type DOM elements when refactoring this file.
   const canvas = <HTMLCanvasElement>$('#imageCanvas')[0];
   const context = canvas.getContext('2d');
   const msgBox = $('#messageBox');
   const persistBox = $('#persistBox');
   const moviePlaySpan = $('#moviePlay>span')[0];
+  // @ts-ignore - TODO: Properly type DOM elements when refactoring this file.
   const seekBar = <HTMLInputElement>$('#seekBar')[0];
   const fullScreenIcon = $('#imageFull>span');
 
