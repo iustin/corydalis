@@ -168,11 +168,7 @@ pageCSSResources PageFBox =
 
 pageJSResources :: PageStyle -> Widget
 pageJSResources PageBasic =
-  $(combineScripts 'StaticR
-     [ jquery_js_jquery_js
-     , masonry_js_masonry_pkgd_js
-     , bootstrap_js_bootstrap_bundle_js
-     ])
+  addScriptAttrs (StaticR corydalis_js_bundle_basic_js) [("type",  "module")]
 
 pageJSResources PageTable =
   $(combineScripts 'StaticR
