@@ -31,6 +31,7 @@ async function runBuild() {
   const ctx = await esbuild.context({
     entryPoints: [
       'js/bundle-plot.ts',
+      'js/bundle-basic.ts',
       'js/imagegrid.ts',
       'js/tablesorter-config.ts',
       'js/tablesorter-uitheme-simple.ts',
