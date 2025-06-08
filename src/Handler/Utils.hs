@@ -419,6 +419,7 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
                             , gdMode = Just "markers"
                             , gdX = Just [k]
                             , gdY = Just [fromIntegral cnt]
+                            , gdExtra = [("hovertemplate", "%{label}: %{y}<extra></extra>")]
                             }:a)
               ([]::[GraphData Text Int64 Int64]) top1
       jsont = foldl' (\a (_, _, _, li, tr) ->
@@ -430,6 +431,7 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
                             , gdType = "bar"
                             , gdX = Just d'
                             , gdY = Just c'
+                            , gdExtra = [("hovertemplate", "%{fullData.name}: %{value}<extra>%{label}</extra>")]
                             }:a)
               ([]::[GraphData Text Int64 Int64]) top2
   in object [ "imagecount" .= jsonl
