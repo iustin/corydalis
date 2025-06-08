@@ -183,7 +183,7 @@ pageJSResources PageView =
   addScriptAttrs (StaticR corydalis_js_viewer_js) [("type",  "module")]
 
 pageJSResources PagePlot =
-  $(combineScripts 'StaticR [corydalis_js_bundle_plot_js])
+  addScriptAttrs (StaticR corydalis_js_bundle_plot_js) [("type",  "module")]
 
 pageJSResources PageGrid =
   $(combineScripts 'StaticR
