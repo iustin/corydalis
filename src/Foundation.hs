@@ -131,6 +131,7 @@ data PageStyle
   | PagePlot   -- ^ A page with plotly and tableviewer.
   | PageGrid   -- ^ A page with infinitescroll.
   | PageFBox   -- ^ A page with grid view and fancy box.
+  | PageBundler -- ^ Transitional during bundler tests.
 
 
 pageCSSResources :: PageStyle -> Widget
@@ -165,6 +166,8 @@ pageCSSResources PageFBox =
      , corydalis_css_basic_css
      , fancybox_css_jquery_fancybox_css
      ])
+
+pageCSSResources PageBundler = pageCSSResources PagePlot
 
 pageJSResources :: PageStyle -> Widget
 pageJSResources PageBasic =
@@ -228,13 +231,16 @@ pageJSResources PageFBox =
      , corydalis_js_fancybox_js
      ])
 
+pageJSResources PageBundler =
+  $(combineScripts 'StaticR [corydalis_js_bundle_plot_js])
+
 routeStyle :: Route App -> PageStyle
 routeStyle AboutR                 = PageBasic
 routeStyle AuthR{}                = PageBasic
 routeStyle BrowseFoldersR{}       = PageGrid
 routeStyle BrowseImagesR{}        = PageFBox
 routeStyle CameraInfoR{}          = PagePlot
-routeStyle CameraStatsR           = PagePlot
+routeStyle CameraStatsR           = PageBundler
 routeStyle CurateR                = PagePlot
 routeStyle FaviconR               = PageBasic
 routeStyle FlaggedImagesListR     = PageBasic

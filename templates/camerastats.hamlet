@@ -1,6 +1,7 @@
 <h1>Camera statistics
 
 <div #boot
+  data-init="camera-stats"
   data-camerastats-url="@{CameraStatsR}"
   >
 
@@ -60,4 +61,3 @@
                  <td>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => cameraStatsReady());
