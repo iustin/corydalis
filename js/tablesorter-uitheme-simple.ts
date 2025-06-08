@@ -1,6 +1,10 @@
-/* Simplification of bootstrap-theme in widget-uitheme.js */
-(function ($) {
-  'use strict';
+import $ from 'jquery';
+
+/**
+ * Configure tablesorter bootstrap theme with FontAwesome icons
+ * Simplified version of bootstrap-theme in widget-uitheme.js
+ */
+export function configureTablesorterTheme(): void {
   const ts = $.tablesorter || {};
 
   $.extend(ts.themes.bootstrap, {
@@ -15,4 +19,4 @@
     // class name added to icon when column has descending sort
     iconSortDesc: 'fas fa-sort-down',
   });
-})(jQuery);
+}
