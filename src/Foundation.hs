@@ -184,12 +184,7 @@ pageJSResources PageTable =
      ])
 
 pageJSResources PageView =
-  $(combineScripts 'StaticR
-     [ jquery_js_jquery_js
-     , bootstrap_js_bootstrap_bundle_js
-     , screenfull_js_screenfull_js
-     , corydalis_js_viewer_js
-     ])
+  $(combineScripts 'StaticR [ corydalis_js_viewer_js])
 
 pageJSResources PagePlot =
   $(combineScripts 'StaticR [corydalis_js_bundle_plot_js])

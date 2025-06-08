@@ -15,9 +15,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-/// <reference types="jquery"/>
-/// <reference types="screenfull"/>
-/// <reference types="bootstrap"/>
+import $ from 'jquery';
+import screenfull from 'screenfull';
+import 'bootstrap';
+import { Modal } from 'bootstrap';
 
 // The Haskell types.
 
@@ -400,8 +401,7 @@ $(function () {
     window.alert('Cannot fully initialise the application, aborting!');
     return;
   }
-
-  const helpModal = new bootstrap.Modal(helpDiv, { backdrop: true });
+  const helpModal = new Modal(helpDiv, { backdrop: true });
 
   // Draws an already-loaded image into a give image element.
   function drawImage(
