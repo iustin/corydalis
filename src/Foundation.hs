@@ -131,7 +131,6 @@ data PageStyle
   | PagePlot   -- ^ A page with plotly and tableviewer.
   | PageGrid   -- ^ A page with infinitescroll.
   | PageFBox   -- ^ A page with grid view and fancy box.
-  | PageBundler -- ^ Transitional during bundler tests.
 
 
 pageCSSResources :: PageStyle -> Widget
@@ -167,8 +166,6 @@ pageCSSResources PageFBox =
      , fancybox_css_jquery_fancybox_css
      ])
 
-pageCSSResources PageBundler = pageCSSResources PagePlot
-
 pageJSResources :: PageStyle -> Widget
 pageJSResources PageBasic =
   $(combineScripts 'StaticR
@@ -195,19 +192,7 @@ pageJSResources PageView =
      ])
 
 pageJSResources PagePlot =
-  $(combineScripts 'StaticR
-     [ jquery_js_jquery_js
-     , tablesorter_js_jquery_tablesorter_combined_js
-     , bootstrap_js_bootstrap_bundle_js
-     , corydalis_js_tablesorter_uitheme_simple_js
-     , corydalis_js_tablesorter_config_js
-     , plotly_js_plotly_cartesian_js
-     , corydalis_js_camerainfo_js
-     , corydalis_js_camerastats_js
-     , corydalis_js_lensinfo_js
-     , corydalis_js_lensstats_js
-     , corydalis_js_curate_js
-     ])
+  $(combineScripts 'StaticR [corydalis_js_bundle_plot_js])
 
 pageJSResources PageGrid =
   $(combineScripts 'StaticR
@@ -231,16 +216,14 @@ pageJSResources PageFBox =
      , corydalis_js_fancybox_js
      ])
 
-pageJSResources PageBundler =
-  $(combineScripts 'StaticR [corydalis_js_bundle_plot_js])
 
 routeStyle :: Route App -> PageStyle
 routeStyle AboutR                 = PageBasic
 routeStyle AuthR{}                = PageBasic
 routeStyle BrowseFoldersR{}       = PageGrid
 routeStyle BrowseImagesR{}        = PageFBox
-routeStyle CameraInfoR{}          = PageBundler
-routeStyle CameraStatsR           = PageBundler
+routeStyle CameraInfoR{}          = PagePlot
+routeStyle CameraStatsR           = PagePlot
 routeStyle CurateR                = PagePlot
 routeStyle FaviconR               = PageBasic
 routeStyle FlaggedImagesListR     = PageBasic
@@ -251,8 +234,8 @@ routeStyle ImageBytesR{}          = PageBasic
 routeStyle ImageFlagR{}           = PageBasic
 routeStyle ImageInfoR{}           = PageBasic
 routeStyle ImageR{}               = PageBasic
-routeStyle LensInfoR{}            = PageBundler
-routeStyle LensStatsR             = PageBundler
+routeStyle LensInfoR{}            = PagePlot
+routeStyle LensStatsR             = PagePlot
 routeStyle ListFoldersR           = PageTable
 routeStyle ListImagesR            = PageTable
 routeStyle ListItemsR{}           = PageTable

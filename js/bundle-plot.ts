@@ -8,7 +8,7 @@ import { initCameraStats } from 'camerastats';
 import { initLensStats } from 'lensstats';
 import { initCameraInfo } from 'camerainfo';
 import { initLensInfo } from 'lensinfo';
-// import { initCurate } from 'curate';
+import { initCurate } from 'curate';
 
 // Create a mapping of initializer functions
 const initializers = {
@@ -16,7 +16,7 @@ const initializers = {
   'camera-info': initCameraInfo,
   'lens-stats': initLensStats,
   'lens-info': initLensInfo,
-  //  'curate': initCurate
+  curate: initCurate,
 };
 
 function runInitializers() {
