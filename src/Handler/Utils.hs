@@ -427,13 +427,9 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
                             c' = map fromIntegral c
                         in
                         def { gdName = nameFn2 li
-                            , gdType = "scatter"
-                            , gdMode = Just "lines+markers"
+                            , gdType = "bar"
                             , gdX = Just d'
                             , gdY = Just c'
-                            , gdExtra = [ ("connectgaps", toJSON False)
-                                        , ("stackgroup", toJSON ("one"::String))
-                                        ]
                             }:a)
               ([]::[GraphData Text Int64 Int64]) top2
   in object [ "imagecount" .= jsonl

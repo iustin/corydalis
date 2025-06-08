@@ -29,7 +29,7 @@ function cameraInfoReady() {
         title: { text: 'Per lens total images' },
       },
     };
-    const restyle: Plotly.UpdateMenuButton['method'] = 'restyle';
+    const relayout: Plotly.UpdateMenuButton['method'] = 'relayout';
     const xLeft: Plotly.UpdateMenu['xanchor'] = 'left';
     const yBottom: Plotly.UpdateMenu['yanchor'] = 'bottom';
     const trendsLayout = {
@@ -39,6 +39,7 @@ function cameraInfoReady() {
       yaxis: {
         title: { text: 'Images' },
       },
+      barmode: 'stack' as const, // default to stacked bars
       updatemenus: [
         {
           y: 1,
@@ -47,14 +48,14 @@ function cameraInfoReady() {
           xanchor: xLeft,
           buttons: [
             {
-              method: restyle,
-              args: ['stackgroup', 'one'],
+              method: relayout,
+              args: ['barmode', 'stack'],
               label: 'stacked',
             },
             {
-              method: restyle,
-              args: ['stackgroup', null],
-              label: 'line',
+              method: relayout,
+              args: ['barmode', 'group'],
+              label: 'individual',
             },
           ],
         },
@@ -65,13 +66,13 @@ function cameraInfoReady() {
           xanchor: xLeft,
           buttons: [
             {
-              method: restyle,
-              args: ['groupnorm', ''],
+              method: relayout,
+              args: ['barnorm', ''],
               label: 'absolute',
             },
             {
-              method: restyle,
-              args: ['groupnorm', 'percent'],
+              method: relayout,
+              args: ['barnorm', 'percent'],
               label: 'normalized',
             },
           ],

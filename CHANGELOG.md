@@ -11,6 +11,13 @@ better the actual usage of a camera or lens, and including the pairings.
 Of course, these are only useful in terms of timeline for fixed-lens
 cameras.
 
+Additionally, all the timeline graphs (either on global camera and lens
+stats, or in the individual pages) have been switched to bars for better
+readability, and even more, correctness. The previous method of
+line+markers was connecting across gaps, which was misleading, and was
+significantly complicating the shape of the graph. Will have to see if
+this is indeed better.
+
 ### Dependencies
 
 The dependencies have been updated as follows:

@@ -29,7 +29,7 @@ function lensInfoReady() {
         title: { text: 'Per camera total images' },
       },
     };
-    const restyle: Plotly.UpdateMenuButton['method'] = 'restyle';
+    const relayout: Plotly.UpdateMenuButton['method'] = 'relayout';
     const xLeft: Plotly.UpdateMenu['xanchor'] = 'left';
     const yBottom: Plotly.UpdateMenu['yanchor'] = 'bottom';
     const trendsLayout = {
@@ -47,14 +47,14 @@ function lensInfoReady() {
           xanchor: xLeft,
           buttons: [
             {
-              method: restyle,
-              args: ['stackgroup', 'one'],
+              method: relayout,
+              args: ['barmode', 'stack'],
               label: 'stacked',
             },
             {
-              method: restyle,
-              args: ['stackgroup', null],
-              label: 'line',
+              method: relayout,
+              args: ['barmode', 'group'],
+              label: 'individual',
             },
           ],
         },
@@ -65,13 +65,13 @@ function lensInfoReady() {
           xanchor: xLeft,
           buttons: [
             {
-              method: restyle,
-              args: ['groupnorm', ''],
+              method: relayout,
+              args: ['barnorm', ''],
               label: 'absolute',
             },
             {
-              method: restyle,
-              args: ['groupnorm', 'percent'],
+              method: relayout,
+              args: ['barnorm', 'percent'],
               label: 'normalized',
             },
           ],
