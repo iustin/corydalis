@@ -180,14 +180,7 @@ pageJSResources PagePlot =
   addScriptAttrs (StaticR corydalis_js_bundle_plot_js) [("type",  "module")]
 
 pageJSResources PageGrid =
-  $(combineScripts 'StaticR
-     [ jquery_js_jquery_js
-     , masonry_js_masonry_pkgd_js
-     , bootstrap_js_bootstrap_bundle_js
-     , imagesloaded_js_imagesloaded_pkgd_js
-     , infinite_scroll_js_infinite_scroll_pkgd_js
-     , corydalis_js_imagegrid_js
-     ])
+      addScriptAttrs (StaticR corydalis_js_imagegrid_js) [("type",  "module")]
 
 pageJSResources PageFBox =
   $(combineScripts 'StaticR

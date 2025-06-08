@@ -14,52 +14,62 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+import Masonry from 'masonry-layout';
+import InfiniteScroll from 'infinite-scroll';
+import imagesLoaded from 'imagesloaded';
 
-$(function () {
-  'use strict';
-  const bootdiv = $('#boot');
-  const pathurl = bootdiv.data('path-url');
-  const pageindex = bootdiv.data('page-index');
-  let count = bootdiv.data('initial-count');
-  const debug = bootdiv.data('debug');
-  const $howmany = $('#howmany');
+function initImageGrid(): void {
+  const bootdiv = document.getElementById('boot');
+  if (!bootdiv) return;
+  const pathurl = bootdiv.dataset.pathUrl || '';
+  const pageindex = parseInt(bootdiv.dataset.pageIndex || '0', 10);
+  let count = parseInt(bootdiv.dataset.initialCount || '0', 10);
+  const debug = bootdiv.dataset.debug === 'true';
+  const howmany = document.getElementById('howmany');
   // init Packery
-  const $grid = $('.grid').masonry({
+  const gridElement = document.querySelector('.grid');
+  if (!gridElement) return;
+
+  const msnry: Masonry = new Masonry(gridElement, {
     itemSelector: '.grid-item',
     columnWidth: '.grid-sizer',
     percentPosition: true,
     horizontalOrder: false,
   });
-  // layout Packery after each image loads
-  $grid.imagesLoaded().progress(function () {
-    $grid.masonry('layout');
-    // $grid.packery();
+  const imgLoad = imagesLoaded(gridElement);
+  // Layout Masonry after each image loads
+  imgLoad.on('progress', () => {
+    msnry.layout?.();
   });
 
-  // get Masonry instance
-  const msnry = $grid.data('masonry');
   // infinite scrolling
-  // eslint-disable-next-line
-  // @ts-ignore
-  $grid.infiniteScroll({
+  const infScroll = new InfiniteScroll(gridElement, {
     // options
     // path: '.pagination-next',
     path: pathurl.replace('/0?', '/{{#}}?'),
     append: '.grid-item',
     outlayer: msnry,
     history: 'replace',
-    // eslint-disable-next-line
-    // @ts-ignore
     checkLastPage: '.pagination-next',
-    prefill: true,
+    // TODO: what was this about? Conversion to plain JS uncovered this doesn't exist.
+    // prefill: true,
     hideNav: '.pagination',
     debug: debug,
   });
-  $grid.on('append.infiniteScroll', (event, response, path, items) => {
+  // Handle appended items
+  infScroll.on('append', (response, path, items) => {
     count = count + items.length;
-    $howmany.text(count);
+    if (howmany) {
+      howmany.textContent = count.toString();
+    }
     console.log('now viewing', count);
   });
-  const infScroll = $grid.data('infiniteScroll');
   infScroll.pageIndex = pageindex;
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initImageGrid);
+} else {
+  // Document already loaded, run the function directly.
+  initImageGrid();
+}

@@ -21,7 +21,7 @@
     "eslint": "^8.57.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^9.1.0",
-    "imagesloaded": "^4.1.4",
+    "imagesloaded": "^5.0.0",
     "infinite-scroll": "^4.0.1",
     "jquery": "^3.7.1",
     "masonry-layout": "^4.2.2",
