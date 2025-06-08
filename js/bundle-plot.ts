@@ -6,13 +6,16 @@ import { setupTablesorter } from 'tablesorter-config';
 // Import page initializers
 import { initCameraStats } from 'camerastats';
 import { initLensStats } from 'lensstats';
+import { initCameraInfo } from 'camerainfo';
+import { initLensInfo } from 'lensinfo';
+// import { initCurate } from 'curate';
 
 // Create a mapping of initializer functions
 const initializers = {
   'camera-stats': initCameraStats,
-  //  'camera-info': initCameraInfo,
+  'camera-info': initCameraInfo,
   'lens-stats': initLensStats,
-  //  'lens-info': initLensInfo,
+  'lens-info': initLensInfo,
   //  'curate': initCurate
 };
 

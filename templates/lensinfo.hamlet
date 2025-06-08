@@ -1,6 +1,7 @@
 <h1>Lens statistics
 
 <div #boot
+  data-init="lens-info"
   data-lensinfo-url="@{LensInfoR lensname}"
   >
 
@@ -89,6 +90,3 @@
                  \ (#{cmax})
        $nothing
            <tr>No available image date information
-
-<script>
-  document.addEventListener('DOMContentLoaded', () => lensInfoReady());
