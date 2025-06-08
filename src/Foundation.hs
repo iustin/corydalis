@@ -171,13 +171,7 @@ pageJSResources PageBasic =
   addScriptAttrs (StaticR corydalis_js_bundle_basic_js) [("type",  "module")]
 
 pageJSResources PageTable =
-  $(combineScripts 'StaticR
-     [ jquery_js_jquery_js
-     , tablesorter_js_jquery_tablesorter_combined_js
-     , bootstrap_js_bootstrap_bundle_js
-     , corydalis_js_tablesorter_uitheme_simple_js
-     , corydalis_js_tablesorter_config_js
-     ])
+    addScriptAttrs (StaticR corydalis_js_bundle_table_js) [("type",  "module")]
 
 pageJSResources PageView =
   addScriptAttrs (StaticR corydalis_js_viewer_js) [("type",  "module")]
