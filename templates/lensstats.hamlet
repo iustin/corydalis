@@ -1,6 +1,7 @@
 <h1>Lens statistics
 
 <div #boot
+  data-init="lens-stats"
   data-lensstats-url="@{LensStatsR}"
   >
 

@@ -5,12 +5,13 @@ import { setupTablesorter } from 'tablesorter-config';
 
 // Import page initializers
 import { initCameraStats } from 'camerastats';
+import { initLensStats } from 'lensstats';
 
 // Create a mapping of initializer functions
 const initializers = {
   'camera-stats': initCameraStats,
   //  'camera-info': initCameraInfo,
-  //  'lens-stats': initLensStats,
+  'lens-stats': initLensStats,
   //  'lens-info': initLensInfo,
   //  'curate': initCurate
 };
