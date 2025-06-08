@@ -39,6 +39,7 @@ function lensInfoReady() {
       yaxis: {
         title: { text: 'Images' },
       },
+      barmode: 'stack' as const, // default to stacked bars
       updatemenus: [
         {
           y: 1,
