@@ -67,7 +67,18 @@ function initImageGrid(): void {
       howmany.textContent = count.toString();
     }
     console.log('now viewing', count);
+    // Also trigger a custom event on the grid when items are appended.
+    const appendEvent = new CustomEvent('corydalis-images-appended', {
+      detail: { items },
+    });
+    gridElement.dispatchEvent(appendEvent);
   });
+  // Listen to requests to load the next page, so that the infScroll
+  // instance doesn't need to be exported.
+  gridElement.addEventListener('corydalis-load-next-page', () => {
+    infScroll.loadNextPage();
+  });
+
   infScroll.pageIndex = pageindex;
 }
 
