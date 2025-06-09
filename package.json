@@ -33,6 +33,7 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit -p js/tsconfig.json --watch",
+    "type-check-oneshot": "tsc --noEmit -p js/tsconfig.json",
     "watch": "NODE_ENV=developement node esbuild.js --watch",
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",
