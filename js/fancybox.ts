@@ -31,11 +31,15 @@ export function initFancybox() {
     const slide = instance?.getSlide();
 
     if (!slide) return;
-    const viewurl = slide.viewurl || slide.triggerEl?.dataset.viewurl;
+    const viewurl = slide.triggerEl?.dataset.viewurl;
 
     if (!viewurl) {
-      Fancybox.open(`<div class="message"><h2>Internal Error!</h2>
-        <p>Viewed image does not have a <i>viewurl</i> data attribute!</p></div>`);
+      // TODO: replace this with an additional FancyBox on top of the current one.
+      instance?.setError(
+        slide,
+        `<div class="message"><h2>Internal Error!</h2>
+        <p>Viewed image does not have a <i>viewurl</i> data attribute!</p></div>`,
+      );
       console.log('No viewurl, returning', slide);
       return;
     }
@@ -52,11 +56,15 @@ export function initFancybox() {
       console.log('No current, returning');
       return;
     }
-    const infourl = slide.infourl || slide.triggerEl?.dataset.infourl;
+    const infourl = slide.triggerEl?.dataset.infourl;
 
     if (!infourl) {
-      Fancybox.open(`<div class="message"><h2>Internal Error!</h2>
-        <p>Viewed image does not have a <i>infourl</i> data attribute!</p></div>`);
+      // TODO: replace this with an additional FancyBox on top of the current one.
+      instance?.setError(
+        slide,
+        `<div class="message"><h2>Internal Error!</h2>
+        <p>Viewed image does not have a <i>infourl</i> data attribute!</p></div>`,
+      );
       console.log('No infourl, returning', slide);
       return;
     }
@@ -65,8 +73,8 @@ export function initFancybox() {
   };
   const options = {
     // v4 uses different animation options
-    showClass: false,
-    hideClass: false,
+    showClass: false as const,
+    hideClass: false as const,
     Hash: false,
     groupAll: true,
     on: {
@@ -90,6 +98,7 @@ export function initFancybox() {
       display: {
         left: ['view', 'info'],
         right: ['zoom', 'close'],
+        middle: [],
       },
       items: {
         view: {
@@ -113,9 +122,12 @@ export function initFancybox() {
       const instance = Fancybox.getInstance();
       if (!instance) return;
 
-      const imgs = Array.from(items, (d) => d.firstChild);
+      const imgs = Array.from(
+        items,
+        (d: HTMLElement) => d.firstChild as HTMLElement,
+      );
       // console.log( 'Adding items: ', imgs);
-      instance.carousel.appendSlide(imgs);
+      instance.carousel?.appendSlide(imgs);
     };
 
     grid.addEventListener('corydalis-images-appended', handleAppend);
