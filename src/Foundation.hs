@@ -163,7 +163,7 @@ pageCSSResources PageFBox =
      , font_awesome_css_regular_css
      , font_awesome_css_solid_css
      , corydalis_css_basic_css
-     , fancybox_css_jquery_fancybox_css
+     , fancybox_css_fancybox_css
      ])
 
 pageJSResources :: PageStyle -> Widget
@@ -183,16 +183,7 @@ pageJSResources PageGrid =
       addScriptAttrs (StaticR corydalis_js_imagegrid_js) [("type",  "module")]
 
 pageJSResources PageFBox =
-  $(combineScripts 'StaticR
-     [ jquery_js_jquery_js
-     , masonry_js_masonry_pkgd_js
-     , bootstrap_js_bootstrap_bundle_js
-     , imagesloaded_js_imagesloaded_pkgd_js
-     , infinite_scroll_js_infinite_scroll_pkgd_js
-     , corydalis_js_imagegrid_js
-     , fancybox_js_jquery_fancybox_js
-     , corydalis_js_fancybox_js
-     ])
+      addScriptAttrs (StaticR corydalis_js_fancybox_js) [("type",  "module")]
 
 
 routeStyle :: Route App -> PageStyle

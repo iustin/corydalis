@@ -18,6 +18,12 @@ line+markers was connecting across gaps, which was misleading, and was
 significantly complicating the shape of the graph. Will have to see if
 this is indeed better.
 
+### New bugs
+
+A new version of the `fancybox` library has issues when scrolling beyond
+the end of the currently loaded images, i.e. newly loaded images behave
+differently. Bug filled upstream.
+
 ### Dependencies
 
 The dependencies have been updated as follows:

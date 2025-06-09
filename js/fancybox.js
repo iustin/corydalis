@@ -15,109 +15,120 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-$(function () {
-  'use strict';
-  $.fancybox.defaults.animationEffect = false;
-  $.fancybox.defaults.transitionEffect = false;
-  // Disable hashing since masonry controls the URL.
-  $.fancybox.defaults.hash = false;
-  // We know we act on a grid, which has infinite scroll enabled.
-  const $grid = $('.grid');
+import { Fancybox } from '@fancyapps/ui';
+import 'imagegrid';
 
-  // Custom after show to scroll the background item into view, in
-  // order to trigger infinite scroll to load more images.
-  $.fancybox.defaults.afterShow = function (instance, current) {
-    if (!current) {
+export function initFancybox() {
+  // We know we act on a grid, which has infinite scroll enabled.
+  const grid = document.querySelector('.grid');
+  if (!grid) return;
+
+  // Get the infinitescroll instance
+
+  // Handle view button click
+  const viewHandler = () => {
+    const instance = Fancybox.getInstance();
+    const slide = instance?.getSlide();
+
+    if (!slide) return;
+    const viewurl = slide.viewurl || slide.triggerEl?.dataset.viewurl;
+
+    if (!viewurl) {
+      Fancybox.open(`<div class="message"><h2>Internal Error!</h2>
+        <p>Viewed image does not have a <i>viewurl</i> data attribute!</p></div>`);
+      console.log('No viewurl, returning', slide);
       return;
     }
-    if (current.index >= instance.group.length - 10) {
-      $grid.infiniteScroll('loadNextPage');
-    }
-    // Object containing references to interface elements
-    // (background, buttons, caption, etc)
-    // console.info( instance.$refs );
 
-    // Current slide options
-    // console.info( current.opts );
-
-    // Clicked element
-    // console.info( current.opts.$orig );
-
-    // Reference to DOM element of the slide
-    // console.info( current.$slide );
+    window.open(viewurl, '');
   };
 
-  // Custom view item button.
-  $.fancybox.defaults.btnTpl.view = `
-<button data-fancybox-view
-        class="fancybox-button fancybox-button--view"
-        title="Open image in viewer">
-  <span class="fas fa-external-link-alt">
-</button>`;
+  // Handle info button click
+  const infoHandler = () => {
+    const instance = Fancybox.getInstance();
+    const slide = instance?.getSlide();
 
-  $('body').on('click', '[data-fancybox-view]', function () {
-    const instance = $.fancybox.getInstance();
-    const current = instance.current || null;
-    if (!current) {
-      return;
-    }
-    if (!current.opts.viewurl) {
-      $.fancybox.open(`<div class="message"><h2>Internal Error!</h2>
-<p>Viewed image does not have a <i>viewurl</i> data attribute!</p></div>`);
-      console.log('No viewurl, returning', current);
-      return;
-    }
-
-    window.open(current.opts.viewurl, '');
-  });
-
-  // Custom view item info button.
-  $.fancybox.defaults.btnTpl.info = `<button data-fancybox-info
-                 class="fancybox-button fancybox-button--info"
-                 title="View image info">
-          <span class="fas fa-info-circle">
-        </button>`;
-
-  $('body').on('click', '[data-fancybox-info]', function () {
-    const instance = $.fancybox.getInstance();
-    const current = instance.current || null;
-    if (!current) {
+    if (!slide) {
       console.log('No current, returning');
       return;
     }
-    if (!current.opts.infourl) {
-      $.fancybox.open(`<div class="message"><h2>Internal Error!</h2>
-<p>Viewed image does not have a <i>infourl</i> data attribute!</p></div>`);
-      console.log('No infourl, returning', current);
+    const infourl = slide.infourl || slide.triggerEl?.dataset.infourl;
+
+    if (!infourl) {
+      Fancybox.open(`<div class="message"><h2>Internal Error!</h2>
+        <p>Viewed image does not have a <i>infourl</i> data attribute!</p></div>`);
+      console.log('No infourl, returning', slide);
       return;
     }
-    window.open(current.opts.infourl, '');
-  });
 
-  $.fancybox.defaults.buttons = ['view', 'info', 'zoom', 'close'];
-
-  // Listen to grid expansion and update any in-progress slideshow.
-  $('.grid').on(
-    'append.infiniteScroll',
-    function (event, response, path, items) {
-      // console.log( 'Loaded: ', path );
-      // console.info(items);
-      const instance = $.fancybox.getInstance();
-      const current = instance.current || null;
-      if (!current) {
-        return;
-      }
-      const imgs = Array.from(items, (d) => d.firstChild);
-      // console.log( 'Adding items: ', imgs);
-
-      instance.addContent(imgs);
+    window.open(infourl, '');
+  };
+  const options = {
+    // v4 uses different animation options
+    showClass: false,
+    hideClass: false,
+    Hash: false,
+    groupAll: true,
+    on: {
+      reveal: (fancybox, slide) => {
+        if (!slide) return;
+        const threshold = fancybox.carousel.slides.length - 10;
+        if (slide.index >= threshold) {
+          console.log(
+            'Requesting next page, index %d, threshold %d',
+            slide.index,
+            threshold,
+          );
+          grid.dispatchEvent(new CustomEvent('corydalis-load-next-page'));
+        }
+      },
     },
-  );
-
-  // Trigger fancybox.
-  $().fancybox({
-    selector: 'div#fbox-container a.fbox-item',
     // TODO: to allow preload=false, need to pass height/width.
     preload: true,
-  });
-});
+    // Toolbar configuration is different in v4
+    Toolbar: {
+      display: {
+        left: ['view', 'info'],
+        right: ['zoom', 'close'],
+      },
+      items: {
+        view: {
+          tpl: '<button data-fancybox-view class="f-button">View</button>',
+          click: viewHandler,
+        },
+        info: {
+          tpl: '<button data-fancybox-info class="f-button">Info</button>',
+          click: infoHandler,
+        },
+      },
+    },
+  };
+
+  // Listen to grid expansion and update any in-progress slideshow.
+  if (grid) {
+    // Create a custom event handler for the append event from InfiniteScroll
+    const handleAppend = (event) => {
+      const { items } = event.detail;
+      if (!items) return;
+      const instance = Fancybox.getInstance();
+      if (!instance) return;
+
+      const imgs = Array.from(items, (d) => d.firstChild);
+      // console.log( 'Adding items: ', imgs);
+      instance.carousel.appendSlide(imgs);
+    };
+
+    grid.addEventListener('corydalis-images-appended', handleAppend);
+  }
+
+  // Trigger fancybox.
+  Fancybox.bind('div#fbox-container a.fbox-item', options);
+}
+
+// Initialize on DOMContentLoaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initFancybox);
+} else {
+  // Document already loaded, run the function directly
+  initFancybox();
+}
