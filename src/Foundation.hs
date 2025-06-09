@@ -166,25 +166,13 @@ pageCSSResources PageFBox =
      , fancybox_css_fancybox_css
      ])
 
-pageJSResources :: PageStyle -> Widget
-pageJSResources PageBasic =
-  addScriptAttrs (StaticR corydalis_js_bundle_basic_js) [("type",  "module")]
-
-pageJSResources PageTable =
-    addScriptAttrs (StaticR corydalis_js_bundle_table_js) [("type",  "module")]
-
-pageJSResources PageView =
-  addScriptAttrs (StaticR corydalis_js_viewer_js) [("type",  "module")]
-
-pageJSResources PagePlot =
-  addScriptAttrs (StaticR corydalis_js_bundle_plot_js) [("type",  "module")]
-
-pageJSResources PageGrid =
-      addScriptAttrs (StaticR corydalis_js_imagegrid_js) [("type",  "module")]
-
-pageJSResources PageFBox =
-      addScriptAttrs (StaticR corydalis_js_fancybox_js) [("type",  "module")]
-
+pageJSResources :: PageStyle -> StaticRoute
+pageJSResources PageBasic = corydalis_js_bundle_basic_js
+pageJSResources PageTable = corydalis_js_bundle_table_js
+pageJSResources PageView  = corydalis_js_viewer_js
+pageJSResources PagePlot  = corydalis_js_bundle_plot_js
+pageJSResources PageGrid  = corydalis_js_imagegrid_js
+pageJSResources PageFBox  = corydalis_js_fancybox_js
 
 routeStyle :: Route App -> PageStyle
 routeStyle AboutR                 = PageBasic
@@ -315,8 +303,9 @@ instance Yesod App where
             Nothing -> return ()
             Just r -> do
               let style = routeStyle r
+                  js_entrypoint = StaticR $ pageJSResources style
               pageCSSResources style
-              pageJSResources style
+              addScriptAttrs js_entrypoint [("type", "module")]
           $(widgetFile "default-layout")
 
         let inflist = [1..]::[Int]
