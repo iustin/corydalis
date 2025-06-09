@@ -42,6 +42,10 @@ function initImageGrid(): void {
     msnry.layout?.();
   });
 
+  // make imagesLoaded available for InfiniteScroll
+  // TODO: update the upstream type definitions, when I have time.
+  (InfiniteScroll as any).imagesLoaded = imagesLoaded;
+
   // infinite scrolling
   const infScroll = new InfiniteScroll(gridElement, {
     // options
