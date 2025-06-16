@@ -229,7 +229,7 @@ viewInfoForImage params (images, folders) folder iname = do
       mk i = mkImageInfo (imgParent i) (imgName i) (isJust $ bestMovie i)
                render params (transformForImage i)
       y = maybe "?" (Text.pack . show) $ pdYear picdir
-      yurl = maybe SearchFoldersNoYearR SearchFoldersByYearR $ pdYear picdir
+      yurl = maybe SearchFoldersNoYearR (SearchFoldersByYearR . sformat int) $ pdYear picdir
   return $
     ViewInfo y (render yurl [])
       folder (render (FolderR folder) params)

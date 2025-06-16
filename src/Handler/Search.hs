@@ -103,10 +103,10 @@ getQuickSearchR = do
       let handler = getBestHandler viewMode (atomFindsFiles atom')
       redirect (handler, atomToParams atom')
 
-getSearchFoldersByYearR :: Integer -> Handler Html
+getSearchFoldersByYearR :: Text -> Handler Html
 getSearchFoldersByYearR year = do
   -- Folders go to list directly, not browse.
-  redirect (ListFoldersR, [(symbolName TYear, sformat int year)])
+  redirect (ListFoldersR, [(symbolName TYear, year)])
 
 getSearchFoldersNoYearR :: Handler Html
 getSearchFoldersNoYearR = do

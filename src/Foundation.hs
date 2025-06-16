@@ -394,10 +394,10 @@ instance YesodBreadcrumbs App where
   breadcrumb StatusErrorsR  = return ("Errors"       , Just StatusR)
   breadcrumb (FolderR name) = do
     pics <- getPics
-    let r = maybe SearchFoldersNoYearR SearchFoldersByYearR $
+    let r = maybe SearchFoldersNoYearR (SearchFoldersByYearR . sformat int) $
             Map.lookup name (repoDirs pics) >>= pdYear
     return (name, Just r)
-  breadcrumb (SearchFoldersByYearR year) = return (sformat int year, Nothing)
+  breadcrumb (SearchFoldersByYearR year) = return (year, Nothing)
   breadcrumb SearchFoldersNoYearR = return ("?", Nothing)
 
   breadcrumb (ImageR folder imname) = return (unImageName imname,

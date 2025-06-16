@@ -13,7 +13,7 @@
 /folder/#Text/images/+ImageName ImageR GET
 /search/folders/list ListFoldersR GET
 /search/folders/grid/#Int BrowseFoldersR GET
-/search/folders/by-year/#Integer SearchFoldersByYearR GET
+/search/folders/by-year/#Text SearchFoldersByYearR GET
 /search/folders/no-year SearchFoldersNoYearR GET
 /search/images/grid/#Int BrowseImagesR GET
 /search/images/list ListImagesR GET
