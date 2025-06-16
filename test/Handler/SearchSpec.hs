@@ -49,7 +49,7 @@ spec = parallel $ withApp $ do
       login
       -- Force mode so that we dont' rely on defaults.
       testSetCookie $ lastViewCookie False (ViewFolders PresentationGrid)
-      get $ SearchFoldersByYearR 1900
+      get $ SearchFoldersByYearR "1900"
       checkRedirAndHeader
       htmlAnyContain "div.card-header" "Nothing found"
       htmlAnyContain "div.card-body" "doesn't match any folders"
