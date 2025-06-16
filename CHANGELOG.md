@@ -18,6 +18,16 @@ line+markers was connecting across gaps, which was misleading, and was
 significantly complicating the shape of the graph. Will have to see if
 this is indeed better.
 
+### Changed behaviour
+
+The complex 5 view modes (image list, image grid, folder list, folder grid
+and image view) are being reworked. The longer goal is to make moving
+around the site more natural.
+
+For now, the main change is that using the "chips" to go to a year, or
+location-based attribute, will directly jump to a folder list, whereas the
+others will obey the "view mode". There will be further changes here.
+
 ### New bugs
 
 A new version of the `fancybox` library has issues when scrolling beyond

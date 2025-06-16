@@ -14,8 +14,8 @@
         $if buttons
          <div .card-body>
            $forall p <- items
-            $with searchParams <- [(symbolName symbol, p)]
-             <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,searchParams)}">#{formatter symbol p}
+            $with searchParams <- [(atom, p)]
+             <a .btn .btn-light .py-1 .my-1 href="@?{(route,searchParams)}">#{formatter symbol p}
 
            $if rcount > 0
              <a .btn .btn-light .float-end href="@{ListItemsR symbol}">
@@ -23,9 +23,9 @@
         $else
            <ul .list-group .list-group-flush>
             $forall p <- items
-             $with searchParams <- [(symbolName symbol, p)]
+             $with searchParams <- [(atom, p)]
               <li .list-group-item>
-               <a .link-dark href="@?{(SearchR,searchParams)}">#{formatter symbol p}
+               <a .link-dark href="@?{(route,searchParams)}">#{formatter symbol p}
 
             $if rcount > 0
              <li .list-group-item>

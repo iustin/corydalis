@@ -108,6 +108,14 @@ itemDiv symbol buttons (items, length -> rcount) = do
   let dclass = if null items
                then divClassForNoAtom
                else divClassForAtom
+      atom = symbolName symbol
+      route = case symbol of
+        TYear     -> ListFoldersR
+        TCountry  -> ListFoldersR
+        TProvince -> ListFoldersR
+        TCity     -> ListFoldersR
+        TLocation -> ListFoldersR
+        _         -> SearchR
   $(widgetFile "itemdiv")
 
 allPicsDiv :: Maybe Image -> Widget
