@@ -34,7 +34,7 @@ checkRedirAndHeader :: YesodExample App ()
 checkRedirAndHeader = do
   checkRedirect
   statusIs 200
-  htmlAllContain "h1" "Displaying folders"
+  htmlAllContain "h1" "Listing folders"
 
 spec :: Spec
 spec = parallel $ withApp $ do

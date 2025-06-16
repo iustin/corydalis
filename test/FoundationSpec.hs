@@ -32,8 +32,6 @@ import           Types
 handlerView :: [(Route App, ViewMode)]
 handlerView = [ (BrowseImagesR 0, ViewImages PresentationGrid)
               , (ListImagesR, ViewImages PresentationList)
-              , (BrowseFoldersR 0, ViewFolders PresentationGrid)
-              , (ListFoldersR, ViewFolders PresentationList)
               ]
 
 checkViewCookie :: Maybe ViewMode -> YesodExample App ()

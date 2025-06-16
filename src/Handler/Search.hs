@@ -43,10 +43,10 @@ import           Pics            (imgName, imgParent)
 defaultPresentation :: ViewPresentation
 defaultPresentation = PresentationGrid
 
--- | Dispatch for folders.
-handlerFolders :: ViewPresentation -> Route App
-handlerFolders PresentationGrid = BrowseFoldersR 0
-handlerFolders PresentationList = ListFoldersR
+-- | Dispatch for folders. It always goes to the List handler, until we
+-- have a better one.
+handlerFolders :: Route App
+handlerFolders = ListFoldersR
 
 -- | Dispatch for images.
 handlerImages :: ViewPresentation -> Route App
@@ -59,18 +59,11 @@ getBestHandler :: Maybe ViewMode  -- ^ View mode, if already selected
                -> Bool            -- ^ Whether images (True) or folders are desired
                -> Route App       -- ^ Best handler
 getBestHandler Nothing True                = handlerImages defaultPresentation
-getBestHandler Nothing False               = handlerFolders defaultPresentation
+getBestHandler Nothing False               = handlerFolders
 getBestHandler (Just ViewSingleImage) _    = SearchViewR
-getBestHandler (Just (ViewFolders p)) _    = handlerFolders p
-getBestHandler (Just (ViewImages p)) False = handlerFolders p
+getBestHandler (Just (ViewFolders _)) _    = handlerFolders
+getBestHandler (Just (ViewImages _)) False = handlerFolders
 getBestHandler (Just (ViewImages p)) True  = handlerImages p
-
--- | Computes best folder presentation, based on existing preference.
-getBestFolderHandler :: Maybe ViewMode -> Route App
-getBestFolderHandler Nothing                = handlerFolders defaultPresentation
-getBestFolderHandler (Just ViewSingleImage) = SearchViewR
-getBestFolderHandler (Just (ViewFolders p)) = handlerFolders p
-getBestFolderHandler (Just (ViewImages p))  = handlerFolders p
 
 getSearchViewR :: Handler Html
 getSearchViewR = do
@@ -112,13 +105,13 @@ getQuickSearchR = do
 
 getSearchFoldersByYearR :: Integer -> Handler Html
 getSearchFoldersByYearR year = do
-  viewMode <- getLastViewMode
-  redirect (getBestFolderHandler viewMode, [(symbolName TYear, sformat int year)])
+  -- Folders go to list directly, not browse.
+  redirect (ListFoldersR, [(symbolName TYear, sformat int year)])
 
 getSearchFoldersNoYearR :: Handler Html
 getSearchFoldersNoYearR = do
-  viewMode <- getLastViewMode
-  redirect (getBestFolderHandler viewMode, [(negSymbolName TYear, "")])
+  -- Folders go to list directly, not browse.
+  redirect (ListFoldersR, [(negSymbolName TYear, "")])
 
 getSearchR :: Handler Html
 getSearchR = do
