@@ -34,6 +34,7 @@ module Handler.List
 
 import qualified Data.Map        as Map
 
+import           Exif            (GroupExif (gExifCities, gExifCountries, gExifPeople))
 import           Handler.Utils
 import           Handler.Widgets
 import           Import
@@ -58,15 +59,20 @@ getListFoldersR = do
       -- FIXME: this version changes output compared to before; movie
       -- files and untracked were considered "processed". Review the
       -- semantics here?
-      allStatPics s = sRaw s + sProcessed s + sStandalone s + sOrphaned s + sMovies s
+      -- allStatPics s = sRaw s + sProcessed s + sStandalone s + sOrphaned s + sMovies s
       stats = foldl' sumStats zeroStats $ map snd fclass
       allpics = allunproc + allprocessed + allstandalone + allorphaned
       allunproc = sRaw stats
       allprocessed = sProcessed stats + sMovies stats
       allstandalone = sStandalone stats
       allorphaned = sOrphaned stats
-      npairs = map (\(n, s) -> let c = folderClassFromStats s
-                               in (n, s, c, fcIcon c)) fclass
+      extractor key = mapMaybe fst . sortBy (compare `on` snd) . Map.toList . key . pdExif
+      npairs = map (\n -> let countries = extractor gExifCountries n
+                              cities = extractor gExifCities n
+                              people = extractor gExifPeople n
+                              images = Map.size . pdImages $ n
+                              firstpic = maybe "" (formatTime defaultTimeLocale "%Y-%m-%d") $ pdTimestamp n
+                          in (n, firstpic, images, countries, cities, people)) folders
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setHtmlTitle "Listing folders"

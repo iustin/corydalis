@@ -28,32 +28,26 @@
            <tr>
              <th .parser-false .sorter-false .filter-false>Icon
              <th .sorter-text>Name
-             <th .sorter-text .filter-select>Status
+             <th .sorter-shortDate>First picture
              <th .sorter-digit>Images
-             <th .sorter-digit>Unprocessed
-             <th .sorter-digit>Standalone
-             <th .sorter-digit>Orphaned
-             <th .sorter-digit>Processed
+             <th .sorter-text>Countries
+             <th .sorter-text>Cities
+             <th .sorter-text>People
          <tbody>
-           $forall (n, stats, fclass, icons) <- npairs
+           $forall (n, firstpic, images, countries, cities, people) <- npairs
              <tr>
                <td>
                  ^{folderCover thumbsize False params atom n}
                <td><a href=@{FolderR (pdName n)}>#{pdName n}</a>
-               <td data-text="#{fcShortName fclass}">
-                 <span title="#{fcDescription fclass}">
-                   $forall iclass <- icons
-                     <span class="#{iclass}">
-               <td .number>#{allStatPics stats}
-               <td .number>#{sRaw stats}
-               <td .number>#{sStandalone stats}
-               <td .number>#{sOrphaned stats}
-               <td .number>#{sProcessed stats}
+               <td .number>#{firstpic}
+               <td .number>#{images}
+               <td .number>#{intercalate ", " countries}
+               <td .number>#{intercalate ", " cities}
+               <td .number>#{intercalate ", " people}
          <tfoot>
            <tr>
-            <td colspan=3>Total files
+            <td colspan=3>Totals
             <td .number>#{allpics}
-            <td .number>#{allunproc}
-            <td .number>#{allstandalone}
-            <td .number>#{allorphaned}
-            <td .number>#{allprocessed}
+            <td>
+            <td>
+            <td>
