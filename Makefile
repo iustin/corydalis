@@ -80,6 +80,7 @@ release: clean lint doc regen-git-version bootstrap
 	cp -aL static/font-awesome/webfonts dist/static/font-awesome/
 	mkdir -p dist/static/corydalis/
 	cp -a static/corydalis/manifest.json dist/static/corydalis/
+	cp -a static/corydalis/js dist/static/corydalis
 	mkdir dist/static/tmp/
 
 .PHONY: demo-release
