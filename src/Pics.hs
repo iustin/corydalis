@@ -313,14 +313,19 @@ filePathLastTouch p = do
   stat <- getSymbolicLinkStatus p
   return $ modificationTimeHiRes stat `max` statusChangeTimeHiRes stat
 
+-- | Extracts the year from a timestamp
+localDateToYear :: LocalTime -> Integer
+localDateToYear date =
+    let day = localDay date
+        (y, _, _) = toGregorian day
+    in y
+
 -- | The year of the image, as determined from Exif data.
 imageYear :: Image -> Maybe Integer
 imageYear img = do
   let exif = imgExif img
   date <- exifLocalCreateDate exif
-  let day = localDay  date
-      (y, _, _) = toGregorian day
-  return y
+  return $ localDateToYear date
 
 -- | The year of the image, as determined from Exif data.
 imageYearMonth :: Image -> Maybe (Int, Int)
@@ -383,16 +388,18 @@ mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
   in Image name parent raw sidecar jpegs mmov movs untrk range exif mtype status
 
 data PicDir = PicDir
-  { pdName     :: !Text
-  , pdMainPath :: !Text
-  , pdSecPaths :: ![Text]
-  , pdImages   :: !(Map ImageName Image)
-  , pdTimeSort :: !(Set ImageTimeKey)
-  , pdShadows  :: !(Map ImageName Image)
-  , pdYear     :: !(Maybe Integer)  -- ^ The approximate year of the
-                                    -- earliest picture.
-  , pdExif     :: !GroupExif
-  , pdStats    :: !Stats
+  { pdName      :: !Text
+  , pdMainPath  :: !Text
+  , pdSecPaths  :: ![Text]
+  , pdImages    :: !(Map ImageName Image)
+  , pdTimeSort  :: !(Set ImageTimeKey)
+  , pdShadows   :: !(Map ImageName Image)
+  , pdYear      :: !(Maybe Integer)  -- ^ The approximate year of the
+                                     -- earliest picture.
+  , pdTimestamp :: !(Maybe LocalTime)  -- ^ The approximate date of the
+                                       -- first picture.
+  , pdExif      :: !GroupExif
+  , pdStats     :: !Stats
   } deriving (Show)
 
 instance NFData PicDir where
@@ -402,6 +409,7 @@ instance NFData PicDir where
                    rnf pdImages   `seq`
                    rnf pdShadows  `seq`
                    rnf pdYear     `seq`
+                   rnf pdTimestamp `seq`
                    rnf pdExif     `seq`
                    rnf pdStats
 
@@ -625,7 +633,7 @@ updateStatsWithPic orig img =
            , sMovieSize = ms'
            , sUntrackedSize = us'
            , sByCamera = Map.insertWith (<>) camera cameraOcc (sByCamera orig)
-           , sByLens = Map.insertWith (<>) (liName lens) lensOcc(sByLens orig)
+           , sByLens = Map.insertWith (<>) (liName lens) lensOcc (sByLens orig)
            , sPeople = people
            , sDateRange = mergeMinMaxPair (sDateRange orig) captureDate
            }
@@ -775,6 +783,8 @@ mergeFolders c x y =
     , pdYear = min <$> pdYear x <*> pdYear y <|>
                pdYear x <|>
                pdYear y
+    , pdTimestamp = min <$> pdTimestamp x <*> pdTimestamp y <|>
+                    pdTimestamp x <|> pdTimestamp y
     , pdExif = buildGroupExif newimages
     -- Note: here we can't sum the stats from x and y, since their
     -- merge can change an image's type, thus throwing off the stats
@@ -1040,11 +1050,12 @@ loadFolder ctx name path isSource = do
                   let (img, newss) = loadImage f
                   in (addImg config images' img, addImgs config shadows' newss)
                ) (Map.empty, Map.empty) contents
-  let year = Map.foldl' (\a img ->
-                           (min <$> a <*> imageYear img) <|>
+  let timestamp = Map.foldl' (\a img ->
+                           (min <$> a <*> imageLocalDate img) <|>
                            a <|>
-                           imageYear img
+                           imageLocalDate img
                         ) Nothing images
+      year = localDateToYear <$> timestamp
       exif = buildGroupExif images
       timesort = buildTimeSort images
       totalitems = length contents
@@ -1052,7 +1063,7 @@ loadFolder ctx name path isSource = do
       pstats = computeImagesStats images
   -- FIXME: incProgress is always called with an empty error list?
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
-  return $!! PicDir tname dirpath [] images timesort shadows year exif pstats
+  return $!! PicDir tname dirpath [] images timesort shadows year timestamp exif pstats
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
