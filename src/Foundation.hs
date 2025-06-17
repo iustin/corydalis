@@ -147,6 +147,7 @@ pageCSSResources PageTable =
   $(combineStylesheets 'StaticR
      [ bootstrap_css_bootstrap_css
      , tablesorter_css_theme_bootstrap_css
+     , tablesorter_css_widget_grouping_min_css
      , font_awesome_css_fontawesome_css
      , font_awesome_css_regular_css
      , font_awesome_css_solid_css

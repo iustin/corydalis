@@ -22,17 +22,17 @@
            ; note: this filter cannot find images.
 
      <div .card>
-       <table #folderlist .tablesorter .table .table-sm .vmiddle data-sortlist="[[1,0]]]">
+       <table #folderlist .tablesorter .table .table-sm .vmiddle data-sortlist="[[2,0], [1, 0]]]">
          <col style="width: #{thumbsize}px;">
          <thead>
            <tr>
-             <th .parser-false .sorter-false .filter-false>Icon
-             <th .sorter-text>Name
-             <th .sorter-shortDate>First picture
-             <th .sorter-digit>Images
-             <th .sorter-text>Countries
-             <th .sorter-text>Cities
-             <th .sorter-text>People
+             <th .parser-false .sorter-false .filter-false .group-false>Icon
+             <th .sorter-text .group-false>Name
+             <th .sorter-shortDate .group-date-monthyear>First picture
+             <th .sorter-digit .group-false>Images
+             <th .sorter-text .group-text>Countries
+             <th .sorter-text .group-text>Cities
+             <th .sorter-text .group-text>People
          <tbody>
            $forall (n, firstpic, images, countries, cities, people) <- npairs
              <tr>

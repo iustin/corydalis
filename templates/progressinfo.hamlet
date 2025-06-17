@@ -1,5 +1,5 @@
 <h1>Corydalis
-  <small> - repository scanning error details 
+  <small> - repository scanning error details
 
 ^{repoScanProgress ctx repoState}
 
@@ -12,15 +12,15 @@
           The repository scanning is finished, the error list should be final.
         $else
           Repository scanning still in progress, the error list is partial.
-            
+
    $if not (null errors)
      <div .card .my-3>
        <table #errorlist .tablesorter .table .table-sm data-sortlist="[[0,0],[1,0]]">
          <thead>
            <tr>
-             <th .sorter-text>Phase
-             <th .empty-min .sorter-text>Item
-             <th .sorter-text>Error
+             <th .sorter-text .group-text>Phase
+             <th .empty-min .sorter-text .group-false>Item
+             <th .sorter-text .group-text>Error
 
          <tbody>
            $forall (phase, ProgressError item err) <- errors

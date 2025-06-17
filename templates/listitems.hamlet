@@ -15,8 +15,8 @@
        <table #itemlist .tablesorter .table .table-sm data-sortlist="[[0,0]]">
          <thead>
            <tr>
-             <th .empty-min .sorter-text>Name
-             <th .sorter-digit>Count
+             <th .empty-min .sorter-text .group-false>Name
+             <th .sorter-digit .group-false>Count
 
          <tbody>
            $forall (key, repr, count) <- items

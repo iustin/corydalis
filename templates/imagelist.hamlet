@@ -4,13 +4,13 @@
                 <tr>
                   <th .parser-false .sorter-false .filter-false>Icon
                   $if showParent
-                    <th .sorter-text .filter-select>Folder
-                  <th>Name
-                  <th .sorter-text>Capture date
+                    <th .sorter-text .filter-select .group-text>Folder
+                  <th .group-false>Name
+                  <th .sorter-text .group-false>Capture date
                   $if numCameras > 1
-                    <th .filter-select>Camera
+                    <th .filter-select .group-text>Camera
                   $if numLenses > 1
-                    <th .filter-select>Lens
+                    <th .filter-select .group-text>Lens
                   $if not hideStatus
                     <th .filter-select>Status
               <tbody>

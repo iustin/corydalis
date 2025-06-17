@@ -2,6 +2,8 @@
 import $ from 'jquery';
 import 'bootstrap';
 import 'tablesorter';
+// Import the widgets file that contains the grouping widget.
+import 'tablesorter/dist/js/widgets/widget-grouping.min.js';
 import { setupTablesorter } from 'tablesorter-config';
 
 function runInitializer(): void {
