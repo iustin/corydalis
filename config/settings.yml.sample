@@ -4,6 +4,10 @@
 
 # Static files are found in this directory
 static-dir:     "_env:STATIC_DIR:static"
+# Unix socket to use instead of (and ignoring) the host and port settings. If
+# enabled, please configure manually the secure sessions and strict transport
+# security settings.
+# unix-socket:  /var/run/corydalis/socket
 # Listen address:
 host:           "_env:HOST:*4" # any IPv4 host
 # Listen port:

@@ -50,12 +50,21 @@ import           Database.Persist.Sqlite                   (createSqlitePool,
                                                             sqlPoolSize)
 import           Import
 import           Language.Haskell.TH.Syntax                (qLocation)
+import           Network.Socket                            (Family (AF_UNIX),
+                                                            SockAddr (SockAddrUnix),
+                                                            SocketOption (ReuseAddr),
+                                                            SocketType (Stream),
+                                                            bind, listen,
+                                                            maxListenQueue,
+                                                            setSocketOption,
+                                                            socket)
 import           Network.Wai                               (Middleware)
 import           Network.Wai.Handler.Warp                  (Settings,
                                                             defaultSettings,
                                                             defaultShouldDisplayException,
                                                             getPort,
                                                             runSettings,
+                                                            runSettingsSocket,
                                                             setHost,
                                                             setOnException,
                                                             setPort)
@@ -70,6 +79,8 @@ import           Network.Wai.Middleware.RequestLogger      (Destination (Callbac
                                                             destination,
                                                             mkRequestLogger,
                                                             outputFormat)
+import           System.Directory                          (doesFileExist,
+                                                            removeFile)
 import           System.Log.FastLogger                     (defaultBufSize,
                                                             newStdoutLoggerSet,
                                                             toLogStr)
@@ -230,11 +241,28 @@ appMain = do
     -- Generate a WAI Application from the foundation
     app <- makeApplication foundation
 
-    -- Run the application with Warp
-    let runner = if appHttps settings
+    -- Check if we should use a Unix socket
+    case appUnixSocket settings of
+        Just socketPath -> do
+            --putStrLn $ "Starting application on Unix socket: " ++ socketPath
+            -- Create the Unix socket
+            sock <- socket AF_UNIX Stream 0
+            setSocketOption sock ReuseAddr 1
+            -- Remove socket file if it exists
+            doesFileExist socketPath >>= flip when (removeFile socketPath)
+            -- Bind to the socket path
+            bind sock (SockAddrUnix socketPath)
+            -- Start listening
+            listen sock maxListenQueue
+            -- Run the application with the socket
+            runSettingsSocket (warpSettings foundation) sock app
+
+        Nothing -> do
+            -- Run the application with Warp
+            let runner = if appHttps settings
                    then runTLS (appTlsSettings foundation)
                    else runSettings
-    runner (warpSettings foundation) app
+            runner (warpSettings foundation) app
 
 
 --------------------------------------------------------------

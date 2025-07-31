@@ -52,6 +52,11 @@ applications, and thus when Corydalis is being reverse proxied, it should
 not be emitted from it too; duplicate HSTS headers are technically
 incorrect and will prevent sites from reaching an A+ score on SSL tests.
 
+Additionally, it is now possible to bind the app to a Unix socket, instead
+of a host:port TCP connection, in order to improve performance and
+security of reverse-proxied deployments. This is controlled via the new
+`unix-socket` configuration key.
+
 ## v2025.21.0 - "Zooming for all"
 
 Released: _Sat, 24 May 2025_.

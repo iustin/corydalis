@@ -68,6 +68,12 @@ data AppSettings = AppSettings
     , appRoot           :: Maybe Text
     -- ^ Base for all generated URLs. If @Nothing@, determined
     -- from the request headers.
+    , appUnixSocket     :: Maybe String
+    -- ^ The path to use as a Unix socket, using plain HTTP (no
+    -- encryption), instead of the host and port settings below. This
+    -- overrides those settings, and also ignores the https setting. The
+    -- secure sessions and HSTS settings should be configured as needed.
+    -- Useful mainly for reverse proxied deployments.
     , appHost           :: HostPreference
     -- ^ Host/interface the server should bind to.
     , appPort           :: Int
@@ -131,6 +137,7 @@ instance FromJSON AppSettings where
         appStaticDir      <- o .:  "static-dir"
         appDatabaseConf   <- o .:  "database"
         appRoot           <- o .:? "approot"
+        appUnixSocket     <- o .:? "unix-socket"
         appHost           <-  fromString <$> o .: "host"
         appPort           <- o .:  "port"
         appHttps          <- o .:  "https"

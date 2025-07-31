@@ -78,6 +78,7 @@ dependencies:
   - http-conduit
   - lrucaching
   - monad-logger
+  - network
   - old-locale
   - optparse-applicative
   - persistent
