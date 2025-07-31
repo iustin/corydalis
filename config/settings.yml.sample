@@ -13,10 +13,18 @@ port:           "_env:PORT:3000"
 # will enforce the secure-cookies setting.
 https:          true
 # Whether to require secure sessions. When https is true, this is
-# overriden. When https is set to false, this is still useful in case
-# of reverse proxying, by ensuring that the cookies set have the
-# secure bit and that Strict Transport Security header is set.
+# forced to true. When https is set to false, this is still useful in case
+# of reverse proxying, by ensuring that the cookies have the
+# secure bit set.
 secure-sessions: true
+# Emit a Strict-Transport-Security header in the response. This
+# defaults to the https parameter; in case of plain http, it can be
+# useful when reverse proxied. However, it's preferable to configure
+# this in the reverse proxy itself, since that's more commonly done
+# on the entire (apex) domain (e.g. on example.com), rather than in
+# individual apps like Corydalis, hosted on a leaf name (e.g.
+# corydalis.example.com).
+# secure-transport-security: true/false
 # Canonical URL:
 approot:        "_env:APPROOT:http://localhost:3000"
 # Useful when running behind a reverse proxy:

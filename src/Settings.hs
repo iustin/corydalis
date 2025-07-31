@@ -78,10 +78,17 @@ data AppSettings = AppSettings
     -- doesn't much any additional security. For direct access
     -- (without a proxy), this is always recommended.
     , appSecureSessions :: Bool
-    -- ^ Enable secure cookies, and set a Strict-Transport-Security
-    -- header on the connections. When https is set, this is
-    -- overriden, and when https is unset, this can be helpful in case
-    -- of reverse proxying.
+    -- ^ Enable secure cookies. When https is set, this is forced to true,
+    -- and when https is unset, this should be enabled when Corydalis is
+    -- reverse-proxied.
+    , appStrictTransportSecurity :: Bool
+    -- ^ Emit a Strict-Transport-Security header in the response. This
+    -- defaults to the https parameter; in case of plain http, it can be
+    -- useful when reverse proxied. However, it's preferable to configure
+    -- this in the reverse proxy itself, since that's more commonly done
+    -- on the entire (apex) domain (e.g. on example.com), rather than in
+    -- individual apps like Corydalis, hosted on a leaf name (e.g.
+    -- corydalis.example.com).
     , appIpFromHeader   :: Bool
     -- ^ Get the IP address from the header when logging. Useful when sitting
     -- behind a reverse proxy.
@@ -128,6 +135,7 @@ instance FromJSON AppSettings where
         appPort           <- o .:  "port"
         appHttps          <- o .:  "https"
         appSecureSessions <- o .:  "secure-sessions"
+        appStrictTransportSecurity <- o .:? "strict-transport-security" .!= appHttps
         appIpFromHeader   <- o .:  "ip-from-header"
         appLoginMessage   <- o .:? "login-msg"
         appHomeMessage    <- o .:? "home-msg"

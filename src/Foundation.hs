@@ -260,8 +260,7 @@ instance Yesod App where
       where maybeSecureSessions handler = do
               master <- getYesod
               let settings = appSettings master
-              (if appSecureSessions settings  ||
-                  appHttps settings
+              (if appStrictTransportSecurity settings
                  then sslOnlyMiddleware sessionTimeout
                  else id) handler
 
