@@ -47,12 +47,6 @@ When going from any other page to the image viewer, and then moving to
 another image (still inside the image viewer), navigating back in history
 to the first image was not working. This has been fixed.
 
-### Dependencies
-
-The dependencies have been updated as follows:
-
-- The graphing library `plotly` has been updated to version 3.0.
-
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
@@ -69,6 +63,20 @@ Additionally, it is now possible to bind the app to a Unix socket, instead
 of a host:port TCP connection, in order to improve performance and
 security of reverse-proxied deployments. This is controlled via the new
 `unix-socket` configuration key.
+
+### Internal changes
+
+The remaining (trivial) corydalis JS code has been converted to
+TypeScript, and the entire codebase has been converted to modules, and is
+using `esbuild` as a bundler. This has plusses and minuses, but brings the
+code into a more modern era and should simplify use/integration of new
+libraries.
+
+### Dependencies
+
+The dependencies have been updated as follows:
+
+- The graphing library `plotly` has been updated to version 3.0.
 
 ## v2025.21.0 - "Zooming for all"
 
