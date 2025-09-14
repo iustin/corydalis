@@ -47,7 +47,7 @@ to the first image was not working. This has been fixed.
 
 The dependencies have been updated as follows:
 
-- plotly has been updated to version 3.0.
+- The graphing library `plotly` has been updated to version 3.0.
 
 ### Deployment changes
 
@@ -141,7 +141,7 @@ time.
   centred). Additionally, move the nav bar a bit higher, so that on iOS
   phones or tablets, it doesn't conflict with the bottom "swipe-up"
   element (the black bar used to go to the home screen).
-- Make all Plotly graphs responsive, as it seems this is not the default,
+- Make all `plotly` graphs responsive, as it seems this is not the default,
   even in 2024+.
 
 ## v2024.12.0 - "No accidental zooming"
@@ -338,7 +338,7 @@ paths in URLS.
 
 The source tree no longer contains embedded libraries (yay!). They
 have been replaced by symlinks (or transformations) of upstream files
-as shipped in [npm](https://www.npmjs.com/) packages. This should
+as shipped in [`npm`](https://www.npmjs.com/) packages. This should
 simplify future development.
 
 ## v0.4.0
@@ -597,7 +597,7 @@ UI changes/additions:
 
 ## v0.2.0
 
-Released: _Released Thu, 08 Feb 2018_.
+Released: _Thu, 08 Feb 2018_.
 
 Initial public release, after a very long bake time ☺
 
