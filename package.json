@@ -45,8 +45,5 @@
     "url": "https://github.com/iustin/corydalis/issues"
   },
   "homepage": "https://github.com/iustin/corydalis#readme",
-  "type": "module",
-  "dependencies": {
-    "@fancyapps/ui": "^5.0.36"
-  }
+  "type": "module"
 }

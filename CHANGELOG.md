@@ -24,15 +24,18 @@ The complex 5 view modes (image list, image grid, folder list, folder grid
 and image view) are being reworked. The longer goal is to make moving
 around the site more natural.
 
-For now, the main change is that using the "chips" to go to a year, or
+Currently two main changes have been done.
+
+On the navigation side, using the "chips" to go to a year, or
 location-based attribute, will directly jump to a folder list, whereas the
-others will obey the "view mode". There will be further changes here.
+others will obey the "view mode".
 
-### New bugs
-
-A new version of the `fancybox` library has issues when scrolling beyond
-the end of the currently loaded images, i.e. newly loaded images behave
-differently. Bug filled upstream.
+On the view modes, there was a difference between "folder browse"—which
+navigated to the first folder image in "view" mode—and image browsing,
+which opened an inline view of the image (using the `fancybox` library).
+This latter inline view mode has been replaced with the standard view mode
+of the application, with the result that all element selection in browse
+mode (folder and image) go to the view page.
 
 ### Dependencies
 

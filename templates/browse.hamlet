@@ -28,7 +28,7 @@
            $else
              ; note: this filter cannot find #{alt_text}s.
 
-       <div .card #fbox-container>
+       <div .card>
          ^{render config imagesize params atom elems}
 
        <div .card .pagination>

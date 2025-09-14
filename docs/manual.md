@@ -15,16 +15,16 @@ there's not much to it:
   2017
 - or, browse by folder type (in the "Curate library" section)
 
-Once you select a search (or category), you're by default in image
-browse mode (or, if the search you chose doesn't apply to images,
-you're in folder browse mode. You can now scroll up/down now, and:
-
-- in folder browse mode, clicking on a picture takes you to the
-  dedicated image viewer (see below);
-- in image browse mode, it opens up a "light box" with the image or
-  movie (with integrated player) and you can switch between
-  images (left/right, via keyboard or swipe) while the light box is
-  open, in effect providing another infinite scroll experience.
+Once you select a search (or category), you're by default in image browse
+mode (or, if the search you chose doesn't apply to images, you're in
+folder browse mode). You can now scroll up/down now, and clicking on a
+picture takes you to the dedicated image viewer, where you can then
+navigate back and forth in the same virtual image list as the browse mode
+was showing. There is a difference in folder browse mode: as each folder
+contains more images than the one shown, navigation within the image
+viewer will show (many) more images, but will still iterate over the
+listed folders. In image browse mode, it's a 1:1 equivalence between the
+viewer and the browse interface.
 
 This "browse mode" is one of the three available modes for looking at
 things. The other two are:

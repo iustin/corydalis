@@ -110,43 +110,6 @@ imageSrcSet config renderer folder image minsize =
       sizes' = renderer (ImageBytesR folder image) []:sizes
   in Text.intercalate ", " $ reverse sizes'
 
-imageBytesNoStyle :: Config -> Int -> UrlParams -> Text -> Image -> Widget
-imageBytesNoStyle config imagesize params folder img = do
-  renderP <- getUrlRenderParams
-  let image = imgName img
-      viewurl = renderP (ViewR folder image) params
-      infourl = renderP (ImageR folder image) params
-  case bestMovie img of
-    Just f ->
-      toWidget [hamlet|<a href=@?{(MovieBytesR folder image, params)}
-                         class="fbox-item"
-                         data-type="video"
-                         data-video-format=#{fileMimeType "video/mp4" f}
-                         data-viewurl="#{viewurl}"
-                         data-infourl="#{infourl}"
-                         >
-                         <img
-                           .grid-item-image
-                           src="@?{imageBytesAtRes img imagesize}"
-                           >
-                           <span class="fa-solid fa-file-video fa-2x icon-overlay"></span>
-                           |]
-    Nothing -> do
-      let srcset = imageSrcSet config renderP folder image imagesize
-      toWidget [hamlet|<a href=@{ImageBytesR folder image}
-                         class="fbox-item"
-                         data-type="image"
-                         data-viewurl="#{viewurl}"
-                         data-infourl="#{infourl}"
-                         data-srcset="#{srcset}"
-                         data-sizes="100vw"
-                         >
-                         <img
-                           .grid-item-image
-                           src="@?{imageBytesAtRes img imagesize}"
-                           >
-                           |]
-
 generatePrevNext :: (Ord k) => k -> Set k -> (k -> Route App) -> Widget
 generatePrevNext k m r = do
   let prevRoute = r <$> Set.lookupLT k m
@@ -168,13 +131,17 @@ imageList thumbsize params showParent hideStatus images = do
   $(widgetFile "imagelist")
 
 imageGrid :: Config -> Int -> UrlParams -> [Image] -> Widget
-imageGrid config imagesize params images =
+imageGrid _config imagesize params images =
   [whamlet|
      <div .grid>
        <div .grid-sizer .col-12 .col-lg-6 .col-xl-4 .p-0>
        $forall img@Image{imgParent=p} <- images
          <div .grid-item .col-12 .col-lg-6 .col-xl-4 .p-0>
-           ^{imageBytesNoStyle config imagesize params p img}
+           <a href=@?{(ViewR p (imgName img), params)}>
+            <img
+              .grid-item-image
+              src="@?{imageBytesAtRes img imagesize}"
+              >
       |]
 
 folderGrid :: Int -> UrlParams -> Atom -> [PicDir] -> Widget

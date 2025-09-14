@@ -130,8 +130,6 @@ data PageStyle
   | PageView   -- ^ A page with our viewer.
   | PagePlot   -- ^ A page with plotly and tableviewer.
   | PageGrid   -- ^ A page with infinitescroll.
-  | PageFBox   -- ^ A page with grid view and fancy box.
-
 
 pageCSSResources :: PageStyle -> Widget
 pageCSSResources PageBasic =
@@ -157,15 +155,6 @@ pageCSSResources PageTable =
 pageCSSResources PageView = pageCSSResources PageBasic
 pageCSSResources PagePlot = pageCSSResources PageTable
 pageCSSResources PageGrid = pageCSSResources PageBasic
-pageCSSResources PageFBox =
-  $(combineStylesheets 'StaticR
-     [ bootstrap_css_bootstrap_css
-     , font_awesome_css_fontawesome_css
-     , font_awesome_css_regular_css
-     , font_awesome_css_solid_css
-     , corydalis_css_basic_css
-     , fancybox_css_fancybox_css
-     ])
 
 pageJSResources :: PageStyle -> StaticRoute
 pageJSResources PageBasic = corydalis_js_bundle_basic_js
@@ -173,13 +162,12 @@ pageJSResources PageTable = corydalis_js_bundle_table_js
 pageJSResources PageView  = corydalis_js_viewer_js
 pageJSResources PagePlot  = corydalis_js_bundle_plot_js
 pageJSResources PageGrid  = corydalis_js_imagegrid_js
-pageJSResources PageFBox  = corydalis_js_fancybox_js
 
 routeStyle :: Route App -> PageStyle
 routeStyle AboutR                 = PageBasic
 routeStyle AuthR{}                = PageBasic
 routeStyle BrowseFoldersR{}       = PageGrid
-routeStyle BrowseImagesR{}        = PageFBox
+routeStyle BrowseImagesR{}        = PageGrid
 routeStyle CameraInfoR{}          = PagePlot
 routeStyle CameraStatsR           = PagePlot
 routeStyle CurateR                = PagePlot
