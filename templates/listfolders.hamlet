@@ -12,10 +12,10 @@
             #{showBinary $ sProcSize stats} for processed files, #
             #{showBinary $ sStandaloneSize stats} for standalone files and #
             #{showBinary $ sUntrackedSize stats} for untracked files. #
-         Switch to the <a href="@?{(BrowseFoldersR 0, params)}">grid view</a>
          $if atomFindsFiles atom
-           , or go to the <a href="@?{(SearchViewR, params)}">image view mode</a>,
-           <a href="@?{(BrowseImagesR 0, params)}">image grid</a>,
+           Switch to the
+           <a href="@?{(SearchViewR, params)}">image view mode</a>,
+           or <a href="@?{(BrowseImagesR 0, params)}">image grid</a>,
            or <a href="@?{(ListImagesR, params)}">image list</a>
            for this filter.
          $else
