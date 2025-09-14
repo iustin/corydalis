@@ -37,6 +37,12 @@ This latter inline view mode has been replaced with the standard view mode
 of the application, with the result that all element selection in browse
 mode (folder and image) go to the view page.
 
+### Fixed bugs
+
+When going from any other page to the image viewer, and then moving to
+another image (still inside the image viewer), navigating back in history
+to the first image was not working. This has been fixed.
+
 ### Dependencies
 
 The dependencies have been updated as follows:

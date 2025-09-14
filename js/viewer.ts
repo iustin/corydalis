@@ -403,6 +403,13 @@ $(function () {
   }
   const helpModal = new Modal(helpDiv, { backdrop: true });
 
+  // Now that the base setup has been done, store the current image state,
+  // so that navigating back to this initial image is possible. Other new
+  // images are handled by pushState in drawImage(), but for this initial
+  // image, drawImage will not save state as it is as the initial (same)
+  // URL.
+  history.replaceState(cory.info.current, '');
+
   // Draws an already-loaded image into a give image element.
   function drawImage(
     state: State,
