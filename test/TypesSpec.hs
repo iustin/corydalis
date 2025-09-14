@@ -28,10 +28,9 @@ import           Types
 import           Data.Set
 
 allViewModes :: [ViewMode]
-allViewModes = [ ViewImages PresentationGrid
-               , ViewImages PresentationList
-               , ViewFolders PresentationGrid
-               , ViewFolders PresentationList
+allViewModes = [ ViewImagesGrid
+               , ViewImagesList
+               , ViewFoldersList
                ]
 
 spec :: Spec

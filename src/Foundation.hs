@@ -202,9 +202,9 @@ routeStyle SearchViewR            = PageBasic
 
 viewMode :: Route App -> Maybe ViewMode
 viewMode ListFoldersR      = Nothing
-viewMode ListImagesR       = Just $ ViewImages PresentationList
+viewMode ListImagesR       = Just ViewImagesList
 viewMode BrowseFoldersR {} = Nothing
-viewMode BrowseImagesR {}  = Just $ ViewImages PresentationGrid
+viewMode BrowseImagesR {}  = Just ViewImagesGrid
 viewMode SearchViewR {}    = Just ViewSingleImage
 viewMode ViewR {}          = Just ViewSingleImage
 viewMode _                 = Nothing
