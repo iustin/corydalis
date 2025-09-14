@@ -191,9 +191,9 @@ The mapping to the URL is done as follows:
 - at the end, whatever is left on the stack is combined via an `all`
   atom
 
-Example 1: _(country italy or country france) and year 2018_ is
+Example 1: _(country Italy or country France) and year 2018_ is
 represented by the query:
-`country=italy&country=france&or&year=2018&and`.
+`country=Italy&country=France&or&year=2018&and`.
 
 Example 2: _keyword mountains and keyword not snow_:
 `keyword=mountains&keyword=snow&not&and`.
@@ -260,26 +260,26 @@ in capability:
 - the matches for words are combined with `and`, thus ensuring that
   each word will be required to match.
 
-As an example, the search _switzerland 2018_ will be transformed into:
+As an example, the search _Switzerland 2018_ will be transformed into:
 
-    (person switzerland or country switzerland or location switzerland
+    (person Switzerland or country Switzerland or location Switzerland
     or …) and (person 2018 or country 2018 or location 2018 or … or
     year 2018)
 
-Assuming the usual case that _switzerland_ matches only country and a
+Assuming the usual case that _Switzerland_ matches only a country and a
 keyword, and that 2018 is only a year, the resulting simplified filter
 will actually be:
 
     (country switzerland or keyword switzerland) and year 2018
 
-In case the input is given as `province:zürich 2018`, then this will
+In case the input is given as `province:Zürich 2018`, then this will
 be directly tried as:
 
-    (province zürich and (year 2018 or country 2018 or location 2018
+    (province Zürich and (year 2018 or country 2018 or location 2018
     or …))
 
 in effect skipping the discovery of which atoms would match for
-"zürich" and directly using the province keyword.
+"Zürich" and directly using the province keyword.
 
 Further tweaks to the search parameters can be done by modifying the
 URL directly, per the previous section.
