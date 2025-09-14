@@ -94,7 +94,6 @@ data ViewInfo = ViewInfo
   , viFolder     :: Text
   , viFldUrl     :: Text
   , viFldList    :: Text
-  , viFldBrowse  :: Text
   , viImage      :: ImageName
   , viImgUrl     :: Text
   , viFirst      :: ImageInfo
@@ -113,7 +112,6 @@ instance ToJSON ViewInfo where
            , "folder"       .= viFolder
            , "folderurl"    .= viFldUrl
            , "folderlist"   .= viFldList
-           , "folderbrowse" .= viFldBrowse
            , "image"        .= viImage
            , "imageurl"     .= viImgUrl
            , "first"        .= viFirst
@@ -233,7 +231,7 @@ viewInfoForImage params (images, folders) folder iname = do
   return $
     ViewInfo y (render yurl [])
       folder (render (FolderR folder) params)
-      (render ListFoldersR params) (render (BrowseFoldersR 0) params)
+      (render ListFoldersR params)
       (imgName img) (render (ImageR folder (imgName img)) params)
       (mk imgFirst) (mk <$> fldPrev) (mk <$> imgPrev) (mk img)
       (mk <$> imgNext) (mk <$> fldNext)(mk imgLast)

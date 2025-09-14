@@ -211,15 +211,6 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             <kbd .ms-2>
               l
         <li>
-          <button type="button" .btn .btn-light .dropdown-item #goFolderBrowse
-            .d-flex .justify-content-between .align-items-center
-            title="Exit the viewer and go to the folder browsing page">
-            <span>
-              <span .fa-solid .fa-fw .fa-table-cells>
-              Switch to folder browse mode
-            <kbd .ms-2>
-              B
-        <li>
           <button type="button" .btn .btn-light .dropdown-item #goFolderList
             .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the folder list page">

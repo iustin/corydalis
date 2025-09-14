@@ -48,7 +48,6 @@ type ViewInfo = {
   folder: string;
   folderurl: Url;
   folderlist: Url;
-  folderbrowse: Url;
   image: string;
   imageurl: Url;
   first: ImageInfo;
@@ -1549,9 +1548,6 @@ $(function () {
       case 'z':
         toggleZoomFit();
         break;
-      case 'B':
-        triggerFolderBrowseMode();
-        break;
       case 'L':
         triggerFolderListMode();
         break;
@@ -1648,10 +1644,6 @@ $(function () {
     window.location.href = cory.info.current.list;
   }
 
-  function triggerFolderBrowseMode() {
-    window.location.href = cory.info.folderbrowse;
-  }
-
   function triggerFolderListMode() {
     window.location.href = cory.info.folderlist;
   }
@@ -1681,7 +1673,6 @@ $(function () {
     $('#goParent').on('click', gotoFolder);
     $('#goBrowse').on('click', triggerBrowseMode);
     $('#goList').on('click', triggerListMode);
-    $('#goFolderBrowse').on('click', triggerFolderBrowseMode);
     $('#goFolderList').on('click', triggerFolderListMode);
     $('#imageZoom').on('click', () => {
       // If the zoom button is clicked, we don't want to toggle around the
