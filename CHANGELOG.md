@@ -22,7 +22,7 @@ this is indeed better.
 
 The complex 5 view modes (image list, image grid, folder list, folder grid
 and image view) are being reworked. The longer goal is to make moving
-around the site more natural.
+around the site more natural and to simplify it.
 
 Currently two main changes have been done.
 
@@ -34,8 +34,12 @@ On the view modes, there was a difference between "folder browse"—which
 navigated to the first folder image in "view" mode—and image browsing,
 which opened an inline view of the image (using the `fancybox` library).
 This latter inline view mode has been replaced with the standard view mode
-of the application, with the result that all element selection in browse
-mode (folder and image) go to the view page.
+of the application, which is now the only image/movie viewer model.
+
+Furthermore, the above-mentioned folder browse mode, which looked similar
+but behaved different from the image browse mode, has been entirely
+removed. For folders, the only remaining mode is listing, which makes more
+sense as showing just a picture was not representative for a folder.
 
 ### Fixed bugs
 

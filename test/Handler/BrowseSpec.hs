@@ -31,7 +31,7 @@ spec = parallel $ withApp $ do
   describe "checks folder browsing" $
     it "checks invalid page request" $ do
       login
-      checkRouteIs (BrowseFoldersR (-1)) 400
+      checkRouteIs (BrowseImagesR (-1)) 400
   describe "checks image browsing" $ do
     it "checks invalid page request" $ do
       login

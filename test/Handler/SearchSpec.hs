@@ -66,7 +66,7 @@ spec = parallel $ withApp $ do
       get (QuickSearchR, [("q", "1900")])
       checkRedirect
   describe "Search" $ do
-    forM_ [ListFoldersR, ListImagesR, BrowseFoldersR 0, BrowseImagesR 0] $ \route -> do
+    forM_ [ListFoldersR, ListImagesR, BrowseImagesR 0] $ \route -> do
       it (formatToString ("checks redirect for route " % shown) route) $ do
         login
         checkRoute route

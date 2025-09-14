@@ -166,7 +166,6 @@ pageJSResources PageGrid  = corydalis_js_imagegrid_js
 routeStyle :: Route App -> PageStyle
 routeStyle AboutR                 = PageBasic
 routeStyle AuthR{}                = PageBasic
-routeStyle BrowseFoldersR{}       = PageGrid
 routeStyle BrowseImagesR{}        = PageGrid
 routeStyle CameraInfoR{}          = PagePlot
 routeStyle CameraStatsR           = PagePlot
@@ -201,13 +200,12 @@ routeStyle ViewR{}                = PageView
 routeStyle SearchViewR            = PageBasic
 
 viewMode :: Route App -> Maybe ViewMode
-viewMode ListFoldersR      = Nothing
-viewMode ListImagesR       = Just ViewImagesList
-viewMode BrowseFoldersR {} = Nothing
-viewMode BrowseImagesR {}  = Just ViewImagesGrid
-viewMode SearchViewR {}    = Just ViewSingleImage
-viewMode ViewR {}          = Just ViewSingleImage
-viewMode _                 = Nothing
+viewMode ListFoldersR     = Nothing
+viewMode ListImagesR      = Just ViewImagesList
+viewMode BrowseImagesR {} = Just ViewImagesGrid
+viewMode SearchViewR {}   = Just ViewSingleImage
+viewMode ViewR {}         = Just ViewSingleImage
+viewMode _                = Nothing
 
 getLastViewMode :: Handler (Maybe ViewMode)
 getLastViewMode = do
@@ -401,7 +399,6 @@ instance YesodBreadcrumbs App where
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)
   breadcrumb ListFoldersR = return ("Listing folders", Nothing)
   breadcrumb ListImagesR  = return ("Listing images", Nothing)
-  breadcrumb (BrowseFoldersR _)  = return ("Search folders",    Nothing)
   breadcrumb (BrowseImagesR _)   = return ("Search images",     Nothing)
   breadcrumb QuickSearchR        = return ("Quick search",      Nothing)
   breadcrumb SearchR             = return ("Search redirector", Nothing)

@@ -1,7 +1,7 @@
-<h1>Displaying #{elem_text}
+<h1>Displaying images
 
 <div #boot
-  data-path-url="@?{(handler 0, params)}"
+  data-path-url="@?{(BrowseImagesR 0, params)}"
   data-page-index=#{page}
   data-debug=#{debug}
   data-initial-count=#{length elems}
@@ -11,31 +11,28 @@
  <div .col-12>
    $if can_find_elems
      $if null elems
-       ^{noItemsFound search_string is_images}
+       ^{noItemsFound search_string True}
      $else
        <div .card>
          <div .card-body>
-           The filter <i>#{search_string}</i> matches #{length elems'} #{elem_text}.
-           Currently viewing <span id="howmany">#{pageSize}</span> #{elem_text} starting at index #{currentStart}. #
+           The filter <i>#{search_string}</i> matches #{length elems'} images.
+           Currently viewing <span id="howmany">#{pageSize}</span> images starting at index #{currentStart}. #
            $if page > 0
-             Go back to the <a href="@?{(handler 0, params)}">first page</a>. #
+             Go back to the <a href="@?{(BrowseImagesR 0, params)}">first page</a>. #
            Switch to the <a href="@?{(SearchViewR, params)}">image view mode</a> or
-           to the (technical) <a href="@?{(list_handler 0, params)}">list view</a>
-           $if show_alt_view
-             , or go to the <a href="@?{(alt_handler 0, params)}">#{alt_text} grid</a> or
-             <a href="@?{(alt_listh 0, params)}">#{alt_text} list</a> view
-             for this filter.
-           $else
-             ; note: this filter cannot find #{alt_text}s.
+           to the (technical) <a href="@?{(ListImagesR, params)}">list view</a> (slow),
+           or go to the
+           <a href="@?{(ListFoldersR, params)}">folders list</a> view
+           for this filter.
 
        <div .card>
-         ^{render config imagesize params atom elems}
+         ^{imageGrid config imagesize params elems}
 
        <div .card .pagination>
          <div .card-body>
            $if null remElems
-             No more #{elem_text}
+             No more images
            $else
-             <a .pagination-next href="@?{(handler nextPage, params)}">load more #{elem_text}</a>
+             <a .pagination-next href="@?{(BrowseImagesR nextPage, params)}">load more images</a>
    $else
      ^{noImageSearchPossible search_string}
