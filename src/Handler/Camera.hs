@@ -71,9 +71,7 @@ getCameraInfoR cameraname = do
                                (liName . exifLens . imgExif $ i)
                                counterOne m) Map.empty images
       lensCounts =
-        sort . map (\(a, b) -> (b, a)) . Map.toList $ lenses
-      topLens = listToMaybe $ reverse lensCounts
-      botLens = listToMaybe lensCounts
+        (sortBy (comparing Down) . map (\(a, b) -> (b, a)) . Map.toList) lenses
       numLenses = Map.size lenses
       imgTopBot = let cds =
                         sort .

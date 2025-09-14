@@ -20,7 +20,7 @@
 <div .row>
  <div .col-12 .col-sm-4>
    <div .card>
-     <div .card-header>Basic information
+     <h5 .card-header>Basic information
      <table .table>
         <tr>
           <td>Lens name
@@ -40,34 +40,20 @@
 
  <div .col-12 .col-sm-4>
    <div .card>
-     <div .card-header>Camera information
+     <h5 .card-header>Camera pairing
      <table .table>
         <tr>
-          <td>Used on #{numCameras} cameras
-        $if numCameras == 1
-           <tr>
-             <td>Camera
-             <td>#{fst $ Map.findMin cameras}
-        $else
-           <tr>
-              <td>Most used camera
-              <td>
-                $maybe (cnt, c) <- topCamera
-                    #{c} (#{cnt} images)
-                $nothing
-                    No camera information
-           <tr>
-              <td>Least used camera
-              <td>
-                $maybe (cnt, c) <- botCamera
-                    #{c} (#{cnt} images)
-                $nothing
-                    No camera information
+          <th>Camera (#{numCameras} in total)
+          <th>Image count
+        $forall (c, name) <- cameraCounts
+          <tr>
+             <td>#{name}
+             <td .number>#{c}
 
 <div .row>
  <div .col-12 .col-sm-4>
    <div .card>
-     <div .card-header>Image information
+     <h5 .card-header>Image information
      <table .table>
        <tr>
         <td>Number of images
