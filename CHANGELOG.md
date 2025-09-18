@@ -2,6 +2,15 @@
 
 ## vNext
 
+### Breaking changes
+
+A new key in the configuration has been added, `viewableimages`, which
+represents what file extensions are directly viewable by the browser and
+don't need to be converted. Previously this was hard-coded, but it is
+likely that modern browsers support more formats, so it is now
+configurable. Moreover, it has to be configured. A starting point can be
+seen in the sample configuration file.
+
 ### New features
 
 The camera and lens information pages now have two more graphs: per the

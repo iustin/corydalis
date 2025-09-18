@@ -161,6 +161,7 @@ data Config = Config
     , cfgCopyRegex       :: Regex
     , cfgPeoplePrefix    :: Text
     , cfgIgnorePrefix    :: Text
+    , cfgViewableImages  :: [Text]        -- ^ Images directly viewable in browser.
     } deriving (Eq, Show)
 
 instance FromJSON Config where
@@ -186,7 +187,9 @@ instance FromJSON Config where
          v .: "rangeregex"      <*>
          v .: "copyregex"       <*>
          v .: "peopleprefix"    <*>
-         v .: "ignoreprefix"
+         v .: "ignoreprefix"    <*>
+         viewableimageslist
+
     where autosizes = Set.fromList <$> ((:) <$> thumbsize <*> ((:) <$> browsingsize <*> v .: "autoimgsizes"))
           thumbsize = v .: "thumbnailsize"
           browsingsize = v .: "browsingsize"
@@ -195,6 +198,8 @@ instance FromJSON Config where
           allsizes = Set.union <$> autosizes <*> demandsizes
           rawexts = v .: "rawexts"
           rawextsset = Set.fromList . map Text.pack <$> rawexts
+          viewableimages = v .: "viewableimages"
+          viewableimageslist = map (Text.pack . ('.':)) <$> viewableimages
 
   parseJSON _ = mzero
 

@@ -114,6 +114,9 @@ config:
   otherexts: ["png"]
   # List of movie extensions:
   movieexts: ["mp4", "mov", "avi"]
+  # List of extensions that are directly viewable in-browser, and thus
+  # don't need conversion to jpeg.
+  viewableimages: ["png", "jpg", "jpeg", "tiff", "tif"]
   # Valid directory pattern (groups are ignored):
   dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
   # Regex denoting the name of a picture composed from other

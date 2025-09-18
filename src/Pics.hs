@@ -1481,14 +1481,6 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
 previewTags :: [String]
 previewTags = ["JpgFromRaw", "PreviewImage"]
 
--- | List of extensions that are directly viewable.
---
--- TODO: move to config.
-asIsViewableExtensions :: [Text]
-asIsViewableExtensions =
-  map ('.' `Text.cons`)
-  ["png", "jpg", "jpeg", "tiff", "tif"]
-
 -- | Minimum thumbnail size to consider it a valid image.
 minImageSize :: Int64
 minImageSize = 512
@@ -1549,9 +1541,9 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Checks is a file is directly viewable.
-viewableAsIs :: Text -> Bool
-viewableAsIs path =
-  any (`Text.isSuffixOf` path) asIsViewableExtensions
+viewableAsIs :: Text -> Config -> Bool
+viewableAsIs path (cfgViewableImages -> exts)  =
+  any (`Text.isSuffixOf` path) exts
 
 -- | Extracts and saves the first frame from a movie.
 extractFirstFrame :: Config -> LazyText -> IO (Either Text (MimeType, FilePath))
@@ -1608,7 +1600,7 @@ getViewableVersion config img
       return (j, TextL.unpack (filePath j), jpegMimeType j, fileLastTouch j)
   | Just r <- imgRawPath img = do
       -- TODO: there should be some tests to check which version is returned.
-      viewable <- if viewableAsIs (fileName r)
+      viewable <- if fileName r `viewableAsIs` config
                   then return $ Right (jpegMimeType r, TextL.unpack $ filePath r)
                   else bestEmbedded config (filePath r)
       case viewable of
