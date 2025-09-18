@@ -665,7 +665,9 @@ repoGlobalExif =
 updateRepo :: Ctx -> Repository -> IO Bool
 updateRepo ctx new = atomically $ do
   let rc = ctxRepo ctx
-  -- TODO: replace this with stateTVar when LTS 13.
+  -- Note: the below can't be replaced via stateTVar, since it does write
+  -- to the search cache too, thus the transformation function is not
+  -- pure.
   current <- readTVar rc
   let do_update = repoSerial current <= repoSerial new
   -- TODO: add logging for prevented overwrites.
@@ -680,16 +682,12 @@ tryUpdateRepo ctx new = do
   unless owning $ throwString "Repository ownership changed, aborting"
   return new
 
--- FIXME: move to STM?
 getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
-getSearchResults ctx lazy key = atomically $ do
-  let searchCache = ctxSearchCache ctx
-  oldCache <- readTVar searchCache
-  let (val, newCache) =
-        fromMaybe (force lazy `seq` (lazy, LRU.insert key lazy oldCache))
-          (LRU.lookup key oldCache)
-  writeTVar searchCache $! newCache
-  return val
+getSearchResults ctx lazy key =
+  atomically $ stateTVar (ctxSearchCache ctx) $ \oldCache ->
+    fromMaybe
+      (force lazy `seq` (lazy, LRU.insert key lazy oldCache))
+      (LRU.lookup key oldCache)
 
 flushSearchCache :: TVar SearchCache -> STM ()
 flushSearchCache = flip writeTVar emptySearchCache
