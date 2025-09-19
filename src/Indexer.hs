@@ -46,8 +46,6 @@ module Indexer ( Symbol(..)
                , searchImages
                , genQuickSearchParams
                , atomFindsFiles
-               -- TODO: move to some more basic module, unify with pics
-               , parseDecimal
                , intToMonth
                , intToWeekDay
                , seasonStats
@@ -73,6 +71,7 @@ import           Exif
 import           Pics
 
 import           Types
+import           Utils.Parsing               (parseDecimal, parseReal)
 
 data Symbol = TCountry
             | TProvince
@@ -1290,30 +1289,6 @@ anyAtom = go . nub
   where go [x]    = x
         go [x, y] = Or x y
         go xs     = Any xs
-
--- | Simpler Text to decimal parsing with error handling.
-parseDecimal :: (Integral a) => Text -> Either Text a
-parseDecimal w =
-  case Text.signed Text.decimal w of
-    Right (w', "") -> Right w'
-    Right (w', leftover) ->
-      Left $ sformat ("Parsed " % int % " decimal but with leftover text '" %
-                      stext % "'") w' leftover
-    Left msg ->
-      Left $ sformat ("Failed to parse integer from '" % stext % "': " %
-                      string) w msg
-
--- | Simpler Text to real parsing with error handling.
-parseReal :: Text -> Either Text Double
-parseReal w =
-  case Text.signed Text.double w of
-    Right (w', "") -> Right w'
-    Right (w', leftover) ->
-      Left $ sformat ("Parsed " % shortest % " fractional but with leftover text '" %
-                      stext % "'") w' leftover
-    Left msg ->
-      Left $ sformat ("Failed to parse fractional from '" % stext % "': " %
-                      string) w msg
 
 -- | Simpler Text to ordinal parsing with error handling.
 --

@@ -28,6 +28,7 @@ import           Exif
 import           Import
 import           Indexer
 import           Pics
+import           Utils.Parsing         (parseDecimal)
 
 import           Data.Aeson.Key        (fromText)
 import qualified Data.Map              as Map

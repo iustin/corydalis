@@ -155,6 +155,7 @@ library:
     - Settings.StaticFiles
     - Stats
     - Types
+    - Utils.Parsing
   other-modules:
     - Compat.Orphans
 
@@ -234,6 +235,7 @@ tests:
       - hspec >=2.0.0
       - hspec-expectations-lifted
       - http-types
+      - QuickCheck
       - yesod-test
     ghc-options:
       - -Wall

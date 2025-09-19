@@ -38,8 +38,9 @@ import           Pics                           (Ctx, File (File), Image,
                                                  MediaType (..), initContext,
                                                  launchScanFileSystem, mkImage,
                                                  waitForScan)
-import           Test.Hspec                     as X hiding (shouldSatisfy)
-import           Test.Hspec.Expectations.Lifted as X (shouldSatisfy)
+import           Test.Hspec                     as X
+import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
+import           Test.Hspec.QuickCheck          as X
 import           Types                          (Config (..))
 import           Yesod.Auth                     as X
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
@@ -50,6 +51,7 @@ import qualified Control.Exception              as E
 import qualified Data.ByteString.Char8          as BS8
 import           Data.Default
 import           Data.Either
+import qualified Data.Text                      as Text
 import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
                                                  removeDirectoryRecursive)
@@ -236,7 +238,7 @@ checkNotFound = (`checkRouteIs` 404)
 checkRedirect :: YesodExample App ()
 checkRedirect = do
     redir <- followRedirect
-    redir `shouldSatisfy` isRight
+    redir `THL.shouldSatisfy` isRight
 
 followRedirectOK :: YesodExample App ()
 followRedirectOK = do
@@ -251,3 +253,11 @@ simpleImage config =
   let f = File "a.nef" 0 0 0 "/no-such-file" def
   in mkImage config "a" "b" (Just f) Nothing []
              Nothing [] [] Nothing MediaImage def
+
+-- Various test utils
+shouldBeLeftWithMessage :: (Show a) => Either Text a -> Text -> Expectation
+shouldBeLeftWithMessage actual expected  = case actual of
+  Left msg -> unless (expected `Text.isInfixOf` msg) $
+    expectationFailure ("Expected Left with message: " ++ show expected ++ ", but got: " ++ show msg)
+  Right val ->
+    expectationFailure ("Expected Left with message: " ++ show expected ++ ", but got Right: " ++ show val)
