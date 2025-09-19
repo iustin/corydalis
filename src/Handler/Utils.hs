@@ -308,7 +308,7 @@ getResParam = do
   res <- lookupGetParam resolutionParam
   case res of
     Nothing -> return Nothing
-    Just v -> case parseDecimalPlain v of
+    Just v -> case parseDecimal v of
       Left msg   -> invalidArgs [msg]
       Right res' -> return . Just . ImageSize $ res'
 

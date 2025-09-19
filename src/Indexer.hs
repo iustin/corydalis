@@ -47,7 +47,7 @@ module Indexer ( Symbol(..)
                , genQuickSearchParams
                , atomFindsFiles
                -- TODO: move to some more basic module, unify with pics
-               , parseDecimalPlain
+               , parseDecimal
                , intToMonth
                , intToWeekDay
                , seasonStats
@@ -1292,8 +1292,8 @@ anyAtom = go . nub
         go xs     = Any xs
 
 -- | Simpler Text to decimal parsing with error handling.
-parseDecimalPlain :: (Integral a) => Text -> Either Text a
-parseDecimalPlain w =
+parseDecimal :: (Integral a) => Text -> Either Text a
+parseDecimal w =
   case Text.signed Text.decimal w of
     Right (w', "") -> Right w'
     Right (w', leftover) ->
@@ -1304,8 +1304,8 @@ parseDecimalPlain w =
                       string) w msg
 
 -- | Simpler Text to real parsing with error handling.
-parseRealPlain :: Text -> Either Text Double
-parseRealPlain w =
+parseReal :: Text -> Either Text Double
+parseReal w =
   case Text.signed Text.double w of
     Right (w', "") -> Right w'
     Right (w', leftover) ->
@@ -1354,8 +1354,8 @@ rpnParser (x:xs) ("not", _) =
             Not y -> y
             _     -> Not x
   in Right $ a:xs
-rpnParser xs ("all", c) = parseDecimalPlain c >>= anyAllParser allAtom xs
-rpnParser xs ("any", c) = parseDecimalPlain c >>= anyAllParser anyAtom xs
+rpnParser xs ("all", c) = parseDecimal c >>= anyAllParser allAtom xs
+rpnParser xs ("any", c) = parseDecimal c >>= anyAllParser anyAtom xs
 rpnParser xs (an, av) =
   let v = parseAtom an av
   in case v of
@@ -1389,10 +1389,10 @@ numParser parser (Text.span (`Set.member` numPrefixes) -> (prefix, v)) =
   where v' = either (const Nothing) Just . parser $ v
 
 parseNumDecimal :: (Integral a) => Text -> Maybe (NumOp a)
-parseNumDecimal = numParser parseDecimalPlain
+parseNumDecimal = numParser parseDecimal
 
 parseNumReal :: Text -> Maybe (NumOp Double)
-parseNumReal = numParser parseRealPlain
+parseNumReal = numParser parseReal
 
 parseType :: Text -> Maybe MediaType
 parseType v
@@ -1451,7 +1451,7 @@ parseMonth (Text.toLower -> m)
   | m == "november"  = Just November
   | m == "december"  = Just December
   | otherwise =
-      either (const Nothing) intToMonth $ parseDecimalPlain m
+      either (const Nothing) intToMonth $ parseDecimal m
 
 showMonth :: MonthOp -> Text
 showMonth MonthUnknown = "unknown"
@@ -1515,8 +1515,8 @@ stripSuf :: Text -> Text -> Text
 stripSuf v suf = fromMaybe v (Text.stripSuffix suf v)
 
 parseShutterSpeedPlain :: Text -> Either Text Double
-parseShutterSpeedPlain (Text.stripPrefix "1/" -> Just v) = (1/) <$> parseRealPlain (stripSuf v "s")
-parseShutterSpeedPlain v                                 = parseRealPlain (stripSuf v "s")
+parseShutterSpeedPlain (Text.stripPrefix "1/" -> Just v) = (1/) <$> parseReal (stripSuf v "s")
+parseShutterSpeedPlain v                                 = parseReal (stripSuf v "s")
 
 parseShutterSpeed :: Text -> Maybe (NumOp Double)
 parseShutterSpeed = numParser parseShutterSpeedPlain
