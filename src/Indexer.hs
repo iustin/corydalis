@@ -429,9 +429,9 @@ parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
 
 parseAtom a v = do
   s <- parseSymbol a
-  let dec = parseDecimal v
-      intDec = parseDecimal v
-      double = parseReal v
+  let dec = parseNumDecimal v
+      intDec = parseNumDecimal v
+      double = parseNumReal v
       str = parseString v
       typ = parseType v
       sta = parseImageStatus v
@@ -452,7 +452,7 @@ parseAtom a v = do
     TLens         -> Lens         <$> str
     TFStop        -> FStop        <$> double
     TShutterSpeed -> ShutterSpeed <$> parseShutterSpeed v
-    TIso          -> Iso          <$> parseDecimal v
+    TIso          -> Iso          <$> parseNumDecimal v
     TFocalLength  -> FocalLength  <$> double
     TProblem      -> Problem      <$> str
     TType         -> Type         <$> typ
@@ -482,10 +482,10 @@ quickSearch s v =
     TLens         -> fuzzer Lens
     TFStop        -> FStop  <$> real
     TShutterSpeed -> ShutterSpeed  <$> parseShutterSpeed v
-    TIso          -> Iso    <$> parseDecimal v
+    TIso          -> Iso    <$> parseNumDecimal v
     TFocalLength  -> FocalLength <$> real
     TProblem      -> fuzzer Problem
-    TYear         -> Year   <$> parseDecimal v
+    TYear         -> Year   <$> parseNumDecimal v
     TSeason       -> Season <$> parseSeason v
     TMonth        -> Month  <$> parseMonth v
     TDay          -> Day    <$> parseDay v
@@ -502,8 +502,8 @@ quickSearch s v =
     TMegapixels   -> Megapixels <$> real
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
-        dec = parseDecimal v
-        real = parseReal v
+        dec = parseNumDecimal v
+        real = parseNumReal v
 
 atomTypeDescriptions :: Symbol -> Text
 atomTypeDescriptions TCountry      = "countries"
@@ -1388,11 +1388,11 @@ numParser parser (Text.span (`Set.member` numPrefixes) -> (prefix, v)) =
     _    -> Nothing
   where v' = either (const Nothing) Just . parser $ v
 
-parseDecimal :: (Integral a) => Text -> Maybe (NumOp a)
-parseDecimal = numParser parseDecimalPlain
+parseNumDecimal :: (Integral a) => Text -> Maybe (NumOp a)
+parseNumDecimal = numParser parseDecimalPlain
 
-parseReal :: Text -> Maybe (NumOp Double)
-parseReal = numParser parseRealPlain
+parseNumReal :: Text -> Maybe (NumOp Double)
+parseNumReal = numParser parseRealPlain
 
 parseType :: Text -> Maybe MediaType
 parseType v
