@@ -121,7 +121,6 @@ import           Data.Store.TH
 import qualified Data.Text               as Text
 import qualified Data.Text.Lazy          as TextL
 import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)
-import qualified Data.Text.Read          as Text
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
@@ -144,6 +143,7 @@ import           Import.NoFoundation     hiding (fileName, fileSize)
 import           Stats                   (CameraInfo (..), DateRange,
                                           Occurrence (..), Trends,
                                           mergeMinMaxPair, ocFromSize)
+import           Utils.Parsing           (parseDecimal)
 
 type Ctx = Context Repository SearchCache
 
@@ -172,24 +172,15 @@ dropCopySuffix cfg name =
 makeRel :: FilePath -> FilePath
 makeRel = dropWhile (== pathSeparator)
 
--- FIXME: duplication with Indexer.
-parseDecimal :: (Integral a) => String -> Maybe a
-parseDecimal (Text.pack -> w) =
-  case Text.decimal w of
-    Right (w', "") -> Just w'
-    _              -> Nothing
-
-expandRangeFile :: Config -> String -> [String]
+expandRangeFile :: Config -> Text -> [Text]
 expandRangeFile cfg name =
   case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
-    [[_, root, begin, end]] -> let ib = parseDecimal begin::Maybe Int
+    [[_, root, begin, end]] -> let ib = parseDecimal begin::Either Text Int
                                    ie = parseDecimal end
-                                   expand s = if length s >= length begin
-                                                then s
-                                                else expand ('0':s)
+                                   formatPadded = sformat (left (length begin) '0' %. int)
                                in case (ib, ie) of
-                                    (Just b, Just e) ->
-                                      [root ++ expand (show i) | i <- [b..e]]
+                                    (Right b, Right e) ->
+                                      [root `Text.append` formatPadded i | i <- [b..e]]
                                     _ -> []
     _ -> []
 
@@ -982,7 +973,6 @@ loadFolder ctx name path isSource = do
       tname = Text.pack name
       ewarn txt = def { exifWarning = Set.singleton txt }
       dirpath = Text.pack path
-      buildName = ImageName . Text.pack
       loadImage ii  =
         let file_name = inodeName ii
             file_text = Text.pack file_name
@@ -991,6 +981,7 @@ loadFolder ctx name path isSource = do
               '.':v -> v
               _     -> ext'
             base_name = dropCopySuffix config base_full
+            base_name_text = Text.pack base_name
             exif = case file_text `Map.lookup` lcache of
                      Nothing         -> ewarn "Internal error: exif not read"
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
@@ -1020,15 +1011,15 @@ loadFolder ctx name path isSource = do
                       else Nothing
             jpeg_file = [file_obj | is_jpeg && not isSource]
             p_mov = [file_obj | is_mov && not isSource]
-            snames = expandRangeFile config base_name
+            snames = expandRangeFile config base_name_text
             range = case fromNullable snames of
                       Nothing -> Nothing
-                      Just s  -> Just (buildName $ head s, buildName $ last s)
+                      Just s  -> Just (ImageName $ head s, ImageName $ last s)
             flags = Flags {
               flagsSoftMaster = isSoftMaster
               }
             simgs = map (\expname ->
-                           mkImage config (buildName expname) tname
+                           mkImage config (ImageName expname) tname
                                    Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
                         ) snames
             onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
@@ -1039,7 +1030,7 @@ loadFolder ctx name path isSource = do
               (Nothing, [], Nothing, Nothing, []) -> [file_obj]
               _                                   -> []
             img = force $
-              mkImage config (buildName base_name) tname
+              mkImage config (ImageName base_name_text) tname
               raw_file sidecar_file jpeg_file m_mov p_mov
               untrk range mtype flags
         in (img, if onlySidecar then [] else simgs)
