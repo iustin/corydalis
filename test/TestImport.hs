@@ -251,10 +251,10 @@ simpleFile :: Text -> File
 simpleFile filename =
   File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileDir = "test", fileExif = def }
 
-simpleImage :: Config -> Image
-simpleImage config =
-  let f = File "a.nef" 0 0 0 "/no-such-file" def
-  in mkImage config "a" "b" (Just f) Nothing []
+simpleRawImage :: Config -> Image
+simpleRawImage config =
+  let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDir = "test", fileExif = def }
+  in mkImage config "a" "test" (Just f) Nothing []
              Nothing [] [] Nothing MediaImage def
 
 -- Various test utils

@@ -32,7 +32,7 @@ spec :: Spec
 spec = parallel $ withContext $
   describe "search cache" $ do
     it "caches a search result" $ \ctx -> do
-      let image = simpleImage (ctxConfig ctx)
+      let image = simpleRawImage (ctxConfig ctx)
           m1 = (Map.singleton ("a", (Nothing, "b")) image,
                 Map.singleton "a" image)
       getSearchResults ctx m1 [] `shouldReturn` m1
@@ -40,7 +40,7 @@ spec = parallel $ withContext $
 
 
     it "flushes the search cache on rescan" $ \ctx -> do
-      let image = simpleImage (ctxConfig ctx)
+      let image = simpleRawImage (ctxConfig ctx)
           m1 = (Map.singleton ("a", (Nothing, "b")) image,
                 Map.singleton "a" image)
           m2 = (Map.empty, Map.empty)

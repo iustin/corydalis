@@ -89,7 +89,7 @@ spec = parallel $ withApp $ do
       liftIO $ launchScanFileSystem ctx
       _ <- liftIO $ waitForScan ctx
       -- populate cache
-      let image = simpleImage (ctxConfig ctx)
+      let image = simpleRawImage (ctxConfig ctx)
           results = (Map.singleton ("a", (Nothing, "b")) image, Map.singleton "a" image)
           allparams = ("all", "0")
       liftIO $ getSearchResults ctx results  [allparams] `shouldReturn` results
