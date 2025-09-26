@@ -171,7 +171,7 @@ library:
           - -Werror
           - -fwarn-tabs
           - -O0
-        cpp-options: -DDEVELOPMENT
+        cpp-options: -DDEVELOPMENT -DTEST
       else:
         ghc-options:
           - -Wall
@@ -197,7 +197,7 @@ executables:
     dependencies:
       - corydalis
     when:
-      - condition: flag(library-only)
+      - condition: flag(library-only) || flag(dev)
         buildable: false
   scanner:
     main: scanner.hs
@@ -209,7 +209,7 @@ executables:
     dependencies:
       - corydalis
     when:
-      - condition: flag(library-only)
+      - condition: flag(library-only) || flag(dev)
         buildable: false
   db-util:
     main: db-util.hs
@@ -221,7 +221,7 @@ executables:
     dependencies:
       - corydalis
     when:
-      - condition: flag(library-only)
+      - condition: flag(library-only) || flag(dev)
         buildable: false
 
 # Test suite
@@ -242,6 +242,12 @@ tests:
       - -threaded
       - -rtsopts
       - '"-with-rtsopts=-N -qg"'
+    when:
+      - condition: flag(dev)
+        then:
+          buildable: true
+        else:
+          buildable: false
 
 # Define flags used by "yesod devel" to make compilation faster
 flags:
@@ -252,7 +258,7 @@ flags:
   dev:
     description: Turn on development settings, like auto-reload templates.
     manual: false
-    default: false
+    default: true
   public-site:
     description: Do not require authentication for most normal handlers.
     manual: true
