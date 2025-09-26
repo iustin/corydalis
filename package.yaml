@@ -236,6 +236,7 @@ tests:
       - hspec-expectations-lifted
       - http-types
       - QuickCheck
+      - quickcheck-text
       - yesod-test
     ghc-options:
       - -Wall

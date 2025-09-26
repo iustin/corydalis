@@ -80,7 +80,7 @@ data Occurrence a = Occurrence
   , ocData      :: !a
   , ocTrends    :: !Trends
   , ocDateRange :: !(Maybe DateRange)
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 instance Default a => Default (Occurrence a) where
   def = Occurrence 0 0 0 def Map.empty Nothing
