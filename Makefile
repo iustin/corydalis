@@ -2,6 +2,7 @@
 # well, except for the release target
 
 SHELL=/bin/bash
+RELEASE_FLAG=--flag corydalis:-dev
 
 all: build
 
@@ -64,16 +65,17 @@ bootstrap:
 ts-watch:
 	npx tsc -w -p js/
 
-# Incremental rebuild and installs in dist/ with the current settings
+# Incremental rebuild and installs binaries in dist/ with the current settings
 # (vs. release which is clean build).
 dist:
-	stack --work-dir .stack-release install --local-bin-path dist/
+	@mkdir -p dist/
+	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG)
 
-# An entire clean build and install in dist.
+# An entire clean build and install of production binaries in dist/.
 release: clean lint doc regen-git-version bootstrap
 	rm -rf .stack-release
-	stack --work-dir .stack-release build --pedantic $(FLAGS)
-	stack --work-dir .stack-release install --local-bin-path dist/ $(FLAGS)
+	stack --work-dir .stack-release build --pedantic $(RELEASE_FLAG) $(FLAGS)
+	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG) $(FLAGS)
 	mkdir dist/static
 	cp -aL static/combined dist/static/
 	mkdir -p dist/static/font-awesome/
