@@ -1,0 +1,52 @@
+cradle:
+  multi:
+    - path: "./src"
+      config:
+        cradle:
+          stack:
+            component: "corydalis:lib"
+
+    - path: "./app"
+      config:
+        cradle:
+          none:
+
+    - path: "./app/main.hs"
+      config:
+        cradle:
+          stack:
+            component: "corydalis:exe:corydalis"
+
+    - path: "./app/DevelMain.hs"
+      config:
+        cradle:
+          none:
+
+    - path: "./app/Paths_corydalis.hs"
+      config:
+        cradle:
+          stack:
+            component: "corydalis:lib"
+
+    - path: "./app/db-util.hs"
+      config:
+        cradle:
+          stack:
+            component: "corydalis:exe:db-util"
+
+    - path: "./app/devel.hs"
+      config:
+        cradle:
+          none:
+
+    - path: "./app/scanner.hs"
+      config:
+        cradle:
+          stack:
+            component: "corydalis:exe:scanner"
+
+    - path: "./test"
+      config:
+        cradle:
+          stack:
+            component: "corydalis:test:test"
