@@ -34,7 +34,7 @@ import           Database.Persist.Sql           (SqlPersistM,
                                                  runSqlPersistMPool)
 import           Foundation                     as X
 import           Model                          as X
-import           Pics                           (Ctx, File (File), Image,
+import           Pics                           (Ctx, File (..), Image,
                                                  MediaType (..), initContext,
                                                  launchScanFileSystem, mkImage,
                                                  waitForScan)
@@ -247,6 +247,9 @@ followRedirectOK = do
     statusIs 200
 
 -- Picture mocking functions
+simpleFile :: Text -> File
+simpleFile filename =
+  File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileDir = "test", fileExif = def }
 
 simpleImage :: Config -> Image
 simpleImage config =

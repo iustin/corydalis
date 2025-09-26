@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE CPP                #-}
 {-# LANGUAGE GADTs              #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -49,6 +50,29 @@ module Indexer ( Symbol(..)
                , intToMonth
                , intToWeekDay
                , seasonStats
+#ifdef TEST
+               , StrOp(..)
+               , SeasonOp(..)
+               , FlashOp(..)
+               , makeFuzzy
+               , weekdayToEnd
+               , monthToSeason
+               , picSeason
+               , picDay
+               , picMonthDay
+               , picMonth
+               , showSeason
+               , showDay
+               , showMonth
+               , showMedia
+               , showFlash
+               , showShutterSpeed
+               , parseShutterSpeed
+               , parseNumReal
+               , parseNumDecimal
+               , parseString
+               , parseFlash
+#endif
                ) where
 
 import           Control.Monad               (foldM, when)
@@ -242,7 +266,7 @@ data FlashOp
  | FlashExternal
  | FlashAny
  | FlashUnknown
- deriving (Show, Eq, Ord)
+ deriving (Show, Eq, Enum, Bounded, Ord)
 
 parseFlash :: Text -> Maybe FlashOp
 parseFlash v
