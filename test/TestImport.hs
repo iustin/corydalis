@@ -34,14 +34,20 @@ import           Database.Persist.Sql           (SqlPersistM,
                                                  runSqlPersistMPool)
 import           Foundation                     as X
 import           Model                          as X
-import           Pics                           (Ctx, File (..), Image,
-                                                 MediaType (..), initContext,
+import           Pics                           (Ctx, File (..), Image (..),
+                                                 MediaType (..), PicDir (..),
+                                                 RepoDirs, Repository (..),
+                                                 addDirToRepo, buildGroupExif,
+                                                 buildTimeSort,
+                                                 computeImagesStats,
+                                                 computeRepoStats, initContext,
                                                  launchScanFileSystem, mkImage,
-                                                 waitForScan)
+                                                 repoGlobalExif, waitForScan)
 import           Test.Hspec                     as X
 import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
 import           Test.Hspec.QuickCheck          as X
-import           Types                          (Config (..))
+import           Types                          (Config (..), Context (..),
+                                                 ImageName (..))
 import           Yesod.Auth                     as X
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
 import           Yesod.Default.Config2          (loadYamlSettings, useEnv)
@@ -51,7 +57,10 @@ import qualified Control.Exception              as E
 import qualified Data.ByteString.Char8          as BS8
 import           Data.Default
 import           Data.Either
+import qualified Data.Map                       as Map
+import qualified Data.Set                       as Set
 import qualified Data.Text                      as Text
+import           Formatting
 import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
                                                  removeDirectoryRecursive)
@@ -251,11 +260,63 @@ simpleFile :: Text -> File
 simpleFile filename =
   File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileDir = "test", fileExif = def }
 
+-- | Generates a picture that only hos untracked (orphaned) elements.
+simpleUntrackedImage :: Config -> Text -> Text -> Image
+simpleUntrackedImage config parent name =
+  let untracked = simpleFile (sformat (stext % ".other") name)
+  in mkImage config (ImageName name) parent Nothing Nothing []
+             Nothing [] [untracked] Nothing MediaImage def
+
 simpleRawImage :: Config -> Image
 simpleRawImage config =
   let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDir = "test", fileExif = def }
   in mkImage config "a" "test" (Just f) Nothing []
              Nothing [] [] Nothing MediaImage def
+
+-- | Create a minimal PicDir for testing
+createTestPicDir :: Text -> PicDir
+createTestPicDir name =
+  PicDir { pdName = name
+         , pdMainPath = "/test/" <> name
+         , pdSecPaths = []
+         , pdImages = Map.empty
+         , pdTimeSort = Set.empty
+         , pdShadows = Map.empty
+         , pdYear = Nothing
+         , pdTimestamp = Nothing
+         , pdExif = def
+         , pdStats = def
+         }
+
+-- | Inject images into the repository through the context
+injectImages :: [Image] -> YesodExample App ()
+injectImages images = do
+  app <- getTestYesod
+  liftIO $ atomically $ do
+    let ctx = appContext app
+    repo <- readTVar (ctxRepo ctx)
+    let newDirs = foldl' (addImageToRepo (ctxConfig ctx)) (repoDirs repo) images
+        newStats = computeRepoStats newDirs
+        newExif = repoGlobalExif newDirs
+        newRepo = repo { repoDirs = newDirs
+                       , repoStats = newStats
+                       , repoExif = newExif
+                       , repoSerial = repoSerial repo + 1
+                       }
+    writeTVar (ctxRepo ctx) newRepo
+
+-- | Helper to add a single image to a test folder in RepoDirs
+addImageToRepo :: Config -> RepoDirs -> Image -> RepoDirs
+addImageToRepo config dirs img =
+  let folderName = imgParent img
+      existingDir = Map.findWithDefault (createTestPicDir folderName) folderName dirs
+      updatedImages = Map.insert (imgName img) img (pdImages existingDir)
+      updatedDir = existingDir { pdImages = updatedImages
+                               , pdTimeSort = buildTimeSort updatedImages
+                               , pdStats = computeImagesStats updatedImages
+                               , pdExif = buildGroupExif updatedImages
+                               }
+  in addDirToRepo config updatedDir dirs
 
 -- Various test utils
 shouldBeLeftWithMessage :: (Show a) => Either Text a -> Text -> Expectation

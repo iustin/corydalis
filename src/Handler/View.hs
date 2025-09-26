@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -31,6 +32,11 @@ module Handler.View ( getViewR
                     , getMovieBytesR
                     , getImageInfoR
                     , getRandomImageInfoR
+#ifdef TEST
+                    , basicSvg
+                    , imageError
+                    , ImageInfo(..)
+#endif
                     ) where
 
 import           Data.Aeson.Text             (encodeToLazyText)

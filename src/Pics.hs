@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE MultiWayIf          #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -103,8 +104,12 @@ module Pics ( PicDir(..)
             , transformForImage
             , updateStatsWithPic
             , computeImagesStats
-            -- Test export :/
+#ifdef TEST
             , mkImage
+            , buildTimeSort
+            , buildGroupExif
+            , addDirToRepo
+#endif
             ) where
 
 import           Control.Applicative
