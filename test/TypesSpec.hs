@@ -25,10 +25,11 @@ module TypesSpec (spec) where
 import           TestImport
 import           Types
 
-import           Data.Maybe      (fromJust)
+import           ClassyPrelude.Yesod
+import           Data.Maybe          (fromJust)
 import qualified Data.Set
 import           Data.Store
-import qualified Data.Text       as Text
+import qualified Data.Text           as Text
 import           Test.QuickCheck
 
 alphaAndDigits :: Gen Char
@@ -66,6 +67,8 @@ spec = parallel $ do
           common = cfgAutoImageSizes c  `intersect` cfgOnDemandSizes c
       common `shouldBe` Data.Set.empty
   describe "tests Regex data type" $ do
+    prop "rejects invalid regexes" $ forAll (elements ['?', '+', '*']) $
+      isNothing . mkRegex . Text.pack . (: [])
     prop "can build regexes from simple strings" $ forAll plainRegexInput $ \ str ->
       let text = Text.pack str
           re = mkRegex text
@@ -76,3 +79,11 @@ spec = parallel $ do
       Just re === mkRegex (reString re)
     prop "store instance is correct" $ forAll genRegex $ \re ->
       Data.Store.decode (Data.Store.encode re) === Right re
+  describe "tests ImageStatus properties" $ do
+    prop "PathPiece instance tests" $
+      forAll (chooseEnum (minBound, maxBound)::Gen ImageStatus) $ \istatus ->
+        fromPathPiece (toPathPiece istatus) === Just istatus
+  describe "tests FolderClass properties" $ do
+    prop "PathPiece instance tests" $
+      forAll (chooseEnum (minBound, maxBound)::Gen FolderClass) $ \fclass ->
+        fromPathPiece (toPathPiece fclass) === Just fclass
