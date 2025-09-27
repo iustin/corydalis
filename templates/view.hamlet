@@ -138,26 +138,26 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
 
     <button type="button" .btn .btn-light #imagePrev
       title="Go to the previous image">
-      <span .fa-solid .fa-fw .fa-2x .fa-angle-left>
+      <span .fa-solid .fa-2x .fa-angle-left>
 
     <div .dropup .btn-group role="group">
       <button type="button" .btn .btn-light data-bs-toggle="dropdown" aria-expanded="false"
         title="Show image menu" #menuToggle>
-        <span .fa-solid .fa-fw .fa-2x .fa-bars>
+        <span .fa-solid .fa-2x .fa-bars>
       <ul .dropdown-menu  #imageMenu>
         <li>
           <button type="button" .btn .btn-light .dropdown-item #goImageInfo
             .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the image information page">
             <span>
-              <span .fa-solid .fa-fw .fa-arrow-right-long>
+              <span .fa-solid .fa-arrow-right-long>
               Open image info page
         <li>
           <button type="button" .btn .btn-light .dropdown-item #downloadImage
             .d-flex .justify-content-between .align-items-center
             title="Download the current picture">
             <span>
-              <span .fa-solid .fa-fw .fa-download>
+              <span .fa-solid .fa-download>
               Download image
             <kbd .ms-2>
               D
@@ -168,7 +168,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the parent folder">
             <span>
-              <span .fa-solid .fa-fw .fa-caret-up>
+              <span .fa-solid .fa-caret-up>
               Go to the parent folder
             <kbd .ms-2>
               u
@@ -177,7 +177,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Go to the first image in the previous folder">
             <span>
-              <span .fa-solid .fa-fw .fa-angle-double-left>
+              <span .fa-solid .fa-angle-double-left>
               View previous folder
             <kbd .ms-2>
               [
@@ -186,7 +186,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Go to the first image in the next folder">
             <span>
-              <span .fa-solid .fa-fw .fa-angle-double-right>
+              <span .fa-solid .fa-angle-double-right>
               View next folder
             <kbd .ms-2>
               ]
@@ -197,7 +197,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the image browsing page">
             <span>
-              <span .fa-solid .fa-fw .fa-table-cells>
+              <span .fa-solid .fa-table-cells>
               Switch to browse mode
             <kbd .ms-2>
               b
@@ -206,7 +206,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the image list page">
             <span>
-              <span .fa-solid .fa-fw .fa-table-list>
+              <span .fa-solid .fa-table-list>
               Switch to list mode
             <kbd .ms-2>
               l
@@ -215,25 +215,25 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Exit the viewer and go to the folder list page">
             <span>
-              <span .fa-solid .fa-fw .fa-table-list>
+              <span .fa-solid .fa-table-list>
               Switch to folder list mode
             <kbd .ms-2>
               L
     $# image zoom, vs movie play/pause.
     <button type="button" .btn .btn-light .nav-only-image #imageZoom
       title="Zoom image" style="display: #{displayPicElem}">
-      <span .fa-solid .fa-fw .fa-2x .fa-magnifying-glass>
+      <span .fa-solid .fa-2x .fa-magnifying-glass>
     <button type="button" .btn .btn-light .nav-only-video #moviePlay
       title="Play/pause the movie" style="display: #{displayMovElem}">
-      <span .fa-solid .fa-fw .fa-2x .fa-play>
+      <span .fa-solid .fa-2x .fa-play>
 
     $# Common buttons.
     <button type="button" .btn .btn-light #imageRand
       title="Go to a random image">
-      <span .fa-solid .fa-fw .fa-2x .fa-random>
+      <span .fa-solid .fa-2x .fa-random>
     <button type="button" .btn .btn-light #imageFull
       title="Toggle full-screen state">
-      <span .fa-solid .fa-fw .fa-2x .fa-maximize>
+      <span .fa-solid .fa-2x .fa-maximize>
     <button type="button" .btn .btn-light #imageNext
       title="Go to the next image">
-      <span .fa-solid .fa-fw .fa-2x .fa-angle-right>
+      <span .fa-solid .fa-2x .fa-angle-right>

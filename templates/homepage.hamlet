@@ -26,24 +26,24 @@ $maybe msg <- homeMessage
   <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header .py-2>
-        <span .fa-solid .fa-cogs .fa-fw>
+        <span .fa-solid .fa-cogs>
         Specialised views
       <div .card-body>
         $forall t <- specialViews
             <a href="@{ListItemsR t}" .btn .btn-light .py-1 .my-1 .text-start>
-              <span class="#{atomIcon t} fa-fw">
+              <span class="#{atomIcon t}">
               #{symbolPlCap t}
 
   $if development
     <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
       <div .card>
         <div .card-header .py-2>
-          <span .fa-solid .fa-crosshairs .fa-fw>
+          <span .fa-solid .fa-crosshairs>
           Debug views
         <div .card-body>
           $forall t <- debugViews
               <a href="@{ListItemsR t}" .btn .btn-light .py-1 .my-1 .text-start>
-                <span class="#{atomIcon t} fa-fw">
+                <span class="#{atomIcon t}">
                 #{symbolPlCap t}
 
 <div .row>

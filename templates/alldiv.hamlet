@@ -2,7 +2,7 @@
   $maybe ri <- randomImage
     <div .card>
       <div .card-header .py-2>
-        <span class="fas fa-images fa-fw">
+        <span class="fas fa-images">
         Welcome!
       <div .card-body>
         <p>You can start here, or in one of the other cards.
@@ -23,7 +23,7 @@
     <div .card .border-warning>
       <div .card-header .py-2>
         <a href="" .btn .btn-light .py-1 .w-100 .text-start .disabled>
-          <span class="fas fa-images fa-fw">
+          <span class="fas fa-images">
           Here should be all pictures, but there are actually none…
       <div .card-body>
         There are no images in the database! Go out and take some photos!

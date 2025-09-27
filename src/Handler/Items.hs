@@ -99,7 +99,7 @@ itemHeader :: Symbol -> Widget
 itemHeader symbol =
   [whamlet|
           <div .card-header .py-2>
-            <span class="#{atomIcon symbol} fa-fw">
+            <span class="#{atomIcon symbol}">
             #{symbolPlCap symbol}
           |]
 
