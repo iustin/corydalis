@@ -2,28 +2,28 @@
   $maybe ri <- randomImage
     <div .card>
       <div .card-header .py-2>
-        <span class="fa-solid fa-images">
+        <span .fa-solid .fa-images>
         Welcome!
       <div .card-body>
         <p>You can start here, or in one of the other cards.
         <a .btn .btn-light .py-1 .my-1 href="@{SearchR}">
-          <span class="fa-solid fa-play">
+          <span .fa-solid .fa-play>
           Start at the beginning
         <a .btn .btn-light .py-1 .my-1 href="@{ViewR (imgParent ri) (imgName ri)}">
-          <span class="fa-solid fa-up-down-left-right">
+          <span .fa-solid .fa-up-down-left-right>
           View a random image
         <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,onThisDate)}">
-          <span class="fa-solid fa-calendar-day">
+          <span .fa-solid .fa-calendar-day>
           On this date…
         <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,onThisDoW)}">
-          <span class="fa-solid fa-calendar-week">
+          <span .fa-solid .fa-calendar-week>
           On #{show dow}s…
 
   $nothing
     <div .card .border-warning>
       <div .card-header .py-2>
         <a href="" .btn .btn-light .py-1 .w-100 .text-start .disabled>
-          <span class="fa-solid fa-images">
+          <span .fa-solid .fa-images>
           Here should be all pictures, but there are actually none…
       <div .card-body>
         There are no images in the database! Go out and take some photos!
