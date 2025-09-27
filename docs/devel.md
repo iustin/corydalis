@@ -30,6 +30,8 @@ Haskell:
 - hlint tool, via `stack install hlint`.
 - todo tool, via `stack install lentil`.
 - lcov coverage generator, via `stack install hpc-lcov`.
+- for use with VS Code, the hspec-discover tool, `stack install
+  hspec-discover`.
 - run a `make git-version` if a clean source dir, otherwise next step
   will fail.
 - run a `stack build`, `make test` and `make devel`, to ensure all
