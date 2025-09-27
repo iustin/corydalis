@@ -126,9 +126,8 @@ newtype JSDiffTime = JSDiffTime NominalDiffTime
   deriving (Show)
 
 instance FromJSON JSDiffTime where
-  parseJSON (Number num) =
-    return . JSDiffTime . fromRational . toRational $ num
-  parseJSON _ = mzero
+  parseJSON = withScientific "JSDiffTime" $
+    return . JSDiffTime . fromRational . toRational
 
 -- | Helper for text version of 'pathSeparator'.
 pathSep :: Text
@@ -163,7 +162,18 @@ data Config = Config
     } deriving (Eq, Show)
 
 instance FromJSON Config where
-  parseJSON (Object v) =
+  parseJSON = withObject "Config" $ \v ->
+    let autosizes = Set.fromList <$> ((:) <$> thumbsize <*> ((:) <$> browsingsize <*> v .: "autoimgsizes"))
+        thumbsize = v .: "thumbnailsize"
+        browsingsize = v .: "browsingsize"
+        demandsizes = Set.fromList <$> v .: "demandimgsizes"
+        demandsizes' = Set.difference <$> demandsizes <*> autosizes
+        allsizes = Set.union <$> autosizes <*> demandsizes
+        rawexts = v .: "rawexts"
+        rawextsset = Set.fromList . map Text.pack <$> rawexts
+        viewableimages = v .: "viewableimages"
+        viewableimageslist = map (Text.pack . ('.':)) <$> viewableimages
+    in
     Config <$>
          v .: "sourcedirs"      <*>
          v .: "outputdirs"      <*>
@@ -187,19 +197,6 @@ instance FromJSON Config where
          v .: "peopleprefix"    <*>
          v .: "ignoreprefix"    <*>
          viewableimageslist
-
-    where autosizes = Set.fromList <$> ((:) <$> thumbsize <*> ((:) <$> browsingsize <*> v .: "autoimgsizes"))
-          thumbsize = v .: "thumbnailsize"
-          browsingsize = v .: "browsingsize"
-          demandsizes = Set.fromList <$> v .: "demandimgsizes"
-          demandsizes' = Set.difference <$> demandsizes <*> autosizes
-          allsizes = Set.union <$> autosizes <*> demandsizes
-          rawexts = v .: "rawexts"
-          rawextsset = Set.fromList . map Text.pack <$> rawexts
-          viewableimages = v .: "viewableimages"
-          viewableimageslist = map (Text.pack . ('.':)) <$> viewableimages
-
-  parseJSON _ = mzero
 
 data ImageStatus = ImageOrphaned
                  | ImageStandalone
