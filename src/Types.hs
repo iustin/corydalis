@@ -28,6 +28,7 @@ module Types ( Config(..)
              , Regex
              , reRegex
              , reString
+             , mkRegex
              , FolderClass(..)
              , showFolderClass
              , parseFolderClass
@@ -97,6 +98,12 @@ data Regex = Regex
     , reRegex  :: TDFA.Regex
     }
 
+mkRegex :: MonadFail m => Text -> m Regex
+mkRegex txt =
+  case TDFA.makeRegexM (Text.unpack txt) of
+    Nothing -> fail $ "Invalid regex pattern: " <> Text.unpack txt
+    Just r  -> return $ Regex txt r
+
 instance Show Regex where
   show = show . reString
 
@@ -104,23 +111,14 @@ instance Eq Regex where
   (==) = (==) `on` reString
 
 instance FromJSON Regex where
-  parseJSON (String txt) =
-    let str = Text.unpack txt
-    in case TDFA.makeRegexM str of
-         Nothing -> mzero
-         Just r  -> return $ Regex txt r
-  parseJSON _ = mzero
+  parseJSON = withText "Regex" mkRegex
 
 instance Store Regex where
   size = case (size::Size Text) of
            ConstSize n -> ConstSize n -- Unlikely :)
            VarSize f   -> VarSize (f . reString)
   poke = poke . reString
-  peek = do
-    s <- peek
-    case TDFA.makeRegexM (Text.unpack s) of
-      Nothing -> fail "Can't build regex even though it was serialized"
-      Just r  -> return $ Regex s r
+  peek = peek >>= mkRegex
 
 -- | Wrapper over NominalDiffTime so that we can add our FromJSON
 -- instance without orphan instances warning (sigh).

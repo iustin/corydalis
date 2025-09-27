@@ -25,7 +25,24 @@ module TypesSpec (spec) where
 import           TestImport
 import           Types
 
-import           Data.Set
+import           Data.Maybe      (fromJust)
+import qualified Data.Set
+import           Data.Store
+import qualified Data.Text       as Text
+import           Test.QuickCheck
+
+alphaAndDigits :: Gen Char
+alphaAndDigits = elements $ ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9']
+
+plainRegexInput :: Gen String
+plainRegexInput = listOf1 alphaAndDigits
+
+genRegex :: Gen Regex
+genRegex = do
+  str <- plainRegexInput
+  case mkRegex (Text.pack str) of
+    Nothing -> error $ "genRegex: mkRegex failed on input: " ++ str
+    Just re -> return re
 
 allViewModes :: [ViewMode]
 allViewModes = [ ViewImagesGrid
@@ -48,3 +65,14 @@ spec = parallel $ do
       let c = ctxConfig ctx
           common = cfgAutoImageSizes c  `intersect` cfgOnDemandSizes c
       common `shouldBe` Data.Set.empty
+  describe "tests Regex data type" $ do
+    prop "can build regexes from simple strings" $ forAll plainRegexInput $ \ str ->
+      let text = Text.pack str
+          re = mkRegex text
+      in isJust re .&&. reString (fromJust re) === text
+    prop "regex show is the input string" $ forAll genRegex $ \re ->
+      show re === show (reString re)
+    prop "regex equality on the input string" $ forAll genRegex $ \re ->
+      Just re === mkRegex (reString re)
+    prop "store instance is correct" $ forAll genRegex $ \re ->
+      Data.Store.decode (Data.Store.encode re) === Right re
