@@ -25,7 +25,7 @@
     "jquery": "^3.7.1",
     "masonry-layout": "^4.2.2",
     "plotly.js-cartesian-dist": "^3.0.1",
-    "prettier": "3.2.5",
+    "prettier": "3.6.2",
     "screenfull": "^5.2.0",
     "tablesorter": "^2.31.3",
     "typescript": "^5.8.3"
