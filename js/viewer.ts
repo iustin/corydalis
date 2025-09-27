@@ -833,8 +833,7 @@ $(function () {
     const div = divMain[0];
     if (screenfull.isEnabled) {
       LOG('entering full screen via screenfull');
-      // Sigh, why is the full type not seen correctly?
-      (screenfull as screenfull.Screenfull).request(div);
+      screenfull.request(div);
     } else {
       LOG('entering fake full screen');
       cory.state.fullscreen = true;
@@ -847,7 +846,7 @@ $(function () {
   function leaveFullScreen() {
     if (screenfull.isEnabled) {
       LOG('exiting full screen via screenfull');
-      (screenfull as screenfull.Screenfull).exit();
+      screenfull.exit();
     } else {
       LOG('exiting fake full screen');
       cory.state.fullscreen = false;
