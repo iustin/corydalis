@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module TypesSpec (spec) where
 
@@ -26,11 +27,16 @@ import           TestImport
 import           Types
 
 import           ClassyPrelude.Yesod
+import           Data.Aeson
 import           Data.Maybe          (fromJust)
 import qualified Data.Set
 import           Data.Store
 import qualified Data.Text           as Text
+import           Data.Text.Arbitrary ()
+import           Data.Time
+import           Formatting
 import           Test.QuickCheck
+import           Text.Regex.TDFA     (matchTest)
 
 alphaAndDigits :: Gen Char
 alphaAndDigits = elements $ ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9']
@@ -70,20 +76,57 @@ spec = parallel $ do
     prop "rejects invalid regexes" $ forAll (elements ['?', '+', '*']) $
       isNothing . mkRegex . Text.pack . (: [])
     prop "can build regexes from simple strings" $ forAll plainRegexInput $ \ str ->
-      let text = Text.pack str
-          re = mkRegex text
-      in isJust re .&&. reString (fromJust re) === text
+      let txt = Text.pack str
+          re = mkRegex txt
+      in isJust re .&&. reString (fromJust re) === txt
     prop "regex show is the input string" $ forAll genRegex $ \re ->
       show re === show (reString re)
     prop "regex equality on the input string" $ forAll genRegex $ \re ->
       Just re === mkRegex (reString re)
     prop "store instance is correct" $ forAll genRegex $ \re ->
       Data.Store.decode (Data.Store.encode re) === Right re
+    it "correctly builds a basic string" $ do
+      let re = mkRegex "a.c"
+      case re of
+        Nothing -> expectationFailure "Can't build basic regex"
+        Just (reRegex -> r) -> do
+          matchTest r ("abc"::String) `shouldBe` True
+          matchTest r ("bcd"::String) `shouldBe` False
+  describe "tests JSDiffTime properties" $ do
+    prop "JSON basic decoding" $ \n ->
+      decodeStrictText (sformat int n) ===
+        Just (JSDiffTime (secondsToNominalDiffTime . fromIntegral $ (n::Int)))
   describe "tests ImageStatus properties" $ do
     prop "PathPiece instance tests" $
       forAll (chooseEnum (minBound, maxBound)::Gen ImageStatus) $ \istatus ->
         fromPathPiece (toPathPiece istatus) === Just istatus
+    prop "Storable instance tests" $
+      forAll (chooseEnum (minBound, maxBound)::Gen ImageStatus) $ \istatus ->
+        Data.Store.decode (Data.Store.encode istatus) === Right istatus
   describe "tests FolderClass properties" $ do
     prop "PathPiece instance tests" $
       forAll (chooseEnum (minBound, maxBound)::Gen FolderClass) $ \fclass ->
         fromPathPiece (toPathPiece fclass) === Just fclass
+  describe "tests Progress properties" $ do
+    it "check basic operation" $ do
+      let pgzero = def::Progress
+          pgone = pgzero { pgGoal = 1}
+          pgdone = incDone pgone
+      pgProgress pgzero `shouldBe` Nothing
+      pgProgress pgone `shouldBe` Just 0
+      pgProgress pgdone `shouldBe` Just 1
+      pgTotal (incDone pgzero) `shouldBe` 1
+      pgTotal (incErrors "a" "b" pgzero) `shouldBe` 1
+      pgTotal (incNoop pgzero) `shouldBe` 1
+    prop "incError construction" $ \item err ->
+      let pg = incErrors item err def
+      in case pgErrors pg of
+        [p] -> peItem p === item .&&. peError p === err
+        _   -> counterexample "Unexpected error count" False
+    prop "arbitrary increases" $ \errs noop dones ->
+      pgTotal (incProgress (map (uncurry ProgressError) errs) noop dones def)
+        === (length errs + noop + dones)
+  describe "tests ViewMode properties" $ do
+    prop "parse/format equivalence" $
+      forAll (chooseEnum (minBound, maxBound)::Gen ViewMode) $ \vm ->
+        parseViewMode (decodeUtf8 $ formatViewMode vm) === Just vm

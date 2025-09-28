@@ -62,7 +62,6 @@ module Types ( Config(..)
              , ctxSearchCache
              , ctxLogger
              , newContext
-             , ViewPresentation(..)
              , ViewMode(..)
              , formatViewMode
              , parseViewMode
@@ -123,7 +122,7 @@ instance Store Regex where
 -- | Wrapper over NominalDiffTime so that we can add our FromJSON
 -- instance without orphan instances warning (sigh).
 newtype JSDiffTime = JSDiffTime NominalDiffTime
-  deriving (Show)
+  deriving (Show, Eq)
 
 instance FromJSON JSDiffTime where
   parseJSON = withScientific "JSDiffTime" $
@@ -395,16 +394,12 @@ newContext config logfn a b = do
 $(makeStore ''WorkStart)
 $(makeStore ''WorkResults)
 
--- | View presentation.
-data ViewPresentation = PresentationGrid | PresentationList
-  deriving (Eq, Show)
-
 -- | View mode type.
 data ViewMode = ViewSingleImage
               | ViewImagesGrid
               | ViewImagesList
               | ViewFoldersList
-  deriving (Eq, Show)
+  deriving (Eq, Show, Enum, Bounded)
 
 -- | Poor man's view mode encoding.
 formatViewMode :: ViewMode -> ByteString
