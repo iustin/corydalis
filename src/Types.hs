@@ -17,12 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude          #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE TemplateHaskell            #-}
 
 module Types ( Config(..)
              , Regex
@@ -76,7 +76,6 @@ import           Data.Aeson
 import           Data.Default             (Default, def)
 import qualified Data.Set                 as Set
 import           Data.Store
-import           Data.Store.TH            (makeStore)
 import qualified Data.Text                as Text
 import qualified Data.Text.Lazy           as TextL
 import           Data.Time.Clock
@@ -158,7 +157,9 @@ data Config = Config
     , cfgPeoplePrefix    :: Text
     , cfgIgnorePrefix    :: Text
     , cfgViewableImages  :: [Text]        -- ^ Images directly viewable in browser.
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic)
+
+instance Store Config
 
 instance FromJSON Config where
   parseJSON = withObject "Config" $ \v ->
@@ -201,12 +202,12 @@ data ImageStatus = ImageOrphaned
                  | ImageStandalone
                  | ImageUnprocessed
                  | ImageProcessed
-                   deriving (Show, Read, Eq, Ord, Enum, Bounded)
+                   deriving (Show, Read, Eq, Ord, Enum, Bounded, Generic)
+
+instance Store ImageStatus
 
 instance NFData ImageStatus where
   rnf = rwhnf
-
-$(makeStore ''ImageStatus)
 
 showImageStatus :: ImageStatus -> Text
 showImageStatus ImageOrphaned    = "orphaned"
@@ -229,13 +230,14 @@ instance PathPiece ImageStatus where
 -- | Newtype wrapper for image names.
 newtype ImageName = ImageName { unImageName :: Text }
   deriving (Show, Read, Eq, Ord, IsString, NFData,
-            ToMarkup, ToJSON, PersistField, PersistFieldSql)
+            ToMarkup, ToJSON, PersistField, PersistFieldSql,
+            Generic)
+
+instance Store ImageName
 
 instance PathMultiPiece ImageName where
   fromPathMultiPiece = Just . ImageName . Text.intercalate "/"
   toPathMultiPiece = Text.splitOn "/" . unImageName
-
-$(makeStore ''ImageName)
 
 data FolderClass = FolderEmpty
                  | FolderRaw
@@ -243,12 +245,12 @@ data FolderClass = FolderEmpty
                  | FolderUnprocessed
                  | FolderProcessed
                  | FolderMixed
-                   deriving (Show, Read, Eq, Ord, Enum, Bounded)
+                   deriving (Show, Read, Eq, Ord, Enum, Bounded, Generic)
+
+instance Store FolderClass
 
 instance NFData FolderClass where
   rnf = rwhnf
-
-$(makeStore ''FolderClass)
 
 showFolderClass :: FolderClass -> Text
 showFolderClass FolderEmpty       = "empty"
@@ -275,20 +277,18 @@ instance PathPiece FolderClass where
 -- | Type alias for query (URL) params.
 type UrlParams = [(Text, Text)]
 
-$(makeStore ''Config)
-
 type LogFn = LogLevel -> LogStr -> IO ()
 
 -- | Represents an error during processing.
 data ProgressError = ProgressError
   { peItem  :: !Text
   , peError :: !Text
-  } deriving (Show)
+  } deriving (Show, Generic)
+
+instance Store ProgressError
 
 instance NFData ProgressError where
   rnf (ProgressError a b) = rnf a `seq` rnf b
-
-$(makeStore ''ProgressError)
 
 -- | Progress of a work item.
 data Progress = Progress
@@ -297,15 +297,15 @@ data Progress = Progress
   , pgDone   :: !Int             -- ^ Work that was attempted and succeeded.
   , pgGoal   :: !Int             -- ^ Target work goal.
   }
-  deriving (Show)
+  deriving (Show, Generic)
 
 instance Default Progress where
   def = Progress [] 0 0 0
 
+instance Store Progress
+
 instance NFData Progress where
   rnf (Progress a b c d) = rnf a `seq` rnf b `seq` rnf c `seq` rnf d
-
-$(makeStore ''Progress)
 
 pgNumErrors :: Progress -> Int
 pgNumErrors = length . pgErrors
@@ -340,7 +340,9 @@ incProgress e n d p@Progress{..} =
     }
 
 newtype WorkStart = WorkStart { wsStart :: ZonedTime }
-  deriving (Show)
+  deriving (Show, Generic)
+
+instance Store WorkStart
 
 instance NFData WorkStart where
   rnf (WorkStart s) = rnf s
@@ -350,7 +352,9 @@ data WorkResults = WorkResults
   , wrEnd   :: !ZonedTime
   , wrDone  :: !Progress
   }
-  deriving (Show)
+  deriving (Show, Generic)
+
+instance Store WorkResults
 
 instance NFData WorkResults where
   rnf (WorkResults a b c) =
@@ -390,9 +394,6 @@ newContext config logfn a b = do
                    , ctxSearchCache    = tb
                    , ctxLogger         = logfn
                    }
-
-$(makeStore ''WorkStart)
-$(makeStore ''WorkResults)
 
 -- | View mode type.
 data ViewMode = ViewSingleImage

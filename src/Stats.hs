@@ -17,13 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE NoImplicitPrelude          #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TemplateHaskell            #-}
-
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Stats ( DateRange
              , DayRange
@@ -37,7 +35,7 @@ module Stats ( DateRange
 import           Control.DeepSeq
 import qualified Data.Map.Strict     as Map
 import           Data.Semigroup
-import           Data.Store.TH       (makeStore)
+import           Data.Store          (Store)
 import           Data.Time.LocalTime
 import           System.Posix.Types  (FileOffset)
 
@@ -80,7 +78,9 @@ data Occurrence a = Occurrence
   , ocData      :: !a
   , ocTrends    :: !Trends
   , ocDateRange :: !(Maybe DateRange)
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance (Store a) => Store (Occurrence a)
 
 instance Default a => Default (Occurrence a) where
   def = Occurrence 0 0 0 def Map.empty Nothing
@@ -113,7 +113,9 @@ ocFromSize size d tk dr =
 data CameraInfo = CameraInfo
   { ciName         :: !Text
   , ciShutterCount :: !(Maybe (Integer, Integer))
-  } deriving (Eq, Show, Ord)
+  } deriving (Eq, Show, Ord, Generic)
+
+instance Store CameraInfo
 
 instance NFData CameraInfo where
   rnf CameraInfo{..} = rnf ciName `seq`
@@ -126,6 +128,3 @@ instance Semigroup CameraInfo where
 instance Default CameraInfo where
   -- Fixme: remove the duplication with Exif.hs
   def = CameraInfo "unknown" Nothing
-
-$(makeStore ''CameraInfo)
-$(makeStore ''Occurrence)

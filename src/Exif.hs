@@ -17,12 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE RecordWildCards    #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TupleSections      #-}
 
 module Exif ( Exif(..)
             , GroupExif(..)
@@ -68,7 +67,6 @@ import           Data.Scientific           (toBoundedInteger)
 import           Data.Semigroup
 import qualified Data.Set                  as Set
 import           Data.Store
-import           Data.Store.TH             (makeStore)
 import qualified Data.Text                 as Text
 import qualified Data.Text.Read            as Text
 import           Data.Time.Format
@@ -93,10 +91,12 @@ data Orientation
   | OrientationRightTop
   | OrientationRightBot
   | OrientationLeftBot
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
 instance Default Orientation where
   def = OrientationTopLeft
+
+instance Store Orientation
 
 instance FromJSON Orientation where
   parseJSON = withScientific "ExifOrientation" $ \n ->
@@ -113,8 +113,6 @@ instance FromJSON Orientation where
         fail $ formatToString ("Invalid orientation value '" % int % "'") v
       Nothing ->
         fail $ formatToString ("Non-integer orientation value '" % shown % "'") n
-
-$(makeStore ''Orientation)
 
 extractRaw :: (FromJSON a) => Key -> Value -> Parser a
 extractRaw t =
@@ -172,9 +170,9 @@ optParsedValue parent key = do
 data LensFocalLength
   = Prime !Double
   | Zoom !Double !Double
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
 
-$(makeStore ''LensFocalLength)
+instance Store LensFocalLength
 
 instance NFData LensFocalLength where
   rnf (Prime x)  = rnf x
@@ -183,9 +181,9 @@ instance NFData LensFocalLength where
 data LensAperture
   = FixedAperture !Double
   | VariableAperture !Double !Double
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
 
-$(makeStore ''LensAperture)
+instance Store LensAperture
 
 instance NFData LensAperture where
   rnf (FixedAperture x)      = rnf x
@@ -197,13 +195,13 @@ data LensInfo = LensInfo
   , liFL     :: !(Maybe LensFocalLength)
   , liAp     :: !(Maybe LensAperture)
   , liSerial :: !(Maybe Text)
-  } deriving (Show, Eq, Ord)
+  } deriving (Show, Eq, Ord, Generic)
 
 -- FIXME: should we error out instead?
 instance Semigroup LensInfo where
   x <> _ = x
 
-$(makeStore ''LensInfo)
+instance Store LensInfo
 
 instance NFData LensInfo where
   rnf LensInfo{..} = rnf liName `seq`
@@ -299,7 +297,9 @@ parseStrOrNum v          = typeMismatch "string or number" v
 -- It's just an alias to ZonedTime, but with Eq (and thus Ord)
 -- instances.
 newtype ExifTime = ExifTime { etTime :: ZonedTime }
-  deriving (Show)
+  deriving (Show, Generic)
+
+instance Store ExifTime
 
 instance NFData ExifTime where
   rnf = rnf . etTime
@@ -325,7 +325,9 @@ data FlashSource
   = FlashSourceNone
   | FlashSourceInternal
   | FlashSourceExternal
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic)
+
+instance Store FlashSource
 
 instance NFData FlashSource where
   rnf = rwhnf
@@ -339,10 +341,12 @@ parseFlashSource _ = Nothing
 data FlashInfo = FlashInfo
   { fiSource :: !(Maybe FlashSource)
   , fiMode   :: !(Maybe Text)
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
 
 instance Default FlashInfo where
   def = FlashInfo Nothing Nothing
+
+instance Store FlashInfo
 
 instance NFData FlashInfo where
   rnf FlashInfo{..} = rnf fiSource `seq`
@@ -475,7 +479,9 @@ data Exif = Exif
   , exifLensMake     :: !(Maybe Text)
   -- meta field
   , exifWarning      :: !(Set Text)
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Store Exif
 
 instance NFData Exif where
   rnf Exif{..} = rnf exifPeople       `seq`
@@ -574,7 +580,9 @@ data GroupExif = GroupExif
   , gExifDimensions :: !(NameStats (Int, Int))
   , gExifMegapixels :: !(NameStats Double)
   -- TODO: add warnings?
-  } deriving (Show)
+  } deriving (Show, Generic)
+
+instance Store GroupExif
 
 instance NFData GroupExif where
   rnf GroupExif{..} = rnf gExifPeople    `seq`
@@ -945,12 +953,6 @@ promoteFileExif re se je mm me =
           , exifMake         = exifMake'
           , exifLensMake     = exifLensMake'
           }
-
-$(makeStore ''ExifTime)
-$(makeStore ''FlashSource)
-$(makeStore ''FlashInfo)
-$(makeStore ''Exif)
-$(makeStore ''GroupExif)
 
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath

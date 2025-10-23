@@ -19,12 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE MultiWayIf          #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE ViewPatterns        #-}
 
@@ -121,8 +121,8 @@ import qualified Data.LruCache           as LRU
 import qualified Data.Map.Strict         as Map
 import           Data.Semigroup
 import qualified Data.Set                as Set
+import           Data.Store              (Store)
 import qualified Data.Store
-import           Data.Store.TH
 import qualified Data.Text               as Text
 import qualified Data.Text.Lazy          as TextL
 import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)
@@ -199,7 +199,9 @@ data File = File
   , fileSize  :: !FileOffset
   , fileDir   :: !Text
   , fileExif  :: !Exif
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Store File
 
 instance NFData File where
   rnf File{..} = rnf fileName   `seq`
@@ -222,7 +224,9 @@ fileMimeType d = fromMaybe d . exifMimeType . fileExif
 {-# ANN Flags ("HLint: ignore Use newtype instead of data"::String) #-}
 data Flags = Flags
   { flagsSoftMaster :: !Bool
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance Store Flags
 
 instance NFData Flags where
   rnf Flags{..} = rnf flagsSoftMaster
@@ -242,7 +246,9 @@ emptyFlags = Flags {
 data MediaType = MediaUnknown
                | MediaImage
                | MediaMovie
-               deriving (Show, Eq, Ord)
+               deriving (Show, Eq, Ord, Generic)
+
+instance Store MediaType
 
 instance NFData MediaType where
   rnf _ = ()
@@ -261,7 +267,9 @@ data Image = Image
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Generic)
+
+instance Store Image
 
 instance NFData Image where
   rnf Image{..} = rnf imgName        `seq`
@@ -396,7 +404,9 @@ data PicDir = PicDir
                                        -- first picture.
   , pdExif      :: !GroupExif
   , pdStats     :: !Stats
-  } deriving (Show)
+  } deriving (Show, Generic)
+
+instance Store PicDir
 
 instance NFData PicDir where
   rnf PicDir{..} = rnf pdName     `seq`
@@ -434,7 +444,9 @@ data RepoStatus = RepoEmpty    -- ^ Only to be used at application
                   , rsCleanResults  :: !WorkResults
                   }
                 | RepoError !Text
-  deriving (Show)
+  deriving (Show, Generic)
+
+instance Store RepoStatus
 
 instance NFData RepoStatus where
   rnf RepoEmpty            = ()
@@ -454,7 +466,9 @@ data Repository = Repository
   , repoExif   :: !GroupExif
   , repoStatus :: !RepoStatus
   , repoSerial :: !Int
-  } deriving (Show)
+  } deriving (Show, Generic)
+
+instance Store Repository
 
 instance NFData Repository where
   rnf Repository{..} = rnf repoDirs   `seq`
@@ -499,7 +513,9 @@ data Stats = Stats
   , sByLens         :: !(Map Text (Occurrence LensInfo))
   , sPeople         :: !(Set Text)
   , sDateRange      :: !(Maybe DateRange)
-  } deriving Show
+  } deriving (Show, Generic)
+
+instance Store Stats
 
 instance NFData Stats where
   rnf Stats{..} = rnf sByCamera `seq`
@@ -508,7 +524,9 @@ instance NFData Stats where
 data RepoStats = RepoStats
   { rsPicStats :: !Stats
   , rsFCStats  :: !FolderClassStats
-  } deriving (Show)
+  } deriving (Show, Generic)
+
+instance Store RepoStats
 
 instance NFData RepoStats where
   rnf RepoStats{..} = rnf rsPicStats `seq`
@@ -537,16 +555,6 @@ zeroStats = Stats 0 0 0 0 0 0 0 0 0 0 0 0 Map.empty Map.empty Set.empty Nothing
 
 instance Default Stats where
   def = zeroStats
-
-$(makeStore ''File)
-$(makeStore ''MediaType)
-$(makeStore ''Flags)
-$(makeStore ''Image)
-$(makeStore ''Stats)
-$(makeStore ''RepoStats)
-$(makeStore ''PicDir)
-$(makeStore ''RepoStatus)
-$(makeStore ''Repository)
 
 -- | The total recorded size in a `Stats` structure.
 totalStatsSize :: Stats -> FileOffset
