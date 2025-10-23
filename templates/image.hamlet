@@ -52,10 +52,16 @@ $# expected grid size, so it's important to allow overflow-break.
           <td>Camera
           <td>^{showCameraLink (exifCamera exif)}
         <tr>
+          <td>Camera make
+          <td>^{showMaybeField "?" (exifMake exif)}
+        <tr>
           <td>Lens
           <td>
             <a href=@{LensInfoR (liName lens)}>
               #{lensDisplayName lens}
+        <tr>
+          <td>Lens make
+          <td>^{showMaybeField "?" (exifLensMake exif)}
 
   $if imageHasImages img
     <div .col-12 .col-sm-6 .col-lg-4 .mb-4>

@@ -377,6 +377,8 @@ data RawExif = RawExif
   , rExifWidth        :: Maybe Int
   , rExifHeight       :: Maybe Int
   , rExifMegapixels   :: Maybe Double
+  , rExifMake         :: Maybe Text
+  , rExifLensMake     :: Maybe Text
   -- meta fields below
   , rExifRaw          :: Object
   , rExifWarning      :: Maybe Text
@@ -432,6 +434,8 @@ instance FromJSON RawExif where
     rExifWidth       <- o .!:? "ImageWidth"
     rExifHeight      <- o .!:? "ImageHeight"
     rExifMegapixels  <- o .!:? "Megapixels"
+    rExifMake        <- o .!:? "Make"
+    rExifLensMake    <- o .!:? "LensMake"
     -- meta fields below
     rExifWarning     <- o .~:? "Warning"
     let rExifRaw      = o
@@ -467,6 +471,8 @@ data Exif = Exif
   , exifWidth        :: !(Maybe Int)
   , exifHeight       :: !(Maybe Int)
   , exifMegapixels   :: !(Maybe Double)
+  , exifMake         :: !(Maybe Text)
+  , exifLensMake     :: !(Maybe Text)
   -- meta field
   , exifWarning      :: !(Set Text)
   } deriving (Show, Eq)
@@ -528,6 +534,8 @@ instance Default Exif where
              , exifWidth        = Nothing
              , exifHeight       = Nothing
              , exifMegapixels   = Nothing
+             , exifMake         = Nothing
+             , exifLensMake     = Nothing
              , exifWarning      = Set.empty
              }
 
@@ -832,6 +840,8 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   exifWidth        <- evalV (< 1) (sformat ("Invalid (Exif) image width " % int)) rExifWidth
   exifHeight       <- evalV (< 1) (sformat ("Invalid (Exif) image height" % int)) rExifHeight
   exifMegapixels   <- evalV (<=0) (sformat ("Invalid (Exif) megapixels: " % float)) rExifMegapixels
+  exifMake         <- checkNull "make" rExifMake
+  exifLensMake     <- checkNull "lensmake" rExifLensMake
   errs <- get
   let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
   return Exif{..}
@@ -845,6 +855,8 @@ promoteFileExif re se je mm me =
                                map fn je ++
                                maybe Set.empty fn mm:
                                map fn me
+      -- Takes the first Just value from the raw/sidecards/processes/etc.
+      -- files.
       fjust :: (Exif -> Maybe a) -> Maybe a
       fjust fn = msum $ [re >>= fn, se >>= fn] ++ map fn je ++ [mm >>= fn] ++ map fn me
       skipMaybes :: (Exif -> a) -> [a]
@@ -900,6 +912,8 @@ promoteFileExif re se je mm me =
       exifWidth'        = fjust exifWidth
       exifHeight'       = fjust exifHeight
       exifMegapixels'   = fjust exifMegapixels
+      exifMake'         = fjust exifMake
+      exifLensMake'     = fjust exifLensMake
   in Exif { exifPeople       = exifPeople'
           , exifKeywords     = exifKeywords'
           , exifCountry      = exifCountry'
@@ -928,6 +942,8 @@ promoteFileExif re se je mm me =
           , exifWidth        = exifWidth'
           , exifHeight       = exifHeight'
           , exifMegapixels   = exifMegapixels'
+          , exifMake         = exifMake'
+          , exifLensMake     = exifLensMake'
           }
 
 $(makeStore ''ExifTime)

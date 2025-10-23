@@ -32,6 +32,10 @@ $with smf <- showMaybeField "?"
     <td>
       ^{smf exifCamera} + #{lensShortName exifLens}
   <tr>
+    <td>Make
+    <td>
+      ^{smf exifMake} / ^{smf exifLensMake}
+  <tr>
     <td>Capture time
     <td>^{smf create_date}
   <tr>
