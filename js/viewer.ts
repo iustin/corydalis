@@ -431,6 +431,7 @@ $(function () {
     const matrix = info.matrix;
     if (!isImageReady(img)) {
       LOG('Image not ready, re-schedule late loading draw of %s', url);
+      showWaitingState(true);
       img.onload = function () {
         LOG('Late load of ', url);
         setImageReady(img, true);
@@ -582,6 +583,7 @@ $(function () {
       targetSize.y,
     );
     T_STOP('drawImage');
+    showWaitingState(false);
 
     // Post-draw actions.
     LOG('post-draw ', url);
@@ -703,6 +705,7 @@ $(function () {
       return;
     }
     writeMessage('Requesting full screen image…', 2000);
+    showWaitingState(true);
     setImageReady(img, false);
     img.onload = function () {
       LOG('got full size image, calling drawImage');
@@ -772,6 +775,14 @@ $(function () {
     setImageReady(img, false);
     img.dataset.fullres = 'false';
     img.src = imageUrlScaled(url);
+  }
+
+  function showWaitingState(waiting: boolean) {
+    if (waiting) {
+      canvas.style.cursor = 'wait';
+    } else {
+      canvas.style.cursor = 'auto';
+    }
   }
 
   function setImageReady(img: HTMLImageElement, done: boolean) {
@@ -878,7 +889,7 @@ $(function () {
     updateFullScreenIcon();
   }
 
-  // Switches to a non-preloaded image.
+  // Switches to a non-preloaded image and schedules its drawing.
   function switchToImage(info: ImageInfo) {
     const image = new Image();
     image.onload = function () {
@@ -886,6 +897,7 @@ $(function () {
       drawImage(cory.state, image, info);
     };
     writeMessage(`Loading ${info.name}...`);
+    showWaitingState(true);
     maybeWriteIsMovie(info);
     loadImage(image, info.bytes);
     updateInfo(info.info);
@@ -968,6 +980,7 @@ $(function () {
   }
 
   function gotoRandomImage() {
+    showWaitingState(true);
     $.ajax({
       url: bootdiv.data('random-url'),
       type: 'GET',
@@ -1714,6 +1727,7 @@ $(function () {
     const c = bootinfo.current;
     drawImage(cory.state, image, c);
   };
+  showWaitingState(true);
   loadImage(image, bootinfo.current.bytes);
 
   // Process the rest of info (load prev/next images) only after the
