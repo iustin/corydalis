@@ -80,11 +80,11 @@ instance ToJSON ImageInfo where
            , "name"      .= iiName
            , "transform" .= iiTransform
            , "matrix"    .= iiMatrix
+           , "exif"      .= iiExif
            ]
 
-mkImageInfo :: Text -> ImageName -> Bool -> Hamlet.Render (Route App)
-            -> UrlParams -> Transform -> ImageInfo
-mkImageInfo folder iname movie render params t =
+mkImageInfo :: Image -> Hamlet.Render (Route App) -> UrlParams -> ImageInfo
+mkImageInfo img render params =
   ImageInfo (render (ImageInfoR folder iname) params)
             (render (ImageBytesR folder iname) [])
             (if movie then Just (render (MovieBytesR folder iname) []) else Nothing)
@@ -93,6 +93,10 @@ mkImageInfo folder iname movie render params t =
             (render ListImagesR params)
             (render (BrowseImagesR 0) params)
             iname (transformParams t) (transformMatrix t)
+    where folder = imgParent img
+          iname = imgName img
+          movie = isJust $ bestMovie img
+          t = transformForImage img
 
 data ViewInfo = ViewInfo
   { viYear       :: Text
@@ -230,8 +234,7 @@ viewInfoForImage params (images, folders) folder iname = do
       imgLast  = snd  $  Map.findMax images
       fldPrev  = snd <$> Map.lookupLT folder folders
       fldNext  = snd <$> Map.lookupGT folder folders
-      mk i = mkImageInfo (imgParent i) (imgName i) (isJust $ bestMovie i)
-               render params (transformForImage i)
+      mk i = mkImageInfo i render params
       y = maybe "?" (Text.pack . show) $ pdYear picdir
       yurl = maybe SearchFoldersNoYearR (SearchFoldersByYearR . sformat int) $ pdYear picdir
   return $
