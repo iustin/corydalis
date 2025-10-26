@@ -384,6 +384,7 @@ $(function () {
 
   const menuToggle = document.getElementById('menuToggle');
   const imageNavGroup = document.getElementById('imageNavGroup');
+  const waitingBar = document.getElementById('waiting-bar');
 
   if (
     canvas == null ||
@@ -394,7 +395,8 @@ $(function () {
     seekBar == null ||
     helpDiv == null ||
     menuToggle == null ||
-    imageNavGroup == null
+    imageNavGroup == null ||
+    waitingBar == null
   ) {
     LOG('Initialising canvas elements failed!');
     window.alert('Cannot fully initialise the application, aborting!');
@@ -778,10 +780,14 @@ $(function () {
   }
 
   function showWaitingState(waiting: boolean) {
+    // FIXME: why does progressBar need '!', but not other variables
+    // that were tested already?!
     if (waiting) {
       canvas.style.cursor = 'wait';
+      waitingBar!.style.display = 'block';
     } else {
       canvas.style.cursor = 'auto';
+      waitingBar!.style.display = 'none';
     }
   }
 

@@ -232,3 +232,45 @@ td.keyHeader {
 .card>.table {
     margin-bottom: 0px;
 }
+
+.waiting-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Matches canvas width */
+    width: 100%;
+    /* Thin bar, adjust as needed */
+    height: 6px;
+    /* Light gray, iOS-like */
+    background: #e0e0e0;
+    overflow: hidden;
+    /* High z-index to overlay canvas */
+    z-index: 1000;
+    /* Hidden by default, toggle with JS */
+    display: none;
+}
+
+.waiting-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    /* Start off-screen */
+    left: -100%;
+    /* Smaller width for sliding effect */
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            /* iOS blue */
+            #007aff 50%,
+            transparent);
+    /* Shimmer effect */
+    animation: waiting-slide 1.5s linear infinite;
+}
+
+@keyframes waiting-slide {
+    to {
+        left: 100%;
+        /* Slide to the right */
+    }
+}
