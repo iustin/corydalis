@@ -434,6 +434,7 @@ $(function () {
     if (!isImageReady(img)) {
       LOG('Image not ready, re-schedule late loading draw of %s', url);
       showWaitingState(true);
+      handleImageError(img);
       img.onload = function () {
         LOG('Late load of ', url);
         setImageReady(img, true);
@@ -709,6 +710,7 @@ $(function () {
     writeMessage('Requesting full screen image…', 2000);
     showWaitingState(true);
     setImageReady(img, false);
+    handleImageError(img);
     img.onload = function () {
       LOG('got full size image, calling drawImage');
       setImageReady(img, true);
@@ -779,6 +781,14 @@ $(function () {
     img.src = imageUrlScaled(url);
   }
 
+  function handleImageError(img: HTMLImageElement) {
+    img.onerror = function () {
+      LOG('Image loading failed!');
+      showWaitingState(false);
+      window.alert('Failed to load the image!');
+    };
+  }
+
   function showWaitingState(waiting: boolean) {
     // FIXME: why does progressBar need '!', but not other variables
     // that were tested already?!
@@ -827,6 +837,9 @@ $(function () {
     text: string,
   ) {
     if (info != null) {
+      // Since the image is off-screen and won't be drawn, we don't need
+      // to explicitly handle errors, as those will be handled once the
+      // image wants to become on-screen.
       img.onload = function () {
         handleOffscreenImageLoad(img, text);
       };
@@ -898,6 +911,7 @@ $(function () {
   // Switches to a non-preloaded image and schedules its drawing.
   function switchToImage(info: ImageInfo) {
     const image = new Image();
+    handleImageError(image);
     image.onload = function () {
       setImageReady(image, true);
       drawImage(cory.state, image, info);
@@ -1728,6 +1742,7 @@ $(function () {
   maybeWriteIsMovie(bootinfo.current);
 
   const image = new Image();
+  handleImageError(image);
   image.onload = function () {
     setImageReady(image, true);
     const c = bootinfo.current;
