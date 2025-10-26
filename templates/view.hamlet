@@ -27,6 +27,16 @@
               <b>Image navigation
           <tr>
             <td .keyName>
+              <kbd>o
+            <td .keyDesc>
+              Open the image info page.
+          <tr>
+            <td .keyName>
+              <kbd>D
+            <td .keyDesc>
+              Download the current image.
+          <tr>
+            <td .keyName>
               <kbd>⟵
             <td .keyDesc>
               Go to the previous picture.
@@ -153,6 +163,8 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             <span>
               <span .fa-solid .fa-arrow-right-long>
               Open image info page
+            <kbd .ms-2>
+              o
         <li>
           <button type="button" .btn .btn-light .dropdown-item #downloadImage
             .d-flex .justify-content-between .align-items-center

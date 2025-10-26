@@ -1583,6 +1583,9 @@ $(function () {
       case 'L':
         triggerFolderListMode();
         break;
+      case 'o':
+        triggerGoToImageInfo();
+        break;
       case 'D':
         triggerImageDownload();
         break;
@@ -1664,6 +1667,9 @@ $(function () {
     imageNavGroup.classList.add('revealed');
   });
 
+  function triggerGoToImageInfo() {
+    window.location.href = cory.info.imageurl;
+  }
   function triggerImageDownload() {
     downloadFile(cory.info.current.bytes, cory.info.current.name);
   }
@@ -1698,9 +1704,7 @@ $(function () {
     $('#imageRand').on('click', function () {
       gotoRandomImage();
     });
-    $('#goImageInfo').on('click', function () {
-      window.location.href = cory.info.imageurl;
-    });
+    $('#goImageInfo').on('click', triggerGoToImageInfo);
     $('#downloadImage').on('click', triggerImageDownload);
     $('#goParent').on('click', gotoFolder);
     $('#goBrowse').on('click', triggerBrowseMode);
