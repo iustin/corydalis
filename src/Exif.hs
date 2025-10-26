@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE NumericUnderscores #-}
@@ -50,6 +51,10 @@ module Exif ( Exif(..)
             , rotateToJSON
             , transformParams
             , transformMatrix
+#ifdef DEVELOPMENT
+            , Orientation(..)
+            , parseFlashSource
+#endif
             ) where
 
 import           Control.Applicative
@@ -91,12 +96,22 @@ data Orientation
   | OrientationRightTop
   | OrientationRightBot
   | OrientationLeftBot
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Enum, Bounded)
 
 instance Default Orientation where
   def = OrientationTopLeft
 
 instance Store Orientation
+
+instance ToJSON Orientation where
+  toJSON OrientationTopLeft  = Number 1
+  toJSON OrientationTopRight = Number 2
+  toJSON OrientationBotRight = Number 3
+  toJSON OrientationBotLeft  = Number 4
+  toJSON OrientationLeftTop  = Number 5
+  toJSON OrientationRightTop = Number 6
+  toJSON OrientationRightBot = Number 7
+  toJSON OrientationLeftBot  = Number 8
 
 instance FromJSON Orientation where
   parseJSON = withScientific "ExifOrientation" $ \n ->
@@ -174,6 +189,17 @@ data LensFocalLength
 
 instance Store LensFocalLength
 
+instance ToJSON LensFocalLength where
+  toJSON (Prime focal) = object
+    [ "type" .= ("prime" :: Text)
+    , "focal" .= focal
+    ]
+  toJSON (Zoom minFocal maxFocal) = object
+    [ "type" .= ("zoom" :: Text)
+    , "minFocal" .= minFocal
+    , "maxFocal" .= maxFocal
+    ]
+
 instance NFData LensFocalLength where
   rnf (Prime x)  = rnf x
   rnf (Zoom x y) = rnf x `seq` rnf y
@@ -184,6 +210,18 @@ data LensAperture
   deriving (Show, Eq, Ord, Generic)
 
 instance Store LensAperture
+
+instance ToJSON LensAperture where
+  toJSON (FixedAperture aperture) = object
+    [ "type" .= ("fixed" :: Text)
+    , "aperture" .= aperture
+    ]
+  toJSON (VariableAperture minAperture maxAperture) = object
+    [ "type" .= ("variable" :: Text)
+    , "minAperture" .= minAperture
+    , "maxAperture" .= maxAperture
+    ]
+
 
 instance NFData LensAperture where
   rnf (FixedAperture x)      = rnf x
@@ -202,6 +240,15 @@ instance Semigroup LensInfo where
   x <> _ = x
 
 instance Store LensInfo
+
+instance ToJSON LensInfo where
+  toJSON LensInfo{..} = object
+    [ "name" .= liName
+    , "spec" .= liSpec
+    , "focalLength" .= liFL
+    , "aperture" .= liAp
+    , "serial" .= liSerial
+    ]
 
 instance NFData LensInfo where
   rnf LensInfo{..} = rnf liName `seq`
@@ -301,6 +348,9 @@ newtype ExifTime = ExifTime { etTime :: ZonedTime }
 
 instance Store ExifTime
 
+instance ToJSON ExifTime where
+  toJSON (ExifTime zt) = toJSON $ formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%z" zt
+
 instance NFData ExifTime where
   rnf = rnf . etTime
 
@@ -325,9 +375,14 @@ data FlashSource
   = FlashSourceNone
   | FlashSourceInternal
   | FlashSourceExternal
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Show, Generic, Enum, Bounded)
 
 instance Store FlashSource
+
+instance ToJSON FlashSource where
+  toJSON FlashSourceNone     = Number 0
+  toJSON FlashSourceExternal = Number 1
+  toJSON FlashSourceInternal = Number 2
 
 instance NFData FlashSource where
   rnf = rwhnf
@@ -347,6 +402,12 @@ instance Default FlashInfo where
   def = FlashInfo Nothing Nothing
 
 instance Store FlashInfo
+
+instance ToJSON FlashInfo where
+  toJSON FlashInfo{..} = object
+    [ "source" .= fiSource
+    , "mode" .= fiMode
+    ]
 
 instance NFData FlashInfo where
   rnf FlashInfo{..} = rnf fiSource `seq`
@@ -482,6 +543,40 @@ data Exif = Exif
   } deriving (Show, Eq, Generic)
 
 instance Store Exif
+
+instance ToJSON Exif where
+  toJSON Exif{..} = object
+    [ "people"       .= exifPeople
+    , "keywords"     .= exifKeywords
+    , "country"      .= exifCountry
+    , "province"     .= exifProvince
+    , "city"         .= exifCity
+    , "location"     .= exifLocation
+    , "camera"       .= exifCamera
+    , "model"        .= exifModel
+    , "serial"       .= exifSerial
+    , "lens"         .= exifLens
+    , "orientation"  .= exifOrientation
+    , "createDate"   .= exifCreateDate
+    , "title"        .= exifTitle
+    , "caption"      .= exifCaption
+    , "aperture"     .= exifAperture
+    , "focalLength"  .= exifFocalLength
+    , "fl35mm"       .= exifFL35mm
+    , "iso"          .= exifISO
+    , "sSpeedDesc"   .= exifSSpeedDesc
+    , "sSpeedVal"    .= exifSSpeedVal
+    , "shutterCount" .= exifShutterCount
+    , "mimeType"     .= exifMimeType
+    , "rating"       .= exifRating
+    , "flashInfo"    .= exifFlashInfo
+    , "width"        .= exifWidth
+    , "height"       .= exifHeight
+    , "megapixels"   .= exifMegapixels
+    , "make"         .= exifMake
+    , "lensMake"     .= exifLensMake
+    , "warning"      .= exifWarning
+    ]
 
 instance NFData Exif where
   rnf Exif{..} = rnf exifPeople       `seq`
