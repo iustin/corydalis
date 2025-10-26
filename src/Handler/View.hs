@@ -66,6 +66,7 @@ data ImageInfo = ImageInfo
   , iiName      :: ImageName
   , iiTransform :: (Int, Bool, Bool)
   , iiMatrix    :: (Double, Double, Double, Double)
+  , iiExif      :: Exif
   }
 
 instance ToJSON ImageInfo where
@@ -93,6 +94,7 @@ mkImageInfo img render params =
             (render ListImagesR params)
             (render (BrowseImagesR 0) params)
             iname (transformParams t) (transformMatrix t)
+            (imgExif img)
     where folder = imgParent img
           iname = imgName img
           movie = isJust $ bestMovie img

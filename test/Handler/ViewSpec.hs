@@ -28,6 +28,7 @@ import           TestImport
 import           Types
 
 import           Data.Aeson
+import           Data.Default
 
 import           Text.Blaze.Svg.Renderer.String
 
@@ -55,6 +56,7 @@ spec = parallel $ do
               , iiName = ImageName "test.jpg"
               , iiTransform = (0, False, False)
               , iiMatrix = (1.0, 0.0, 0.0, 1.0)
+              , iiExif = def
               }
         toJSON imgInfo `shouldNotBe` Null
 
