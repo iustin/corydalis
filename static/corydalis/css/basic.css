@@ -129,6 +129,19 @@ div#imageNavGroup {
     font-size: xx-small;
 }
 
+div#imageInfo {
+    z-index: 2;
+    position: absolute;
+    top: 1rem;
+    /* Center the info by default (for small screens) */
+    left: 50%;
+    transform: translate(-50%, 0);
+    /* Also change the font defaults for the whole nav group */
+    font-size: xx-small;
+    /* Hide by defalt, enable on demand */
+    display: none;
+}
+
 div#imageNavGroup.revealed {
     opacity: 1;
 }
@@ -163,6 +176,14 @@ ul#nav-breadcrumbs {
         font-size: x-small;
     }
 
+    div#imageInfo {
+        left: auto;
+        transform: none;
+        right: 1rem;
+        max-width: calc(100vw - 2rem);
+        font-size: small;
+    }
+
     ul#nav-breadcrumbs {
         max-width: 55%;
     }
@@ -171,6 +192,10 @@ ul#nav-breadcrumbs {
 @media(min-width:62em) {
     div#imageNavGroup {
         font-size: small;
+    }
+
+    div#imageInfo {
+        font-size: medium;
     }
 
     ul#nav-breadcrumbs {

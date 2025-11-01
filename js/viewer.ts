@@ -40,6 +40,7 @@ type ImageInfo = {
   transform: Transform;
   matrix: AffineMatrix;
   fullres: boolean;
+  exif: object;
 };
 
 type ViewInfo = {
@@ -384,6 +385,8 @@ $(function () {
 
   const menuToggle = document.getElementById('menuToggle');
   const imageNavGroup = document.getElementById('imageNavGroup');
+  const imageInfo = document.getElementById('imageInfo');
+  const imageInfoText = document.getElementById('imageInfoText');
   const waitingBar = document.getElementById('waiting-bar');
 
   if (
@@ -396,7 +399,9 @@ $(function () {
     helpDiv == null ||
     menuToggle == null ||
     imageNavGroup == null ||
-    waitingBar == null
+    waitingBar == null ||
+    imageInfo == null ||
+    imageInfoText == null
   ) {
     LOG('Initialising canvas elements failed!');
     window.alert('Cannot fully initialise the application, aborting!');
@@ -586,6 +591,7 @@ $(function () {
       targetSize.y,
     );
     T_STOP('drawImage');
+    imageInfoText!.innerText = JSON.stringify(info.exif);
     showWaitingState(false);
 
     // Post-draw actions.
@@ -1021,6 +1027,15 @@ $(function () {
         v.style.display = visible ? 'block' : 'none';
       }
     });
+  }
+
+  /** Toggle item visibility */
+  function toggleItemVisibility(item: HTMLElement) {
+    if (item.style.display == 'block') {
+      item.style.display = 'none';
+    } else {
+      item.style.display = 'block';
+    }
   }
 
   /** Event lander for when the movie is ready to play.
@@ -1582,6 +1597,9 @@ $(function () {
         break;
       case 'L':
         triggerFolderListMode();
+        break;
+      case 'i':
+        toggleItemVisibility(imageInfo);
         break;
       case 'o':
         triggerGoToImageInfo();
