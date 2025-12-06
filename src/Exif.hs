@@ -81,6 +81,7 @@ import           System.Process.Typed
 import           Cache
 import           Compat.Orphans            ()
 import           Import.NoFoundation       hiding (Key, get)
+import           Text.Blaze                (ToMarkup (..))
 
 -- | Shutter counts this high are unlikely, but they do appear in
 -- corrupted/wrong exif data.
@@ -346,10 +347,17 @@ parseStrOrNum v          = typeMismatch "string or number" v
 newtype ExifTime = ExifTime { etTime :: ZonedTime }
   deriving (Show, Generic)
 
+formatExifTime :: ExifTime -> String
+formatExifTime =
+  formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S%Q%z" . etTime
+
 instance Store ExifTime
 
 instance ToJSON ExifTime where
-  toJSON (ExifTime zt) = toJSON $ formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%z" zt
+  toJSON = toJSON . formatExifTime
+
+instance ToMarkup ExifTime where
+  toMarkup = toMarkup . Text.pack . formatExifTime
 
 instance NFData ExifTime where
   rnf = rnf . etTime

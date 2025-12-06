@@ -40,7 +40,7 @@ type ImageInfo = {
   transform: Transform;
   matrix: AffineMatrix;
   fullres: boolean;
-  exif: object;
+  exifhtml: string;
 };
 
 type ViewInfo = {
@@ -591,7 +591,8 @@ $(function () {
       targetSize.y,
     );
     T_STOP('drawImage');
-    imageInfoText!.innerText = JSON.stringify(info.exif);
+    LOG('exif:', info.exifhtml);
+    imageInfoText!.innerHTML = info.exifhtml;
     showWaitingState(false);
 
     // Post-draw actions.

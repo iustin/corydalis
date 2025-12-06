@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TupleSections         #-}
@@ -39,17 +40,20 @@ module Handler.View ( getViewR
 #endif
                     ) where
 
-import           Data.Aeson.Text             (encodeToLazyText)
-import qualified Data.Map                    as Map
-import qualified Data.Text                   as Text
-import qualified Data.Text.Encoding          as Text (encodeUtf8)
-import qualified Data.Text.Lazy              as TextL
-import qualified Text.Blaze.Svg              as Svg
-import           Text.Blaze.Svg11            (Svg, docTypeSvg, rect, text_,
-                                              tspan, (!))
-import qualified Text.Blaze.Svg11.Attributes as SA
-import qualified Text.Hamlet                 as Hamlet (Render)
+import           Data.Aeson.Text               (encodeToLazyText)
+import qualified Data.Map                      as Map
+import qualified Data.Text                     as Text
+import qualified Data.Text.Encoding            as Text (encodeUtf8)
+import qualified Data.Text.Lazy                as TextL
+import           Text.Blaze                    (ToMarkup, toMarkup)
+import           Text.Blaze.Html.Renderer.Text (renderHtml)
+import qualified Text.Blaze.Svg                as Svg
+import           Text.Blaze.Svg11              (Svg, docTypeSvg, rect, text_,
+                                                tspan, (!))
+import qualified Text.Blaze.Svg11.Attributes   as SA
+import qualified Text.Hamlet                   as Hamlet (Render)
 
+import qualified ClassyPrelude                 as Data.Text.Lazy
 import           Exif
 import           Handler.Utils
 import           Import
@@ -66,7 +70,7 @@ data ImageInfo = ImageInfo
   , iiName      :: ImageName
   , iiTransform :: (Int, Bool, Bool)
   , iiMatrix    :: (Double, Double, Double, Double)
-  , iiExif      :: Exif
+  , iiExifHTML  :: Text
   }
 
 instance ToJSON ImageInfo where
@@ -81,8 +85,46 @@ instance ToJSON ImageInfo where
            , "name"      .= iiName
            , "transform" .= iiTransform
            , "matrix"    .= iiMatrix
-           , "exif"      .= iiExif
+           , "exifhtml"  .= iiExifHTML
            ]
+
+data MaybeMarkup a = RealMarkup a | NoMarkup
+
+wrapMarkup :: Maybe a -> MaybeMarkup a
+wrapMarkup Nothing  = NoMarkup
+wrapMarkup (Just a) = RealMarkup a
+
+instance ToMarkup a => ToMarkup (MaybeMarkup a) where
+  toMarkup NoMarkup       = toMarkup ("(missing)"::Text)
+  toMarkup (RealMarkup a) = toMarkup a
+
+renderExifHTML :: Image -> Text
+renderExifHTML img =
+  let exif = imgExif img
+  in Data.Text.Lazy.toStrict $ renderHtml [shamlet|
+        <b>Date:
+        #{wrapMarkup $ exifCreateDate exif}
+        <br>
+      $maybe title <- exifTitle exif
+        <b>Title:
+        #{title}
+        <br>
+      $maybe caption <- exifCaption exif
+        <b>Caption:
+        #{caption}
+        <br>
+      <b>Camera:
+      #{wrapMarkup $ exifCamera exif}
+      <br>
+      <b>Lens:
+      #{lensDisplayName (exifLens exif)}
+      <br>
+      <b>Focal length:
+      #{wrapMarkup (exifFL35mm exif)}mm
+      <br>
+      <b>Exposure:
+      #{wrapMarkup $ exifSSpeedDesc exif} @ f/#{wrapMarkup (exifAperture exif)}, ISO #{wrapMarkup (exifISO exif)}
+    |]
 
 mkImageInfo :: Image -> Hamlet.Render (Route App) -> UrlParams -> ImageInfo
 mkImageInfo img render params =
@@ -94,7 +136,7 @@ mkImageInfo img render params =
             (render ListImagesR params)
             (render (BrowseImagesR 0) params)
             iname (transformParams t) (transformMatrix t)
-            (imgExif img)
+            (renderExifHTML img)
     where folder = imgParent img
           iname = imgName img
           movie = isJust $ bestMovie img
