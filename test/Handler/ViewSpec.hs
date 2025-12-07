@@ -28,7 +28,6 @@ import           TestImport
 import           Types
 
 import           Data.Aeson
-import           Data.Default
 
 import           Text.Blaze.Svg.Renderer.String
 
