@@ -123,7 +123,7 @@ renderExifHTML img =
       #{wrapMarkup (exifFL35mm exif)}mm
       <br>
       <b>Exposure:
-      #{wrapMarkup $ exifSSpeedDesc exif} @ f/#{wrapMarkup (exifAperture exif)}, ISO #{wrapMarkup (exifISO exif)}
+      #{wrapMarkup $ exifSSpeedDesc exif}s @ &fnof;/#{wrapMarkup (exifAperture exif)}, ISO #{wrapMarkup (exifISO exif)}
     |]
 
 mkImageInfo :: Image -> Hamlet.Render (Route App) -> UrlParams -> ImageInfo
