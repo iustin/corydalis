@@ -142,9 +142,9 @@
 $# The style attribute is for disabling zooming, for context see
 $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
 <div #imageInfo style="touch-action: manipulation">
-  <div .card>
+  <div .card style="opacity: 0.8">
     <div .card-body #imageInfoText>
-      Foobar!
+      This will hold the image EXIF and other information.
 
 $# The style attribute is for disabling zooming, for context see
 $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
