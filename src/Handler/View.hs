@@ -70,7 +70,7 @@ data ImageInfo = ImageInfo
   , iiName      :: ImageName
   , iiTransform :: (Int, Bool, Bool)
   , iiMatrix    :: (Double, Double, Double, Double)
-  , iiExifHTML  :: Text
+  , iiExifHtml  :: Text
   }
 
 instance ToJSON ImageInfo where
@@ -85,7 +85,7 @@ instance ToJSON ImageInfo where
            , "name"      .= iiName
            , "transform" .= iiTransform
            , "matrix"    .= iiMatrix
-           , "exifhtml"  .= iiExifHTML
+           , "exifhtml"  .= iiExifHtml
            ]
 
 data MaybeMarkup a = RealMarkup a | NoMarkup

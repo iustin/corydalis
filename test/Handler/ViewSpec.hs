@@ -56,7 +56,7 @@ spec = parallel $ do
               , iiName = ImageName "test.jpg"
               , iiTransform = (0, False, False)
               , iiMatrix = (1.0, 0.0, 0.0, 1.0)
-              , iiExif = def
+              , iiExifHtml = "<p>Exif data</p>"
               }
         toJSON imgInfo `shouldNotBe` Null
 
