@@ -76,7 +76,7 @@ module Indexer ( Symbol(..)
                ) where
 
 import           Control.Monad               (foldM, when)
-import           Data.List                   (foldl', nub, partition)
+import           Data.List                   (nub, partition)
 import qualified Data.Map                    as Map
 import           Data.Maybe                  (fromMaybe, isJust, isNothing,
                                               mapMaybe)

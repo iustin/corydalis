@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-23.28
+resolver: lts-24.26
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -41,7 +41,9 @@ packages:
 # (e.g., acme-missiles-0.3)
 # hlint and later are just for hlint, until newer version in LTS.
 extra-deps:
-  - lrucaching-0.3.4@sha256:d101c884e5b13c1788c20ac98ab7501a2b8d1a33153970ea432b2b87e9970258,1985
+  - github: iustin/lrucaching
+    commit: '8f5b794c18ee3b1c26b0145e2143700a7925bb8f'
+#  - lrucaching-0.3.4@sha256:d101c884e5b13c1788c20ac98ab7501a2b8d1a33153970ea432b2b87e9970258,1985
 
 # Override default flag values for local packages and extra-deps
 flags: {}
