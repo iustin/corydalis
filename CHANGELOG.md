@@ -50,6 +50,10 @@ but behaved different from the image browse mode, has been entirely
 removed. For folders, the only remaining mode is listing, which makes more
 sense as showing just a picture was not representative for a folder.
 
+In the movie play mode, if the end of the movie is reached, pressing
+spacebar once again will advance to the next item, instead of replaying
+the movie.
+
 ### Fixed bugs
 
 When going from any other page to the image viewer, and then moving to

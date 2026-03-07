@@ -977,7 +977,14 @@ $(function () {
    */
   function advanceOrPlay() {
     if (cory.info.current.movie != null) {
-      launchMovie();
+      /* In case the movie was already played, let's just navigate to the
+       * next image, so that a single action can be used for both movies and
+       * images. */
+      const video = cory.state.video;
+      LOG(video?.paused, video?.currentTime, video?.duration);
+      if (video != null && video.paused && video.currentTime == video.duration)
+        advanceImage(true);
+      else launchMovie();
     } else {
       advanceImage(true);
     }
