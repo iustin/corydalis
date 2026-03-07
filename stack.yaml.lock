@@ -5,19 +5,15 @@
 
 packages:
 - completed:
-    name: lrucaching
+    hackage: lrucaching-0.3.5@sha256:27bf853283f36d4ce3c268842288c11d1b03e35445ba9ad615674f9ecc0ecd2a,2015
     pantry-tree:
-      sha256: 20290cd7f4dcc886bd4023b117cbdd75889f2a565e6ea05890692b792a87678f
-      size: 1042
-    sha256: 779df9ecef2140e3b1cd23bbf13ff14bd1f329c9d2a9993e8431715bb6b03fd0
-    size: 9487
-    url: https://github.com/iustin/lrucaching/archive/8f5b794c18ee3b1c26b0145e2143700a7925bb8f.tar.gz
-    version: 0.3.3
+      sha256: 996b3f2ac324eec22f95fedf245a7ee421efacf5a026b40fd2a959b7a04e4b88
+      size: 784
   original:
-    url: https://github.com/iustin/lrucaching/archive/8f5b794c18ee3b1c26b0145e2143700a7925bb8f.tar.gz
+    hackage: lrucaching-0.3.5@sha256:27bf853283f36d4ce3c268842288c11d1b03e35445ba9ad615674f9ecc0ecd2a,2015
 snapshots:
 - completed:
-    sha256: d90eb1418667a225998b173817300e5ae2e1500ed03c0a9457cc2a0e78a0122a
-    size: 726337
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/26.yaml
-  original: lts-24.26
+    sha256: a8cfaae441160430cdde558cb80d4f9d60746e7417b275250e4e0af57ee14f36
+    size: 728954
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/33.yaml
+  original: lts-24.33
