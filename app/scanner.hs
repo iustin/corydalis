@@ -24,19 +24,18 @@ import           Import
 import           Pics
 import           System.Clock
 import           System.Mem
+import           System.Log.FastLogger
 
-main :: IO ()
-main = do
-    -- Get the settings from all relevant sources
-    settings <- loadYamlSettingsArgs [] useEnv
+benchmark :: Config -> FastLogger -> IO ()
+benchmark config logger = do
+    let logfn _ str = logger $ toLogStr str
 
-    let config = appConfig settings
-
-    ctx <- atomically $ initContext config (\_ _ -> return ())
+    ctx <- atomically $ initContext config logfn
     -- Scan repository
     t1m <- getTime Monotonic
     t1p <- getTime ProcessCPUTime
-    repo <- scanAll ctx
+    _ <- scanAll ctx
+    repo <- waitForScan ctx
     performGC
     t2m <- getTime Monotonic
     t2p <- getTime ProcessCPUTime
@@ -61,3 +60,13 @@ main = do
     print $ diffTimeSpec t4p t3p
     -- threadDelay 5000000
     performGC
+
+main :: IO ()
+main = do
+    -- Get the settings from all relevant sources
+    settings <- loadYamlSettingsArgs [] useEnv
+
+    let config = appConfig settings
+
+    withFastLogger (LogStdout defaultBufSize) $ \logger ->
+        benchmark config logger
