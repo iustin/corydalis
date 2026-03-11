@@ -37,7 +37,6 @@ import           Exif
 import           Indexer
 import           Pics
 import           TestImport
-import           Types
 
 instance Arbitrary FolderClass where
   arbitrary = chooseEnum (minBound, maxBound)

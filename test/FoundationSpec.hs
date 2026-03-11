@@ -27,7 +27,6 @@ import           Web.Cookie
 
 import           Handler.Cookies
 import           TestImport
-import           Types
 
 handlerView :: [(Route App, ViewMode)]
 handlerView = [ (BrowseImagesR 0, ViewImagesGrid)

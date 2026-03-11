@@ -25,7 +25,6 @@ module Handler.ViewSpec (spec) where
 import           Handler.View
 import           Pics
 import           TestImport
-import           Types
 
 import           Data.Aeson
 

@@ -27,7 +27,6 @@ import           System.Directory
 
 import           Cache
 import           TestImport
-import           Types            (Config (..))
 
 failDelete :: Config -> FilePath -> IO ()
 failDelete (cfgCacheDir -> cache) path = do

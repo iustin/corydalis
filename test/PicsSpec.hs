@@ -26,7 +26,6 @@ import qualified Data.Map   as Map
 
 import           Pics
 import           TestImport
-import           Types      (ctxConfig)
 
 spec :: Spec
 spec = parallel $ withContext $

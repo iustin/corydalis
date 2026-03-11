@@ -28,7 +28,6 @@ import           Handler.Cookies
 import           Pics            (getSearchResults, launchScanFileSystem,
                                   waitForScan)
 import           TestImport
-import           Types
 
 checkRedirAndHeader :: YesodExample App ()
 checkRedirAndHeader = do

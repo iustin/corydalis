@@ -46,8 +46,7 @@ import           Pics                           (Ctx, File (..), Image (..),
 import           Test.Hspec                     as X
 import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
 import           Test.Hspec.QuickCheck          as X
-import           Types                          (Config (..), Context (..),
-                                                 ImageName (..))
+import           Types                          as X
 import           Yesod.Auth                     as X
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
 import           Yesod.Default.Config2          (loadYamlSettings, useEnv)
