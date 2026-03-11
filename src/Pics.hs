@@ -1296,6 +1296,8 @@ forceBuildThumbCaches config renderProgress repo totalrender = do
                             atomically $ modifyTVar renderProgress modifier
                         )
                     (cfgAutoImageSizes config)
+  -- TODO: add some concurrency for image cache builds.
+  -- pooledMapConcurrentlyN_ 8 thbuild images
   mapM_ thbuild images
   readTVarIO renderProgress
 
