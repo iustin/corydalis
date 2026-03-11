@@ -130,3 +130,14 @@ spec = parallel $ do
     prop "parse/format equivalence" $
       forAll (chooseEnum (minBound, maxBound)::Gen ViewMode) $ \vm ->
         parseViewMode (decodeUtf8 $ formatViewMode vm) === Just vm
+  describe "tests SymbolizedItem properties" $ do
+    prop "to/from Text equivalence" $ \txt ->
+      deSymbolizeItem (mkSymbolizedItem txt) === (txt::Text)
+    prop "to/from Text equivalence with Maybe" $ \mtxt ->
+      maybeDesymbolizeItem (fmap mkSymbolizedItem mtxt) === (mtxt::Maybe Text)
+    it "checks symbolized equivalence" $ do
+      let t1 = "abc"::Text
+          t2 = "abc"::Text
+          s1 = mkSymbolizedItem t1
+          s2 = mkSymbolizedItem t2
+      s1 `shouldBe` s2

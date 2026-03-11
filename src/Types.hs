@@ -65,6 +65,11 @@ module Types ( Config(..)
              , ViewMode(..)
              , formatViewMode
              , parseViewMode
+             , SymbolizedItem(..)
+             , mkSymbolizedItem
+             , deSymbolizeItem
+             , deSymbolizeToText
+             , maybeDesymbolizeItem
              ) where
 
 import           Control.Applicative
@@ -73,23 +78,26 @@ import           Control.Concurrent.STM
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
-import           Data.Default             (Default, def)
-import qualified Data.Set                 as Set
+import           Data.Default               (Default, def)
+import           Data.Functor.Contravariant (contramap)
+import qualified Data.Set                   as Set
 import           Data.Store
-import qualified Data.Text                as Text
-import qualified Data.Text.Lazy           as TextL
+import qualified Data.Text                  as Text
+import qualified Data.Text.Lazy             as TextL
 import           Data.Time.Clock
 import           Data.Time.LocalTime
-import           Database.Persist.Sql     (PersistFieldSql)
-import           System.FilePath          (pathSeparator)
-import           System.Log.FastLogger    (LogStr)
-import           Text.Blaze               (ToMarkup)
-import qualified Text.Regex.TDFA          as TDFA
+import           Database.Persist.Sql       (PersistFieldSql)
+import           Symbolize
+import qualified Symbolize.Textual          as ST
+import           System.FilePath            (pathSeparator)
+import           System.Log.FastLogger      (LogStr)
+import           Text.Blaze                 (ToMarkup (..))
+import qualified Text.Regex.TDFA            as TDFA
 import           Yesod
 
 -- Note: Can't import Import, cycle. So directly import ClassyPrelude.
 import           ClassyPrelude
-import           Compat.Orphans           ()
+import           Compat.Orphans             ()
 
 data Regex = Regex
     { reString :: Text
@@ -416,3 +424,36 @@ parseViewMode "images-grid"  = Just ViewImagesGrid
 parseViewMode "images-list"  = Just ViewImagesList
 parseViewMode "folders-list" = Just ViewFoldersList
 parseViewMode _              = Nothing
+
+newtype SymbolizedItem = SymbolizedItem { siSymbol :: Symbol }
+  deriving (Show, Eq, Ord, Generic)
+
+instance Store SymbolizedItem where
+  size = contramap (unintern . siSymbol) (size :: Size Text)
+  poke (SymbolizedItem s) = poke (unintern s::Text)
+  peek = mkSymbolizedItem <$> (peek::Peek Text)
+
+instance ToJSON SymbolizedItem where
+  toJSON (SymbolizedItem s) = String (unintern s)
+
+instance NFData SymbolizedItem where
+  rnf (SymbolizedItem s) = rnf s
+
+instance ToMarkup SymbolizedItem where
+  toMarkup = toMarkup . (deSymbolizeItem :: SymbolizedItem -> Text)
+
+-- | Convert any 'Textual' instance to a 'SymbolizedItem' by interning it.
+mkSymbolizedItem :: ST.Textual a => a -> SymbolizedItem
+mkSymbolizedItem = SymbolizedItem . intern
+
+-- | Convert a 'SymbolizedItem' back to 'Text' by uninterning it.
+deSymbolizeItem :: ST.Textual a => SymbolizedItem -> a
+deSymbolizeItem (SymbolizedItem s) = unintern s
+
+-- | Simple wrapper around 'deSymbolizeItem' for explicit conversion to 'Text'.
+deSymbolizeToText :: SymbolizedItem -> Text
+deSymbolizeToText = deSymbolizeItem
+
+-- | Convert a 'Maybe SymbolizedItem' back to 'Maybe Text' by uninterning it.
+maybeDesymbolizeItem :: Maybe SymbolizedItem -> Maybe Text
+maybeDesymbolizeItem = fmap deSymbolizeItem
