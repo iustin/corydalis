@@ -66,7 +66,8 @@ getCameraInfoR cameraname = do
   let cameraExif = if cameraname == unknown
                    then Nothing
                    else Just cameraname
-      images = filterImagesBy (\i -> (exifCamera . imgExif) i == cameraExif) pics
+      cameraExif' = mkSymbolizedItem <$> cameraExif
+      images = filterImagesBy (\i -> (exifCamera . imgExif) i == cameraExif') pics
       lenses = foldl' (\m i -> Map.insertWith (+)
                                (liName . exifLens . imgExif $ i)
                                counterOne m) Map.empty images

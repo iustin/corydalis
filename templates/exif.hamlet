@@ -1,14 +1,14 @@
-$with smf <- showMaybeField "?"
+$with smf <- showMaybeSymItem "?"
   <tr>
     <td>Location
     <td>
-      <a href="@?{(SearchR,[atomAsParam TCountry exifCountry])}"><span title="Country">^{smf exifCountry}
+      <a href="@?{(SearchR,[atomAsParam TCountry (maybeDesymbolizeItem exifCountry)])}"><span title="Country">^{smf exifCountry}
       <span .fa-solid .fa-caret-right .mx-1>
-      <a href="@?{(SearchR,[atomAsParam TProvince exifProvince])}"><span title="Province">^{smf exifProvince}
+      <a href="@?{(SearchR,[atomAsParam TProvince (maybeDesymbolizeItem exifProvince)])}"><span title="Province">^{smf exifProvince}
       <span .fa-solid .fa-caret-right .mx-1>
-      <a href="@?{(SearchR,[atomAsParam TCity exifCity])}"><span title="City">^{smf exifCity}
+      <a href="@?{(SearchR,[atomAsParam TCity (maybeDesymbolizeItem exifCity)])}"><span title="City">^{smf exifCity}
       <span .fa-solid .fa-caret-right .mx-1>
-      <a href="@?{(SearchR,[atomAsParam TLocation exifLocation])}"><span title="Location">^{smf exifLocation}
+      <a href="@?{(SearchR,[atomAsParam TLocation (maybeDesymbolizeItem exifLocation)])}"><span title="Location">^{smf exifLocation}
   <tr>
     <td>People
     <td>^{showSetField exifPeople}
@@ -17,10 +17,10 @@ $with smf <- showMaybeField "?"
     <td>^{showSetField exifKeywords}
   <tr>
     <td>Title
-    <td>^{showMaybeField "no title" exifTitle}
+    <td>^{showMaybeSymItem "no title" exifTitle}
   <tr>
     <td>Caption
-    <td>^{showMaybeField "no caption" exifCaption}
+    <td>^{showMaybeSymItem "no caption" exifCaption}
   <tr>
     <td>Dimensions
     <td>#{dimensions}
@@ -37,7 +37,7 @@ $with smf <- showMaybeField "?"
       ^{smf exifMake} / ^{smf exifLensMake}
   <tr>
     <td>Capture time
-    <td>^{smf create_date}
+    <td>^{showMaybeField "?" create_date}
   <tr>
     <td>Exposure info
     <td>#{sspeed} @ #{aperture}, #{iso}
@@ -61,5 +61,5 @@ $with smf <- showMaybeField "?"
     <td>#{rating}
   <tr>
     <td>MIME type
-    <td>^{showMaybeField "unknown" exifMimeType}
+    <td>^{showMaybeSymItem "unknown" exifMimeType}
   ^{showListWithHeader "Warnings" (Set.toList exifWarning)}

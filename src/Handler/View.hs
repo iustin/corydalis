@@ -114,7 +114,7 @@ renderExifHTML img =
         #{caption}
         <br>
       <b>Camera:
-      #{wrapMarkup $ exifCamera exif}
+      #{wrapMarkup $ maybeDesymbolizeItem $ exifCamera exif}
       <br>
       <b>Lens:
       #{lensDisplayName (exifLens exif)}

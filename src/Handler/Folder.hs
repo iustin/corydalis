@@ -54,7 +54,7 @@ getFolderR name = do
         fc = folderClassFromStats stats
         images = map snd . Map.toList $ pdImages dir
         exifs = map imgExif images
-        cameras = countItems . map exifCamera $ exifs
+        cameras = countItems . map (fmap deSymbolizeItem . exifCamera) $ exifs
         lenses = countItems . map exifLens $ exifs
     setHtmlTitle $ "folder " <> name
     $(widgetFile "folder")

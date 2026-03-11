@@ -517,35 +517,35 @@ instance FromJSON RawExif where
 -- TODO: Replace exifRating Int with a proper rating type? [question]
 
 data Exif = Exif
-  { exifPeople       :: !(Set Text)
-  , exifKeywords     :: !(Set Text)
-  , exifCountry      :: !(Maybe Text)
-  , exifProvince     :: !(Maybe Text)
-  , exifCity         :: !(Maybe Text)
-  , exifLocation     :: !(Maybe Text)
-  , exifCamera       :: !(Maybe Text)
-  , exifModel        :: !(Maybe Text)
-  , exifSerial       :: !(Maybe Text)
+  { exifPeople       :: !(Set SymbolizedItem)
+  , exifKeywords     :: !(Set SymbolizedItem)
+  , exifCountry      :: !(Maybe SymbolizedItem)
+  , exifProvince     :: !(Maybe SymbolizedItem)
+  , exifCity         :: !(Maybe SymbolizedItem)
+  , exifLocation     :: !(Maybe SymbolizedItem)
+  , exifCamera       :: !(Maybe SymbolizedItem)
+  , exifModel        :: !(Maybe SymbolizedItem)
+  , exifSerial       :: !(Maybe SymbolizedItem)
   , exifLens         :: !LensInfo
   , exifOrientation  :: !Orientation
   , exifCreateDate   :: !(Maybe ExifTime)
-  , exifTitle        :: !(Maybe Text)
-  , exifCaption      :: !(Maybe Text)
+  , exifTitle        :: !(Maybe SymbolizedItem)
+  , exifCaption      :: !(Maybe SymbolizedItem)
   , exifAperture     :: !(Maybe Double)
   , exifFocalLength  :: !(Maybe Double)
   , exifFL35mm       :: !(Maybe Double)
   , exifISO          :: !(Maybe Integer)
-  , exifSSpeedDesc   :: !(Maybe Text)
+  , exifSSpeedDesc   :: !(Maybe SymbolizedItem)
   , exifSSpeedVal    :: !(Maybe Double)
   , exifShutterCount :: !(Maybe Integer)
-  , exifMimeType     :: !(Maybe Text)
+  , exifMimeType     :: !(Maybe SymbolizedItem)
   , exifRating       :: !(Maybe Int)
   , exifFlashInfo    :: !FlashInfo
   , exifWidth        :: !(Maybe Int)
   , exifHeight       :: !(Maybe Int)
   , exifMegapixels   :: !(Maybe Double)
-  , exifMake         :: !(Maybe Text)
-  , exifLensMake     :: !(Maybe Text)
+  , exifMake         :: !(Maybe SymbolizedItem)
+  , exifLensMake     :: !(Maybe SymbolizedItem)
   -- meta field
   , exifWarning      :: !(Set Text)
   } deriving (Show, Eq, Generic)
@@ -674,7 +674,7 @@ data GroupExif = GroupExif
   , gExifLocations  :: !(NameStats Text)
   , gExifCameras    :: !(NameStats Text)
   , gExifLenses     :: !(NameStats Text)
-  , gExifTitles     :: !(NameStats Text)
+  , gExifTitles     :: !(NameStats SymbolizedItem)
   , gExifCaptions   :: !(NameStats Text)
   , gExifPeopleCnt  :: !(NameStats Int)
   , gExifKwdCnt     :: !(NameStats Int)
@@ -716,16 +716,16 @@ exifLocalCreateDate = (zonedTimeToLocalTime . etTime <$>) . exifCreateDate
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
 addExifToGroup g Exif{..} =
-  g { gExifPeople    = foldSet (gExifPeople    g) exifPeople
-    , gExifKeywords  = foldSet (gExifKeywords  g) exifKeywords
-    , gExifCountries = count1  (gExifCountries g) exifCountry
-    , gExifProvinces = count1  (gExifProvinces g) exifProvince
-    , gExifCities    = count1  (gExifCities    g) exifCity
-    , gExifLocations = count1  (gExifLocations g) exifLocation
-    , gExifCameras   = count1  (gExifCameras   g) exifCamera
+  g { gExifPeople    = foldSet (gExifPeople    g) (Set.map deSymbolizeItem exifPeople)
+    , gExifKeywords  = foldSet (gExifKeywords  g) (Set.map deSymbolizeItem exifKeywords)
+    , gExifCountries = count1  (gExifCountries g) (deSymbolizeItem <$> exifCountry)
+    , gExifProvinces = count1  (gExifProvinces g) (deSymbolizeItem <$> exifProvince)
+    , gExifCities    = count1  (gExifCities    g) (deSymbolizeItem <$> exifCity)
+    , gExifLocations = count1  (gExifLocations g) (deSymbolizeItem <$> exifLocation)
+    , gExifCameras   = count1  (gExifCameras   g) (deSymbolizeItem <$> exifCamera)
     , gExifLenses    = count1  (gExifLenses    g) (Just $ liName exifLens)
     , gExifTitles    = count1  (gExifTitles    g) exifTitle
-    , gExifCaptions  = count1  (gExifCaptions  g) exifCaption
+    , gExifCaptions  = count1  (gExifCaptions  g) (deSymbolizeItem <$> exifCaption)
     , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
     , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
     , gExifFlashSrc  = count1  (gExifFlashSrc  g) (fiSource exifFlashInfo)
@@ -897,11 +897,13 @@ exifFromRaw :: Config -> RawExif -> Exif
 exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   let logger s = modify (s `Set.insert`)
       loggerN s = logger s >> return Nothing
-      evalV p e = maybe (return Nothing)
+      evalTV t p e = maybe (return Nothing)
                         (\v' -> if p v'
                                 then loggerN (e v')
-                                else return $ Just v')
-      checkNull f = evalV Text.null (const $ "Empty " <> f <> " information")
+                                else return $ Just (t v'))
+      evalV = evalTV id
+      checkTNull t f = evalTV t Text.null (const $ "Empty " <> f <> " information")
+      checkSymNull = checkTNull (mkSymbolizedItem)
       pPeople = cfgPeoplePrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored = filter (not . (pIgnore `Text.isPrefixOf`))
@@ -909,15 +911,16 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                                  case ks of
                                    x:p | x == pPeople -> p ++ e
                                    _                  -> e) [] rExifHSubjects
-      exifPeople = Set.fromList $ rExifPeople ++ subjPeople
-      dropPeople = filter (not . (`Set.member` exifPeople))
-      exifKeywords    = Set.fromList $
+      peopleTextSet = Set.fromList $ rExifPeople ++ subjPeople
+      exifPeople = Set.map mkSymbolizedItem peopleTextSet
+      dropPeople = filter (not . (`Set.member` peopleTextSet))
+      exifKeywords    = Set.fromList . map mkSymbolizedItem $
                         foldl' (\e ks ->
                                   case ks of
                                     x:_ | x /= pPeople ->
                                           (dropPeople . dropIgnored) ks ++ e
                                     _ -> e) [] rExifHSubjects
-      exifCamera       = maybe rExifModel
+      exifCamera       = fmap mkSymbolizedItem $ maybe rExifModel
                          (\s ->
                              Just $ case rExifModel of
                                       Nothing  -> "#" `Text.append` s
@@ -930,29 +933,29 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
       exifFocalLength  = rExifFocalLength
       exifFL35mm       = rExifFL35mm
       exifISO          = rExifISO
-      exifSSpeedDesc   = rExifSSpeedDesc
+      exifSSpeedDesc   = mkSymbolizedItem <$> rExifSSpeedDesc
       exifSSpeedVal    = rExifSSpeedVal
-      exifMimeType     = rExifMimeType
+      exifMimeType     = mkSymbolizedItem <$> rExifMimeType
       exifRating       = rExifRating
       flashSource      = rExifFlashSource >>= parseFlashSource
       flashMode        = rExifFlashMode
       exifFlashInfo    = FlashInfo flashSource flashMode
-  exifModel        <- checkNull "model" rExifModel
-  exifSerial       <- checkNull "serial" rExifSerial
-  exifTitle        <- checkNull "title" rExifTitle
-  exifCaption      <- checkNull "caption" rExifCaption
-  exifCountry      <- checkNull "country" rExifCountry
-  exifProvince     <- checkNull "province" rExifProvince
-  exifCity         <- checkNull "city" rExifCity
-  exifLocation     <- checkNull "location" rExifLocation
+  exifModel        <- checkSymNull "model" rExifModel
+  exifSerial       <- checkSymNull "serial" rExifSerial
+  exifTitle        <- checkSymNull "title" rExifTitle
+  exifCaption      <- checkSymNull "caption" rExifCaption
+  exifCountry      <- checkSymNull "country" rExifCountry
+  exifProvince     <- checkSymNull "province" rExifProvince
+  exifCity         <- checkSymNull "city" rExifCity
+  exifLocation     <- checkSymNull "location" rExifLocation
   exifShutterCount <- evalV (> tooHighShutterCount)
                       (sformat ("Unlikely shutter count: " % int))
                       rExifShutterCount
   exifWidth        <- evalV (< 1) (sformat ("Invalid (Exif) image width " % int)) rExifWidth
   exifHeight       <- evalV (< 1) (sformat ("Invalid (Exif) image height" % int)) rExifHeight
   exifMegapixels   <- evalV (<=0) (sformat ("Invalid (Exif) megapixels: " % float)) rExifMegapixels
-  exifMake         <- checkNull "make" rExifMake
-  exifLensMake     <- checkNull "lensmake" rExifLensMake
+  exifMake         <- checkSymNull "make" rExifMake
+  exifLensMake     <- checkSymNull "lensmake" rExifLensMake
   errs <- get
   let exifWarning      = maybe errs (`Set.insert` errs) rExifWarning
   return Exif{..}

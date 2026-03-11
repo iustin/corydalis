@@ -217,7 +217,8 @@ filePath File{..} = TextL.fromChunks [fileDir, pathSep, fileName]
 
 -- | Try to find a valid mime type for a file.
 fileMimeType :: Text -> File -> Text
-fileMimeType d = fromMaybe d . exifMimeType . fileExif
+fileMimeType d =
+  maybe d deSymbolizeItem . exifMimeType . fileExif
 
 -- | Flags (on an image or a directory) showing exceptional
 -- statuses.
@@ -610,7 +611,7 @@ updateStatsWithPic orig img =
       cs' = cs + maybe 0 fileSize (imgSidecarPath img)
       exif = imgExif img
       ymdate = imageYearMonth img
-      camera = fromMaybe unknown (exifCamera exif)
+      camera = fromMaybe unknown (maybeDesymbolizeItem $ exifCamera exif)
       xsize = case imgRawPath img of
                Just f -> fileSize f
                Nothing -> case imgJpegPath img of
@@ -629,7 +630,7 @@ updateStatsWithPic orig img =
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
       us' = sUntrackedSize orig + us
-      people = sPeople stats `Set.union` exifPeople exif
+      people = sPeople stats `Set.union` ((Set.map deSymbolizeItem) . exifPeople $ exif)
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'

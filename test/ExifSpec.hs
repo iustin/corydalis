@@ -69,7 +69,8 @@ spec = parallel $ do
       parseFlashSource (2 :: Int) `shouldBe` Just FlashSourceInternal
 
     it "checks that Maybe fields become null in JSON" $ do
-      let exif = def { exifCountry = Nothing, exifProvince = Just "CA" }
+      let province = mkSymbolizedItem ("CA"::Text)
+          exif = def { exifCountry = Nothing, exifProvince = Just province }
           encoded = encode exif
           decoded = decode encoded :: Maybe Value
       case decoded of

@@ -28,7 +28,7 @@
                     <td>#{showExifDate img}
                     $if numCameras > 1
                       <td>
-                        ^{showCameraLink (exifCamera e)}
+                        ^{showCameraLink (maybeDesymbolizeItem $ exifCamera e)}
                     $if numLenses > 1
                       <td>
                         <a href="@{LensInfoR (liName (exifLens e))}">

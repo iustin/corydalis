@@ -787,6 +787,17 @@ nameStatsSearch (OpFuzzy f) =
                        let found = maybe False (fuzzyMatch f) k && v > 0
                        in found || a) False
 
+-- | NameStats search function for either membership or null set checking.
+nameSymStatsSearch :: StrOp -> NameStats SymbolizedItem -> Bool
+nameSymStatsSearch OpMissing =
+  maybe False (> 0) . (Nothing `Map.lookup`)
+nameSymStatsSearch (OpEqual v) =
+  maybe False (> 0) . (Just (mkSymbolizedItem v) `Map.lookup`)
+nameSymStatsSearch (OpFuzzy f) =
+  Map.foldrWithKey' (\k v a ->
+                       let found = maybe False (fuzzyMatch f) (deSymbolizeItem <$> k) && v > 0
+                       in found || a) False
+
 -- | NameStats search function for numeric values.
 numStatsSearch :: (Ord a) => NumOp a -> NameStats a -> Bool
 numStatsSearch OpNa m =
@@ -847,7 +858,7 @@ folderSearchFunction (Keyword k) =
   nameStatsSearch k . gExifKeywords . pdExif
 
 folderSearchFunction (Title t) =
-  nameStatsSearch t . gExifTitles . pdExif
+  nameSymStatsSearch t . gExifTitles . pdExif
 
 folderSearchFunction (Caption c) =
   nameStatsSearch c . gExifCaptions . pdExif
@@ -951,30 +962,31 @@ folderSearchFunction ConstTrue = const True
 imagesMatchAtom :: Atom -> Map.Map ImageName Image -> Bool
 imagesMatchAtom a = any (imageSearchFunction a)
 
+-- TODO: Optimise all desymbolize calls.
 imageSearchFunction :: Atom -> (Image -> Bool)
 imageSearchFunction (Country loc) =
-  evalStr loc . exifCountry . imgExif
+  evalStr loc . maybeDesymbolizeItem . exifCountry . imgExif
 
 imageSearchFunction (Province loc) =
-  evalStr loc . exifProvince . imgExif
+  evalStr loc . maybeDesymbolizeItem . exifProvince . imgExif
 
 imageSearchFunction (City loc) =
-  evalStr loc . exifCity . imgExif
+  evalStr loc . maybeDesymbolizeItem . exifCity . imgExif
 
 imageSearchFunction (Location loc) =
-  evalStr loc . exifLocation . imgExif
+  evalStr loc . maybeDesymbolizeItem . exifLocation . imgExif
 
 imageSearchFunction (Person who) =
-  setSearch who . exifPeople . imgExif
+  setSearch who . Set.map deSymbolizeItem . exifPeople . imgExif
 
 imageSearchFunction (Keyword keyword) =
-  setSearch keyword . exifKeywords . imgExif
+  setSearch keyword . Set.map deSymbolizeItem . exifKeywords . imgExif
 
 imageSearchFunction (Title t) =
-  evalStr t . exifTitle . imgExif
+  evalStr t . maybeDesymbolizeItem . exifTitle . imgExif
 
 imageSearchFunction (Caption c) =
-  evalStr c . exifCaption . imgExif
+  evalStr c . maybeDesymbolizeItem . exifCaption . imgExif
 
 imageSearchFunction (Year year) =
   evalNum year . imageYear
@@ -1006,7 +1018,7 @@ imageSearchFunction (Day d) =
   (== Just d) . picDay
 
 imageSearchFunction (Camera camera) =
-  evalStr camera . exifCamera . imgExif
+  evalStr camera . (maybeDesymbolizeItem . exifCamera . imgExif)
 
 imageSearchFunction (Lens lens) =
   \img ->
@@ -1108,6 +1120,9 @@ gaBuilder keyfn reprfn =
 simpleBuilder :: (a -> Text) -> NameStats a -> AtomStats
 simpleBuilder b = gaBuilder b b
 
+symBuilder :: NameStats SymbolizedItem -> AtomStats
+symBuilder = simpleBuilder deSymbolizeItem
+
 -- | Convenience wrapper over 'simpleBuilder' for values that implement
 -- 'ToText'.
 toTextBuilder :: (ToText a) => NameStats a -> AtomStats
@@ -1143,7 +1158,7 @@ getAtoms TCity         = idBuilder . gExifCities    . repoExif
 getAtoms TLocation     = idBuilder . gExifLocations . repoExif
 getAtoms TPerson       = idBuilder . gExifPeople    . repoExif
 getAtoms TKeyword      = idBuilder . gExifKeywords  . repoExif
-getAtoms TTitle        = idBuilder . gExifTitles    . repoExif
+getAtoms TTitle        = symBuilder . gExifTitles    . repoExif
 getAtoms TCaption      = idBuilder . gExifCaptions  . repoExif
 getAtoms TCamera       = idBuilder . gExifCameras   . repoExif
 getAtoms TLens         = idBuilder . gExifLenses    . repoExif

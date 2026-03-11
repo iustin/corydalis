@@ -168,7 +168,7 @@ showExif Exif {..} = do
               then sformat (f1 % "mm (FF)") fn
               else sformat (f1 % "mm (" % f1 % "mm equiv.)") fn ff
       aperture = maybe "f/?" (sformat ("f/" % f1)) exifAperture
-      sspeed = fromMaybe "?" exifSSpeedDesc <> "s"
+      sspeed = fromMaybe "?" (maybeDesymbolizeItem exifSSpeedDesc) <> "s"
       shutterCount = sformat int <$> exifShutterCount
       iso = "ISO " ++ maybe "unknown" show exifISO
       rating = maybe "unrated" (\v -> if v == 0
@@ -191,11 +191,14 @@ showMaybeField r Nothing   = toWidget [hamlet|<i>#{r}|]
 showMaybeField _ (Just "") = toWidget [hamlet|<i>empty|]
 showMaybeField _ (Just v)  = toWidget [hamlet|#{v}|]
 
-showSetField :: Set Text -> Widget
+showMaybeSymItem :: Text -> Maybe SymbolizedItem -> Widget
+showMaybeSymItem r = showMaybeField r . fmap deSymbolizeItem
+
+showSetField :: Set SymbolizedItem -> Widget
 showSetField (Set.null -> True) =
   toWidget [hamlet|<i>empty|]
 showSetField v =
-  toWidget [hamlet|#{Text.intercalate ", " (Set.toList v)}|]
+  toWidget [hamlet|#{Text.intercalate ", " (map deSymbolizeItem $ Set.toList v)}|]
 
 showListWithHeader :: Text -> [Text] -> Widget
 showListWithHeader txt [] =
