@@ -87,8 +87,8 @@ getCameraInfoR cameraname = do
       lensapflobj = buildLensApFL images
       -- timeline stats
       camerapicstats = computeImagesStats images
-      others = unknownLens { liName = "others" }
-      timelineobj = buildCamLensStats others 30 10 lensShortName liName (sByLens camerapicstats)
+      -- TODO: cleanup desymbolization
+      timelineobj = buildCamLensStats lensOthers 30 10 lensShortName (deSymbolizeItem . liName) (Map.mapKeys deSymbolizeItem $ sByLens camerapicstats)
       obj = object [ "lensapfl" .= lensapflobj
                    , "trends" .= timelineobj
                    ]

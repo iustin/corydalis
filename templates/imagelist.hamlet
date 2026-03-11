@@ -31,7 +31,7 @@
                         ^{showCameraLink (maybeDesymbolizeItem $ exifCamera e)}
                     $if numLenses > 1
                       <td>
-                        <a href="@{LensInfoR (liName (exifLens e))}">
+                        <a href="@{lensInfoRoute (exifLens e)}">
                           #{lensDisplayName (exifLens e) }
                     $if not hideStatus
                       <td data-text="#{showImageStatus s}">

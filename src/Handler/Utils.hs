@@ -148,6 +148,12 @@ atomIcon TMegapixels   = "fa-solid fa-chart-area"
 dataMasonry :: Text
 dataMasonry   = "{\"percentPosition\": true}"
 
+lensOthers :: LensInfo
+lensOthers = unknownLens { liName = mkSymbolizedItem ("others"::Text), liSpec = mkSymbolizedItem ("others"::Text) }
+
+formatMaybeSymbolUnknown :: Maybe SymbolizedItem -> Text
+formatMaybeSymbolUnknown = maybe "unknown" deSymbolizeItem
+
 showTimestamp :: NominalDiffTime -> Text
 showTimestamp =
   showLocalTime . utcToZonedTime utc . posixSecondsToUTCTime
@@ -317,6 +323,10 @@ getResParam = do
 imageBytesAtRes :: Image -> Int -> (Route App, [(Text, Text)])
 imageBytesAtRes Image{imgParent = folder, imgName = iname} res =
   (ImageBytesR folder iname, makeResParam res)
+
+-- | Helper to build a LensInfo route from a LensInfo.
+lensInfoRoute :: LensInfo -> Route App
+lensInfoRoute li = LensInfoR (deSymbolizeItem $ liName li)
 
 setHtmlTitle :: Text -> Widget
 setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)

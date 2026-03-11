@@ -98,7 +98,7 @@
       $else
         $forall (c', cnt) <- lenses
           <tr>
-            <td><a href=@{LensInfoR (liName c')}>
+            <td><a href=@{lensInfoRoute c'}>
               #{lensDisplayName c'}
             <td .number>#{cnt}
 

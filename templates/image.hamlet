@@ -57,7 +57,7 @@ $# expected grid size, so it's important to allow overflow-break.
         <tr>
           <td>Lens
           <td>
-            <a href=@{LensInfoR (liName lens)}>
+            <a href=@{lensInfoRoute lens}>
               #{lensDisplayName lens}
         <tr>
           <td>Lens make

@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoCPP                 #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
@@ -41,17 +42,20 @@ import qualified Data.Map            as Map
 import           Data.Time.Calendar
 import           Data.Time.LocalTime
 
-getByLens :: Repository -> Map Text (Occurrence LensInfo)
+getByLens :: Repository -> Map SymbolizedItem (Occurrence LensInfo)
 getByLens = sByLens . rsPicStats . repoStats
 
 getLensInfoR :: Text -> Handler TypedContent
 getLensInfoR lensname = do
   pics <- getPics
+  lensSymbol <- lookupSymbolized lensname >>= \case
+                  Nothing -> notFound
+                  Just s  -> return s
   let bylens = getByLens pics
-  lens <- case lensname `Map.lookup` bylens of
+  lens <- case lensSymbol `Map.lookup` bylens of
             Nothing  -> notFound
             Just occ -> return $ ocData occ
-  let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensname) pics
+  let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensSymbol) pics
       cameras = foldl' (\m i -> case exifCamera (imgExif i) of
                                   Nothing -> m
                                   Just c  ->  Map.insertWith (+) (deSymbolizeToText c) counterOne m) Map.empty images
@@ -82,10 +86,11 @@ getLensInfoR lensname = do
 getLensStatsR :: Handler TypedContent
 getLensStatsR = do
   pics <- getPics
-  let bylens = getByLens pics
+  -- TODO: resolve deSymbolize
+  let bylens = Map.mapKeys deSymbolizeItem $ getByLens pics
       lenses = Map.toList bylens
-      others = unknownLens { liName = "others" }
-      obj = buildCamLensStats others 30 10 lensShortName liName bylens
+      -- TODO: resolve deSymbolize
+      obj = buildCamLensStats lensOthers 30 10 lensShortName (deSymbolizeItem . liName) bylens
   let html = do
         setTitle "Corydalis: lens statistics"
         $(widgetFile "lensstats")

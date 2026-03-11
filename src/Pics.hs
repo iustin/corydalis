@@ -511,7 +511,7 @@ data Stats = Stats
   , sUntrackedSize  :: !FileOffset
   , sMovieSize      :: !FileOffset
   , sByCamera       :: !(Map Text (Occurrence CameraInfo))
-  , sByLens         :: !(Map Text (Occurrence LensInfo))
+  , sByLens         :: !(Map SymbolizedItem (Occurrence LensInfo))
   , sPeople         :: !(Set Text)
   , sDateRange      :: !(Maybe DateRange)
   } deriving (Show, Generic)

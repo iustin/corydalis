@@ -70,6 +70,7 @@ module Types ( Config(..)
              , deSymbolizeItem
              , deSymbolizeToText
              , maybeDesymbolizeItem
+             , lookupSymbolized
              ) where
 
 import           Control.Applicative
@@ -457,3 +458,7 @@ deSymbolizeToText = deSymbolizeItem
 -- | Convert a 'Maybe SymbolizedItem' back to 'Maybe Text' by uninterning it.
 maybeDesymbolizeItem :: Maybe SymbolizedItem -> Maybe Text
 maybeDesymbolizeItem = fmap deSymbolizeItem
+
+-- | Potentially return a symbolized item if already internet.
+lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedItem)
+lookupSymbolized s = Symbolize.lookup s >>= return . fmap SymbolizedItem

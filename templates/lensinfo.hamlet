@@ -36,7 +36,7 @@
           <td>#{showLensAperture $ liAp lens}
         <tr>
           <td>Serial number
-          <td>#{fromMaybe "unknown" $ liSerial lens}
+          <td>#{formatMaybeSymbolUnknown $ liSerial lens}
 
  <div .col-12 .col-sm-4>
    <div .card>

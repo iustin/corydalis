@@ -34,8 +34,7 @@ import qualified Data.Map        as Map
 import qualified Data.Set        as Set
 import qualified Data.Text       as Text
 
-import           Exif            (gExifFlashMode, gExifFlashSrc, lensShortName,
-                                  liName, liSpec, unknownLens)
+import           Exif            (gExifFlashMode, gExifFlashSrc, lensShortName)
 import           Handler.Items
 import           Handler.Utils
 import           Handler.Widgets (showDateRange)
@@ -113,6 +112,8 @@ getCurateR = do
       numfolders = Map.size $ repoDirs pics
       numLenses = Map.size bylens
       numCameras = Map.size bycamera
+      -- TODO: deduplicate with Utils and possibly other uses.
+      -- TODO: resolve deSymbolize.
       buildTop10 m n = let allItems = sortBy (flip compare) $
                              Map.foldlWithKey' (\a k (Occurrence cnt sz _ _ _ _) ->
                                                   (cnt, sz, k):a) [] m
@@ -133,8 +134,8 @@ getCurateR = do
                            , xgdY = [fromIntegral sz]
                            }:a)
                ([]::[XGraphData Int64 Int64]) top10c
-      top10l = buildTopNItems (unknownLens { liName = "others", liSpec = "others" })
-                 bylens 12
+      -- TODO: resolve deSymbolize
+      top10l = buildTopNItems lensOthers (Map.mapKeys deSymbolizeItem bylens) 12
       top10l' = map (\(a,b,txt,d, t) ->
                        let w = Text.words txt
                            w' = filter (not . (`Set.member` hideLensWords)) w

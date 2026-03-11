@@ -1022,8 +1022,8 @@ imageSearchFunction (Camera camera) =
 
 imageSearchFunction (Lens lens) =
   \img ->
-    (evalStr lens . Just . liName . exifLens . imgExif) img ||
-    (evalStr lens . Just . liSpec . exifLens . imgExif) img
+    (evalStr lens . Just . deSymbolizeItem . liName . exifLens . imgExif) img ||
+    (evalStr lens . Just . deSymbolizeItem . liSpec . exifLens . imgExif) img
 
 imageSearchFunction (FStop f) =
   evalNum f . exifAperture . imgExif

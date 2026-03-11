@@ -229,11 +229,11 @@ instance NFData LensAperture where
   rnf (VariableAperture x y) = rnf x `seq` rnf y
 
 data LensInfo = LensInfo
-  { liName   :: !Text
-  , liSpec   :: !Text
+  { liName   :: !SymbolizedItem
+  , liSpec   :: !SymbolizedItem
   , liFL     :: !(Maybe LensFocalLength)
   , liAp     :: !(Maybe LensAperture)
-  , liSerial :: !(Maybe Text)
+  , liSerial :: !(Maybe SymbolizedItem)
   } deriving (Show, Eq, Ord, Generic)
 
 -- FIXME: should we error out instead?
@@ -262,7 +262,7 @@ instance Default LensInfo where
   def = unknownLens
 
 unknownLens :: LensInfo
-unknownLens = LensInfo unknown unknown Nothing Nothing Nothing
+unknownLens = LensInfo unknownItem unknownItem Nothing Nothing Nothing
 
 data LensType = LensPrime
               | LensConstantApertureZoom
@@ -280,14 +280,16 @@ lensType LensInfo{..} =
 
 lensInfoFromObject :: Object -> Parser LensInfo
 lensInfoFromObject o = do
-  liSpec <- o .~: "LensSpec"  <|>
-            o .~: "LensInfo"  <|>
-            o .~: "LensModel" <|>
-            o .~: "Lens"      <|>
-            pure unknown
-  liName <- o .~: "LensID"    <|>
-            o .~: "LensModel" <|>
-            pure liSpec
+  liSpec' <- o .~: "LensSpec"  <|>
+             o .~: "LensInfo"  <|>
+             o .~: "LensModel" <|>
+             o .~: "Lens"      <|>
+             pure unknown
+  liName' <- o .~: "LensID"    <|>
+             o .~: "LensModel" <|>
+             pure liSpec'
+  let liSpec = mkSymbolizedItem liSpec'
+      liName = mkSymbolizedItem liName'
   minFL <- o .!:? "MinFocalLength"
   maxFL <- o .!:? "MaxFocalLength"
   let liFL =
@@ -312,23 +314,28 @@ lensInfoFromObject o = do
                 -- lens doesn't report it (to the body), it gets
                 -- recorded as empty string.
                 Just "" -> pure Nothing
-                Just v  -> Just <$> parseStrOrNum v
+                Just v  -> Just . mkSymbolizedItem <$> parseStrOrNum v
   return LensInfo{..}
 
-lensDisplayName :: LensInfo -> Text
-lensDisplayName LensInfo{..} =
-  if "Unknown (" `Text.isPrefixOf` liName &&
-     liSpec /= unknown
-    then liSpec
-    else liName
+lensNameOrSpec :: SymbolizedItem -> SymbolizedItem -> SymbolizedItem
+lensNameOrSpec name spec =
+  if "Unknown (" `Text.isPrefixOf` deSymbolizeItem name && spec /= unknownItem
+    then spec
+    else name
+
+lensDisplayName :: LensInfo -> SymbolizedItem
+lensDisplayName LensInfo{..} = lensNameOrSpec liName liSpec
 
 lensShortName :: LensInfo -> Text
 lensShortName LensInfo{..} =
-  let name = if Text.length liSpec < Text.length liName
-        then liSpec
-        else liName
+  -- TODO: keep things more in symbolized form?
+  let nameT = deSymbolizeItem liName
+      specT = deSymbolizeItem liSpec
+      name = if Text.length specT < Text.length nameT
+        then specT
+        else nameT
   -- TODO: merge with camera name
-  in maybe name (\s -> Text.concat [name, " (#", s, ")"]) liSerial
+  in maybe name (\s -> Text.concat [name, " (#", s, ")"]) (deSymbolizeItem <$> liSerial)
 
 parseStrOrNum :: Value -> Parser Text
 parseStrOrNum (String f) = pure f
@@ -723,7 +730,7 @@ addExifToGroup g Exif{..} =
     , gExifCities    = count1  (gExifCities    g) (deSymbolizeItem <$> exifCity)
     , gExifLocations = count1  (gExifLocations g) (deSymbolizeItem <$> exifLocation)
     , gExifCameras   = count1  (gExifCameras   g) (deSymbolizeItem <$> exifCamera)
-    , gExifLenses    = count1  (gExifLenses    g) (Just $ liName exifLens)
+    , gExifLenses    = count1  (gExifLenses    g) (Just . deSymbolizeItem $ liName exifLens)
     , gExifTitles    = count1  (gExifTitles    g) exifTitle
     , gExifCaptions  = count1  (gExifCaptions  g) (deSymbolizeItem <$> exifCaption)
     , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
@@ -766,6 +773,9 @@ instance Semigroup GroupExif where
 
 unknown :: Text
 unknown = "unknown"
+
+unknownItem :: SymbolizedItem
+unknownItem = mkSymbolizedItem unknown
 
 data Rotate = RCenter
             | RLeft
@@ -976,12 +986,12 @@ promoteFileExif re se je mm me =
       skipMaybes :: (Exif -> a) -> [a]
       skipMaybes fn = catMaybes [fn <$> re, fn <$> se] ++ map fn je ++
                       catMaybes [fn <$> mm] ++ map fn me
-      skipUnknown = filter (/= unknown)
+      skipUnknown = filter (/= unknownItem)
       fjust' :: (Exif -> a) -> a -> a
       fjust' fn d = case skipMaybes fn of
                       []  -> d
                       x:_ -> x
-      fno_u :: (Exif -> Text) -> Text -> Text
+      fno_u :: (Exif -> SymbolizedItem) -> SymbolizedItem -> SymbolizedItem
       fno_u fn d = case skipUnknown (skipMaybes fn) of
                       []  -> d
                       x:_ -> x
@@ -994,11 +1004,9 @@ promoteFileExif re se je mm me =
       exifCamera'       = fjust  exifCamera
       exifModel'        = fjust  exifModel
       exifSerial'       = fjust  exifSerial
-      liName'           = fno_u (liName <$> exifLens) unknown
-      liSpec'           = fno_u (liSpec <$> exifLens) unknown
-      liName''          = if "Unknown" `Text.isPrefixOf` liName' && liSpec' /= unknown
-                          then liSpec'
-                          else liName'
+      liName'           = fno_u (liName <$> exifLens) unknownItem
+      liSpec'           = fno_u (liSpec <$> exifLens) unknownItem
+      liName''          = lensNameOrSpec liName' liSpec'
       liFL'             = fjust (liFL     <$> exifLens)
       liAperture'       = fjust (liAp     <$> exifLens)
       liSerial'         = fjust (liSerial <$> exifLens)
