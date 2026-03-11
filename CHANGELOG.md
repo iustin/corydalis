@@ -60,6 +60,12 @@ When going from any other page to the image viewer, and then moving to
 another image (still inside the image viewer), navigating back in history
 to the first image was not working. This has been fixed.
 
+The picture cache had a bug in that for small pictures, they would be
+upscaled instead of left as-is. With many small pictures and with high
+maximum size auto-render, this could lead to significant cache usage. This
+has now been fixed, but the "too-large" thumbnails will not be
+automatically cleaned, it's recommended to wipe the cache manually.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

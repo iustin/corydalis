@@ -1453,7 +1453,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
   case res of
     Nothing -> return (False, mime, bytesPath)
     Just res' -> do
-      let geom = show res' ++ "x" ++ show res'
+      let geom = show res' ++ "x" ++ show res' ++ ">"
           fpath = scaledImagePath config origPath res'
           isThumb = res' <= cfgThumbnailSize config
           fmt = if isThumb then "png" else "jpg"
