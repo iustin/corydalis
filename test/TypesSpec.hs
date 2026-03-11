@@ -131,9 +131,9 @@ spec = parallel $ do
         parseViewMode (decodeUtf8 $ formatViewMode vm) === Just vm
   describe "tests SymbolizedItem properties" $ do
     prop "to/from Text equivalence" $ \txt ->
-      deSymbolizeItem (mkSymbolizedItem txt) === (txt::Text)
+      deSymbolizeItem (mkSymbolizedItem txt) === txt
     prop "to/from Text equivalence with Maybe" $ \mtxt ->
-      maybeDesymbolizeItem (fmap mkSymbolizedItem mtxt) === (mtxt::Maybe Text)
+      maybeDesymbolizeItem (fmap mkSymbolizedItem mtxt) === mtxt
     it "checks symbolized equivalence" $ do
       let t1 = "abc"::Text
           t2 = "abc"::Text

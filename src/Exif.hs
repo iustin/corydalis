@@ -673,20 +673,20 @@ type ERawExif = Either FailRExif RawExif
 type NameStats a = Map (Maybe a) Integer
 
 data GroupExif = GroupExif
-  { gExifPeople     :: !(NameStats Text)
-  , gExifKeywords   :: !(NameStats Text)
-  , gExifCountries  :: !(NameStats Text)
-  , gExifProvinces  :: !(NameStats Text)
-  , gExifCities     :: !(NameStats Text)
-  , gExifLocations  :: !(NameStats Text)
-  , gExifCameras    :: !(NameStats Text)
-  , gExifLenses     :: !(NameStats Text)
+  { gExifPeople     :: !(NameStats SymbolizedItem)
+  , gExifKeywords   :: !(NameStats SymbolizedItem)
+  , gExifCountries  :: !(NameStats SymbolizedItem)
+  , gExifProvinces  :: !(NameStats SymbolizedItem)
+  , gExifCities     :: !(NameStats SymbolizedItem)
+  , gExifLocations  :: !(NameStats SymbolizedItem)
+  , gExifCameras    :: !(NameStats SymbolizedItem)
+  , gExifLenses     :: !(NameStats SymbolizedItem)
   , gExifTitles     :: !(NameStats SymbolizedItem)
-  , gExifCaptions   :: !(NameStats Text)
+  , gExifCaptions   :: !(NameStats SymbolizedItem)
   , gExifPeopleCnt  :: !(NameStats Int)
   , gExifKwdCnt     :: !(NameStats Int)
   , gExifFlashSrc   :: !(NameStats FlashSource)
-  , gExifFlashMode  :: !(NameStats Text)
+  , gExifFlashMode  :: !(NameStats SymbolizedItem)
   , gExifDimensions :: !(NameStats (Int, Int))
   , gExifMegapixels :: !(NameStats Double)
   -- TODO: add warnings?
@@ -723,20 +723,20 @@ exifLocalCreateDate = (zonedTimeToLocalTime . etTime <$>) . exifCreateDate
 -- | Expands a group exif with a single exif
 addExifToGroup :: GroupExif -> Exif -> GroupExif
 addExifToGroup g Exif{..} =
-  g { gExifPeople    = foldSet (gExifPeople    g) (Set.map deSymbolizeItem exifPeople)
-    , gExifKeywords  = foldSet (gExifKeywords  g) (Set.map deSymbolizeItem exifKeywords)
-    , gExifCountries = count1  (gExifCountries g) (deSymbolizeItem <$> exifCountry)
-    , gExifProvinces = count1  (gExifProvinces g) (deSymbolizeItem <$> exifProvince)
-    , gExifCities    = count1  (gExifCities    g) (deSymbolizeItem <$> exifCity)
-    , gExifLocations = count1  (gExifLocations g) (deSymbolizeItem <$> exifLocation)
-    , gExifCameras   = count1  (gExifCameras   g) (deSymbolizeItem <$> exifCamera)
-    , gExifLenses    = count1  (gExifLenses    g) (Just . deSymbolizeItem $ liName exifLens)
+  g { gExifPeople    = foldSet (gExifPeople    g) exifPeople
+    , gExifKeywords  = foldSet (gExifKeywords  g) exifKeywords
+    , gExifCountries = count1  (gExifCountries g) exifCountry
+    , gExifProvinces = count1  (gExifProvinces g) exifProvince
+    , gExifCities    = count1  (gExifCities    g) exifCity
+    , gExifLocations = count1  (gExifLocations g) exifLocation
+    , gExifCameras   = count1  (gExifCameras   g) exifCamera
+    , gExifLenses    = count1  (gExifLenses    g) (Just $ liName exifLens)
     , gExifTitles    = count1  (gExifTitles    g) exifTitle
-    , gExifCaptions  = count1  (gExifCaptions  g) (deSymbolizeItem <$> exifCaption)
+    , gExifCaptions  = count1  (gExifCaptions  g) exifCaption
     , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
     , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
     , gExifFlashSrc  = count1  (gExifFlashSrc  g) (fiSource exifFlashInfo)
-    , gExifFlashMode = count1  (gExifFlashMode g) (deSymbolizeItem <$> fiMode exifFlashInfo)
+    , gExifFlashMode = count1  (gExifFlashMode g) (fiMode exifFlashInfo)
     , gExifDimensions = count1 (gExifDimensions g) ((,) <$> exifWidth <*> exifHeight)
     , gExifMegapixels = count1 (gExifMegapixels g) exifMegapixels
     }

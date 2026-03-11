@@ -510,9 +510,9 @@ data Stats = Stats
   , sSidecarSize    :: !FileOffset
   , sUntrackedSize  :: !FileOffset
   , sMovieSize      :: !FileOffset
-  , sByCamera       :: !(Map Text (Occurrence CameraInfo))
+  , sByCamera       :: !(Map SymbolizedItem (Occurrence CameraInfo))
   , sByLens         :: !(Map SymbolizedItem (Occurrence LensInfo))
-  , sPeople         :: !(Set Text)
+  , sPeople         :: !(Set SymbolizedItem)
   , sDateRange      :: !(Maybe DateRange)
   } deriving (Show, Generic)
 
@@ -611,7 +611,7 @@ updateStatsWithPic orig img =
       cs' = cs + maybe 0 fileSize (imgSidecarPath img)
       exif = imgExif img
       ymdate = imageYearMonth img
-      camera = fromMaybe unknown (maybeDesymbolizeItem $ exifCamera exif)
+      camera = fromMaybe unknownSymbol $ exifCamera exif
       xsize = case imgRawPath img of
                Just f -> fileSize f
                Nothing -> case imgJpegPath img of
@@ -630,7 +630,7 @@ updateStatsWithPic orig img =
       ms' = sMovieSize orig + ms
       us = sum . map fileSize . imgUntracked $ img
       us' = sUntrackedSize orig + us
-      people = sPeople stats `Set.union` ((Set.map deSymbolizeItem) . exifPeople $ exif)
+      people = sPeople stats `Set.union` (exifPeople $ exif)
   in stats { sRawSize = rs'
            , sProcSize = ps'
            , sStandaloneSize = ss'

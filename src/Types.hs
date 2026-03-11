@@ -66,6 +66,7 @@ module Types ( Config(..)
              , formatViewMode
              , parseViewMode
              , SymbolizedItem(..)
+             , unknownSymbol
              , mkSymbolizedItem
              , deSymbolizeItem
              , deSymbolizeToText
@@ -441,15 +442,22 @@ instance NFData SymbolizedItem where
   rnf (SymbolizedItem s) = rnf s
 
 instance ToMarkup SymbolizedItem where
-  toMarkup = toMarkup . (deSymbolizeItem :: SymbolizedItem -> Text)
+  toMarkup = toMarkup . deSymbolizeItem
+
+unknownSymbol :: SymbolizedItem
+unknownSymbol = mkSymbolizedItem ("unknown"::Text)
 
 -- | Convert any 'Textual' instance to a 'SymbolizedItem' by interning it.
 mkSymbolizedItem :: ST.Textual a => a -> SymbolizedItem
 mkSymbolizedItem = SymbolizedItem . intern
 
 -- | Convert a 'SymbolizedItem' back to 'Text' by uninterning it.
-deSymbolizeItem :: ST.Textual a => SymbolizedItem -> a
-deSymbolizeItem (SymbolizedItem s) = unintern s
+deSymbolizeItem :: SymbolizedItem -> Text
+deSymbolizeItem = deSymbolizeItem'
+
+-- | Convert a 'SymbolizedItem' back any 'Textual' by uninterning it.
+deSymbolizeItem' :: ST.Textual a => SymbolizedItem -> a
+deSymbolizeItem' (SymbolizedItem s) = unintern s
 
 -- | Simple wrapper around 'deSymbolizeItem' for explicit conversion to 'Text'.
 deSymbolizeToText :: SymbolizedItem -> Text

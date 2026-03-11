@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE MultiWayIf            #-}
 {-# LANGUAGE NoCPP                 #-}
@@ -43,7 +44,7 @@ import qualified Data.Text.Lazy      as LT
 import           Data.Time.Calendar
 import           Data.Time.LocalTime
 
-getByCamera :: Repository -> Map Text (Occurrence CameraInfo)
+getByCamera :: Repository -> Map SymbolizedItem (Occurrence CameraInfo)
 getByCamera = sByCamera . rsPicStats . repoStats
 
 keeperRate :: Occurrence CameraInfo -> Maybe Double
@@ -60,9 +61,12 @@ formatKeeperRate = format (fixed 2 % "%") . (* 100)
 
 getCameraInfoR :: Text -> Handler TypedContent
 getCameraInfoR cameraname = do
+  cameraSymbol <- lookupSymbolized cameraname >>= \case
+                  Nothing -> notFound
+                  Just s  -> return s
   pics <- getPics
   let bycamera = getByCamera pics
-  camera <- maybe notFound return $ cameraname `Map.lookup` bycamera
+  camera <- maybe notFound return $ cameraSymbol `Map.lookup` bycamera
   let cameraExif = if cameraname == unknown
                    then Nothing
                    else Just cameraname
@@ -101,10 +105,11 @@ getCameraInfoR cameraname = do
 getCameraStatsR :: Handler TypedContent
 getCameraStatsR = do
   pics <- getPics
-  let bycamera = getByCamera pics
+  let bycamera = Map.mapKeys deSymbolizeItem $ getByCamera pics
       cameras = Map.toList bycamera
-      others = def { ciName = "others" }
-      obj = buildCamLensStats others 30 10 ciName ciName bycamera
+      others = def { ciName = mkSymbolizedItem ("others"::Text) }
+      desymmer = deSymbolizeItem . ciName
+      obj = buildCamLensStats others 30 10 desymmer desymmer bycamera
   let html = do
         setTitle "Corydalis: camera statistics"
         $(widgetFile "camerastats")

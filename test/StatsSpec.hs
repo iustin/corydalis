@@ -46,6 +46,12 @@ instance Default Text where
 
 -- Helper functions for creating test data
 
+makeSI :: Text -> SymbolizedItem
+makeSI = mkSymbolizedItem
+
+ciDesName :: CameraInfo -> Text
+ciDesName = deSymbolizeItem . ciName
+
 mkLocalTime :: Integer -> Int -> Int -> Int -> Int -> Int -> LocalTime
 mkLocalTime year month day hour minute second' =
   LocalTime (fromGregorian year month day) (TimeOfDay hour minute (fromIntegral second'))
@@ -66,13 +72,13 @@ sampleTrends :: Trends
 sampleTrends = Map.fromList [((2023, 1), 5), ((2023, 2), 3)]
 
 sampleCameraInfo1 :: CameraInfo
-sampleCameraInfo1 = CameraInfo "Canon EOS R5" (Just (1000, 2000))
+sampleCameraInfo1 = CameraInfo (makeSI "Canon EOS R5") (Just (1000, 2000))
 
 sampleCameraInfo2 :: CameraInfo
-sampleCameraInfo2 = CameraInfo "Nikon D850" (Just (500, 1500))
+sampleCameraInfo2 = CameraInfo (makeSI "Nikon D850") (Just (500, 1500))
 
 sampleCameraInfo3 :: CameraInfo
-sampleCameraInfo3 = CameraInfo "Sony A7R IV" Nothing
+sampleCameraInfo3 = CameraInfo (makeSI "Sony A7R IV") Nothing
 
 spec :: Spec
 spec = parallel $ do
@@ -197,28 +203,28 @@ spec = parallel $ do
     describe "Default instance" $ do
       it "creates default camera info" $ do
         let defaultCam = def :: CameraInfo
-        ciName defaultCam `shouldBe` "unknown"
+        ciDesName defaultCam `shouldBe` "unknown"
         ciShutterCount defaultCam `shouldBe` Nothing
 
     describe "Semigroup instance" $ do
       it "combines camera info keeping first name and merging shutter counts" $ do
         let combined = sampleCameraInfo1 <> sampleCameraInfo2
-        ciName combined `shouldBe` "Canon EOS R5"
+        ciDesName combined `shouldBe` "Canon EOS R5"
         ciShutterCount combined `shouldBe` Just (500, 2000)  -- min of mins, max of maxes
 
       it "handles camera with no shutter count" $ do
         let combined1 = sampleCameraInfo1 <> sampleCameraInfo3
             combined2 = sampleCameraInfo3 <> sampleCameraInfo1
-        ciName combined1 `shouldBe` "Canon EOS R5"
+        ciDesName combined1 `shouldBe` "Canon EOS R5"
         ciShutterCount combined1 `shouldBe` Just (1000, 2000)
-        ciName combined2 `shouldBe` "Sony A7R IV"
+        ciDesName combined2 `shouldBe` "Sony A7R IV"
         ciShutterCount combined2 `shouldBe` Just (1000, 2000)
 
       it "handles both cameras without shutter count" $ do
-        let cam1 = CameraInfo "Camera 1" Nothing
-            cam2 = CameraInfo "Camera 2" Nothing
+        let cam1 = CameraInfo (makeSI "Camera 1") Nothing
+            cam2 = CameraInfo (makeSI "Camera 2") Nothing
             combined = cam1 <> cam2
-        ciName combined `shouldBe` "Camera 1"
+        ciDesName combined `shouldBe` "Camera 1"
         ciShutterCount combined `shouldBe` Nothing
 
     describe "Ord instance" $ do
@@ -228,9 +234,9 @@ spec = parallel $ do
 
     describe "Eq instance" $ do
       it "compares camera info for equality" $ do
-        let cam1 = CameraInfo "Test" (Just (100, 200))
-            cam2 = CameraInfo "Test" (Just (100, 200))
-            cam3 = CameraInfo "Test" (Just (150, 200))
+        let cam1 = CameraInfo (makeSI "Test") (Just (100, 200))
+            cam2 = CameraInfo (makeSI "Test") (Just (100, 200))
+            cam3 = CameraInfo (makeSI "Test") (Just (150, 200))
         cam1 `shouldBe` cam2
         cam1 `shouldNotBe` cam3
 
@@ -264,10 +270,10 @@ spec = parallel $ do
       in (occ1 <> occ2) <> occ3 `shouldBe` occ1 <> (occ2 <> occ3)
 
     prop "CameraInfo semigroup preserves first name" $ \name1 name2 ->
-      let cam1 = CameraInfo name1 Nothing
-          cam2 = CameraInfo name2 Nothing
+      let cam1 = CameraInfo (makeSI name1) Nothing
+          cam2 = CameraInfo (makeSI name2) Nothing
           combined = cam1 <> cam2
-      in ciName combined `shouldBe` name1
+      in ciDesName combined `shouldBe` name1
 
     prop "mergeMinMaxPair is commutative" $ \a b c d ->
       let range1 = Just (min a b, max a b)::Maybe (Int, Int)

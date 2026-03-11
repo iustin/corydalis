@@ -232,15 +232,15 @@ quoteMarkup element = toMarkup [quote, toMarkup element, quote]
 
 folderLocations :: PicDir -> Text
 folderLocations =
-  Text.intercalate ", " . catMaybes . Map.keys . gExifLocations . pdExif
+  Text.intercalate ", " . map deSymbolizeItem . catMaybes . Map.keys . gExifLocations . pdExif
 
 folderPeople :: PicDir -> Text
 folderPeople =
-  Text.intercalate ", " . map (formatPerson True) . catMaybes . Map.keys . gExifPeople . pdExif
+  Text.intercalate ", " . map (formatPerson True) . map deSymbolizeItem . catMaybes . Map.keys . gExifPeople . pdExif
 
 folderKeywords :: PicDir -> Text
 folderKeywords =
-  Text.intercalate ", " . catMaybes . Map.keys . gExifKeywords . pdExif
+  Text.intercalate ", " . map deSymbolizeItem . catMaybes . Map.keys . gExifKeywords . pdExif
 
 buildTopNItems :: (Ord a)
                => a -> Map.Map Text (Occurrence a) -> Int -> [(Integer, FileOffset, Text, a, Trends)]

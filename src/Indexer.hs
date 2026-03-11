@@ -787,17 +787,6 @@ nameStatsSearch (OpFuzzy f) =
                        let found = maybe False (fuzzyMatch f) k && v > 0
                        in found || a) False
 
--- | NameStats search function for either membership or null set checking.
-nameSymStatsSearch :: StrOp -> NameStats SymbolizedItem -> Bool
-nameSymStatsSearch OpMissing =
-  maybe False (> 0) . (Nothing `Map.lookup`)
-nameSymStatsSearch (OpEqual v) =
-  maybe False (> 0) . (Just (mkSymbolizedItem v) `Map.lookup`)
-nameSymStatsSearch (OpFuzzy f) =
-  Map.foldrWithKey' (\k v a ->
-                       let found = maybe False (fuzzyMatch f) (deSymbolizeItem <$> k) && v > 0
-                       in found || a) False
-
 -- | NameStats search function for numeric values.
 numStatsSearch :: (Ord a) => NumOp a -> NameStats a -> Bool
 numStatsSearch OpNa m =
@@ -837,31 +826,35 @@ flashSearch FlashAny      Nothing                     = False
 flashSearch FlashNone     (Just FlashSourceNone)      = True
 flashSearch FlashNone     _                           = False
 
+desymbolizeStats :: NameStats SymbolizedItem -> NameStats Text
+desymbolizeStats = Map.mapKeys (fmap deSymbolizeItem)
+
 -- TODO: implement searching type=unknown after untracked merging into image.
+-- TODO: implement better symbolized searches.
 folderSearchFunction :: Atom -> PicDir -> Bool
 folderSearchFunction (Country loc) =
-  nameStatsSearch loc . gExifCountries . pdExif
+  nameStatsSearch loc . desymbolizeStats . gExifCountries . pdExif
 
 folderSearchFunction (Province loc) =
-  nameStatsSearch loc . gExifProvinces . pdExif
+  nameStatsSearch loc . desymbolizeStats . gExifProvinces . pdExif
 
 folderSearchFunction (City loc) =
-  nameStatsSearch loc . gExifCities . pdExif
+  nameStatsSearch loc . desymbolizeStats . gExifCities . pdExif
 
 folderSearchFunction (Location loc) =
-  nameStatsSearch loc . gExifLocations . pdExif
+  nameStatsSearch loc . desymbolizeStats . gExifLocations . pdExif
 
 folderSearchFunction (Person who) =
-  nameStatsSearch who . gExifPeople . pdExif
+  nameStatsSearch who . desymbolizeStats . gExifPeople . pdExif
 
 folderSearchFunction (Keyword k) =
-  nameStatsSearch k . gExifKeywords . pdExif
+  nameStatsSearch k . desymbolizeStats . gExifKeywords . pdExif
 
 folderSearchFunction (Title t) =
-  nameSymStatsSearch t . gExifTitles . pdExif
+  nameStatsSearch t . desymbolizeStats . gExifTitles . pdExif
 
 folderSearchFunction (Caption c) =
-  nameStatsSearch c . gExifCaptions . pdExif
+  nameStatsSearch c . desymbolizeStats . gExifCaptions . pdExif
 
 -- Note: year is special because year is both property of an image and
 -- (potentially different) property of a folder. So eithe the folder
@@ -880,10 +873,10 @@ folderSearchFunction a@(Day _) =
   imagesMatchAtom a . pdImages
 
 folderSearchFunction (Camera c) =
-  nameStatsSearch c . gExifCameras . pdExif
+  nameStatsSearch c . desymbolizeStats . gExifCameras . pdExif
 
 folderSearchFunction (Lens l) =
-  nameStatsSearch l . gExifLenses . pdExif
+  nameStatsSearch l . desymbolizeStats . gExifLenses . pdExif
 
 folderSearchFunction a@(FStop _) =
   imagesMatchAtom a . pdImages
@@ -933,7 +926,7 @@ folderSearchFunction a@(FlashSrc _) =
   imagesMatchAtom a . pdImages
 
 folderSearchFunction (FlashMode m) =
-  nameStatsSearch m . gExifFlashMode . pdExif
+  nameStatsSearch m . desymbolizeStats . gExifFlashMode . pdExif
 
 folderSearchFunction (Megapixels m) =
   numStatsSearch m . gExifMegapixels . pdExif
@@ -1152,16 +1145,16 @@ formatFlashSource FlashAny      = "shot with an active flash (any type)"
 formatFlashSource FlashUnknown  = "does not have flash information"
 
 getAtoms :: Symbol -> Repository -> AtomStats
-getAtoms TCountry      = idBuilder . gExifCountries . repoExif
-getAtoms TProvince     = idBuilder . gExifProvinces . repoExif
-getAtoms TCity         = idBuilder . gExifCities    . repoExif
-getAtoms TLocation     = idBuilder . gExifLocations . repoExif
-getAtoms TPerson       = idBuilder . gExifPeople    . repoExif
-getAtoms TKeyword      = idBuilder . gExifKeywords  . repoExif
+getAtoms TCountry      = symBuilder . gExifCountries . repoExif
+getAtoms TProvince     = symBuilder . gExifProvinces . repoExif
+getAtoms TCity         = symBuilder . gExifCities    . repoExif
+getAtoms TLocation     = symBuilder . gExifLocations . repoExif
+getAtoms TPerson       = symBuilder . gExifPeople    . repoExif
+getAtoms TKeyword      = symBuilder . gExifKeywords  . repoExif
 getAtoms TTitle        = symBuilder . gExifTitles    . repoExif
-getAtoms TCaption      = idBuilder . gExifCaptions  . repoExif
-getAtoms TCamera       = idBuilder . gExifCameras   . repoExif
-getAtoms TLens         = idBuilder . gExifLenses    . repoExif
+getAtoms TCaption      = symBuilder . gExifCaptions  . repoExif
+getAtoms TCamera       = symBuilder . gExifCameras   . repoExif
+getAtoms TLens         = symBuilder . gExifLenses    . repoExif
 getAtoms TFStop        = gaBuilder (sformat shortest) (sformat ("f/" % shortest)) . apertureStats
 getAtoms TShutterSpeed = gaBuilder toText showShutterSpeed . shutterSpeedStats
 getAtoms TIso          = gaBuilder (sformat int) (sformat ("ISO " % int)) . isoStats
@@ -1183,7 +1176,7 @@ getAtoms TRating       = toTextBuilder . ratingStats
 getAtoms TPplCnt       = gaBuilder (sformat int) (formatZeroOneMore "person" "people") . gExifPeopleCnt . repoExif
 getAtoms TKwdCnt       = gaBuilder (sformat int) (formatZeroOneMore "keyword" "keywords") . gExifKwdCnt . repoExif
 getAtoms TFlashSrc     = gaBuilder showFlash formatFlashSource . flashStats
-getAtoms TFlashMode    = idBuilder . gExifFlashMode . repoExif
+getAtoms TFlashMode    = symBuilder . gExifFlashMode . repoExif
 getAtoms TMegapixels   = fancyTextBuilder (sformat (shortest % " MP")) . gExifMegapixels . repoExif
 
 -- | Computes type statistics.

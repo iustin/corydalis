@@ -66,7 +66,7 @@ getListFoldersR = do
       allprocessed = sProcessed stats + sMovies stats
       allstandalone = sStandalone stats
       allorphaned = sOrphaned stats
-      extractor key = mapMaybe fst . sortBy (compare `on` snd) . Map.toList . key . pdExif
+      extractor key = map deSymbolizeItem . mapMaybe fst . sortBy (compare `on` snd) . Map.toList . key . pdExif
       npairs = map (\n -> let countries = extractor gExifCountries n
                               cities = extractor gExifCities n
                               people = extractor gExifPeople n

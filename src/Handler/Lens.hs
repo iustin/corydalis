@@ -74,8 +74,9 @@ getLensInfoR lensname = do
       lensapflobj = buildLensApFL images
       -- timeline stats
       camerapicstats = computeImagesStats images
-      others = def { ciName = "others" }
-      timelineobj = buildCamLensStats others 30 10 ciName ciName (sByCamera camerapicstats)
+      others = def { ciName = mkSymbolizedItem ("others"::Text) }
+      desymmer = deSymbolizeItem . ciName
+      timelineobj = buildCamLensStats others 30 10 desymmer desymmer (Map.mapKeys deSymbolizeItem $ sByCamera camerapicstats)
       -- end timeline stats
       obj = object [ "lensapfl" .= lensapflobj, "trends" .= timelineobj ]
       html = do

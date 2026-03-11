@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Stats ( DateRange
              , DayRange
-             ,  Occurrence(..)
+             , Occurrence(..)
              , Trends
              , ocFromSize
              , CameraInfo(..)
@@ -111,7 +111,7 @@ ocFromSize size d tk dr =
              }
 
 data CameraInfo = CameraInfo
-  { ciName         :: !Text
+  { ciName         :: !SymbolizedItem
   , ciShutterCount :: !(Maybe (Integer, Integer))
   } deriving (Eq, Show, Ord, Generic)
 
@@ -127,4 +127,4 @@ instance Semigroup CameraInfo where
 
 instance Default CameraInfo where
   -- Fixme: remove the duplication with Exif.hs
-  def = CameraInfo "unknown" Nothing
+  def = CameraInfo (mkSymbolizedItem ("unknown"::Text)) Nothing

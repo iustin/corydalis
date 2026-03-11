@@ -34,7 +34,8 @@
         $if Set.null people
           No people information.
         $else
-          $forall p <- Set.elems people
+          $forall p' <- Set.elems people
+           $with p <- deSymbolizeItem p'
             $with searchParams <- [(symbolName TPerson, p)]
               <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,searchParams)}">
                 #{formatPerson True p}

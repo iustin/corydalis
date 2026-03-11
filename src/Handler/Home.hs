@@ -76,7 +76,7 @@ getHomeR = do
   let all_years = Map.foldl' (\s ->
                                 maybe s (`Set.insert` s) . pdYear
                              ) Set.empty (repoDirs pics)
-      topN' n f = topN n . f $ gexif
+      topN' n f = (\(a, b) -> (map deSymbolizeItem a, map deSymbolizeItem b)) . topN n . f $ gexif
       years = map (sformat int) $ Set.toAscList all_years
       gexif = repoExif pics
       topCountries  = topN' 10 gExifCountries
