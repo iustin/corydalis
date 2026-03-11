@@ -1093,21 +1093,33 @@ atomFindsFiles (Any as)   = any atomFindsFiles as
 atomFindsFiles ConstTrue  = True
 atomFindsFiles _          = True
 
+-- Actual key value, representation for display, and count.
 type AtomStats = [(Maybe Text, Maybe Text, Integer)]
 
+-- | Builds 'AtomStats' from a 'NameStats' map using separate formatters
+--   for: the raw key (used in URLs/params) and the display representation
+--   (used in UI). Missing values are preserved as 'Nothing'.
 gaBuilder :: (a -> Text) -> (a -> Text) -> NameStats a -> AtomStats
 gaBuilder keyfn reprfn =
   map (\(k, v) -> (keyfn <$> k, reprfn <$> k, v)) . Map.toList
 
+-- | Convenience wrapper over 'gaBuilder' for the common case where key
+--   and display text use the same formatter.
 simpleBuilder :: (a -> Text) -> NameStats a -> AtomStats
 simpleBuilder b = gaBuilder b b
 
+-- | Convenience wrapper over 'simpleBuilder' for values that implement
+-- 'ToText'.
 toTextBuilder :: (ToText a) => NameStats a -> AtomStats
 toTextBuilder = simpleBuilder toText
 
+-- | Convenience wrapper over 'gaBuilder' where the key is always rendered via
+--   'toText', while display text uses a custom formatter.
 fancyTextBuilder :: (ToText a) => (a -> Text) -> NameStats a -> AtomStats
 fancyTextBuilder = gaBuilder toText
 
+-- | Specialized builder for textual stats where both key and display
+-- value are identity.
 idBuilder :: NameStats Text -> AtomStats
 idBuilder = simpleBuilder id
 
