@@ -410,7 +410,7 @@ parseFlashSource _ = Nothing
 
 data FlashInfo = FlashInfo
   { fiSource :: !(Maybe FlashSource)
-  , fiMode   :: !(Maybe Text)
+  , fiMode   :: !(Maybe SymbolizedItem)
   } deriving (Eq, Show, Generic)
 
 instance Default FlashInfo where
@@ -736,7 +736,7 @@ addExifToGroup g Exif{..} =
     , gExifPeopleCnt = count1  (gExifPeopleCnt g) (setSz exifPeople)
     , gExifKwdCnt    = count1  (gExifKwdCnt    g) (setSz exifKeywords)
     , gExifFlashSrc  = count1  (gExifFlashSrc  g) (fiSource exifFlashInfo)
-    , gExifFlashMode = count1  (gExifFlashMode g) (fiMode exifFlashInfo)
+    , gExifFlashMode = count1  (gExifFlashMode g) (deSymbolizeItem <$> fiMode exifFlashInfo)
     , gExifDimensions = count1 (gExifDimensions g) ((,) <$> exifWidth <*> exifHeight)
     , gExifMegapixels = count1 (gExifMegapixels g) exifMegapixels
     }
@@ -948,7 +948,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
       exifMimeType     = mkSymbolizedItem <$> rExifMimeType
       exifRating       = rExifRating
       flashSource      = rExifFlashSource >>= parseFlashSource
-      flashMode        = rExifFlashMode
+      flashMode        = mkSymbolizedItem <$>rExifFlashMode
       exifFlashInfo    = FlashInfo flashSource flashMode
   exifModel        <- checkSymNull "model" rExifModel
   exifSerial       <- checkSymNull "serial" rExifSerial

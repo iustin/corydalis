@@ -1068,7 +1068,7 @@ imageSearchFunction (FlashSrc s) =
   flashSearch s . fiSource . exifFlashInfo . imgExif
 
 imageSearchFunction (FlashMode m) =
-  evalStr m . fiMode . exifFlashInfo . imgExif
+  evalStr m . maybeDesymbolizeItem . fiMode . exifFlashInfo . imgExif
 
 imageSearchFunction (Megapixels m) =
   evalNum m . exifMegapixels . imgExif

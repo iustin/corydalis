@@ -176,7 +176,7 @@ showExif Exif {..} = do
                                  else sformat ("rated " % int % " stars") v
                                ) exifRating
       flash_source = formatFlashSource (fiSource exifFlashInfo)
-      flash_mode   = fromMaybe "unknown" (fiMode exifFlashInfo)
+      flash_mode   = maybe ("unknown"::Text) deSymbolizeItem (fiMode exifFlashInfo)
       dimensions = case (exifWidth, exifHeight) of
         (Nothing, Nothing) -> "dimensions missing entirely"
         (Just w, Nothing)  -> sformat (int % " wide, height missing") w
