@@ -285,7 +285,7 @@ instance NFData Image where
 
 data InodeInfo = InodeInfo
   { inodeName  :: !FilePath
-  , inodeDir   :: !Bool
+  , inodeIsDir :: !Bool
   , inodeMTime :: !POSIXTime
   , inodeCTime :: !POSIXTime
   , inodeSize  :: !FileOffset
@@ -293,10 +293,10 @@ data InodeInfo = InodeInfo
 
 instance NFData InodeInfo where
   rnf InodeInfo{..} = rnf inodeName `seq`
-                      rnf inodeDir  `seq`
-                      inodeMTime    `seq`
-                      inodeCTime    `seq`
-                      inodeSize     `seq`
+                      rnf inodeIsDir  `seq`
+                      inodeMTime      `seq`
+                      inodeCTime      `seq`
+                      inodeSize       `seq`
                       ()
 
 data ImageError = ImageNotViewable
@@ -872,7 +872,7 @@ getDirContents' filtered config root = do
     foldM (\acc path -> do
              stat <- getSymbolicLinkStatus $ root </> path
              let !ii = InodeInfo { inodeName  = path
-                                 , inodeDir   = isDirectory stat
+                                 , inodeIsDir = isDirectory stat
                                  , inodeMTime = modificationTimeHiRes stat
                                  , inodeCTime = statusChangeTimeHiRes stat
                                  , inodeSize  = System.Posix.Files.fileSize stat
@@ -880,7 +880,7 @@ getDirContents' filtered config root = do
              ii' <- evaluate $!! ii
              return $! ii':acc
        ) [] allowed_names
-  let (dirs, files) = partition inodeDir paths
+  let (dirs, files) = partition inodeIsDir paths
   return $!! (map inodeName dirs, files)
 
 getDirContents :: Config -> FilePath -> IO ([FilePath], [InodeInfo])
