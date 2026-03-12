@@ -1,7 +1,7 @@
 <table .table .m-0>
   <tr>
     <td>Name
-    <td><span class="monolight">#{Pics.fileName f}</span>
+    <td><span class="monolight">#{Pics.fileRelPath f}</span>
   <tr>
     <td>Path
     <td><span class="monolight">#{quoteMarkup $ Pics.filePath f}

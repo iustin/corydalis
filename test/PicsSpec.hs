@@ -22,7 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module PicsSpec (spec) where
 
-import qualified Data.Map   as Map
+import           Data.Default
+import qualified Data.Map     as Map
 
 import           Pics
 import           TestImport
@@ -36,6 +37,19 @@ spec = parallel $ do
     it "returns the full path for an inode" $ \_ -> do
       let ii = InodeInfo "file.jpg" ["subdir", "dir"] False 0 0 0
       inodeFullName ii `shouldBe` "dir/subdir/file.jpg"
+  describe "file info" $ do
+    it "empty parents return the file name" $ \_ -> do
+      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = [], fileDirs = [], fileExif = def }
+      filePath f `shouldBe` "file.jpg"
+      fileRelPath f `shouldBe` "file.jpg"
+    it "returns the full path for a file" $ \_ -> do
+      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDirs = [], fileParent = ["/", "pics", "2022"], fileExif = def }
+      filePath f `shouldBe` "/pics/2022/file.jpg"
+      fileRelPath f `shouldBe` "file.jpg"
+    it "returns the full path for a file with dirs" $ \_ -> do
+      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDirs = ["dir", "subdir"], fileParent = ["/", "pics", "2022"], fileExif = def }
+      filePath f `shouldBe` "/pics/2022/dir/subdir/file.jpg"
+      fileRelPath f `shouldBe` "dir/subdir/file.jpg"
   withContext $
     describe "search cache" $ do
       it "caches a search result" $ \ctx -> do

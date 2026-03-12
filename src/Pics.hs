@@ -36,6 +36,7 @@ module Pics ( PicDir(..)
             , MimeType
             , File(..)
             , filePath
+            , fileRelPath
             , Flags(..)
             , Repository
             , Ctx
@@ -195,27 +196,36 @@ expandRangeFile cfg name =
 type MimeType = Text
 
 data File = File
-  { fileName  :: !Text
-  , fileCTime :: !POSIXTime
-  , fileMTime :: !POSIXTime
-  , fileSize  :: !FileOffset
-  , fileDir   :: !Text
-  , fileExif  :: !Exif
+  { fileName   :: !Text
+  , fileDirs   :: ![Text]
+  , fileCTime  :: !POSIXTime
+  , fileMTime  :: !POSIXTime
+  , fileSize   :: !FileOffset
+  , fileParent :: ![Text]
+  , fileExif   :: !Exif
   } deriving (Show, Eq, Generic)
 
 instance Store File
 
 instance NFData File where
-  rnf File{..} = rnf fileName   `seq`
-                 rnf fileCTime  `seq`
-                 rnf fileMTime  `seq`
-                 fileSize       `seq` -- plain type, weak form is enough
-                 rnf fileDir    `seq`
-                 rnf fileExif
+  rnf File{..} =
+    rnf fileName   `seq`
+    rnf fileDirs   `seq`
+    rnf fileCTime  `seq`
+    rnf fileMTime  `seq`
+    fileSize       `seq` -- plain type, weak form is enough
+    rnf fileParent `seq`
+    rnf fileExif
 
 -- | The full path for a file.
 filePath :: File -> FilePath
-filePath File{..} = TextL.unpack $ TextL.fromChunks [fileDir, pathSep, fileName]
+filePath File{..} =
+  System.FilePath.joinPath . map Text.unpack $ fileParent ++ fileDirs ++ [fileName]
+
+-- | The relative path for a file, under its parent.
+fileRelPath :: File -> FilePath
+fileRelPath File{..} =
+  System.FilePath.joinPath . map Text.unpack $ fileDirs ++ [fileName]
 
 -- | Try to find a valid mime type for a file.
 fileMimeType :: Text -> File -> Text
@@ -749,6 +759,7 @@ selectMasterFile rexts pathfn x y =
                               -- masters, let's choose in order of
                               -- priority.
                               (False, False) ->
+                                -- TODO: move extension into the file structure.
                                 let ext_extract = drop 1 . takeExtension . Text.unpack . fileName
                                     x_ext = ext_extract xf
                                     y_ext = ext_extract yf
@@ -1003,9 +1014,12 @@ loadFolder ctx name path isSource = do
       tname = Text.pack name
       ewarn txt = def { exifWarning = Set.singleton txt }
       dirpath = Text.pack path
+      dir_components = map Text.pack $ splitDirectories path
       loadImage ii  =
         -- TODO: don't concatenate, pass unchanged to File and later to Image.
+        -- TODO: file name becomes ImageName, and that means duplicated parent dir. Need dedup.
         let file_name = inodeFullName ii
+            nodirs_name = Text.pack $ inodeName ii
             file_text = Text.pack file_name
             (base_full, ext') = splitExtension file_name
             ext = Text.pack $ case ext' of
@@ -1018,12 +1032,14 @@ loadFolder ctx name path isSource = do
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
                      Just (Right e)  -> e
             file_obj =
-              File { fileName  = file_text
-                   , fileCTime = inodeCTime ii
-                   , fileMTime = inodeMTime ii
-                   , fileSize  = inodeSize ii
-                   , fileDir   = dirpath
-                   , fileExif  = exif
+              File { fileName   = nodirs_name
+                   -- TODO: keep reverse, forward, symbolize?
+                   , fileDirs   = map Text.pack . reverse $ inodeDirs ii
+                   , fileCTime  = inodeCTime ii
+                   , fileMTime  = inodeMTime ii
+                   , fileSize   = inodeSize ii
+                   , fileParent = dir_components
+                   , fileExif   = exif
                    }
             just_file = strictJust file_obj
             isSoftMaster = is_jpeg && isSource

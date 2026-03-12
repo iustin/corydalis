@@ -257,7 +257,7 @@ followRedirectOK = do
 -- Picture mocking functions
 simpleFile :: Text -> File
 simpleFile filename =
-  File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileDir = "test", fileExif = def }
+  File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = ["test"], fileDirs = [], fileExif = def }
 
 -- | Generates a picture that only hos untracked (orphaned) elements.
 simpleUntrackedImage :: Config -> Text -> Text -> Image
@@ -268,7 +268,7 @@ simpleUntrackedImage config parent name =
 
 simpleRawImage :: Config -> Image
 simpleRawImage config =
-  let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDir = "test", fileExif = def }
+  let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = ["test"], fileDirs = [], fileExif = def }
   in mkImage config "a" "test" (Just f) Nothing []
              Nothing [] [] Nothing MediaImage def
 
