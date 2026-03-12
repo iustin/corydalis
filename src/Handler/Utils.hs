@@ -236,7 +236,7 @@ folderLocations =
 
 folderPeople :: PicDir -> Text
 folderPeople =
-  Text.intercalate ", " . map (formatPerson True) . map deSymbolizeItem . catMaybes . Map.keys . gExifPeople . pdExif
+  Text.intercalate ", " . map (formatPerson True . deSymbolizeItem) . catMaybes . Map.keys . gExifPeople . pdExif
 
 folderKeywords :: PicDir -> Text
 folderKeywords =

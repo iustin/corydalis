@@ -334,8 +334,8 @@ lensShortName LensInfo{..} =
       name = if Text.length specT < Text.length nameT
         then specT
         else nameT
-  -- TODO: merge with camera name
-  in maybe name (\s -> Text.concat [name, " (#", s, ")"]) (deSymbolizeItem <$> liSerial)
+  -- TODO: merge with camera name in 'exifFromRaw'
+  in maybe name ((\s -> Text.concat [name, " (#", s, ")"]) . deSymbolizeItem) liSerial
 
 parseStrOrNum :: Value -> Parser Text
 parseStrOrNum (String f) = pure f
@@ -913,7 +913,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                                 else return $ Just (t v'))
       evalV = evalTV id
       checkTNull t f = evalTV t Text.null (const $ "Empty " <> f <> " information")
-      checkSymNull = checkTNull (mkSymbolizedItem)
+      checkSymNull = checkTNull mkSymbolizedItem
       pPeople = cfgPeoplePrefix config
       pIgnore = cfgIgnorePrefix config
       dropIgnored = filter (not . (pIgnore `Text.isPrefixOf`))
@@ -930,7 +930,7 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
                                     x:_ | x /= pPeople ->
                                           (dropPeople . dropIgnored) ks ++ e
                                     _ -> e) [] rExifHSubjects
-      exifCamera       = fmap mkSymbolizedItem $ maybe rExifModel
+      exifCamera       = mkSymbolizedItem <$> maybe rExifModel
                          (\s ->
                              Just $ case rExifModel of
                                       Nothing  -> "#" `Text.append` s

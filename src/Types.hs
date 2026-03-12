@@ -469,4 +469,4 @@ maybeDesymbolizeItem = fmap deSymbolizeItem
 
 -- | Potentially return a symbolized item if already internet.
 lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedItem)
-lookupSymbolized s = Symbolize.lookup s >>= return . fmap SymbolizedItem
+lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
