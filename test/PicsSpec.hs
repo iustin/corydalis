@@ -28,25 +28,31 @@ import           Pics
 import           TestImport
 
 spec :: Spec
-spec = parallel $ withContext $
-  describe "search cache" $ do
-    it "caches a search result" $ \ctx -> do
-      let image = simpleRawImage (ctxConfig ctx)
-          m1 = (Map.singleton ("a", (Nothing, "b")) image,
-                Map.singleton "a" image)
-      getSearchResults ctx m1 [] `shouldReturn` m1
-      getSearchResults ctx (error "Failed to cache") [] `shouldReturn` m1
-
-
-    it "flushes the search cache on rescan" $ \ctx -> do
-      let image = simpleRawImage (ctxConfig ctx)
-          m1 = (Map.singleton ("a", (Nothing, "b")) image,
-                Map.singleton "a" image)
-          m2 = (Map.empty, Map.empty)
-      launchScanFileSystem ctx
-      _ <- waitForScan ctx
-      getSearchResults ctx m1 [] `shouldReturn` m1
-      getSearchResults ctx m2 [] `shouldReturn` m1
-      launchScanFileSystem ctx
-      _ <- waitForScan ctx
-      getSearchResults ctx m2 [] `shouldReturn` m2
+spec = parallel $ do
+  describe "inode info" $ do
+    it "works without directories" $ \_ -> do
+      let ii = InodeInfo "file.jpg" [] False 0 0 0
+      inodeFullName ii `shouldBe` "file.jpg"
+    it "returns the full path for an inode" $ \_ -> do
+      let ii = InodeInfo "file.jpg" ["subdir", "dir"] False 0 0 0
+      inodeFullName ii `shouldBe` "dir/subdir/file.jpg"
+  withContext $
+    describe "search cache" $ do
+      it "caches a search result" $ \ctx -> do
+        let image = simpleRawImage (ctxConfig ctx)
+            m1 = (Map.singleton ("a", (Nothing, "b")) image,
+                  Map.singleton "a" image)
+        getSearchResults ctx m1 [] `shouldReturn` m1
+        getSearchResults ctx (error "Failed to cache") [] `shouldReturn` m1
+      it "flushes the search cache on rescan" $ \ctx -> do
+        let image = simpleRawImage (ctxConfig ctx)
+            m1 = (Map.singleton ("a", (Nothing, "b")) image,
+                  Map.singleton "a" image)
+            m2 = (Map.empty, Map.empty)
+        launchScanFileSystem ctx
+        _ <- waitForScan ctx
+        getSearchResults ctx m1 [] `shouldReturn` m1
+        getSearchResults ctx m2 [] `shouldReturn` m1
+        launchScanFileSystem ctx
+        _ <- waitForScan ctx
+        getSearchResults ctx m2 [] `shouldReturn` m2

@@ -109,6 +109,8 @@ module Pics ( PicDir(..)
             , buildTimeSort
             , buildGroupExif
             , addDirToRepo
+            , InodeInfo(..)
+            , inodeFullName
 #endif
             ) where
 
@@ -284,15 +286,24 @@ instance NFData Image where
                   rnf imgFlags
 
 data InodeInfo = InodeInfo
-  { inodeName  :: !FilePath
+  { inodeName  :: !FilePath    -- | The basename of the file.
+  , inodeDirs  :: ![FilePath]  -- | The directories leading to the file, in reverse order.
+                               --   Not all path elements are represented,
+                               --   only ones under which we recurse.
   , inodeIsDir :: !Bool
   , inodeMTime :: !POSIXTime
   , inodeCTime :: !POSIXTime
   , inodeSize  :: !FileOffset
   }
 
+-- | Return the full path for an inode, including the sub-directories.
+inodeFullName  :: InodeInfo -> FilePath
+inodeFullName InodeInfo{..} =
+  System.FilePath.joinPath . reverse $ inodeName : inodeDirs
+
 instance NFData InodeInfo where
-  rnf InodeInfo{..} = rnf inodeName `seq`
+  rnf InodeInfo{..} = rnf inodeName   `seq`
+                      rnf inodeDirs   `seq`
                       rnf inodeIsDir  `seq`
                       inodeMTime      `seq`
                       inodeCTime      `seq`
@@ -872,6 +883,7 @@ getDirContents' filtered config root = do
     foldM (\acc path -> do
              stat <- getSymbolicLinkStatus $ root </> path
              let !ii = InodeInfo { inodeName  = path
+                                 , inodeDirs  = []
                                  , inodeIsDir = isDirectory stat
                                  , inodeMTime = modificationTimeHiRes stat
                                  , inodeCTime = statusChangeTimeHiRes stat
@@ -934,7 +946,10 @@ allPathFiles :: Config -> FilePath -> (FilePath -> IO ()) -> FilePath -> IO ()
 allPathFiles config root handler (makeRel -> subdir) = do
   let buildsub p = if subdir == "." then p else subdir </> p
   (dirpaths, iinfo) <- getDirContents' False config (root </> subdir)
+  -- execute the action on all files in the current (subdir) directory.
+  -- TODO: handle dirs vs just leaf? ignore dirs?
   mapM_ (\ii -> handler (subdir </> inodeName ii)) iinfo
+  -- recurse into subdirectories.
   mapM_ (allPathFiles config root handler . buildsub) dirpaths
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
@@ -945,13 +960,13 @@ addDirToRepo config dir =
 -- entries beneats a directory.
 recursiveScanPath :: Config
                   -> FilePath
-                  -> (FilePath -> FilePath)
+                  -> [FilePath]
                   -> IO [InodeInfo]
-recursiveScanPath config root prepender = do
+recursiveScanPath config root stack = do
   (!dirs, !files) <- getDirContents config root
-  let with_prefix = map (\ii -> ii { inodeName = prepender (inodeName ii) }) files
+  let with_prefix = map (\ii -> ii { inodeDirs = stack }) files
   subdirs <- mapM (\p -> recursiveScanPath config (root </> p)
-                           (prepender . (p </>))) dirs
+                           (p:stack)) dirs
   return $ with_prefix ++ concat subdirs
 
 -- | Strict application of the 'Just' constructor. This is useful as
@@ -978,8 +993,9 @@ loadFolder ctx name path isSource = do
   -- throwString "boo"
   let config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
-  contents <- recursiveScanPath config path id
-  (readexifs, lcache) <- getExif config path $ map inodeName contents
+  contents <- recursiveScanPath config path []
+
+  (readexifs, lcache) <- getExif config path $ map inodeFullName contents
   let rawe = cfgRawExtsSet config
       side = cfgSidecarExts config
       jpeg = cfgJpegExts config
@@ -988,7 +1004,8 @@ loadFolder ctx name path isSource = do
       ewarn txt = def { exifWarning = Set.singleton txt }
       dirpath = Text.pack path
       loadImage ii  =
-        let file_name = inodeName ii
+        -- TODO: don't concatenate, pass unchanged to File and later to Image.
+        let file_name = inodeFullName ii
             file_text = Text.pack file_name
             (base_full, ext') = splitExtension file_name
             ext = Text.pack $ case ext' of
