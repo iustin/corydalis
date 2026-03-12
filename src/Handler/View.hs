@@ -44,7 +44,6 @@ import           Data.Aeson.Text               (encodeToLazyText)
 import qualified Data.Map                      as Map
 import qualified Data.Text                     as Text
 import qualified Data.Text.Encoding            as Text (encodeUtf8)
-import qualified Data.Text.Lazy                as TextL
 import           Text.Blaze                    (ToMarkup, toMarkup)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Text.Blaze.Svg                as Svg
@@ -254,7 +253,7 @@ getMovieBytesR folder iname = do
   case bestMovie img of
     Just f -> sendFile
                 (Text.encodeUtf8 $ fileMimeType "video/mp4" f)
-                (TextL.unpack $ filePath f)
+                (filePath f)
     _      -> sendResponse imageNotViewable
 
 -- | Builds the complete view information for a given image.
