@@ -112,6 +112,7 @@ module Pics ( PicDir(..)
             , addDirToRepo
             , InodeInfo(..)
             , inodeFullName
+            , mkFileFromInode
 #endif
             ) where
 
@@ -998,6 +999,19 @@ buildGroupExif =
 buildTimeSort :: Map ImageName Image -> Set ImageTimeKey
 buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 
+-- | Builds a `File` object from its base `Inode` and other data.
+mkFileFromInode :: FilePath -> InodeInfo -> Exif -> File
+mkFileFromInode parent ii exif =
+  File { fileName   = Text.pack $ inodeName ii
+        -- TODO: keep reverse, forward, symbolize?
+        , fileDirs   = map Text.pack . reverse $ inodeDirs ii
+        , fileCTime  = inodeCTime ii
+        , fileMTime  = inodeMTime ii
+        , fileSize   = inodeSize ii
+        , fileParent = map Text.pack $ splitDirectories parent
+        , fileExif   = exif
+        }
+
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Ctx -> String -> FilePath -> Bool -> IO PicDir
 loadFolder ctx name path isSource = do
@@ -1014,12 +1028,10 @@ loadFolder ctx name path isSource = do
       tname = Text.pack name
       ewarn txt = def { exifWarning = Set.singleton txt }
       dirpath = Text.pack path
-      dir_components = map Text.pack $ splitDirectories path
       loadImage ii  =
         -- TODO: don't concatenate, pass unchanged to File and later to Image.
         -- TODO: file name becomes ImageName, and that means duplicated parent dir. Need dedup.
         let file_name = inodeFullName ii
-            nodirs_name = Text.pack $ inodeName ii
             file_text = Text.pack file_name
             (base_full, ext') = splitExtension file_name
             ext = Text.pack $ case ext' of
@@ -1031,16 +1043,7 @@ loadFolder ctx name path isSource = do
                      Nothing         -> ewarn "Internal error: exif not read"
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
                      Just (Right e)  -> e
-            file_obj =
-              File { fileName   = nodirs_name
-                   -- TODO: keep reverse, forward, symbolize?
-                   , fileDirs   = map Text.pack . reverse $ inodeDirs ii
-                   , fileCTime  = inodeCTime ii
-                   , fileMTime  = inodeMTime ii
-                   , fileSize   = inodeSize ii
-                   , fileParent = dir_components
-                   , fileExif   = exif
-                   }
+            file_obj = mkFileFromInode path ii exif
             just_file = strictJust file_obj
             isSoftMaster = is_jpeg && isSource
             raw_file =
