@@ -86,6 +86,7 @@ dependencies:
   - persistent-sqlite
   - persistent-template
   - prefix-units
+  - pretty-simple
   - random
   - regex-tdfa
   - safe

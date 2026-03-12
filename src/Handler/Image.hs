@@ -30,6 +30,8 @@ module Handler.Image
   ( getImageR
   ) where
 
+import           Text.Pretty.Simple
+
 import           Exif
 import           Handler.Utils
 import           Handler.Widgets
