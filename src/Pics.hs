@@ -1152,7 +1152,7 @@ examineCacheFile prefix cleanProgress iset logger path = do
   modifier <- if found
               then return incNoop
               else cleanCacheFile prefix logger path
-  atomically $ modifyTVar cleanProgress modifier
+  atomically $ modifyTVar' cleanProgress modifier
 
 -- | Cleans up a given cache file.
 cleanCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
@@ -1339,7 +1339,7 @@ forceBuildThumbCaches config renderProgress repo totalrender = do
                                   Left err            -> incErrors (imageForError i size) (Text.pack $ show err)
                                   Right (False, _, _) -> incNoop
                                   Right (True, _, _)  -> incDone
-                            atomically $ modifyTVar renderProgress modifier
+                            atomically $ modifyTVar' renderProgress modifier
                         )
                     (cfgAutoImageSizes config)
   -- TODO: add some concurrency for image cache builds.
