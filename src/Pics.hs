@@ -35,7 +35,7 @@ module Pics ( PicDir(..)
             , MediaType(..)
             , MimeType
             , File(..)
-            , filePath
+            , fileFullPath
             , fileRelPath
             , Flags(..)
             , Repository
@@ -220,8 +220,8 @@ instance NFData File where
     rnf fileExif
 
 -- | The full path for a file.
-filePath :: File -> FilePath
-filePath File{..} =
+fileFullPath :: File -> FilePath
+fileFullPath File{..} =
   System.FilePath.joinPath [deSymbolizeItem' fileParent, deSymbolizeItem' fileDirs, Text.unpack fileName]
 
 -- | The relative path for a file, under its parent.
@@ -1179,7 +1179,7 @@ cleanupCache ctx repo alldirs cachecount = do
   let cleanProgress = ctxCleanProgress ctx
   atomically $ writeTVar cleanProgress (def { pgGoal = cachecount })
   let imgs = allRepoFiles repo
-      iset = Set.fromList $ map filePath imgs
+      iset = Set.fromList $ map fileFullPath imgs
       config = ctxConfig ctx
       cacheDir = cfgCacheDir config
       handler = examineCacheFile cacheDir cleanProgress iset (ctxLogger ctx)
@@ -1642,25 +1642,25 @@ jpegMimeType = fileMimeType "image/jpeg"
 getViewableVersion :: Config -> Image -> IO (File, FilePath, MimeType, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img =
-      return (j, filePath j, jpegMimeType j, fileLastTouch j)
+      return (j, fileFullPath j, jpegMimeType j, fileLastTouch j)
   | Just j <- imgRawPath img,
     True <- flagsSoftMaster (imgFlags img) =
-      return (j, filePath j, jpegMimeType j, fileLastTouch j)
+      return (j, fileFullPath j, jpegMimeType j, fileLastTouch j)
   | Just r <- imgRawPath img = do
       -- TODO: there should be some tests to check which version is returned.
       viewable <- if fileName r `viewableAsIs` config
-                  then return $ Right (jpegMimeType r, filePath r)
-                  else bestEmbedded config (filePath r)
+                  then return $ Right (jpegMimeType r, fileFullPath r)
+                  else bestEmbedded config (fileFullPath r)
       case viewable of
         Left msg -> throwIO $ ImageError msg
         Right (mime, path) -> do
           mtime <- filePathLastTouch path
           return (r, path, mime, mtime)
   | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
-      embedded <- bestEmbedded config (filePath m)
+      embedded <- bestEmbedded config (fileFullPath m)
       case embedded of
         Left _ -> do
-          firstFrame <- extractFirstFrame config (filePath m)
+          firstFrame <- extractFirstFrame config (fileFullPath m)
           case firstFrame of
             Left msg' -> throwIO $ ImageError msg'
             Right (mime, path) -> do
@@ -1688,7 +1688,7 @@ imageAtRes config img size = try $ do
   (origFile, path, mime, mtime) <- getViewableVersion config img
   case size of
     Nothing -> return (False, mime, path)
-    Just s  -> loadCachedOrBuild config (filePath origFile) path mime mtime s
+    Just s  -> loadCachedOrBuild config (fileFullPath origFile) path mime mtime s
 
 imgProblems :: Image -> Set Text
 imgProblems =

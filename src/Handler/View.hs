@@ -253,7 +253,7 @@ getMovieBytesR folder iname = do
   case bestMovie img of
     Just f -> sendFile
                 (Text.encodeUtf8 $ fileMimeType "video/mp4" f)
-                (filePath f)
+                (fileFullPath f)
     _      -> sendResponse imageNotViewable
 
 -- | Builds the complete view information for a given image.
