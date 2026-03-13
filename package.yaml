@@ -75,6 +75,7 @@ dependencies:
   - filepath
   - foreign-store
   - formatting
+  - ghc-trace-events
   - hjsmin
   - http-conduit
   - lrucaching

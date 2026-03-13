@@ -133,6 +133,7 @@ import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
+import           Debug.Trace.String
 import           System.Directory
 import           System.Exit
 import           System.FilePath
@@ -1239,6 +1240,9 @@ scanFilesystem ctx newrepo = do
       config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
   logfn LevelInfo "Launching scan filesystem"
+  traceMarkerIO "scanFilesystem start"
+  -- Only in profiling builds:
+  -- _ <- incrementUserEra 1
   r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
   let srcdirs = map (, True)  (cfgSourceDirs config)
       outdirs = map (, False) (cfgOutputDirs config)
@@ -1260,6 +1264,7 @@ scanFilesystem ctx newrepo = do
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir ctx))
                  $ srcdirs ++ outdirs
   logfn LevelInfo "Finished scanning directories"
+  traceMarkerIO "scanFilesystem scanned dirs"
   scanned <- readTVarIO scanProgress
   end <- getZonedTime
   let repo = foldl' (flip (addDirToRepo config)) Map.empty $ concat asyncDirs
@@ -1286,6 +1291,7 @@ scanFilesystem ctx newrepo = do
                                   }
   writeDiskCache config repo_as
   logfn LevelInfo "Finished building repo, starting rendering"
+  traceMarkerIO "scanFilesystem start rendering"
   rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo_as totalrender
   endr <- getZonedTime
   let wrrender = WorkResults { wrStart = end
@@ -1299,6 +1305,7 @@ scanFilesystem ctx newrepo = do
   repo_ar' <- evaluate $ force $ repo_as { repoStatus = wrstatus }
   repo_ar <- tryUpdateRepo ctx repo_ar'
   logfn LevelInfo "Finished rendering, starting cleanup"
+  traceMarkerIO "scanFilesystem start cleanup"
   clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative cachecounts
   endc <- getZonedTime
   let wrclean = WorkResults { wrStart = endr
@@ -1313,6 +1320,7 @@ scanFilesystem ctx newrepo = do
   r4 <- tryUpdateRepo ctx repo_ac
   writeDiskCache config r4
   logfn LevelInfo "Finished cleaning up, all done"
+  traceMarkerIO "scanFilesystem done"
   return r4
 
 -- | Computes the list of images that can be rendered.
