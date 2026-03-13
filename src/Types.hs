@@ -69,6 +69,7 @@ module Types ( Config(..)
              , unknownSymbol
              , mkSymbolizedItem
              , deSymbolizeItem
+             , deSymbolizeItem'
              , deSymbolizeToText
              , maybeDesymbolizeItem
              , lookupSymbolized

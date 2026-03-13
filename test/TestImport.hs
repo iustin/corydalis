@@ -255,9 +255,12 @@ followRedirectOK = do
     statusIs 200
 
 -- Picture mocking functions
+mkSym :: Text -> SymbolizedItem
+mkSym = mkSymbolizedItem
+
 simpleFile :: Text -> File
 simpleFile filename =
-  File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = ["test"], fileDirs = [], fileExif = def }
+  File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = mkSym "test", fileDirs = mkSym "", fileExif = def }
 
 -- | Generates a picture that only hos untracked (orphaned) elements.
 simpleUntrackedImage :: Config -> Text -> Text -> Image
@@ -268,7 +271,7 @@ simpleUntrackedImage config parent name =
 
 simpleRawImage :: Config -> Image
 simpleRawImage config =
-  let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = ["test"], fileDirs = [], fileExif = def }
+  let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = mkSym "test", fileDirs = mkSym "", fileExif = def }
   in mkImage config "a" "test" (Just f) Nothing []
              Nothing [] [] Nothing MediaImage def
 

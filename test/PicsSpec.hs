@@ -39,40 +39,44 @@ spec = parallel $ do
       inodeFullName ii `shouldBe` "dir/subdir/file.jpg"
   describe "file info" $ do
     it "empty parents return the file name" $ \_ -> do
-      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = [], fileDirs = [], fileExif = def }
+      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = mkSym "", fileDirs = mkSym "", fileExif = def }
       filePath f `shouldBe` "file.jpg"
       fileRelPath f `shouldBe` "file.jpg"
     it "returns the full path for a file" $ \_ -> do
-      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDirs = [], fileParent = ["/", "pics", "2022"], fileExif = def }
+      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDirs = mkSym "", fileParent = mkSym "/pics/2022", fileExif = def }
       filePath f `shouldBe` "/pics/2022/file.jpg"
       fileRelPath f `shouldBe` "file.jpg"
     it "returns the full path for a file with dirs" $ \_ -> do
-      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDirs = ["dir", "subdir"], fileParent = ["/", "pics", "2022"], fileExif = def }
+      let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDirs = mkSym "dir/subdir", fileParent = mkSym "/pics/2022", fileExif = def }
       filePath f `shouldBe` "/pics/2022/dir/subdir/file.jpg"
       fileRelPath f `shouldBe` "dir/subdir/file.jpg"
   describe "build file from inode" $ do
     it "builds a file from an inode with no subdirs" $ \_ -> do
       let ii = InodeInfo "file.jpg" [] False 0 0 0
           exif = def
-          f = mkFileFromInode "/pics/2022" ii exif
+          f = mkFileFromInode (mkSym "/pics/2022") ii exif
       fileName f `shouldBe` "file.jpg"
-      fileParent f `shouldBe` ["/", "pics", "2022"]
-      fileDirs f `shouldBe` []
+      fileParent f `shouldBe` mkSym "/pics/2022"
+      fileDirs f `shouldBe` mkSym ""
       fileCTime f `shouldBe` 0
       fileMTime f `shouldBe` 0
       fileSize f `shouldBe` 0
       fileExif f `shouldBe` exif
+      filePath f `shouldBe` "/pics/2022/file.jpg"
+      fileRelPath f `shouldBe` "file.jpg"
     it "builds a file from an inode" $ \_ -> do
       let ii = InodeInfo "file.jpg" ["subdir", "dir"] False 0 0 0
           exif = def
-          f = mkFileFromInode "/pics/2022" ii exif
+          f = mkFileFromInode (mkSym "/pics/2022") ii exif
       fileName f `shouldBe` "file.jpg"
-      fileParent f `shouldBe` ["/", "pics", "2022"]
-      fileDirs f `shouldBe` ["dir", "subdir"]
+      fileParent f `shouldBe` mkSym "/pics/2022"
+      fileDirs f `shouldBe` mkSym "dir/subdir"
       fileCTime f `shouldBe` 0
       fileMTime f `shouldBe` 0
       fileSize f `shouldBe` 0
       fileExif f `shouldBe` exif
+      filePath f `shouldBe` "/pics/2022/dir/subdir/file.jpg"
+      fileRelPath f `shouldBe` "dir/subdir/file.jpg"
   withContext $
     describe "search cache" $ do
       it "caches a search result" $ \ctx -> do

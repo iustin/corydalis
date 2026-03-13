@@ -199,11 +199,11 @@ type MimeType = Text
 
 data File = File
   { fileName   :: !Text
-  , fileDirs   :: ![Text]
+  , fileDirs   :: !SymbolizedItem
   , fileCTime  :: !POSIXTime
   , fileMTime  :: !POSIXTime
   , fileSize   :: !FileOffset
-  , fileParent :: ![Text]
+  , fileParent :: !SymbolizedItem
   , fileExif   :: !Exif
   } deriving (Show, Eq, Generic)
 
@@ -222,12 +222,12 @@ instance NFData File where
 -- | The full path for a file.
 filePath :: File -> FilePath
 filePath File{..} =
-  System.FilePath.joinPath . map Text.unpack $ fileParent ++ fileDirs ++ [fileName]
+  System.FilePath.joinPath [deSymbolizeItem' fileParent, deSymbolizeItem' fileDirs, Text.unpack fileName]
 
 -- | The relative path for a file, under its parent.
 fileRelPath :: File -> FilePath
 fileRelPath File{..} =
-  System.FilePath.joinPath . map Text.unpack $ fileDirs ++ [fileName]
+  System.FilePath.joinPath [deSymbolizeItem' fileDirs, Text.unpack fileName]
 
 -- | Try to find a valid mime type for a file.
 fileMimeType :: Text -> File -> Text
@@ -1001,15 +1001,15 @@ buildTimeSort :: Map ImageName Image -> Set ImageTimeKey
 buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 
 -- | Builds a `File` object from its base `Inode` and other data.
-mkFileFromInode :: FilePath -> InodeInfo -> Exif -> File
+mkFileFromInode :: SymbolizedItem -> InodeInfo -> Exif -> File
 mkFileFromInode parent ii exif =
   File { fileName   = Text.pack $ inodeName ii
         -- TODO: keep reverse, forward, symbolize?
-        , fileDirs   = map Text.pack . reverse $ inodeDirs ii
+        , fileDirs   = mkSymbolizedItem . System.FilePath.joinPath . reverse $ inodeDirs ii
         , fileCTime  = inodeCTime ii
         , fileMTime  = inodeMTime ii
         , fileSize   = inodeSize ii
-        , fileParent = map Text.pack $ splitDirectories parent
+        , fileParent = parent
         , fileExif   = exif
         }
 
@@ -1044,7 +1044,7 @@ loadFolder ctx name path isSource = do
                      Nothing         -> ewarn "Internal error: exif not read"
                      Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
                      Just (Right e)  -> e
-            file_obj = mkFileFromInode path ii exif
+            file_obj = mkFileFromInode (mkSymbolizedItem dirpath) ii exif
             just_file = strictJust file_obj
             isSoftMaster = is_jpeg && isSource
             raw_file =
