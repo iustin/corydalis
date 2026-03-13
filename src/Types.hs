@@ -70,7 +70,6 @@ module Types ( Config(..)
              , mkSymbolizedItem
              , deSymbolizeItem
              , deSymbolizeItem'
-             , deSymbolizeToText
              , maybeDesymbolizeItem
              , lookupSymbolized
              ) where
@@ -459,10 +458,6 @@ deSymbolizeItem = deSymbolizeItem'
 -- | Convert a 'SymbolizedItem' back any 'Textual' by uninterning it.
 deSymbolizeItem' :: ST.Textual a => SymbolizedItem -> a
 deSymbolizeItem' (SymbolizedItem s) = unintern s
-
--- | Simple wrapper around 'deSymbolizeItem' for explicit conversion to 'Text'.
-deSymbolizeToText :: SymbolizedItem -> Text
-deSymbolizeToText = deSymbolizeItem
 
 -- | Convert a 'Maybe SymbolizedItem' back to 'Maybe Text' by uninterning it.
 maybeDesymbolizeItem :: Maybe SymbolizedItem -> Maybe Text

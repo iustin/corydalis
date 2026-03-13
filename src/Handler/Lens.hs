@@ -58,7 +58,7 @@ getLensInfoR lensname = do
   let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensSymbol) pics
       cameras = foldl' (\m i -> case exifCamera (imgExif i) of
                                   Nothing -> m
-                                  Just c  ->  Map.insertWith (+) (deSymbolizeToText c) counterOne m) Map.empty images
+                                  Just c  ->  Map.insertWith (+) (deSymbolizeItem c) counterOne m) Map.empty images
       cameraCounts =
         (sortBy (comparing Down) . map (\(a, b) -> (b, a)) . Map.toList) cameras
       numCameras = Map.size cameras
