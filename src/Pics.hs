@@ -1141,12 +1141,12 @@ resolveProcessedRanges config picd =
 -- | Checks if a given cache file is obsolete.
 examineCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
                  -> TVar Progress  -- ^ For tracking progress
-                 -> Set FilePath   -- ^ Set of real image files (absolute paths)
+                 -> Set Text       -- ^ Set of real image files (absolute paths)
                  -> LogFn          -- ^ Logger function
                  -> FilePath       -- ^ Relative path to the item being examined
                  -> IO ()
 examineCacheFile prefix cleanProgress iset logger path = do
-  let fpath = pathSeparator:path
+  let fpath = Text.pack $ pathSeparator:path
       -- FIXME: huh, how does this work? not documented, why LE?
       found = maybe False (`isPrefixOf` fpath) $ Set.lookupLE fpath iset
   modifier <- if found
@@ -1179,7 +1179,7 @@ cleanupCache ctx repo alldirs cachecount = do
   let cleanProgress = ctxCleanProgress ctx
   atomically $ writeTVar cleanProgress (def { pgGoal = cachecount })
   let imgs = allRepoFiles repo
-      iset = Set.fromList $ map fileFullPath imgs
+      iset = Set.fromList $ map (Text.pack . fileFullPath) imgs
       config = ctxConfig ctx
       cacheDir = cfgCacheDir config
       handler = examineCacheFile cacheDir cleanProgress iset (ctxLogger ctx)
