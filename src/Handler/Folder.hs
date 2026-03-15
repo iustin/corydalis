@@ -39,8 +39,9 @@ import           Pics
 
 import qualified Data.Map        as Map
 import qualified Data.Set        as Set
+import qualified Data.Text.Short as TS
 
-getFolderR :: Text -> Handler Html
+getFolderR :: ShortText -> Handler Html
 getFolderR name = do
   config <- getConfig
   (pics, dir) <- getPicsAndFolder name
@@ -54,7 +55,7 @@ getFolderR name = do
         fc = folderClassFromStats stats
         images = map snd . Map.toList $ pdImages dir
         exifs = map imgExif images
-        cameras = countItems . map (fmap deSymbolizeItem . exifCamera) $ exifs
+        cameras = countItems . map (fmap deSymbolizeItem' . exifCamera) $ exifs
         lenses = countItems . map exifLens $ exifs
-    setHtmlTitle $ "folder " <> name
+    setHtmlTitle $ "folder " <> TS.toText name
     $(widgetFile "folder")

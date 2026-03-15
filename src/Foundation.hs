@@ -63,6 +63,8 @@ import           Yesod.Default.Util   (addStaticContentExternal)
 
 import qualified Data.Map             as Map
 import qualified Data.Set             as Set
+import qualified Data.Text.Short      as TS
+
 
 import           Handler.Cookies
 import           Indexer
@@ -382,19 +384,19 @@ instance YesodBreadcrumbs App where
     pics <- getPics
     let r = maybe SearchFoldersNoYearR (SearchFoldersByYearR . sformat int) $
             Map.lookup name (repoDirs pics) >>= pdYear
-    return (name, Just r)
+    return (TS.toText name, Just r)
   breadcrumb (SearchFoldersByYearR year) = return (year, Nothing)
   breadcrumb SearchFoldersNoYearR = return ("?", Nothing)
 
-  breadcrumb (ImageR folder imname) = return (unImageName imname,
+  breadcrumb (ImageR folder imname) = return (TS.toText $ unImageName imname,
                                              Just (FolderR folder))
   breadcrumb (ViewR folder image) = return ("Viewer",
                                              Just (ImageR folder image))
-  breadcrumb (ImageBytesR _ image) = return ("Bytes of " <> unImageName image,
+  breadcrumb (ImageBytesR _ image) = return ("Bytes of " <> TS.toText (unImageName image),
                                               Nothing)
-  breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> unImageName image,
+  breadcrumb (MovieBytesR _ image) = return ("Movie component of " <> TS.toText (unImageName image),
                                               Nothing)
-  breadcrumb (ImageInfoR _ image) = return ("Information for " <> unImageName image,
+  breadcrumb (ImageInfoR _ image) = return ("Information for " <> TS.toText (unImageName image),
                                                   Nothing)
   breadcrumb RandomImageInfoR = return ("Random image", Nothing)
   breadcrumb ListFoldersR = return ("Listing folders", Nothing)
@@ -406,8 +408,8 @@ instance YesodBreadcrumbs App where
   breadcrumb SettingsR           = return ("Settings",          Nothing)
   breadcrumb LensStatsR          = return ("Lens statistics",   Just CurateR)
   breadcrumb CameraStatsR        = return ("Camera statistics", Just CurateR)
-  breadcrumb (LensInfoR image)   = return (image,               Just LensStatsR)
-  breadcrumb (CameraInfoR image) = return (image,               Just CameraStatsR)
+  breadcrumb (LensInfoR image)   = return (TS.toText image,     Just LensStatsR)
+  breadcrumb (CameraInfoR image) = return (TS.toText image,     Just CameraStatsR)
   breadcrumb (ListItemsR atom)   =
     return ("Listing " <> atomTypeDescriptions atom, Nothing)
   breadcrumb FlaggedImagesR = return ("Flagged images" , Just CurateR)

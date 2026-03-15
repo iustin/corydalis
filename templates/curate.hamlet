@@ -85,7 +85,7 @@ $if allpics > 0
 
 
 
-    ^{itemDiv TProblem False problems}
+    ^{itemDiv TProblem False problems'}
 
   <div .row>
     <div .col-12 .col-md-6 .col-lg-6>

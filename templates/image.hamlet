@@ -50,10 +50,10 @@ $# expected grid size, so it's important to allow overflow-break.
       <table .table .m-0>
         <tr>
           <td>Camera
-          <td>^{showCameraLink (maybeDesymbolizeItem $ exifCamera exif)}
+          <td>^{showCameraLink (maybeDesymbolizeItem' $ exifCamera exif)}
         <tr>
           <td>Camera make
-          <td>^{showMaybeField "?" (maybeDesymbolizeItem $ exifMake exif)}
+          <td>^{showMaybeField "?" (maybeDesymbolizeItem' $ exifMake exif)}
         <tr>
           <td>Lens
           <td>
@@ -61,7 +61,7 @@ $# expected grid size, so it's important to allow overflow-break.
               #{lensDisplayName lens}
         <tr>
           <td>Lens make
-          <td>^{showMaybeField "?" (maybeDesymbolizeItem $ exifLensMake exif)}
+          <td>^{showMaybeField "?" (maybeDesymbolizeItem' $ exifLensMake exif)}
 
   $if imageHasImages img
     <div .col-12 .col-sm-6 .col-lg-4 .mb-4>

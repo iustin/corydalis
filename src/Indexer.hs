@@ -85,11 +85,14 @@ import qualified Data.Set                    as Set
 import           Data.Text                   (Text)
 import qualified Data.Text                   as Text
 import qualified Data.Text.Read              as Text
+import           Data.Text.Short             (ShortText)
+import qualified Data.Text.Short             as TS
 import           Data.Time.Calendar          (toGregorian)
 import           Data.Time.Calendar.WeekDate (toWeekDate)
 import           Data.Time.LocalTime
 import           Formatting
 import           Yesod                       (PathPiece (..))
+
 
 import           Exif
 import           Pics
@@ -198,13 +201,16 @@ symbolFindsFiles _       = True
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
 -- package, once the actual image metadata uses it too.
-newtype FuzzyText = FuzzyText { unFuzzy :: Text }
+newtype FuzzyText = FuzzyText { unFuzzy :: ShortText }
   deriving (Show, Eq)
 
 makeFuzzy :: Text -> FuzzyText
-makeFuzzy = FuzzyText . Text.toCaseFold
+makeFuzzy = FuzzyText . TS.fromText . Text.toCaseFold
 
-data StrOp = OpEqual Text
+unFuzzyToText :: FuzzyText -> Text
+unFuzzyToText = TS.toText . unFuzzy
+
+data StrOp = OpEqual ShortText
            | OpFuzzy FuzzyText
            | OpMissing
            deriving (Show, Eq)
@@ -283,11 +289,11 @@ showFlash FlashExternal = "external"
 showFlash FlashAny      = "any"
 showFlash FlashUnknown  = "unknown"
 
-fuzzyMatch :: FuzzyText -> Text -> Bool
+fuzzyMatch :: FuzzyText -> ShortText -> Bool
 fuzzyMatch fz =
-  (unFuzzy fz `Text.isInfixOf`) . Text.toCaseFold
+  (TS.toText (unFuzzy fz) `Text.isInfixOf`) . Text.toCaseFold . TS.toText
 
-evalStr :: StrOp -> Maybe Text -> Bool
+evalStr :: StrOp -> Maybe ShortText -> Bool
 evalStr (OpEqual a) = (Just a ==)
 evalStr (OpFuzzy a) = maybe False (fuzzyMatch a)
 evalStr  OpMissing  = isNothing
@@ -567,6 +573,9 @@ class (Show a) => ToText a where
 instance ToText Text where
   toText = id
 
+instance ToText ShortText where
+  toText = TS.toText
+
 instance ToText Integer
 
 instance ToText Int
@@ -595,7 +604,7 @@ describeEq a v = a <> " is " <> toText v <> ""
 describeStr :: Text -> StrOp -> Text
 describeStr a (OpEqual "") = a <> " is empty"
 describeStr a (OpEqual v)  = describeEq a v
-describeStr a (OpFuzzy v)  = a <> " contains " <> unFuzzy v
+describeStr a (OpFuzzy v)  = a <> " contains " <> unFuzzyToText v
 describeStr a  OpMissing   = "has no " <> a <> " information"
 
 -- | Describe a numeric value
@@ -626,15 +635,15 @@ atomDescription (Person   (OpEqual who)) =
     "" -> "has an empty person tag"
     p  -> formatPerson False p <> " is in the picture"
 atomDescription (Person (OpFuzzy v)) =
-  "tagged with a person named like " <> unFuzzy v
+  "tagged with a person named like " <> unFuzzyToText v
 atomDescription (Person OpMissing)   = "has no person information"
 
 atomDescription (Keyword (OpEqual keyword)) =
   case keyword of
     "" -> "tagged with an empty keyword"
-    k  -> "tagged with keyword " <> k <> ""
+    k  -> "tagged with keyword " <> TS.toText k <> ""
 atomDescription (Keyword (OpFuzzy v)) =
-  "tagged with a keyword containing " <> unFuzzy v
+  "tagged with a keyword containing " <> unFuzzyToText v
 atomDescription (Keyword OpMissing)   = "not tagged with any keywords"
 
 atomDescription (Title t)              = describeStr "title" t
@@ -663,15 +672,15 @@ atomDescription (Day d)               = "taken on a " <> toText d
 
 atomDescription (Camera OpMissing)    = "has no camera information"
 atomDescription (Camera (OpEqual "")) = "has defined but empty camera information"
-atomDescription (Camera (OpEqual v))  = "shot with a " <> v <> " camera"
+atomDescription (Camera (OpEqual v))  = "shot with a " <> TS.toText v <> " camera"
 atomDescription (Camera (OpFuzzy v))  =
-  "shot with a camera named like " <> unFuzzy v
+  "shot with a camera named like " <> unFuzzyToText v
 
 atomDescription (Lens OpMissing)      = "has no lens information"
 atomDescription (Lens (OpEqual ""))   = "has defined but empty lens information"
-atomDescription (Lens (OpEqual v))    = "shot with a " <> v <> " lens"
+atomDescription (Lens (OpEqual v))    = "shot with a " <> TS.toText v <> " lens"
 atomDescription (Lens (OpFuzzy v))    =
-  "shot with a lens named like " <> unFuzzy v
+  "shot with a lens named like " <> unFuzzyToText v
 
 atomDescription (FStop (OpEq fstop))   = "shot at an aperture of f/" <> toText fstop
 atomDescription (FStop (OpNe fstop))   = "shot at an aperture different from f/" <> toText fstop
@@ -707,9 +716,9 @@ atomDescription (FocalLength OpNa)           = "without focal length information
 
 atomDescription (Problem OpMissing)    = "has no problems"
 atomDescription (Problem (OpEqual "")) = "has an empty problem description"
-atomDescription (Problem (OpEqual v))  = "has a problem description of " <> v
+atomDescription (Problem (OpEqual v))  = "has a problem description of " <> TS.toText v
 atomDescription (Problem (OpFuzzy v))  =
-  "has a problem that matches " <> unFuzzy v
+  "has a problem that matches " <> unFuzzyToText v
 
 atomDescription (Type MediaImage)      = "is an image"
 atomDescription (Type MediaMovie)      = "is a movie"
@@ -770,14 +779,14 @@ atomDescription (Any as) = "(any of: " <> Text.intercalate ", " (map atomDescrip
 atomDescription ConstTrue = "any and all pictures"
 
 -- | Set search function for either membership or null set checking.
-setSearch :: StrOp -> Set Text -> Bool
+setSearch :: StrOp -> Set ShortText -> Bool
 setSearch OpMissing = Set.null
 setSearch (OpEqual v) = (v `Set.member`)
-setSearch (OpFuzzy f)=
+setSearch (OpFuzzy f) =
   Set.foldr' (\a v -> v || fuzzyMatch f a) False
 
 -- | NameStats search function for either membership or null set checking.
-nameStatsSearch :: StrOp -> NameStats Text -> Bool
+nameStatsSearch :: StrOp -> NameStats ShortText -> Bool
 nameStatsSearch OpMissing =
   maybe False (> 0) . (Nothing `Map.lookup`)
 nameStatsSearch (OpEqual v) =
@@ -826,8 +835,8 @@ flashSearch FlashAny      Nothing                     = False
 flashSearch FlashNone     (Just FlashSourceNone)      = True
 flashSearch FlashNone     _                           = False
 
-desymbolizeStats :: NameStats SymbolizedItem -> NameStats Text
-desymbolizeStats = Map.mapKeys (fmap deSymbolizeItem)
+desymbolizeStats :: NameStats SymbolizedItem -> NameStats ShortText
+desymbolizeStats = Map.mapKeys (fmap deSymbolizeItem')
 
 -- TODO: implement searching type=unknown after untracked merging into image.
 -- TODO: implement better symbolized searches.
@@ -958,28 +967,28 @@ imagesMatchAtom a = any (imageSearchFunction a)
 -- TODO: Optimise all desymbolize calls.
 imageSearchFunction :: Atom -> (Image -> Bool)
 imageSearchFunction (Country loc) =
-  evalStr loc . maybeDesymbolizeItem . exifCountry . imgExif
+  evalStr loc . maybeDesymbolizeItem' . exifCountry . imgExif
 
 imageSearchFunction (Province loc) =
-  evalStr loc . maybeDesymbolizeItem . exifProvince . imgExif
+  evalStr loc . maybeDesymbolizeItem' . exifProvince . imgExif
 
 imageSearchFunction (City loc) =
-  evalStr loc . maybeDesymbolizeItem . exifCity . imgExif
+  evalStr loc . maybeDesymbolizeItem' . exifCity . imgExif
 
 imageSearchFunction (Location loc) =
-  evalStr loc . maybeDesymbolizeItem . exifLocation . imgExif
+  evalStr loc . maybeDesymbolizeItem' . exifLocation . imgExif
 
 imageSearchFunction (Person who) =
-  setSearch who . Set.map deSymbolizeItem . exifPeople . imgExif
+  setSearch who . Set.map deSymbolizeItem' . exifPeople . imgExif
 
 imageSearchFunction (Keyword keyword) =
-  setSearch keyword . Set.map deSymbolizeItem . exifKeywords . imgExif
+  setSearch keyword . Set.map deSymbolizeItem' . exifKeywords . imgExif
 
 imageSearchFunction (Title t) =
-  evalStr t . maybeDesymbolizeItem . exifTitle . imgExif
+  evalStr t . maybeDesymbolizeItem' . exifTitle . imgExif
 
 imageSearchFunction (Caption c) =
-  evalStr c . maybeDesymbolizeItem . exifCaption . imgExif
+  evalStr c . maybeDesymbolizeItem' . exifCaption . imgExif
 
 imageSearchFunction (Year year) =
   evalNum year . imageYear
@@ -1011,12 +1020,12 @@ imageSearchFunction (Day d) =
   (== Just d) . picDay
 
 imageSearchFunction (Camera camera) =
-  evalStr camera . (maybeDesymbolizeItem . exifCamera . imgExif)
+  evalStr camera . (maybeDesymbolizeItem' . exifCamera . imgExif)
 
 imageSearchFunction (Lens lens) =
   \img ->
-    (evalStr lens . Just . deSymbolizeItem . liName . exifLens . imgExif) img ||
-    (evalStr lens . Just . deSymbolizeItem . liSpec . exifLens . imgExif) img
+    (evalStr lens . Just . deSymbolizeItem' . liName . exifLens . imgExif) img ||
+    (evalStr lens . Just . deSymbolizeItem' . liSpec . exifLens . imgExif) img
 
 imageSearchFunction (FStop f) =
   evalNum f . exifAperture . imgExif
@@ -1061,7 +1070,7 @@ imageSearchFunction (FlashSrc s) =
   flashSearch s . fiSource . exifFlashInfo . imgExif
 
 imageSearchFunction (FlashMode m) =
-  evalStr m . maybeDesymbolizeItem . fiMode . exifFlashInfo . imgExif
+  evalStr m . maybeDesymbolizeItem' . fiMode . exifFlashInfo . imgExif
 
 imageSearchFunction (Megapixels m) =
   evalNum m . exifMegapixels . imgExif
@@ -1131,6 +1140,10 @@ fancyTextBuilder = gaBuilder toText
 idBuilder :: NameStats Text -> AtomStats
 idBuilder = simpleBuilder id
 
+-- | Just converts ShortText keys to Text, while keeping display text the same.
+stBuilder :: NameStats ShortText -> AtomStats
+stBuilder = simpleBuilder TS.toText
+
 formatZeroOneMore :: Text -> Text -> Int -> Text
 formatZeroOneMore _ p 0 = sformat ("no " % stext) p
 formatZeroOneMore s _ 1 = sformat ("1 " % stext) s
@@ -1163,13 +1176,13 @@ getAtoms TYear         = toTextBuilder . yearStats
 getAtoms TSeason       = toTextBuilder . seasonStats
 getAtoms TDay          = toTextBuilder . dayStats
 getAtoms TMonth        = toTextBuilder . monthStats
-getAtoms TProblem      = idBuilder . repoProblems
+getAtoms TProblem      = stBuilder . repoProblems
 getAtoms TType         = toTextBuilder . typeStats
-getAtoms TFolder       = idBuilder .
-  foldl' (\a p -> Map.insertWith (+) (Just $ pdName p) 1 a) Map.empty . repoDirs
+getAtoms TFolder       = stBuilder .
+  foldl' (\a p -> Map.insertWith (+) (Just . pdName $ p) 1 a) Map.empty . repoDirs
 -- TODO: this is expensive. Disable (const Map.empty)?
 getAtoms TFileName     = idBuilder .
-  foldl' (\a i -> Map.insertWith (+) (Just . unImageName $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
+  foldl' (\a i -> Map.insertWith (+) (Just . TS.toText . unImageName $ imgName i) 1 a) Map.empty . filterImagesBy (const True)
 getAtoms TStatus       = idBuilder . statusStats
 getAtoms TFClass       = idBuilder . fClassStats
 getAtoms TRating       = toTextBuilder . ratingStats
@@ -1385,7 +1398,7 @@ rpnParser xs (an, av) =
 
 parseString :: Text -> Maybe StrOp
 parseString (Text.uncons -> Just ('~', v)) = Just $ OpFuzzy (makeFuzzy v)
-parseString v                              = Just $ OpEqual v
+parseString v                              = Just $ OpEqual (TS.fromText v)
 
 numPrefixes :: Set.Set Char
 numPrefixes = Set.fromList ['=', '/', '!', '≠', '<', '>', '≤', '≥']
@@ -1558,8 +1571,8 @@ class OpParam a where
   opToParam :: Text -> a -> (Text, Text)
 
 instance OpParam StrOp where
-  opToParam s (OpEqual v) = (s, v)
-  opToParam s (OpFuzzy v) = (s, '~' `Text.cons` unFuzzy v)
+  opToParam s (OpEqual v) = (s, TS.toText v)
+  opToParam s (OpFuzzy v) = (s, '~' `Text.cons` TS.toText (unFuzzy v))
   opToParam s OpMissing   = formatNo s
 
 instance (ToText a) => OpParam (NumOp a) where

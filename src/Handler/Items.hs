@@ -34,6 +34,7 @@ module Handler.Items
   , symbolPlCap
   ) where
 
+import qualified Data.Text.Short     as TS
 import           Data.Time.Calendar
 import           Data.Time.Clock
 import           Data.Time.LocalTime (LocalTime (localDay), getTimeZone,
@@ -85,7 +86,7 @@ divClassForAtom TProblem = "border-warning"
 divClassForAtom _        = ""
 
 formatter :: Symbol -> (Text -> Text)
-formatter TPerson = formatPerson True
+formatter TPerson = formatPerson True . TS.fromText
 formatter _       = id
 
 localToday :: IO Day

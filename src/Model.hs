@@ -35,6 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Model where
 
 import           ClassyPrelude.Yesod
+import           Data.Text.Short        (ShortText)
 import           Database.Persist.Quasi
 import           Yesod.Auth.HashDB      (HashDBUser (..))
 

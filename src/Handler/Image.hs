@@ -30,7 +30,9 @@ module Handler.Image
   ( getImageR
   ) where
 
+import qualified Data.Text.Short    as TS
 import           Text.Pretty.Simple
+
 
 import           Exif
 import           Handler.Utils
@@ -38,7 +40,7 @@ import           Handler.Widgets
 import           Import
 import           Pics
 
-getImageR :: Text -> ImageName -> Handler Html
+getImageR :: ShortText -> ImageName -> Handler Html
 getImageR folder iname = do
   dir <- getFolder folder
   img <- getFolderImage dir iname
@@ -51,5 +53,5 @@ getImageR folder iname = do
       lens = exifLens exif
       exif = imgExif img
   defaultLayout $ do
-    setHtmlTitle $ "image " <> folder <> "/" <> unImageName (imgName img)
+    setHtmlTitle $ "image " <> TS.toText folder <> "/" <> (TS.toText . unImageName . imgName $ img)
     $(widgetFile "image")

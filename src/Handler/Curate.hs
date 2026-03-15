@@ -33,6 +33,7 @@ module Handler.Curate
 import qualified Data.Map        as Map
 import qualified Data.Set        as Set
 import qualified Data.Text       as Text
+import qualified Data.Text.Short as TS
 
 import           Exif            (gExifFlashMode, gExifFlashSrc, lensShortName)
 import           Handler.Items
@@ -43,11 +44,11 @@ import           Indexer
 import           Pics
 
 data XGraphData a b = XGraphData
-  { xgdName       :: Text
+  { xgdName       :: ShortText
   , xgdType       :: Text
   , xgdX          :: [a]
   , xgdY          :: [b]
-  , xgdText       :: Maybe [Text]
+  , xgdText       :: Maybe [ShortText]
 --  , gdYAxis :: Maybe Text
   , xgdMode       :: Maybe Text
   , xgdYaxis      :: Maybe Text
@@ -116,7 +117,7 @@ getCurateR = do
       -- TODO: resolve deSymbolize.
       buildTop10 m n = let allItems = sortBy (flip compare) $
                              Map.foldlWithKey' (\a k (Occurrence cnt sz _ _ _ _) ->
-                                                  (cnt, sz, deSymbolizeItem k):a) [] m
+                                                  (cnt, sz, deSymbolizeItem' k):a) [] m
                            top10 = if length allItems > n
                                      then let t10 = reverse $ take (n-1) allItems
                                               r  = drop (n-1) allItems
@@ -135,9 +136,9 @@ getCurateR = do
                            }:a)
                ([]::[XGraphData Int64 Int64]) top10c
       -- TODO: resolve deSymbolize
-      top10l = buildTopNItems lensOthers (Map.mapKeys deSymbolizeItem bylens) 12
+      top10l = buildTopNItems lensOthers (Map.mapKeys deSymbolizeItem' bylens) 12
       top10l' = map (\(a,b,txt,d, t) ->
-                       let w = Text.words txt
+                       let w = Text.words $ TS.toText txt
                            w' = filter (not . (`Set.member` hideLensWords)) w
                        in (a, b, Text.unwords w', d, t)) top10l
       jsonl = foldl' (\a (cnt, _, k, li, _) ->
@@ -232,6 +233,7 @@ getCurateR = do
         }::XGraphData Text Int64
 
       problems = topN 3 $ repoProblems pics
+      problems' = bimap (map TS.toText) (map TS.toText) problems
       exifstats = repoExif pics
       imageFilter s = (ListImagesR, atomToParams (Status s))
       folderFilter cs = (ListFoldersR, atomToParams (Any (map FClass cs)))

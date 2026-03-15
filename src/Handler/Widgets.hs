@@ -98,7 +98,7 @@ imageBytesForFolder size img =
                        >|]
 
 -- | Generates srcset for an image based on all auto-built versions.
-imageSrcSet :: Config -> (Route App -> [(Text, Text)] -> Text) -> Text -> ImageName -> Int -> Text
+imageSrcSet :: Config -> (Route App -> [(Text, Text)] -> Text) -> ShortText -> ImageName -> Int -> Text
 imageSrcSet config renderer folder image minsize =
   -- FIXME: this should filter out all sizes greater than actual image
   -- size; this needs knowing the image size in Image. [performance]
@@ -200,7 +200,7 @@ showSetField (Set.null -> True) =
 showSetField v =
   toWidget [hamlet|#{Text.intercalate ", " (map deSymbolizeItem $ Set.toList v)}|]
 
-showListWithHeader :: Text -> [Text] -> Widget
+showListWithHeader :: Text -> [ShortText] -> Widget
 showListWithHeader txt [] =
   toWidget [hamlet|
                   <tr>
@@ -240,7 +240,7 @@ noItemsFound filter_desc images =
            doesn't match any #{what}.
            |]
 
-imageFlagActions :: Text -> ImageName -> Bool -> Widget
+imageFlagActions :: ShortText -> ImageName -> Bool -> Widget
 imageFlagActions folder image flag =
   toWidget [hamlet|
             <form action=@{ImageFlagR folder image} method=post style="display:inline-block">
@@ -249,7 +249,7 @@ imageFlagActions folder image flag =
               <button .btn .btn-light type="submit" name="_method" value="DELETE">Un-flag
               |]
 
-imageViewActions :: Text -> ImageName -> UrlParams -> Widget
+imageViewActions :: ShortText -> ImageName -> UrlParams -> Widget
 imageViewActions folder image params =
   toWidget [hamlet|
             <a href=@?{(ViewR folder image, params)} title="View image in Corydalis">
@@ -281,7 +281,7 @@ actionsWidget params img =
     MediaMovie   -> movieViewActions img params
     MediaUnknown -> toWidget [hamlet|<p>No actions for files of unknown type 😞|]
 
-showCameraLink :: Maybe Text -> Widget
+showCameraLink :: Maybe ShortText -> Widget
 showCameraLink (Just camera) =
   toWidget [hamlet|<a href=@{CameraInfoR camera}>#{camera}|]
 showCameraLink Nothing =

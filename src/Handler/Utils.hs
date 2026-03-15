@@ -35,6 +35,7 @@ import qualified Data.Map              as Map
 import           Data.Prefix.Units
 import qualified Data.Text             as Text
 import qualified Data.Text.Lazy        as TL
+import qualified Data.Text.Short       as TS
 import           Data.Time
 import           Data.Time.Clock.POSIX
 import           System.Random         (getStdRandom, randomR)
@@ -201,26 +202,26 @@ reloadPics = do
   ctx <- getContext
   liftIO $ launchScanFileSystem ctx
 
-getPicsAndFolder :: Text -> Handler (Repository, PicDir)
+getPicsAndFolder :: ShortText -> Handler (Repository, PicDir)
 getPicsAndFolder folder = do
   pics <- getPics
   case Map.lookup folder (repoDirs pics) of
    Nothing  -> notFound
    Just dir -> return (pics, dir)
 
-getFolder :: Text -> Handler PicDir
+getFolder :: ShortText -> Handler PicDir
 getFolder = fmap snd . getPicsAndFolder
 
 getFolderImage :: PicDir -> ImageName -> Handler Image
 getFolderImage dir iname =
   maybe notFound return $ Map.lookup iname (pdImages dir)
 
-getImage :: Text -> ImageName -> Handler Image
+getImage :: ShortText -> ImageName -> Handler Image
 getImage folder iname = do
   dir <- getFolder folder
   getFolderImage dir iname
 
-lookupImage :: Repository -> Text -> ImageName -> Maybe Image
+lookupImage :: Repository -> ShortText -> ImageName -> Maybe Image
 lookupImage (repoDirs -> pics) folder image = do
   dir <- Map.lookup folder pics
   Map.lookup image (pdImages dir)
@@ -236,14 +237,14 @@ folderLocations =
 
 folderPeople :: PicDir -> Text
 folderPeople =
-  Text.intercalate ", " . map (formatPerson True . deSymbolizeItem) . catMaybes . Map.keys . gExifPeople . pdExif
+  Text.intercalate ", " . map (formatPerson True . deSymbolizeItem') . catMaybes . Map.keys . gExifPeople . pdExif
 
 folderKeywords :: PicDir -> Text
 folderKeywords =
   Text.intercalate ", " . map deSymbolizeItem . catMaybes . Map.keys . gExifKeywords . pdExif
 
 buildTopNItems :: (Ord a)
-               => a -> Map.Map Text (Occurrence a) -> Int -> [(Integer, FileOffset, Text, a, Trends)]
+               => a -> Map.Map ShortText (Occurrence a) -> Int -> [(Integer, FileOffset, ShortText, a, Trends)]
 buildTopNItems d m n =
   let allItems = sortBy (flip compare) $
                  Map.foldlWithKey' (\a k (Occurrence cnt sz _ li tr _) ->
@@ -300,8 +301,8 @@ getAtomAndSearch = do
   images <- liftIO $ searchImages ctx atom pics
   return (atomToParams atom, atom, images)
 
-atomAsParam :: Symbol -> Maybe Text -> (Text, Text)
-atomAsParam s (Just t) = (symbolName s, t)
+atomAsParam :: Symbol -> Maybe ShortText -> (Text, Text)
+atomAsParam s (Just t) = (symbolName s, TS.toText t)
 atomAsParam s Nothing  = (negSymbolName s, "")
 
 resolutionParam :: Text
@@ -326,7 +327,7 @@ imageBytesAtRes Image{imgParent = folder, imgName = iname} res =
 
 -- | Helper to build a LensInfo route from a LensInfo.
 lensInfoRoute :: LensInfo -> Route App
-lensInfoRoute li = LensInfoR (deSymbolizeItem $ liName li)
+lensInfoRoute li = LensInfoR (deSymbolizeItem' $ liName li)
 
 setHtmlTitle :: Text -> Widget
 setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)
@@ -335,8 +336,8 @@ counterOne :: Int64
 counterOne = 1
 
 data GraphData a b c = GraphData
-  { gdName  :: Text
-  , gdType  :: Text
+  { gdName  :: ShortText
+  , gdType  :: ShortText
   , gdX     :: Maybe [a]
   , gdY     :: Maybe [b]
   , gdZ     :: Maybe [c]
@@ -417,9 +418,9 @@ buildCamLensStats :: Ord a
                   => a                       -- ^ Default value for "others" category
                   -> Int                     -- ^ Limit for number of items to display in bar chart
                   -> Int                     -- ^ Limit for number of items to display in trend chart
-                  -> (a -> Text)             -- ^ Function to extract item name for bar chart
-                  -> (a -> Text)             -- ^ Function to extract item name for trend chart
-                  -> Map Text (Occurrence a) -- ^ Map of camera/lens occurrences
+                  -> (a -> ShortText)             -- ^ Function to extract item name for bar chart
+                  -> (a -> ShortText)             -- ^ Function to extract item name for trend chart
+                  -> Map ShortText (Occurrence a) -- ^ Map of camera/lens occurrences
                   -> Value                   -- ^ JSON object with "imagecount" and "trends"
 buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
   let top1 = buildTopNItems others stats n1
@@ -432,7 +433,7 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
                             , gdY = Just [fromIntegral cnt]
                             , gdExtra = [("hovertemplate", "%{label}: %{y}<extra></extra>")]
                             }:a)
-              ([]::[GraphData Text Int64 Int64]) top1
+              ([]::[GraphData ShortText Int64 Int64]) top1
       jsont = foldl' (\a (_, _, _, li, tr) ->
                         let (d, c) = unzip $ Map.assocs tr
                             d' = map (uncurry $ sformat (int % "-" % int)) d
@@ -515,7 +516,7 @@ formatFlashSource f =
     Just FlashSourceExternal -> "external flash"
 
 -- | Pick a random image from a list of images.
-randomPick :: Map (Text, ImageTimeKey) Image -> IO (Maybe Image)
+randomPick :: Map (ShortText, ImageTimeKey) Image -> IO (Maybe Image)
 randomPick images = do
   if Map.null images
     then return Nothing

@@ -24,6 +24,7 @@ module Import.NoFoundation
     ) where
 
 import           ClassyPrelude.Yesod   as Import
+import           Data.Text.Short       as Import (ShortText)
 import           Formatting            as Import hiding (now)
 import           Model                 as Import
 import           Settings              as Import

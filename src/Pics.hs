@@ -130,6 +130,7 @@ import qualified Data.Store
 import qualified Data.Text               as Text
 import qualified Data.Text.Lazy          as TextL
 import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)
+import qualified Data.Text.Short         as TS
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
@@ -145,6 +146,7 @@ import           System.Posix.Types
 import           System.Process.Typed
 import qualified Text.Regex.TDFA         as TDFA
 import           UnliftIO.Exception
+
 
 import           Cache
 import           Compat.Orphans          ()
@@ -198,7 +200,7 @@ expandRangeFile cfg name =
 type MimeType = Text
 
 data File = File
-  { fileName   :: !Text
+  { fileName   :: !ShortText
   , fileDirs   :: !SymbolizedItem
   , fileCTime  :: !POSIXTime
   , fileMTime  :: !POSIXTime
@@ -222,12 +224,12 @@ instance NFData File where
 -- | The full path for a file.
 fileFullPath :: File -> FilePath
 fileFullPath File{..} =
-  System.FilePath.joinPath [deSymbolizeItem' fileParent, deSymbolizeItem' fileDirs, Text.unpack fileName]
+  System.FilePath.joinPath [deSymbolizeItem' fileParent, deSymbolizeItem' fileDirs, TS.toString fileName]
 
 -- | The relative path for a file, under its parent.
 fileRelPath :: File -> FilePath
 fileRelPath File{..} =
-  System.FilePath.joinPath [deSymbolizeItem' fileDirs, Text.unpack fileName]
+  System.FilePath.joinPath [deSymbolizeItem' fileDirs, TS.toString fileName]
 
 -- | Try to find a valid mime type for a file.
 fileMimeType :: Text -> File -> Text
@@ -270,7 +272,7 @@ instance NFData MediaType where
 
 data Image = Image
     { imgName        :: !ImageName
-    , imgParent      :: !Text
+    , imgParent      :: !ShortText
     , imgRawPath     :: !(Maybe File)
     , imgSidecarPath :: !(Maybe File)
     , imgJpegPath    :: ![File]
@@ -393,7 +395,7 @@ mkImageStatus _ (Just _) (_:_) _         _     = ImageProcessed
 
 mkImage :: Config
         -> ImageName          -- ^ Name
-        -> Text               -- ^ Parent
+        -> ShortText          -- ^ Parent
         -> Maybe File         -- ^ Raw path
         -> Maybe File         -- ^ Sidecar path
         -> [File]             -- ^ Jpegs
@@ -416,9 +418,9 @@ mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
   in Image name parent raw sidecar jpegs mmov movs untrk range exif mtype status
 
 data PicDir = PicDir
-  { pdName      :: !Text
-  , pdMainPath  :: !Text
-  , pdSecPaths  :: ![Text]
+  { pdName      :: !ShortText
+  , pdMainPath  :: !ShortText
+  , pdSecPaths  :: ![ShortText]
   , pdImages    :: !(Map ImageName Image)
   , pdTimeSort  :: !(Set ImageTimeKey)
   , pdShadows   :: !(Map ImageName Image)
@@ -443,7 +445,7 @@ instance NFData PicDir where
                    rnf pdExif     `seq`
                    rnf pdStats
 
-type RepoDirs = Map Text PicDir
+type RepoDirs = Map ShortText PicDir
 
 -- | Status of a repository.
 data RepoStatus = RepoEmpty    -- ^ Only to be used at application
@@ -561,10 +563,10 @@ instance Default RepoStats where
 
 
 -- | Type alias for image search results, weakly capture-time-sorted.
-type SearchResultsPics = Map (Text, ImageTimeKey) Image
+type SearchResultsPics = Map (ShortText, ImageTimeKey) Image
 
 -- | Overall search results type alias.
-type SearchResults = (SearchResultsPics, Map Text Image)
+type SearchResults = (SearchResultsPics, Map ShortText Image)
 
 -- | Type of the search cache.
 type SearchCache = LruCache UrlParams SearchResults
@@ -762,7 +764,7 @@ selectMasterFile rexts pathfn x y =
                               -- priority.
                               (False, False) ->
                                 -- TODO: move extension into the file structure.
-                                let ext_extract = drop 1 . takeExtension . Text.unpack . fileName
+                                let ext_extract = drop 1 . takeExtension . TS.toString . fileName
                                     x_ext = ext_extract xf
                                     y_ext = ext_extract yf
                                 in if isBetterMaster rexts x_ext y_ext
@@ -1003,7 +1005,7 @@ buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 -- | Builds a `File` object from its base `Inode` and other data.
 mkFileFromInode :: SymbolizedItem -> InodeInfo -> Exif -> File
 mkFileFromInode parent ii exif =
-  File { fileName   = Text.pack $ inodeName ii
+  File { fileName   = TS.fromString $ inodeName ii
         -- TODO: keep reverse, forward, symbolize?
         , fileDirs   = mkSymbolizedItem . System.FilePath.joinPath . reverse $ inodeDirs ii
         , fileCTime  = inodeCTime ii
@@ -1026,9 +1028,9 @@ loadFolder ctx name path isSource = do
       side = cfgSidecarExts config
       jpeg = cfgJpegExts config
       move = cfgMovieExts config
-      tname = Text.pack name
+      tname = TS.fromString name
       ewarn txt = def { exifWarning = Set.singleton txt }
-      dirpath = Text.pack path
+      dirpath = TS.fromString path
       loadImage ii  =
         -- TODO: don't concatenate, pass unchanged to File and later to Image.
         -- TODO: file name becomes ImageName, and that means duplicated parent dir. Need dedup.
@@ -1042,7 +1044,7 @@ loadFolder ctx name path isSource = do
             base_name_text = Text.pack base_name
             exif = case file_text `Map.lookup` lcache of
                      Nothing         -> ewarn "Internal error: exif not read"
-                     Just (Left msg) -> ewarn $ "Cannot read exif: " `Text.append` msg
+                     Just (Left msg) -> ewarn $ "Cannot read exif: " `TS.append` TS.fromText msg
                      Just (Right e)  -> e
             file_obj = mkFileFromInode (mkSymbolizedItem dirpath) ii exif
             just_file = strictJust file_obj
@@ -1065,12 +1067,12 @@ loadFolder ctx name path isSource = do
             snames = expandRangeFile config base_name_text
             range = case fromNullable snames of
                       Nothing -> Nothing
-                      Just s  -> Just (ImageName $ head s, ImageName $ last s)
+                      Just s  -> Just (ImageName . TS.fromText . head $ s, ImageName . TS.fromText . last $ s)
             flags = Flags {
               flagsSoftMaster = isSoftMaster
               }
             simgs = map (\expname ->
-                           mkImage config (ImageName expname) tname
+                           mkImage config (ImageName  (TS.fromText expname)) tname
                                    Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
                         ) snames
             onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
@@ -1081,7 +1083,7 @@ loadFolder ctx name path isSource = do
               (Nothing, [], Nothing, Nothing, []) -> [file_obj]
               _                                   -> []
             img = force $
-              mkImage config (ImageName base_name_text) tname
+              mkImage config (ImageName (TS.fromText base_name_text)) tname
               raw_file sidecar_file jpeg_file m_mov p_mov
               untrk range mtype flags
         in (img, if onlySidecar then [] else simgs)
@@ -1332,7 +1334,7 @@ forceBuildThumbCaches config renderProgress repo totalrender = do
   atomically $ writeTVar renderProgress (def { pgGoal = totalrender})
   let images = renderableImages repo
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
-                        (imgParent i) (unImageName (imgName i))
+                        (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
       thbuild i = mapM_ (\size -> do
                             res <- imageAtRes config i . Just . ImageSize $ size
                             let modifier = case res of
@@ -1590,8 +1592,8 @@ bestEmbedded config path =
             Right _ -> return r
 
 -- | Checks is a file is directly viewable.
-viewableAsIs :: Text -> Config -> Bool
-viewableAsIs path (cfgViewableImages -> exts)  =
+viewableAsIs :: ShortText -> Config -> Bool
+viewableAsIs (TS.toText -> path) (cfgViewableImages -> exts)  =
   any (`Text.isSuffixOf` path) exts
 
 -- | Extracts and saves the first frame from a movie.
@@ -1690,11 +1692,11 @@ imageAtRes config img size = try $ do
     Nothing -> return (False, mime, path)
     Just s  -> loadCachedOrBuild config (fileFullPath origFile) path mime mtime s
 
-imgProblems :: Image -> Set Text
+imgProblems :: Image -> Set ShortText
 imgProblems =
   Set.map ("exif: " <>) . exifWarning . imgExif
 
-pdProblems :: PicDir -> NameStats Text
+pdProblems :: PicDir -> NameStats ShortText
 pdProblems =
   foldl' (\m probs ->
             if null probs
@@ -1702,7 +1704,7 @@ pdProblems =
               else foldl' (\m' e -> Map.insertWith (+) (Just e) 1 m') m probs)
   Map.empty . map (Set.toList . imgProblems) . Map.elems . pdImages
 
-repoProblems :: Repository -> NameStats Text
+repoProblems :: Repository -> NameStats ShortText
 repoProblems =
   Map.unionsWith (+) . map pdProblems . Map.elems . repoDirs
 

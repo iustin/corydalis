@@ -5,7 +5,7 @@ User
     deriving Typeable
 
 FlaggedImage
-    folder Text
+    folder ShortText
     name ImageName
     authorId UserId
     UniqueFlaggedImage folder name

@@ -71,6 +71,7 @@ module Types ( Config(..)
              , deSymbolizeItem
              , deSymbolizeItem'
              , maybeDesymbolizeItem
+             , maybeDesymbolizeItem'
              , lookupSymbolized
              ) where
 
@@ -86,6 +87,8 @@ import qualified Data.Set                   as Set
 import           Data.Store
 import qualified Data.Text                  as Text
 import qualified Data.Text.Lazy             as TextL
+import           Data.Text.Short            (ShortText)
+import qualified Data.Text.Short            as TS
 import           Data.Time.Clock
 import           Data.Time.LocalTime
 import           Database.Persist.Sql       (PersistFieldSql)
@@ -96,6 +99,7 @@ import           System.Log.FastLogger      (LogStr)
 import           Text.Blaze                 (ToMarkup (..))
 import qualified Text.Regex.TDFA            as TDFA
 import           Yesod
+
 
 -- Note: Can't import Import, cycle. So directly import ClassyPrelude.
 import           ClassyPrelude
@@ -238,16 +242,18 @@ instance PathPiece ImageStatus where
   fromPathPiece = parseImageStatus
 
 -- | Newtype wrapper for image names.
-newtype ImageName = ImageName { unImageName :: Text }
+newtype ImageName = ImageName { unImageName :: ShortText }
   deriving (Show, Read, Eq, Ord, IsString, NFData,
-            ToMarkup, ToJSON, PersistField, PersistFieldSql,
+            ToJSON, PersistField, PersistFieldSql,
             Generic)
 
+instance ToMarkup ImageName where
+  toMarkup = toMarkup . TS.toText . unImageName
 instance Store ImageName
 
 instance PathMultiPiece ImageName where
-  fromPathMultiPiece = Just . ImageName . Text.intercalate "/"
-  toPathMultiPiece = Text.splitOn "/" . unImageName
+  fromPathMultiPiece = Just . ImageName . TS.fromText . Text.intercalate "/"
+  toPathMultiPiece = Text.splitOn "/" . TS.toText . unImageName
 
 data FolderClass = FolderEmpty
                  | FolderRaw
@@ -462,6 +468,10 @@ deSymbolizeItem' (SymbolizedItem s) = unintern s
 -- | Convert a 'Maybe SymbolizedItem' back to 'Maybe Text' by uninterning it.
 maybeDesymbolizeItem :: Maybe SymbolizedItem -> Maybe Text
 maybeDesymbolizeItem = fmap deSymbolizeItem
+
+-- | Convert a 'Maybe SymbolizedItem' back to 'Maybe Textual' by uninterning it.
+maybeDesymbolizeItem' :: (ST.Textual a) => Maybe SymbolizedItem -> Maybe a
+maybeDesymbolizeItem' = fmap deSymbolizeItem'
 
 -- | Potentially return a symbolized item if already internet.
 lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedItem)

@@ -22,9 +22,9 @@
            $forall (key, repr, count) <- items
              <tr>
                <td data-text=#{fromMaybe "" key}>
-                 <a href="@?{(ListFoldersR,[atomAsParam atom key])}"><span class="far fa-folder-open">
+                 <a href="@?{(ListFoldersR,[atomAsParam atom (TS.fromText <$> key)])}"><span class="far fa-folder-open">
                  $if symbolFindsFiles atom
-                   <a href="@?{(BrowseImagesR 0,[atomAsParam atom key])}"><span class="far fa-images">
+                   <a href="@?{(BrowseImagesR 0,[atomAsParam atom (TS.fromText <$> key)])}"><span class="far fa-images">
                  $maybe val <- repr
                    #{val}
                  $nothing

@@ -9,8 +9,8 @@
 /curate/flagged-images FlaggedImagesR GET
 /curate/flagged-images/text FlaggedImagesListR GET
 /reload ReloadR POST
-/folder/#Text FolderR GET
-/folder/#Text/images/+ImageName ImageR GET
+/folder/#ShortText FolderR GET
+/folder/#ShortText/images/+ImageName ImageR GET
 /search/folders/list ListFoldersR GET
 /search/folders/by-year/#Text SearchFoldersByYearR GET
 /search/folders/no-year SearchFoldersNoYearR GET
@@ -18,17 +18,17 @@
 /search/images/list ListImagesR GET
 /search/images/view SearchViewR GET
 /search SearchR GET
-/view/#Text/+ImageName ViewR GET
-/image/bytes/#Text/+ImageName ImageBytesR GET
-/image/movie/#Text/+ImageName MovieBytesR GET
-/image/info/#Text/+ImageName ImageInfoR GET
-/image/flag/#Text/+ImageName ImageFlagR PUT DELETE
+/view/#ShortText/+ImageName ViewR GET
+/image/bytes/#ShortText/+ImageName ImageBytesR GET
+/image/movie/#ShortText/+ImageName MovieBytesR GET
+/image/info/#ShortText/+ImageName ImageInfoR GET
+/image/flag/#ShortText/+ImageName ImageFlagR PUT DELETE
 /image/random RandomImageInfoR GET
 /settings SettingsR GET
 /stats/lenses LensStatsR GET
-/stats/lens/#Text LensInfoR GET
+/stats/lens/#ShortText LensInfoR GET
 /stats/cameras CameraStatsR GET
-/stats/camera/#Text CameraInfoR GET
+/stats/camera/#ShortText CameraInfoR GET
 /status StatusR GET
 /status/errors StatusErrorsR GET
 /list/#Symbol ListItemsR GET

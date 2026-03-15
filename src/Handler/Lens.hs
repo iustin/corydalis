@@ -45,7 +45,7 @@ import           Data.Time.LocalTime
 getByLens :: Repository -> Map SymbolizedItem (Occurrence LensInfo)
 getByLens = sByLens . rsPicStats . repoStats
 
-getLensInfoR :: Text -> Handler TypedContent
+getLensInfoR :: ShortText -> Handler TypedContent
 getLensInfoR lensname = do
   pics <- getPics
   lensSymbol <- lookupSymbolized lensname >>= \case
@@ -58,7 +58,7 @@ getLensInfoR lensname = do
   let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensSymbol) pics
       cameras = foldl' (\m i -> case exifCamera (imgExif i) of
                                   Nothing -> m
-                                  Just c  ->  Map.insertWith (+) (deSymbolizeItem c) counterOne m) Map.empty images
+                                  Just c  ->  Map.insertWith (+) (deSymbolizeItem' c::ShortText) counterOne m) Map.empty images
       cameraCounts =
         (sortBy (comparing Down) . map (\(a, b) -> (b, a)) . Map.toList) cameras
       numCameras = Map.size cameras
@@ -66,7 +66,7 @@ getLensInfoR lensname = do
                         sort .
                         foldl' (\a i -> let e = imgExif i
                                             cd = exifCreateDate e
-                                            cam = fromMaybe unknown $ maybeDesymbolizeItem $ exifCamera e
+                                            cam = fromMaybe unknown $ maybeDesymbolizeItem' $ exifCamera e
                                         in case cd of
                                              Nothing  -> a
                                              Just cd' -> (cd', cam):a) [] $ images
@@ -75,8 +75,8 @@ getLensInfoR lensname = do
       -- timeline stats
       camerapicstats = computeImagesStats images
       others = def { ciName = mkSymbolizedItem ("others"::Text) }
-      desymmer = deSymbolizeItem . ciName
-      timelineobj = buildCamLensStats others 30 10 desymmer desymmer (Map.mapKeys deSymbolizeItem $ sByCamera camerapicstats)
+      desymmer = deSymbolizeItem' . ciName
+      timelineobj = buildCamLensStats others 30 10 desymmer desymmer (Map.mapKeys deSymbolizeItem' $ sByCamera camerapicstats)
       -- end timeline stats
       obj = object [ "lensapfl" .= lensapflobj, "trends" .= timelineobj ]
       html = do
@@ -88,10 +88,10 @@ getLensStatsR :: Handler TypedContent
 getLensStatsR = do
   pics <- getPics
   -- TODO: resolve deSymbolize
-  let bylens = Map.mapKeys deSymbolizeItem $ getByLens pics
+  let bylens = Map.mapKeys deSymbolizeItem' $ getByLens pics
       lenses = Map.toList bylens
       -- TODO: resolve deSymbolize
-      obj = buildCamLensStats lensOthers 30 10 lensShortName (deSymbolizeItem . liName) bylens
+      obj = buildCamLensStats lensOthers 30 10 lensShortName (deSymbolizeItem' . liName) bylens
   let html = do
         setTitle "Corydalis: lens statistics"
         $(widgetFile "lensstats")

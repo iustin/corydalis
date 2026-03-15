@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module TestImport
     ( module TestImport
     , module X
+    , module TS
     ) where
 
 import           Application                    (makeFoundation, makeLogWare)
@@ -59,6 +60,8 @@ import           Data.Either
 import qualified Data.Map                       as Map
 import qualified Data.Set                       as Set
 import qualified Data.Text                      as Text
+import           Data.Text.Short                (ShortText)
+import qualified Data.Text.Short                as TS
 import           Formatting
 import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
@@ -260,13 +263,13 @@ mkSym = mkSymbolizedItem
 
 simpleFile :: Text -> File
 simpleFile filename =
-  File { fileName = filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = mkSym "test", fileDirs = mkSym "", fileExif = def }
+  File { fileName = TS.fromText filename, fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = mkSym "test", fileDirs = mkSym "", fileExif = def }
 
 -- | Generates a picture that only hos untracked (orphaned) elements.
 simpleUntrackedImage :: Config -> Text -> Text -> Image
-simpleUntrackedImage config parent name =
+simpleUntrackedImage config (TS.fromText -> parent) name =
   let untracked = simpleFile (sformat (stext % ".other") name)
-  in mkImage config (ImageName name) parent Nothing Nothing []
+  in mkImage config (ImageName (TS.fromText name)) parent Nothing Nothing []
              Nothing [] [untracked] Nothing MediaImage def
 
 simpleRawImage :: Config -> Image
@@ -276,7 +279,7 @@ simpleRawImage config =
              Nothing [] [] Nothing MediaImage def
 
 -- | Create a minimal PicDir for testing
-createTestPicDir :: Text -> PicDir
+createTestPicDir :: ShortText -> PicDir
 createTestPicDir name =
   PicDir { pdName = name
          , pdMainPath = "/test/" <> name

@@ -59,7 +59,7 @@ keeperRate Occurrence{..} =
 formatKeeperRate :: Double -> LT.Text
 formatKeeperRate = format (fixed 2 % "%") . (* 100)
 
-getCameraInfoR :: Text -> Handler TypedContent
+getCameraInfoR :: ShortText -> Handler TypedContent
 getCameraInfoR cameraname = do
   cameraSymbol <- lookupSymbolized cameraname >>= \case
                   Nothing -> notFound
@@ -92,7 +92,7 @@ getCameraInfoR cameraname = do
       -- timeline stats
       camerapicstats = computeImagesStats images
       -- TODO: cleanup desymbolization
-      timelineobj = buildCamLensStats lensOthers 30 10 lensShortName (deSymbolizeItem . liName) (Map.mapKeys deSymbolizeItem $ sByLens camerapicstats)
+      timelineobj = buildCamLensStats lensOthers 30 10 lensShortName (deSymbolizeItem' . liName) (Map.mapKeys deSymbolizeItem' $ sByLens camerapicstats)
       obj = object [ "lensapfl" .= lensapflobj
                    , "trends" .= timelineobj
                    ]
@@ -105,10 +105,10 @@ getCameraInfoR cameraname = do
 getCameraStatsR :: Handler TypedContent
 getCameraStatsR = do
   pics <- getPics
-  let bycamera = Map.mapKeys deSymbolizeItem $ getByCamera pics
+  let bycamera = Map.mapKeys deSymbolizeItem' $ getByCamera pics
       cameras = Map.toList bycamera
       others = def { ciName = mkSymbolizedItem ("others"::Text) }
-      desymmer = deSymbolizeItem . ciName
+      desymmer = deSymbolizeItem' . ciName
       obj = buildCamLensStats others 30 10 desymmer desymmer bycamera
   let html = do
         setTitle "Corydalis: camera statistics"

@@ -44,6 +44,7 @@ import           Data.Aeson.Text               (encodeToLazyText)
 import qualified Data.Map                      as Map
 import qualified Data.Text                     as Text
 import qualified Data.Text.Encoding            as Text (encodeUtf8)
+import qualified Data.Text.Short               as TS
 import           Text.Blaze                    (ToMarkup, toMarkup)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Text.Blaze.Svg                as Svg
@@ -51,6 +52,7 @@ import           Text.Blaze.Svg11              (Svg, docTypeSvg, rect, text_,
                                                 tspan, (!))
 import qualified Text.Blaze.Svg11.Attributes   as SA
 import qualified Text.Hamlet                   as Hamlet (Render)
+
 
 import qualified ClassyPrelude                 as Data.Text.Lazy
 import           Exif
@@ -144,7 +146,7 @@ mkImageInfo img render params =
 data ViewInfo = ViewInfo
   { viYear       :: Text
   , viYearUrl    :: Text
-  , viFolder     :: Text
+  , viFolder     :: ShortText
   , viFldUrl     :: Text
   , viFldList    :: Text
   , viImage      :: ImageName
@@ -177,12 +179,12 @@ instance ToJSON ViewInfo where
            ]
 
 -- | Ensure that requested image is present in the (filtered) map.
-locateCurrentImage :: Text -> ImageName -> SearchResultsPics -> Handler Image
+locateCurrentImage :: ShortText -> ImageName -> SearchResultsPics -> Handler Image
 locateCurrentImage fname iname images = do
   unfiltered <- getImage fname iname
   maybe notFound return $ Map.lookup (fname, imageTimeKey unfiltered) images
 
-getViewR :: Text -> ImageName -> Handler Html
+getViewR :: ShortText -> ImageName -> Handler Html
 getViewR folder iname = do
   (params, _, images) <- getAtomAndSearch
   vi <- viewInfoForImage params images folder iname
@@ -192,7 +194,7 @@ getViewR folder iname = do
       displayMovElem = if isMovie then "block" else "none"::Text
   debug <- encodeToLazyText . appShouldLogAll . appSettings <$> getYesod
   defaultLayout $ do
-    setHtmlTitle $ "image " <> folder <> "/" <> unImageName iname
+    setHtmlTitle $ "image " <> TS.toText folder <> "/" <> (TS.toText . unImageName $ iname)
     $(widgetFile "view")
 
 basicSvg :: Text -> Svg
@@ -229,7 +231,7 @@ imageError msg =
 --
 -- This always returns the image bytes, even for a movie (in which case
 -- the poster image is returned), potentially at the requested resolution.
-getImageBytesR :: Text -> ImageName -> Handler ()
+getImageBytesR :: ShortText -> ImageName -> Handler ()
 getImageBytesR folder iname = do
   config <- getConfig
   img <- getImage folder iname
@@ -247,7 +249,7 @@ getImageBytesR folder iname = do
 --
 -- Note this always hardcodes the mime type to video/mp4, as we don't
 -- handle file types well.
-getMovieBytesR :: Text -> ImageName -> Handler ()
+getMovieBytesR :: ShortText -> ImageName -> Handler ()
 getMovieBytesR folder iname = do
   img <- getImage folder iname
   case bestMovie img of
@@ -261,7 +263,7 @@ getMovieBytesR folder iname = do
 -- This builds the full view information for a given image, including
 -- previous/next images, previous/next folders, etc. so that the view page
 -- can quickly navigate between images.
-viewInfoForImage :: UrlParams -> SearchResults -> Text -> ImageName -> Handler ViewInfo
+viewInfoForImage :: UrlParams -> SearchResults -> ShortText -> ImageName -> Handler ViewInfo
 viewInfoForImage params (images, folders) folder iname = do
   picdir <- getFolder folder
   render <- getUrlRenderParams
@@ -289,7 +291,7 @@ viewInfoForImage params (images, folders) folder iname = do
       (mk <$> imgNext) (mk <$> fldNext)(mk imgLast)
 
 -- | Get the image information for a given image.
-getImageInfoR :: Text -> ImageName -> Handler Value
+getImageInfoR :: ShortText -> ImageName -> Handler Value
 getImageInfoR folder iname = do
   (params, _, images) <- getAtomAndSearch
   vi <- viewInfoForImage params images folder iname

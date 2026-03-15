@@ -2,13 +2,13 @@ $with smf <- showMaybeSymItem "?"
   <tr>
     <td>Location
     <td>
-      <a href="@?{(SearchR,[atomAsParam TCountry (maybeDesymbolizeItem exifCountry)])}"><span title="Country">^{smf exifCountry}
+      <a href="@?{(SearchR,[atomAsParam TCountry (maybeDesymbolizeItem' exifCountry)])}"><span title="Country">^{smf exifCountry}
       <span .fa-solid .fa-caret-right .mx-1>
-      <a href="@?{(SearchR,[atomAsParam TProvince (maybeDesymbolizeItem exifProvince)])}"><span title="Province">^{smf exifProvince}
+      <a href="@?{(SearchR,[atomAsParam TProvince (maybeDesymbolizeItem' exifProvince)])}"><span title="Province">^{smf exifProvince}
       <span .fa-solid .fa-caret-right .mx-1>
-      <a href="@?{(SearchR,[atomAsParam TCity (maybeDesymbolizeItem exifCity)])}"><span title="City">^{smf exifCity}
+      <a href="@?{(SearchR,[atomAsParam TCity (maybeDesymbolizeItem' exifCity)])}"><span title="City">^{smf exifCity}
       <span .fa-solid .fa-caret-right .mx-1>
-      <a href="@?{(SearchR,[atomAsParam TLocation (maybeDesymbolizeItem exifLocation)])}"><span title="Location">^{smf exifLocation}
+      <a href="@?{(SearchR,[atomAsParam TLocation (maybeDesymbolizeItem' exifLocation)])}"><span title="Location">^{smf exifLocation}
   <tr>
     <td>People
     <td>^{showSetField exifPeople}

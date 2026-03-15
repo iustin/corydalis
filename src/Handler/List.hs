@@ -33,6 +33,7 @@ module Handler.List
   ) where
 
 import qualified Data.Map        as Map
+import qualified Data.Text.Short as TS
 
 import           Exif            (GroupExif (gExifCities, gExifCountries, gExifPeople))
 import           Handler.Utils

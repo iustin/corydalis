@@ -74,6 +74,7 @@ import qualified Data.Set                  as Set
 import           Data.Store
 import qualified Data.Text                 as Text
 import qualified Data.Text.Read            as Text
+import qualified Data.Text.Short           as TS
 import           Data.Time.Format
 import           Data.Time.LocalTime
 import           System.Process.Typed
@@ -326,16 +327,16 @@ lensNameOrSpec name spec =
 lensDisplayName :: LensInfo -> SymbolizedItem
 lensDisplayName LensInfo{..} = lensNameOrSpec liName liSpec
 
-lensShortName :: LensInfo -> Text
+lensShortName :: LensInfo -> ShortText
 lensShortName LensInfo{..} =
   -- TODO: keep things more in symbolized form?
-  let nameT = deSymbolizeItem liName
-      specT = deSymbolizeItem liSpec
-      name = if Text.length specT < Text.length nameT
+  let nameT = deSymbolizeItem' liName
+      specT = deSymbolizeItem' liSpec
+      name = if TS.length specT < TS.length nameT
         then specT
         else nameT
   -- TODO: merge with camera name in 'exifFromRaw'
-  in maybe name ((\s -> Text.concat [name, " (#", s, ")"]) . deSymbolizeItem) liSerial
+  in maybe name ((\s -> TS.concat [name, " (#", s, ")"]) . deSymbolizeItem') liSerial
 
 parseStrOrNum :: Value -> Parser Text
 parseStrOrNum (String f) = pure f
@@ -461,7 +462,7 @@ data RawExif = RawExif
   , rExifLensMake     :: Maybe Text
   -- meta fields below
   , rExifRaw          :: Object
-  , rExifWarning      :: Maybe Text
+  , rExifWarning      :: Maybe ShortText
   } deriving (Show)
 
 instance FromJSON RawExif where
@@ -554,7 +555,7 @@ data Exif = Exif
   , exifMake         :: !(Maybe SymbolizedItem)
   , exifLensMake     :: !(Maybe SymbolizedItem)
   -- meta field
-  , exifWarning      :: !(Set Text)
+  , exifWarning      :: !(Set ShortText)
   } deriving (Show, Eq, Generic)
 
 instance Store Exif
@@ -771,7 +772,7 @@ instance Semigroup GroupExif where
       merge :: (Ord k, Num v) => Map.Map k v -> Map.Map k v -> Map.Map k v
       merge = Map.unionWith (+)
 
-unknown :: Text
+unknown :: ShortText
 unknown = "unknown"
 
 unknownItem :: SymbolizedItem
@@ -825,13 +826,13 @@ extractFirstLastName name
   | otherwise = Nothing
 
 -- | Formats a \"Doe\/John\" name as \"John Doe\" or \"John D.\".
-formatPerson :: Bool -> Text -> Text
+formatPerson :: Bool -> ShortText -> Text
 formatPerson abbrev name =
-  case extractFirstLastName name of
+  case extractFirstLastName (TS.toText name) of
     Just (firstn, lastn) ->
       sformat (stext % " " % stext) firstn
         (if abbrev then Text.head lastn `Text.cons` "." else lastn)
-    _ -> name
+    _ -> TS.toText name
 
 -- | Returns the (partial) affine matrix for the given orientation.
 affineTransform :: Orientation -> Transform
@@ -959,11 +960,11 @@ exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
   exifCity         <- checkSymNull "city" rExifCity
   exifLocation     <- checkSymNull "location" rExifLocation
   exifShutterCount <- evalV (> tooHighShutterCount)
-                      (sformat ("Unlikely shutter count: " % int))
+                      (TS.fromText . sformat ("Unlikely shutter count: " % int))
                       rExifShutterCount
-  exifWidth        <- evalV (< 1) (sformat ("Invalid (Exif) image width " % int)) rExifWidth
-  exifHeight       <- evalV (< 1) (sformat ("Invalid (Exif) image height" % int)) rExifHeight
-  exifMegapixels   <- evalV (<=0) (sformat ("Invalid (Exif) megapixels: " % float)) rExifMegapixels
+  exifWidth        <- evalV (< 1) (TS.fromText . sformat ("Invalid (Exif) image width " % int)) rExifWidth
+  exifHeight       <- evalV (< 1) (TS.fromText . sformat ("Invalid (Exif) image height" % int)) rExifHeight
+  exifMegapixels   <- evalV (<=0) (TS.fromText . sformat ("Invalid (Exif) megapixels: " % float)) rExifMegapixels
   exifMake         <- checkSymNull "make" rExifMake
   exifLensMake     <- checkSymNull "lensmake" rExifLensMake
   errs <- get

@@ -36,6 +36,7 @@ module Handler.FlaggedImages
 where
 
 import qualified Data.Text                 as Text
+import qualified Data.Text.Short           as TS
 import           Database.Esqueleto.Legacy ((?.), (^.))
 import qualified Database.Esqueleto.Legacy as E
 
@@ -67,7 +68,7 @@ getFlaggedImagesListR = do
   flagged <- runDB $
     selectList [] [Asc FlaggedImageFolder, Asc FlaggedImageName]
   let flagged' = map entityVal flagged
-  return . Text.unlines . map flaggedImageFolder $ flagged'
+  return . Text.unlines . map (TS.toText . flaggedImageFolder) $ flagged'
 
 flagImageMsg :: Bool -> Text
 flagImageMsg True  = "Image flagged"
@@ -77,14 +78,14 @@ unFlagImageMsg :: Bool -> Text
 unFlagImageMsg True  = "Image flag removed"
 unFlagImageMsg False = "Image was not flagged!"
 
-flagImage :: Text -> ImageName -> Handler Bool
+flagImage :: ShortText -> ImageName -> Handler Bool
 flagImage folder iname = do
   _     <- getImage folder iname
   cuser <- requireAuthId
   r     <- runDB $ insertUnique $ FlaggedImage folder iname cuser
   return $ isJust r
 
-unFlagImage :: Text -> ImageName -> Handler Bool
+unFlagImage :: ShortText -> ImageName -> Handler Bool
 unFlagImage folder iname = runDB $ do
   let u = UniqueFlaggedImage folder iname
   fi <- getBy u
@@ -92,7 +93,7 @@ unFlagImage folder iname = runDB $ do
     Just (Entity fii _) -> delete fii >> return True
     Nothing             -> return False
 
-flagHtml :: Text -> ImageName -> Text -> Text -> Handler Html
+flagHtml :: ShortText -> ImageName -> Text -> Text -> Handler Html
 flagHtml folder iname msg kind = do
   setMessage $ toHtml msg
   setSession msgTypeKey kind
@@ -103,9 +104,9 @@ flagJson :: Text -> Handler Value
 flagJson msg = return $ object ["text" .= msg]
 
 flagHandler
-  :: (Text -> ImageName -> Handler Bool)
+  :: (ShortText -> ImageName -> Handler Bool)
   -> (Bool -> Text)
-  -> Text
+  -> ShortText
   -> ImageName
   -> Handler TypedContent
 flagHandler action msggen folder iname = do
@@ -116,8 +117,8 @@ flagHandler action msggen folder iname = do
     provideRep $ flagJson msg
     provideRep $ flagHtml folder iname msg kind
 
-putImageFlagR :: Text -> ImageName -> Handler TypedContent
+putImageFlagR :: ShortText -> ImageName -> Handler TypedContent
 putImageFlagR = flagHandler flagImage flagImageMsg
 
-deleteImageFlagR :: Text -> ImageName -> Handler TypedContent
+deleteImageFlagR :: ShortText -> ImageName -> Handler TypedContent
 deleteImageFlagR = flagHandler unFlagImage unFlagImageMsg
