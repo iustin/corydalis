@@ -102,6 +102,9 @@ instance ToMarkup a => ToMarkup (MaybeMarkup a) where
 renderExifHTML :: Image -> Text
 renderExifHTML img =
   let exif = imgExif img
+      dimensions = case (exifWidth exif, exifHeight exif) of
+                    (Just w, Just h) -> Just (w, h)
+                    _                -> Nothing
   in Data.Text.Lazy.toStrict $ renderHtml [shamlet|
         <b>Date:
         #{wrapMarkup $ exifCreateDate exif}
@@ -125,6 +128,18 @@ renderExifHTML img =
       <br>
       <b>Exposure:
       #{wrapMarkup $ exifSSpeedDesc exif}s @ &fnof;/#{wrapMarkup (exifAperture exif)}, ISO #{wrapMarkup (exifISO exif)}
+      <br>
+      <b>Dimensions:
+      $maybe (dimw, dimh) <- dimensions
+        #{dimw}×#{dimh}
+      $nothing
+        unknown
+      <br>
+      <b>Size:
+      $maybe mp <- exifMegapixels exif
+        #{sformat (fixed 2) mp}MP
+      $nothing
+        unknown
     |]
 
 mkImageInfo :: Image -> Hamlet.Render (Route App) -> UrlParams -> ImageInfo
