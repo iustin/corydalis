@@ -13,7 +13,7 @@ packages:
     hackage: lrucaching-0.3.5@sha256:27bf853283f36d4ce3c268842288c11d1b03e35445ba9ad615674f9ecc0ecd2a,2015
 snapshots:
 - completed:
-    sha256: a8cfaae441160430cdde558cb80d4f9d60746e7417b275250e4e0af57ee14f36
-    size: 728954
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/33.yaml
-  original: lts-24.33
+    sha256: 3c412a7c13dba6d3d808455a458e0776c58b6cf99b8a7961a2f5e55589d6f1d6
+    size: 729011
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/43.yaml
+  original: lts-24.43
