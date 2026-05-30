@@ -44,6 +44,7 @@ function initImageGrid(): void {
 
   // make imagesLoaded available for InfiniteScroll
   // TODO: update the upstream type definitions, when I have time.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (InfiniteScroll as any).imagesLoaded = imagesLoaded;
 
   // infinite scrolling

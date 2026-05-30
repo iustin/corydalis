@@ -1,14 +1,16 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import $ from 'jquery';
 import 'bootstrap';
 import 'tablesorter';
-import { setupTablesorter } from 'tablesorter-config';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { setupTablesorter } from './tablesorter-config';
 
 // Import page initializers
-import { initCameraStats } from 'camerastats';
-import { initLensStats } from 'lensstats';
-import { initCameraInfo } from 'camerainfo';
-import { initLensInfo } from 'lensinfo';
-import { initCurate } from 'curate';
+import { initCameraStats } from './camerastats';
+import { initLensStats } from './lensstats';
+import { initCameraInfo } from './camerainfo';
+import { initLensInfo } from './lensinfo';
+import { initCurate } from './curate';
 
 // Create a mapping of initializer functions
 const initializers = {

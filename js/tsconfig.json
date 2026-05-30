@@ -20,9 +20,8 @@
     "noImplicitAny": false /* Can adjust based on your code */,
 
     /* Additional */
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["js/*"]
+      "@/*": ["./js/*"]
     },
 
     /* Improvements for esbuild */
