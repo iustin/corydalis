@@ -15,13 +15,23 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[markdown]": {
-    "editor.rulers": [72, 80, 120]
+    "editor.rulers": [
+      72,
+      80,
+      120
+    ]
   },
   "rewrap.wrappingColumn": 74,
   "cSpell.language": "en-GB",
-  "spellright.language": ["en_GB"],
-  "spellright.documentTypes": ["markdown", "latex", "plaintext"],
+  "spellright.language": [
+    "en_GB"
+  ],
+  "spellright.documentTypes": [
+    "markdown",
+    "latex",
+    "plaintext"
+  ],
   "spellright.groupDictionaries": false,
   "todo-tree.regex.regex": "(//|#|<!--|;|--\\s*|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)",
-  "todo-tree.general.statusBar": "tags"
+  "todo-tree.general.statusBar": "tags",
 }
