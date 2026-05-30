@@ -1,1 +1,1 @@
-../../../node_modules/screenfull/dist/screenfull.js
+../../../node_modules/screenfull/index.js
