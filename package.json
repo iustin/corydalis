@@ -39,7 +39,7 @@
     "watch": "NODE_ENV=developement node esbuild.js --watch",
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",
-    "test": "eslint js/*.ts js/*.js"
+    "test": "eslint js/"
   },
   "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",
