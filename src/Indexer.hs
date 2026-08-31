@@ -211,6 +211,7 @@ instance PathPiece Symbol where
   fromPathPiece "flash-mode"    = Just TFlashMode
   fromPathPiece "megapixels"    = Just TMegapixels
   fromPathPiece "event"         = Just TEvent
+  fromPathPiece "generic-event" = Just TGenericEvent
   fromPathPiece "birthday"      = Just TBirthday
   fromPathPiece "getaway"       = Just TGetaway
   fromPathPiece "grandvacation" = Just TGrandVacation
@@ -458,6 +459,7 @@ parseSymbol "flash-source"   = Just TFlashSrc
 parseSymbol "flash-mode"     = Just TFlashMode
 parseSymbol "megapixels"     = Just TMegapixels
 parseSymbol "event"          = Just TEvent
+parseSymbol "generic-event"  = Just TGenericEvent
 parseSymbol "birthday"       = Just TBirthday
 parseSymbol "getaway"        = Just TGetaway
 parseSymbol "grand-vacation" = Just TGrandVacation

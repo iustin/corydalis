@@ -291,6 +291,7 @@ createTestPicDir name =
          , pdTimestamp = Nothing
          , pdExif = def
          , pdStats = def
+         , pdEvent = Nothing
          }
 
 -- | Inject images into the repository through the context
