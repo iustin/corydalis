@@ -23,6 +23,12 @@
 
   <div .col-12 .col-md-3 .mb-4>
     <div .card>
+      <div .card-header>Event information
+      <div .card-body>
+        ^{showFolderEvent event}
+
+  <div .col-12 .col-md-3 .mb-4>
+    <div .card>
       <div .card-header>Date information
       <div .card-body>
         ^{showDateRange "folder" daterange}

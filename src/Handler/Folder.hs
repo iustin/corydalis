@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoCPP                 #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TupleSections         #-}
@@ -34,12 +35,46 @@ import           Exif
 import           Handler.Utils
 import           Handler.Widgets
 import           Import
-import           Indexer         (Symbol (TPerson), symbolName)
+import           Indexer         (Symbol (TBirthday, TEvent, TGetaway, TGrandVacation, TPerson, TWorkTrip),
+                                  symbolName)
 import           Pics
 
 import qualified Data.Map        as Map
 import qualified Data.Set        as Set
 import qualified Data.Text.Short as TS
+
+eventKindInfo :: Event -> (Text, Symbol)
+eventKindInfo GenericEvent{}       = ("Event", TEvent)
+eventKindInfo BirthdayEvent{}      = ("Birthday", TBirthday)
+eventKindInfo GetawayEvent{}       = ("Getaway", TGetaway)
+eventKindInfo GrandVacationEvent{} = ("Grand vacation", TGrandVacation)
+eventKindInfo WorkTripEvent{}      = ("Work trip", TWorkTrip)
+
+showFolderEvent :: Maybe Event -> Widget
+showFolderEvent Nothing =
+  [whamlet|This folder is not associated with an event.|]
+showFolderEvent (Just ev) = do
+  let (kindLabel, kindSymbol) = eventKindInfo ev
+      kindIcon = atomIcon kindSymbol
+      eventNameText = TS.toText (eventName ev)
+      people = eventPeople ev
+  [whamlet|
+    <div .mb-2>
+      <span>
+        <span>
+          <span class="#{kindIcon}" aria-hidden=true>
+        #{kindLabel}:
+      <span>#{eventNameText}
+
+    $if null people
+      <div .text-muted>No people annotated for this event.
+    $else
+      $forall p <- people
+        $with pText <- TS.toText p
+          $with searchParams <- [(symbolName kindSymbol, pText)]
+            <a .btn .btn-light .btn-sm .me-1 .mb-1 href="@?{(SearchR,searchParams)}">
+              #{formatPerson True p}
+  |]
 
 getFolderR :: ShortText -> Handler Html
 getFolderR name = do
@@ -57,5 +92,6 @@ getFolderR name = do
         exifs = map imgExif images
         cameras = countItems . map (fmap deSymbolizeItem' . exifCamera) $ exifs
         lenses = countItems . map exifLens $ exifs
+        event = pdEvent dir
     setHtmlTitle $ "folder " <> TS.toText name
     $(widgetFile "folder")
