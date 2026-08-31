@@ -53,6 +53,11 @@ spec = parallel $ do
       let pathPieces = map toPathPiece symbols
       map fromPathPiece pathPieces `shouldBe` map Just symbols
 
+    it "converts to Text and back" $ do
+      let symbols = [minBound..maxBound] :: [Symbol]
+      let texts = map symbolName symbols
+      map parseSymbol texts `shouldBe` map Just symbols
+
     it "symbolName returns the correct names" $ do
       symbolName TCountry `shouldBe` "country"
       symbolName TPerson `shouldBe` "person"
