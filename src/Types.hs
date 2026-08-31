@@ -105,6 +105,7 @@ import           Yesod
 -- Note: Can't import Import, cycle. So directly import ClassyPrelude.
 import           ClassyPrelude
 import           Compat.Orphans             ()
+import qualified Data.YAML                  as HSY
 
 data Regex = Regex
     { reString :: Text
@@ -479,11 +480,30 @@ lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedIte
 lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
 
 data Event
-  = GenericEvent { eventName :: Text, eventParticipants :: [Text] }
-  | BirthdayEvent { eventName :: Text, birthdayPeople :: [Text] }
-  | GetawayEvent { eventName :: Text, eventParticipants :: [Text] }
-  | GrandVacationEvent { eventName :: Text, eventParticipants :: [Text] }
-  | WorkTripEvent { eventName :: Text }
+  = GenericEvent { eventName :: ShortText, eventPeople :: [ShortText] }
+  | BirthdayEvent { eventName :: ShortText, eventPeople :: [ShortText] }
+  | GetawayEvent { eventName :: ShortText, eventPeople :: [ShortText] }
+  | GrandVacationEvent { eventName :: ShortText, eventPeople :: [ShortText] }
+  | WorkTripEvent { eventName :: ShortText, eventPeople :: [ShortText] }
   deriving (Show, Generic)
 
 instance Store Event
+
+instance HSY.FromYAML Event where
+  parseYAML = HSY.withMap "Event" $ \o -> do
+    name <- TS.fromText <$> o HSY..: "name"
+    kindRaw <- o HSY..:? "kind" HSY..!= ("generic" :: Text)
+    people <- map TS.fromText <$> o HSY..:? "people" HSY..!= []
+
+    let kind =
+          Text.filter (\c -> c /= ' ' && c /= '-' && c /= '_') $
+          Text.toLower $
+          Text.strip kindRaw
+
+    case kind of
+      "generic"       -> pure $ GenericEvent { eventName = name, eventPeople = people }
+      "birthday"      -> pure $ BirthdayEvent { eventName = name, eventPeople = people }
+      "getaway"       -> pure $ GetawayEvent { eventName = name, eventPeople = people }
+      "grandvacation" -> pure $ GrandVacationEvent { eventName = name, eventPeople = people }
+      "worktrip"      -> pure $ WorkTripEvent { eventName = name, eventPeople = people }
+      _               -> fail $ "Unknown event kind: " <> Text.unpack kindRaw

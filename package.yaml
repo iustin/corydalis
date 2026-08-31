@@ -77,6 +77,7 @@ dependencies:
   - formatting
   - ghc-trace-events
   - hjsmin
+  - HsYAML
   - http-conduit
   - lrucaching
   - monad-logger
