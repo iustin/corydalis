@@ -604,6 +604,7 @@ describeEq a v = a <> " is " <> toText v <> ""
 describeStr :: Text -> StrOp -> Text
 describeStr a (OpEqual "") = a <> " is empty"
 describeStr a (OpEqual v)  = describeEq a v
+describeStr a (OpFuzzy (FuzzyText t)) | t == TS.empty   = a <> " has any value"
 describeStr a (OpFuzzy v)  = a <> " contains " <> unFuzzyToText v
 describeStr a  OpMissing   = "has no " <> a <> " information"
 
@@ -634,6 +635,8 @@ atomDescription (Person   (OpEqual who)) =
   case who of
     "" -> "has an empty person tag"
     p  -> formatPerson False p <> " is in the picture"
+atomDescription (Person (OpFuzzy (FuzzyText t))) | t == TS.empty =
+  "tagged with any person"
 atomDescription (Person (OpFuzzy v)) =
   "tagged with a person named like " <> unFuzzyToText v
 atomDescription (Person OpMissing)   = "has no person information"
@@ -642,6 +645,8 @@ atomDescription (Keyword (OpEqual keyword)) =
   case keyword of
     "" -> "tagged with an empty keyword"
     k  -> "tagged with keyword " <> TS.toText k <> ""
+atomDescription (Keyword (OpFuzzy (FuzzyText t))) | t == TS.empty =
+  "tagged with any keyword"
 atomDescription (Keyword (OpFuzzy v)) =
   "tagged with a keyword containing " <> unFuzzyToText v
 atomDescription (Keyword OpMissing)   = "not tagged with any keywords"
@@ -673,12 +678,16 @@ atomDescription (Day d)               = "taken on a " <> toText d
 atomDescription (Camera OpMissing)    = "has no camera information"
 atomDescription (Camera (OpEqual "")) = "has defined but empty camera information"
 atomDescription (Camera (OpEqual v))  = "shot with a " <> TS.toText v <> " camera"
+atomDescription (Camera (OpFuzzy (FuzzyText t))) | t == TS.empty =
+  "has (any) camera information"
 atomDescription (Camera (OpFuzzy v))  =
   "shot with a camera named like " <> unFuzzyToText v
 
 atomDescription (Lens OpMissing)      = "has no lens information"
 atomDescription (Lens (OpEqual ""))   = "has defined but empty lens information"
 atomDescription (Lens (OpEqual v))    = "shot with a " <> TS.toText v <> " lens"
+atomDescription (Lens (OpFuzzy (FuzzyText t))) | t == TS.empty =
+  "has (any) lens information"
 atomDescription (Lens (OpFuzzy v))    =
   "shot with a lens named like " <> unFuzzyToText v
 
@@ -717,6 +726,8 @@ atomDescription (FocalLength OpNa)           = "without focal length information
 atomDescription (Problem OpMissing)    = "has no problems"
 atomDescription (Problem (OpEqual "")) = "has an empty problem description"
 atomDescription (Problem (OpEqual v))  = "has a problem description of " <> TS.toText v
+atomDescription (Problem (OpFuzzy (FuzzyText t))) | t == TS.empty =
+  "has any problem"
 atomDescription (Problem (OpFuzzy v))  =
   "has a problem that matches " <> unFuzzyToText v
 
