@@ -430,6 +430,7 @@ data PicDir = PicDir
                                        -- first picture.
   , pdExif      :: !GroupExif
   , pdStats     :: !Stats
+  , pdEvent     :: !(Maybe Event)
   } deriving (Show, Generic)
 
 instance Store PicDir
@@ -1105,7 +1106,18 @@ loadFolder ctx name path isSource = do
       pstats = computeImagesStats images
   -- FIXME: incProgress is always called with an empty error list?
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
-  return $!! PicDir tname dirpath [] images timesort shadows year timestamp exif pstats
+  return $!!
+    PicDir { pdName = tname
+           , pdMainPath = dirpath
+           , pdSecPaths = []
+           , pdImages = images
+           , pdTimeSort = timesort
+           , pdShadows = shadows
+           , pdYear = year
+           , pdTimestamp = timestamp
+           , pdExif = exif
+           , pdStats = pstats
+           , pdEvent = Nothing }
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =

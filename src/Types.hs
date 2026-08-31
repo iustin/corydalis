@@ -73,6 +73,7 @@ module Types ( Config(..)
              , maybeDesymbolizeItem
              , maybeDesymbolizeItem'
              , lookupSymbolized
+             , Event(..)
              ) where
 
 import           Control.Applicative
@@ -476,3 +477,13 @@ maybeDesymbolizeItem' = fmap deSymbolizeItem'
 -- | Potentially return a symbolized item if already internet.
 lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedItem)
 lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
+
+data Event
+  = GenericEvent { eventName :: Text, eventParticipants :: [Text] }
+  | BirthdayEvent { eventName :: Text, birthdayPeople :: [Text] }
+  | GetawayEvent { eventName :: Text, eventParticipants :: [Text] }
+  | GrandVacationEvent { eventName :: Text, eventParticipants :: [Text] }
+  | WorkTripEvent { eventName :: Text }
+  deriving (Show, Generic)
+
+instance Store Event
