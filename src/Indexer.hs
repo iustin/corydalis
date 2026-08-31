@@ -220,8 +220,15 @@ instance PathPiece Symbol where
   fromPathPiece _               = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
-symbolFindsFiles TFClass = False
-symbolFindsFiles _       = True
+symbolFindsFiles TFClass        = False
+symbolFindsFiles TEvent         = False
+symbolFindsFiles TGenericEvent  = False
+symbolFindsFiles TBirthday      = False
+symbolFindsFiles TVacation      = False
+symbolFindsFiles TGetaway       = False
+symbolFindsFiles TGrandVacation = False
+symbolFindsFiles TWorkTrip      = False
+symbolFindsFiles _              = True
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
 -- package, once the actual image metadata uses it too.
