@@ -162,6 +162,7 @@ library:
     - Stats
     - Types
     - Utils.Parsing
+    - Utils.Yaml
   other-modules:
     - Compat.Orphans
 
