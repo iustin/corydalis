@@ -134,6 +134,7 @@ data Symbol = TCountry
             | TFlashMode
             | TMegapixels
             | TEvent
+            | TGenericEvent
             | TBirthday
             | TGetaway
             | TGrandVacation
@@ -173,6 +174,7 @@ instance PathPiece Symbol where
   toPathPiece TFlashMode     = "flash-mode"
   toPathPiece TMegapixels    = "megapixels"
   toPathPiece TEvent         = "event"
+  toPathPiece TGenericEvent  = "generic-event"
   toPathPiece TBirthday      = "birthday"
   toPathPiece TGetaway       = "getaway"
   toPathPiece TGrandVacation = "grandvacation"
@@ -364,6 +366,7 @@ data Atom = Country  StrOp
           | FlashMode StrOp
           | Megapixels (NumOp Double)
           | Event StrOp       -- ^ Matches the event description
+          | GenericEvent StrOp  -- ^ Matches description or people
           | Birthday StrOp    -- ^ Matches people having the birthday
           | Getaway StrOp     -- ^ Matches the event description
           | GrandVacation StrOp     -- ^ Matches the event description
@@ -413,6 +416,7 @@ symbolName TFlashSrc      = "flash-source"
 symbolName TFlashMode     = "flash-mode"
 symbolName TMegapixels    = "megapixels"
 symbolName TEvent         = "event"
+symbolName TGenericEvent  = "generic-event"
 symbolName TBirthday      = "birthday"
 symbolName TGetaway       = "getaway"
 symbolName TGrandVacation = "grand-vacation"
@@ -489,6 +493,7 @@ buildMissingAtom s =
     TFlashMode     -> FlashMode OpMissing
     TMegapixels    -> Megapixels OpNa
     TEvent         -> Event OpMissing
+    TGenericEvent  -> Indexer.GenericEvent OpMissing
     TBirthday      -> Birthday OpMissing
     TGetaway       -> Getaway OpMissing
     TGrandVacation -> GrandVacation OpMissing
@@ -546,6 +551,7 @@ parseAtom a v = do
     TFlashMode     -> FlashMode    <$> str
     TMegapixels    -> Megapixels   <$> double
     TEvent         -> Event        <$> str
+    TGenericEvent  -> Indexer.GenericEvent <$> str
     TBirthday      -> Birthday     <$> str
     TGetaway       -> Getaway      <$> str
     TGrandVacation -> GrandVacation <$> str
@@ -586,6 +592,7 @@ quickSearch s v =
     TFlashMode     -> fuzzer FlashMode
     TMegapixels    -> Megapixels <$> real
     TEvent         -> fuzzer Event
+    TGenericEvent  -> fuzzer Indexer.GenericEvent
     TBirthday      -> fuzzer Birthday
     TGetaway       -> fuzzer Getaway
     TGrandVacation -> fuzzer GrandVacation
@@ -628,6 +635,7 @@ atomTypeDescriptions TFlashSrc      = "flash source"
 atomTypeDescriptions TFlashMode     = "flash mode"
 atomTypeDescriptions TMegapixels    = "image megapixels"
 atomTypeDescriptions TEvent         = "events"
+atomTypeDescriptions TGenericEvent  = "generic events"
 atomTypeDescriptions TBirthday      = "birthdays"
 atomTypeDescriptions TGetaway       = "getaways"
 atomTypeDescriptions TGrandVacation = "grand vacations"
@@ -835,6 +843,7 @@ atomDescription (Megapixels (OpGt megapixels))   = "with a megapixel count of mo
 atomDescription (Megapixels OpNa)                = "with an unknown megapixel count"
 
 atomDescription (Event name) = describeStr "event" name
+atomDescription (Indexer.GenericEvent name) = describeStr "generic event" name
 atomDescription (Birthday   (OpEqual who)) =
   case who of
     "" -> "matches all birthdays"
@@ -1052,6 +1061,11 @@ folderSearchFunction (Megapixels m) =
 
 -- TODO: implement the event searches
 folderSearchFunction (Event e) =  evalStr e . fmap eventName . pdEvent
+folderSearchFunction (Indexer.GenericEvent e) = maybe False (\case
+  Types.GenericEvent { eventName, eventPeople } ->
+    evalStr' e eventName || any (evalStr' e) eventPeople
+  _ -> False
+  ) . pdEvent
 folderSearchFunction (Birthday e) = maybe False (\case
   BirthdayEvent { eventName, eventPeople } ->
     evalStr' e eventName || any (evalStr' e) eventPeople
@@ -1206,6 +1220,7 @@ imageSearchFunction (Megapixels m) =
 
 -- TODO: implement the event searches
 imageSearchFunction (Event _) = const False
+imageSearchFunction (Indexer.GenericEvent _) = const False
 imageSearchFunction (Birthday _) = const False
 imageSearchFunction (Getaway _) = const False
 imageSearchFunction (GrandVacation _) = const False
@@ -1337,6 +1352,7 @@ getAtoms TFlashMode    = symBuilder . gExifFlashMode . repoExif
 getAtoms TMegapixels   = fancyTextBuilder (sformat (shortest % " MP")) . gExifMegapixels . repoExif
 -- TODO: implement atom stats for events
 getAtoms TEvent = const []
+getAtoms TGenericEvent = const []
 getAtoms TBirthday = const []
 getAtoms TGetaway = const []
 getAtoms TGrandVacation = const []
@@ -1796,6 +1812,7 @@ atomToParams (FlashSrc v)     = [formatParam TFlashSrc     v]
 atomToParams (FlashMode v)    = [formatParam TFlashMode    v]
 atomToParams (Megapixels v)   = [formatParam TMegapixels   v]
 atomToParams (Event v)        = [formatParam TEvent        v]
+atomToParams (Indexer.GenericEvent v) = [formatParam TGenericEvent v]
 atomToParams (Birthday v)     = [formatParam TBirthday     v]
 atomToParams (Getaway  v)     = [formatParam TGetaway      v]
 atomToParams (GrandVacation v) = [formatParam TGrandVacation v]

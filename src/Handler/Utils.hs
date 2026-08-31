@@ -146,6 +146,7 @@ atomIcon TFlashSrc      = "fa-solid fa-bolt"
 atomIcon TFlashMode     = "fa-solid fa-bolt" -- FIXME - maybe multi-symbol?
 atomIcon TMegapixels    = "fa-solid fa-chart-area"
 atomIcon TEvent         = "fa-solid fa-calendar-check"
+atomIcon TGenericEvent  = "fa-solid fa-calendar-check"
 atomIcon TBirthday      = "fa-solid fa-cake-candles"
 atomIcon TGetaway       = "fa-solid fa-car-side"
 atomIcon TGrandVacation = "fa-solid fa-mountain-sun"
