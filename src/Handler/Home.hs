@@ -86,6 +86,13 @@ getHomeR = do
       topPeople     = topN' 15 gExifPeople
       topKeywords   = topN' 10 gExifKeywords
       seasons       = map (sformat shown) $ catMaybes $ Map.keys $ seasonStats pics
+      -- FIXME: this is a very ugly hack.
+      eventkinds    = ( filter (/= "noevent")
+                        . catMaybes
+                        . map (\(k, _, _) -> k)
+                        $ getAtoms TEventKind pics
+                      , []
+                      )
   ctx <- getContext
   (allImages, _) <- liftIO $ searchImages ctx ConstTrue pics
   randomImage <- liftIO $ randomPick allImages

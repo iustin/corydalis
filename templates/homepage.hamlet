@@ -11,6 +11,8 @@ $maybe msg <- homeMessage
 
   ^{itemDiv TPerson True topPeople}
 
+  ^{itemDiv TEventKind True eventkinds}
+
   ^{itemDiv TKeyword True topKeywords}
 
   ^{itemDiv TCountry True topCountries}
