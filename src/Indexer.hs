@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE CPP                #-}
 {-# LANGUAGE GADTs              #-}
+{-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE NamedFieldPuns     #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TupleSections      #-}
@@ -72,6 +74,7 @@ module Indexer ( Symbol(..)
                , parseNumDecimal
                , parseString
                , parseFlash
+               , parseSymbol
 #endif
                ) where
 
@@ -130,39 +133,51 @@ data Symbol = TCountry
             | TFlashSrc
             | TFlashMode
             | TMegapixels
+            | TEvent
+            | TBirthday
+            | TGetaway
+            | TGrandVacation
+            | TVacation
+            | TWorkTrip
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
-  toPathPiece TCountry      = "countries"
-  toPathPiece TProvince     = "provinces"
-  toPathPiece TCity         = "cities"
-  toPathPiece TLocation     = "locations"
-  toPathPiece TPerson       = "people"
-  toPathPiece TKeyword      = "keywords"
-  toPathPiece TTitle        = "title"
-  toPathPiece TCaption      = "caption"
-  toPathPiece TYear         = "years"
-  toPathPiece TSeason       = "seasons"
-  toPathPiece TMonth        = "months"
-  toPathPiece TDay          = "days"
-  toPathPiece TCamera       = "cameras"
-  toPathPiece TLens         = "lenses"
-  toPathPiece TFStop        = "f-stops"
-  toPathPiece TShutterSpeed = "shutter-speed"
-  toPathPiece TIso          = "iso"
-  toPathPiece TFocalLength  = "focal-length"
-  toPathPiece TProblem      = "problems"
-  toPathPiece TType         = "types"
-  toPathPiece TFolder       = "folders"
-  toPathPiece TFileName     = "filenames"
-  toPathPiece TStatus       = "image-status"
-  toPathPiece TFClass       = "folder-class"
-  toPathPiece TRating       = "rating"
-  toPathPiece TPplCnt       = "people-count"
-  toPathPiece TKwdCnt       = "keyword-count"
-  toPathPiece TFlashSrc     = "flash-source"
-  toPathPiece TFlashMode    = "flash-mode"
-  toPathPiece TMegapixels   = "megapixels"
+  toPathPiece TCountry       = "countries"
+  toPathPiece TProvince      = "provinces"
+  toPathPiece TCity          = "cities"
+  toPathPiece TLocation      = "locations"
+  toPathPiece TPerson        = "people"
+  toPathPiece TKeyword       = "keywords"
+  toPathPiece TTitle         = "title"
+  toPathPiece TCaption       = "caption"
+  toPathPiece TYear          = "years"
+  toPathPiece TSeason        = "seasons"
+  toPathPiece TMonth         = "months"
+  toPathPiece TDay           = "days"
+  toPathPiece TCamera        = "cameras"
+  toPathPiece TLens          = "lenses"
+  toPathPiece TFStop         = "f-stops"
+  toPathPiece TShutterSpeed  = "shutter-speed"
+  toPathPiece TIso           = "iso"
+  toPathPiece TFocalLength   = "focal-length"
+  toPathPiece TProblem       = "problems"
+  toPathPiece TType          = "types"
+  toPathPiece TFolder        = "folders"
+  toPathPiece TFileName      = "filenames"
+  toPathPiece TStatus        = "image-status"
+  toPathPiece TFClass        = "folder-class"
+  toPathPiece TRating        = "rating"
+  toPathPiece TPplCnt        = "people-count"
+  toPathPiece TKwdCnt        = "keyword-count"
+  toPathPiece TFlashSrc      = "flash-source"
+  toPathPiece TFlashMode     = "flash-mode"
+  toPathPiece TMegapixels    = "megapixels"
+  toPathPiece TEvent         = "event"
+  toPathPiece TBirthday      = "birthday"
+  toPathPiece TGetaway       = "getaway"
+  toPathPiece TGrandVacation = "grandvacation"
+  toPathPiece TVacation      = "vacation"
+  toPathPiece TWorkTrip      = "worktrip"
   fromPathPiece "countries"     = Just TCountry
   fromPathPiece "provinces"     = Just TProvince
   fromPathPiece "cities"        = Just TCity
@@ -193,6 +208,12 @@ instance PathPiece Symbol where
   fromPathPiece "flash-source"  = Just TFlashSrc
   fromPathPiece "flash-mode"    = Just TFlashMode
   fromPathPiece "megapixels"    = Just TMegapixels
+  fromPathPiece "event"         = Just TEvent
+  fromPathPiece "birthday"      = Just TBirthday
+  fromPathPiece "getaway"       = Just TGetaway
+  fromPathPiece "grandvacation" = Just TGrandVacation
+  fromPathPiece "vacation"      = Just TVacation
+  fromPathPiece "worktrip"      = Just TWorkTrip
   fromPathPiece _               = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
@@ -298,6 +319,11 @@ evalStr (OpEqual a) = (Just a ==)
 evalStr (OpFuzzy a) = maybe False (fuzzyMatch a)
 evalStr  OpMissing  = isNothing
 
+evalStr' :: StrOp -> ShortText -> Bool
+evalStr' (OpEqual a) = (a ==)
+evalStr' (OpFuzzy a) = (fuzzyMatch a)
+evalStr'  OpMissing  = const False
+
 evalNum :: NumOp a -> Maybe a -> Bool
 evalNum (OpEq a) = (== Just a)
 evalNum (OpNe a) = maybe False (/= a)
@@ -337,6 +363,12 @@ data Atom = Country  StrOp
           | FlashSrc FlashOp
           | FlashMode StrOp
           | Megapixels (NumOp Double)
+          | Event StrOp       -- ^ Matches the event description
+          | Birthday StrOp    -- ^ Matches people having the birthday
+          | Getaway StrOp     -- ^ Matches the event description
+          | GrandVacation StrOp     -- ^ Matches the event description
+          | Vacation StrOp     -- ^ Matches the event description
+          | WorkTrip StrOp    -- ^ Matches the event description
           -- Meta atoms below
           | And Atom Atom
           | Or  Atom Atom
@@ -350,107 +382,125 @@ symbolNames :: [(Symbol, Text)]
 symbolNames = map (\t -> (t, symbolName t)) [minBound..maxBound]
 
 symbolName :: Symbol -> Text
-symbolName TCountry      = "country"
-symbolName TProvince     = "province"
-symbolName TCity         = "city"
-symbolName TLocation     = "location"
-symbolName TPerson       = "person"
-symbolName TKeyword      = "keyword"
-symbolName TTitle        = "title"
-symbolName TCaption      = "caption"
-symbolName TYear         = "year"
-symbolName TSeason       = "season"
-symbolName TMonth        = "month"
-symbolName TDay          = "day"
-symbolName TCamera       = "camera"
-symbolName TLens         = "lens"
-symbolName TFStop        = "f-stop"
-symbolName TShutterSpeed = "shutter-speed"
-symbolName TIso          = "iso"
-symbolName TFocalLength  = "focal-length"
-symbolName TProblem      = "problem"
-symbolName TType         = "type"
-symbolName TFolder       = "folder"
-symbolName TFileName     = "filename"
-symbolName TStatus       = "status"
-symbolName TFClass       = "folder-class"
-symbolName TRating       = "rating"
-symbolName TPplCnt       = "people-count"
-symbolName TKwdCnt       = "keyword-count"
-symbolName TFlashSrc     = "flash-source"
-symbolName TFlashMode    = "flash-mode"
-symbolName TMegapixels   = "megapixels"
+symbolName TCountry       = "country"
+symbolName TProvince      = "province"
+symbolName TCity          = "city"
+symbolName TLocation      = "location"
+symbolName TPerson        = "person"
+symbolName TKeyword       = "keyword"
+symbolName TTitle         = "title"
+symbolName TCaption       = "caption"
+symbolName TYear          = "year"
+symbolName TSeason        = "season"
+symbolName TMonth         = "month"
+symbolName TDay           = "day"
+symbolName TCamera        = "camera"
+symbolName TLens          = "lens"
+symbolName TFStop         = "f-stop"
+symbolName TShutterSpeed  = "shutter-speed"
+symbolName TIso           = "iso"
+symbolName TFocalLength   = "focal-length"
+symbolName TProblem       = "problem"
+symbolName TType          = "type"
+symbolName TFolder        = "folder"
+symbolName TFileName      = "filename"
+symbolName TStatus        = "status"
+symbolName TFClass        = "folder-class"
+symbolName TRating        = "rating"
+symbolName TPplCnt        = "people-count"
+symbolName TKwdCnt        = "keyword-count"
+symbolName TFlashSrc      = "flash-source"
+symbolName TFlashMode     = "flash-mode"
+symbolName TMegapixels    = "megapixels"
+symbolName TEvent         = "event"
+symbolName TBirthday      = "birthday"
+symbolName TGetaway       = "getaway"
+symbolName TGrandVacation = "grand-vacation"
+symbolName TVacation      = "vacation"
+symbolName TWorkTrip      = "work-trip"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
 
 parseSymbol :: Text -> Maybe Symbol
-parseSymbol "country"       = Just TCountry
-parseSymbol "province"      = Just TProvince
-parseSymbol "city"          = Just TCity
-parseSymbol "location"      = Just TLocation
-parseSymbol "person"        = Just TPerson
-parseSymbol "keyword"       = Just TKeyword
-parseSymbol "title"         = Just TTitle
-parseSymbol "caption"       = Just TCaption
-parseSymbol "year"          = Just TYear
-parseSymbol "season"        = Just TSeason
-parseSymbol "month"         = Just TMonth
-parseSymbol "day"           = Just TDay
-parseSymbol "camera"        = Just TCamera
-parseSymbol "lens"          = Just TLens
-parseSymbol "f-stop"        = Just TFStop
-parseSymbol "shutter-speed" = Just TShutterSpeed
-parseSymbol "iso"           = Just TIso
-parseSymbol "focal-length"  = Just TFocalLength
-parseSymbol "problem"       = Just TProblem
-parseSymbol "type"          = Just TType
-parseSymbol "folder"        = Just TFolder
-parseSymbol "filename"      = Just TFileName
-parseSymbol "status"        = Just TStatus
-parseSymbol "folder-class"  = Just TFClass
-parseSymbol "rating"        = Just TRating
-parseSymbol "people-count"  = Just TPplCnt
-parseSymbol "keyword-count" = Just TKwdCnt
-parseSymbol "flash-source"  = Just TFlashSrc
-parseSymbol "flash-mode"    = Just TFlashMode
-parseSymbol "megapixels"    = Just TMegapixels
-parseSymbol _               = Nothing
+parseSymbol "country"        = Just TCountry
+parseSymbol "province"       = Just TProvince
+parseSymbol "city"           = Just TCity
+parseSymbol "location"       = Just TLocation
+parseSymbol "person"         = Just TPerson
+parseSymbol "keyword"        = Just TKeyword
+parseSymbol "title"          = Just TTitle
+parseSymbol "caption"        = Just TCaption
+parseSymbol "year"           = Just TYear
+parseSymbol "season"         = Just TSeason
+parseSymbol "month"          = Just TMonth
+parseSymbol "day"            = Just TDay
+parseSymbol "camera"         = Just TCamera
+parseSymbol "lens"           = Just TLens
+parseSymbol "f-stop"         = Just TFStop
+parseSymbol "shutter-speed"  = Just TShutterSpeed
+parseSymbol "iso"            = Just TIso
+parseSymbol "focal-length"   = Just TFocalLength
+parseSymbol "problem"        = Just TProblem
+parseSymbol "type"           = Just TType
+parseSymbol "folder"         = Just TFolder
+parseSymbol "filename"       = Just TFileName
+parseSymbol "status"         = Just TStatus
+parseSymbol "folder-class"   = Just TFClass
+parseSymbol "rating"         = Just TRating
+parseSymbol "people-count"   = Just TPplCnt
+parseSymbol "keyword-count"  = Just TKwdCnt
+parseSymbol "flash-source"   = Just TFlashSrc
+parseSymbol "flash-mode"     = Just TFlashMode
+parseSymbol "megapixels"     = Just TMegapixels
+parseSymbol "event"          = Just TEvent
+parseSymbol "birthday"       = Just TBirthday
+parseSymbol "getaway"        = Just TGetaway
+parseSymbol "grand-vacation" = Just TGrandVacation
+parseSymbol "vacation"       = Just TVacation
+parseSymbol "work-trip"      = Just TWorkTrip
+parseSymbol _                = Nothing
 
 buildMissingAtom :: Symbol -> Atom
 buildMissingAtom s =
   case s of
-    TCountry      -> Country   OpMissing
-    TProvince     -> Province  OpMissing
-    TCity         -> City      OpMissing
-    TLocation     -> Location  OpMissing
-    TPerson       -> Person    OpMissing
-    TKeyword      -> Keyword   OpMissing
-    TTitle        -> Title     OpMissing
-    TCaption      -> Caption   OpMissing
-    TYear         -> Year      OpNa
-    TSeason       -> Season    SeasonUnknown
-    TMonth        -> Month     MonthUnknown
-    TDay          -> Day       DayUnknown
-    TCamera       -> Camera    OpMissing
-    TLens         -> Lens      OpMissing
-    TFStop        -> FStop     OpNa
-    TShutterSpeed -> ShutterSpeed OpNa
-    TIso          -> Iso       OpNa
-    TFocalLength  -> FocalLength OpNa
-    TProblem      -> Problem   OpMissing
-    TType         -> Type      MediaUnknown
-    TRating       -> Rating    OpNa
-    TFlashSrc     -> FlashSrc  FlashUnknown
-    TFlashMode    -> FlashMode OpMissing
-    TMegapixels   -> Megapixels OpNa
+    TCountry       -> Country   OpMissing
+    TProvince      -> Province  OpMissing
+    TCity          -> City      OpMissing
+    TLocation      -> Location  OpMissing
+    TPerson        -> Person    OpMissing
+    TKeyword       -> Keyword   OpMissing
+    TTitle         -> Title     OpMissing
+    TCaption       -> Caption   OpMissing
+    TYear          -> Year      OpNa
+    TSeason        -> Season    SeasonUnknown
+    TMonth         -> Month     MonthUnknown
+    TDay           -> Day       DayUnknown
+    TCamera        -> Camera    OpMissing
+    TLens          -> Lens      OpMissing
+    TFStop         -> FStop     OpNa
+    TShutterSpeed  -> ShutterSpeed OpNa
+    TIso           -> Iso       OpNa
+    TFocalLength   -> FocalLength OpNa
+    TProblem       -> Problem   OpMissing
+    TType          -> Type      MediaUnknown
+    TRating        -> Rating    OpNa
+    TFlashSrc      -> FlashSrc  FlashUnknown
+    TFlashMode     -> FlashMode OpMissing
+    TMegapixels    -> Megapixels OpNa
+    TEvent         -> Event OpMissing
+    TBirthday      -> Birthday OpMissing
+    TGetaway       -> Getaway OpMissing
+    TGrandVacation -> GrandVacation OpMissing
+    TVacation      -> Vacation OpMissing
+    TWorkTrip      -> WorkTrip OpMissing
     -- FIXME: these should fail instead (using Maybe).
-    TFolder       -> error "No missing atom for folder"
-    TFileName     -> error "No missing atom for filename"
-    TStatus       -> error "No missing atom for status"
-    TFClass       -> error "No missing atom for folder class"
-    TPplCnt       -> error "No missing atom for people count"
-    TKwdCnt       -> error "No missing atom for keyword count"
+    TFolder        -> error "No missing atom for folder"
+    TFileName      -> error "No missing atom for filename"
+    TStatus        -> error "No missing atom for status"
+    TFClass        -> error "No missing atom for folder class"
+    TPplCnt        -> error "No missing atom for people count"
+    TKwdCnt        -> error "No missing atom for keyword count"
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
@@ -465,106 +515,124 @@ parseAtom a v = do
       typ = parseType v
       sta = parseImageStatus v
   case s of
-    TCountry      -> Country      <$> str
-    TProvince     -> Province     <$> str
-    TCity         -> City         <$> str
-    TLocation     -> Location     <$> str
-    TPerson       -> Person       <$> str
-    TKeyword      -> Keyword      <$> str
-    TTitle        -> Title        <$> str
-    TCaption      -> Caption      <$> str
-    TYear         -> Year         <$> dec
-    TSeason       -> Season       <$> parseSeason v
-    TMonth        -> Month        <$> parseMonth v
-    TDay          -> Day          <$> parseDay v
-    TCamera       -> Camera       <$> str
-    TLens         -> Lens         <$> str
-    TFStop        -> FStop        <$> double
-    TShutterSpeed -> ShutterSpeed <$> parseShutterSpeed v
-    TIso          -> Iso          <$> parseNumDecimal v
-    TFocalLength  -> FocalLength  <$> double
-    TProblem      -> Problem      <$> str
-    TType         -> Type         <$> typ
-    TFolder       -> Folder       <$> str
-    TFileName     -> FileName     <$> str
-    TStatus       -> Status       <$> sta
-    TFClass       -> FClass       <$> parseFolderClass v
-    TRating       -> Rating       <$> intDec
-    TPplCnt       -> PplCnt       <$> intDec
-    TKwdCnt       -> KwdCnt       <$> intDec
-    TFlashSrc     -> FlashSrc     <$> parseFlash v
-    TFlashMode    -> FlashMode    <$> str
-    TMegapixels   -> Megapixels   <$> double
+    TCountry       -> Country      <$> str
+    TProvince      -> Province     <$> str
+    TCity          -> City         <$> str
+    TLocation      -> Location     <$> str
+    TPerson        -> Person       <$> str
+    TKeyword       -> Keyword      <$> str
+    TTitle         -> Title        <$> str
+    TCaption       -> Caption      <$> str
+    TYear          -> Year         <$> dec
+    TSeason        -> Season       <$> parseSeason v
+    TMonth         -> Month        <$> parseMonth v
+    TDay           -> Day          <$> parseDay v
+    TCamera        -> Camera       <$> str
+    TLens          -> Lens         <$> str
+    TFStop         -> FStop        <$> double
+    TShutterSpeed  -> ShutterSpeed <$> parseShutterSpeed v
+    TIso           -> Iso          <$> parseNumDecimal v
+    TFocalLength   -> FocalLength  <$> double
+    TProblem       -> Problem      <$> str
+    TType          -> Type         <$> typ
+    TFolder        -> Folder       <$> str
+    TFileName      -> FileName     <$> str
+    TStatus        -> Status       <$> sta
+    TFClass        -> FClass       <$> parseFolderClass v
+    TRating        -> Rating       <$> intDec
+    TPplCnt        -> PplCnt       <$> intDec
+    TKwdCnt        -> KwdCnt       <$> intDec
+    TFlashSrc      -> FlashSrc     <$> parseFlash v
+    TFlashMode     -> FlashMode    <$> str
+    TMegapixels    -> Megapixels   <$> double
+    TEvent         -> Event        <$> str
+    TBirthday      -> Birthday     <$> str
+    TGetaway       -> Getaway      <$> str
+    TGrandVacation -> GrandVacation <$> str
+    TVacation      -> Vacation     <$> str
+    TWorkTrip      -> WorkTrip     <$> str
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
   case s of
-    TCountry      -> fuzzer Country
-    TProvince     -> fuzzer Province
-    TCity         -> fuzzer City
-    TLocation     -> fuzzer Location
-    TPerson       -> fuzzer Person
-    TKeyword      -> fuzzer Keyword
-    TTitle        -> fuzzer Title
-    TCaption      -> fuzzer Caption
-    TCamera       -> fuzzer Camera
-    TLens         -> fuzzer Lens
-    TFStop        -> FStop  <$> real
-    TShutterSpeed -> ShutterSpeed  <$> parseShutterSpeed v
-    TIso          -> Iso    <$> parseNumDecimal v
-    TFocalLength  -> FocalLength <$> real
-    TProblem      -> fuzzer Problem
-    TYear         -> Year   <$> parseNumDecimal v
-    TSeason       -> Season <$> parseSeason v
-    TMonth        -> Month  <$> parseMonth v
-    TDay          -> Day    <$> parseDay v
-    TType         -> Type   <$> parseType v
-    TFolder       -> fuzzer Folder
-    TFileName     -> fuzzer FileName
-    TStatus       -> Status <$> parseImageStatus v
-    TFClass       -> FClass <$> parseFolderClass v
-    TRating       -> Rating <$> dec
-    TPplCnt       -> PplCnt <$> dec
-    TKwdCnt       -> KwdCnt <$> dec
-    TFlashSrc     -> FlashSrc <$> parseFlash v
-    TFlashMode    -> fuzzer FlashMode
-    TMegapixels   -> Megapixels <$> real
+    TCountry       -> fuzzer Country
+    TProvince      -> fuzzer Province
+    TCity          -> fuzzer City
+    TLocation      -> fuzzer Location
+    TPerson        -> fuzzer Person
+    TKeyword       -> fuzzer Keyword
+    TTitle         -> fuzzer Title
+    TCaption       -> fuzzer Caption
+    TCamera        -> fuzzer Camera
+    TLens          -> fuzzer Lens
+    TFStop         -> FStop  <$> real
+    TShutterSpeed  -> ShutterSpeed  <$> parseShutterSpeed v
+    TIso           -> Iso    <$> parseNumDecimal v
+    TFocalLength   -> FocalLength <$> real
+    TProblem       -> fuzzer Problem
+    TYear          -> Year   <$> parseNumDecimal v
+    TSeason        -> Season <$> parseSeason v
+    TMonth         -> Month  <$> parseMonth v
+    TDay           -> Day    <$> parseDay v
+    TType          -> Type   <$> parseType v
+    TFolder        -> fuzzer Folder
+    TFileName      -> fuzzer FileName
+    TStatus        -> Status <$> parseImageStatus v
+    TFClass        -> FClass <$> parseFolderClass v
+    TRating        -> Rating <$> dec
+    TPplCnt        -> PplCnt <$> dec
+    TKwdCnt        -> KwdCnt <$> dec
+    TFlashSrc      -> FlashSrc <$> parseFlash v
+    TFlashMode     -> fuzzer FlashMode
+    TMegapixels    -> Megapixels <$> real
+    TEvent         -> fuzzer Event
+    TBirthday      -> fuzzer Birthday
+    TGetaway       -> fuzzer Getaway
+    TGrandVacation -> fuzzer GrandVacation
+    TVacation      -> fuzzer Vacation
+    TWorkTrip      -> fuzzer WorkTrip
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
         dec = parseNumDecimal v
         real = parseNumReal v
 
 atomTypeDescriptions :: Symbol -> Text
-atomTypeDescriptions TCountry      = "countries"
-atomTypeDescriptions TProvince     = "provinces"
-atomTypeDescriptions TCity         = "cities"
-atomTypeDescriptions TLocation     = "locations"
-atomTypeDescriptions TPerson       = "people"
-atomTypeDescriptions TKeyword      = "keywords"
-atomTypeDescriptions TTitle        = "image titles"
-atomTypeDescriptions TCaption      = "image captions"
-atomTypeDescriptions TYear         = "years"
-atomTypeDescriptions TSeason       = "seasons"
-atomTypeDescriptions TMonth        = "months"
-atomTypeDescriptions TDay          = "days"
-atomTypeDescriptions TCamera       = "cameras"
-atomTypeDescriptions TLens         = "lenses"
-atomTypeDescriptions TFStop        = "f-stops"
-atomTypeDescriptions TShutterSpeed = "shutter speeds"
-atomTypeDescriptions TIso          = "ISO values"
-atomTypeDescriptions TFocalLength  = "focal lengths"
-atomTypeDescriptions TProblem      = "problems"
-atomTypeDescriptions TType         = "types"
-atomTypeDescriptions TFolder       = "folders"
-atomTypeDescriptions TFileName     = "filenames"
-atomTypeDescriptions TStatus       = "image statuses"
-atomTypeDescriptions TFClass       = "folder classes"
-atomTypeDescriptions TRating       = "ratings"
-atomTypeDescriptions TPplCnt       = "people count"
-atomTypeDescriptions TKwdCnt       = "keyword count"
-atomTypeDescriptions TFlashSrc     = "flash source"
-atomTypeDescriptions TFlashMode    = "flash mode"
-atomTypeDescriptions TMegapixels   = "image megapixels"
+atomTypeDescriptions TCountry       = "countries"
+atomTypeDescriptions TProvince      = "provinces"
+atomTypeDescriptions TCity          = "cities"
+atomTypeDescriptions TLocation      = "locations"
+atomTypeDescriptions TPerson        = "people"
+atomTypeDescriptions TKeyword       = "keywords"
+atomTypeDescriptions TTitle         = "image titles"
+atomTypeDescriptions TCaption       = "image captions"
+atomTypeDescriptions TYear          = "years"
+atomTypeDescriptions TSeason        = "seasons"
+atomTypeDescriptions TMonth         = "months"
+atomTypeDescriptions TDay           = "days"
+atomTypeDescriptions TCamera        = "cameras"
+atomTypeDescriptions TLens          = "lenses"
+atomTypeDescriptions TFStop         = "f-stops"
+atomTypeDescriptions TShutterSpeed  = "shutter speeds"
+atomTypeDescriptions TIso           = "ISO values"
+atomTypeDescriptions TFocalLength   = "focal lengths"
+atomTypeDescriptions TProblem       = "problems"
+atomTypeDescriptions TType          = "types"
+atomTypeDescriptions TFolder        = "folders"
+atomTypeDescriptions TFileName      = "filenames"
+atomTypeDescriptions TStatus        = "image statuses"
+atomTypeDescriptions TFClass        = "folder classes"
+atomTypeDescriptions TRating        = "ratings"
+atomTypeDescriptions TPplCnt        = "people count"
+atomTypeDescriptions TKwdCnt        = "keyword count"
+atomTypeDescriptions TFlashSrc      = "flash source"
+atomTypeDescriptions TFlashMode     = "flash mode"
+atomTypeDescriptions TMegapixels    = "image megapixels"
+atomTypeDescriptions TEvent         = "events"
+atomTypeDescriptions TBirthday      = "birthdays"
+atomTypeDescriptions TGetaway       = "getaways"
+atomTypeDescriptions TGrandVacation = "grand vacations"
+atomTypeDescriptions TVacation      = "vacations"
+atomTypeDescriptions TWorkTrip      = "work trips"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -766,6 +834,21 @@ atomDescription (Megapixels (OpGe megapixels))   = "with a megapixel count of at
 atomDescription (Megapixels (OpGt megapixels))   = "with a megapixel count of more than" <> toText megapixels
 atomDescription (Megapixels OpNa)                = "with an unknown megapixel count"
 
+atomDescription (Event name) = describeStr "event" name
+atomDescription (Birthday   (OpEqual who)) =
+  case who of
+    "" -> "matches all birthdays"
+    p  -> "matches birthdays celebrating " <> formatPerson False p
+atomDescription (Birthday (OpFuzzy (FuzzyText t))) | t == TS.empty =
+  "matches all birthdays"
+atomDescription (Birthday (OpFuzzy v)) =
+  "celebrating a person named like " <> unFuzzyToText v
+atomDescription (Birthday OpMissing)   = "not a birthday event"
+atomDescription (Getaway name) = describeStr "getaway" name
+atomDescription (GrandVacation name) = describeStr "grand vacation" name
+atomDescription (Vacation name) = describeStr "vacation" name
+atomDescription (WorkTrip name) = describeStr "work trip" name
+
 atomDescription (And (Month m) (Day (MonthDay d))) = formatDayOfTheMonth d m
 atomDescription (And (Day (MonthDay d)) (Month m)) = formatDayOfTheMonth d m
 
@@ -849,6 +932,20 @@ flashSearch FlashNone     _                           = False
 desymbolizeStats :: NameStats SymbolizedItem -> NameStats ShortText
 desymbolizeStats = Map.mapKeys (fmap deSymbolizeItem')
 
+matchGetAway :: StrOp -> Event -> Bool
+matchGetAway e ev =
+  case ev of
+    GetawayEvent { eventName, eventPeople } ->
+      evalStr' e eventName || any (evalStr' e) eventPeople
+    _ -> False
+
+matchGrandVacation :: StrOp -> Event -> Bool
+matchGrandVacation e ev =
+  case ev of
+    GrandVacationEvent { eventName, eventPeople } ->
+      evalStr' e eventName || any (evalStr' e) eventPeople
+    _ -> False
+
 -- TODO: implement searching type=unknown after untracked merging into image.
 -- TODO: implement better symbolized searches.
 folderSearchFunction :: Atom -> PicDir -> Bool
@@ -882,6 +979,8 @@ folderSearchFunction (Caption c) =
 folderSearchFunction a@(Year y) =
   \p -> evalNum y (pdYear p) ||
         imagesMatchAtom a (pdImages p)
+
+-- TODO: ^ add event year to year search?
 
 folderSearchFunction a@(Season _) =
   imagesMatchAtom a . pdImages
@@ -951,6 +1050,24 @@ folderSearchFunction (FlashMode m) =
 folderSearchFunction (Megapixels m) =
   numStatsSearch m . gExifMegapixels . pdExif
 
+-- TODO: implement the event searches
+folderSearchFunction (Event e) =  evalStr e . fmap eventName . pdEvent
+folderSearchFunction (Birthday e) = maybe False (\case
+  BirthdayEvent { eventName, eventPeople } ->
+    evalStr' e eventName || any (evalStr' e) eventPeople
+  _ -> False
+  ) . pdEvent
+folderSearchFunction (Getaway e) = maybe False (matchGetAway e) . pdEvent
+folderSearchFunction (GrandVacation e) = maybe False (matchGrandVacation e) . pdEvent
+folderSearchFunction (Vacation e) = maybe False (\ev ->
+  matchGetAway e ev || matchGrandVacation e ev
+  ) . pdEvent
+folderSearchFunction (WorkTrip e) = maybe False (\case
+  WorkTripEvent { eventName, eventPeople } ->
+    evalStr' e eventName || any (evalStr' e) eventPeople
+  _ -> False
+  ) . pdEvent
+
 -- Generic ops below
 
 folderSearchFunction (And a b) = \p ->
@@ -1001,6 +1118,7 @@ imageSearchFunction (Title t) =
 imageSearchFunction (Caption c) =
   evalStr c . maybeDesymbolizeItem' . exifCaption . imgExif
 
+-- TODO: implement event year search?
 imageSearchFunction (Year year) =
   evalNum year . imageYear
 
@@ -1086,6 +1204,14 @@ imageSearchFunction (FlashMode m) =
 imageSearchFunction (Megapixels m) =
   evalNum m . exifMegapixels . imgExif
 
+-- TODO: implement the event searches
+imageSearchFunction (Event _) = const False
+imageSearchFunction (Birthday _) = const False
+imageSearchFunction (Getaway _) = const False
+imageSearchFunction (GrandVacation _) = const False
+imageSearchFunction (Vacation _) = const False
+imageSearchFunction (WorkTrip _) = const False
+
 -- Generic ops below
 
 imageSearchFunction (And a b) = \img ->
@@ -1109,14 +1235,21 @@ imageSearchFunction ConstTrue = const True
 
 -- | Computes whether a given atom can ever find files.
 atomFindsFiles :: Atom -> Bool
-atomFindsFiles (FClass _) = False
-atomFindsFiles (And a b)  = atomFindsFiles a && atomFindsFiles b
-atomFindsFiles (Or a b)   = atomFindsFiles a || atomFindsFiles b
-atomFindsFiles (Not a)    = atomFindsFiles a
-atomFindsFiles (All as)   = all atomFindsFiles as
-atomFindsFiles (Any as)   = any atomFindsFiles as
-atomFindsFiles ConstTrue  = True
-atomFindsFiles _          = True
+-- TODO: should events find images?
+atomFindsFiles (Event _)         = False
+atomFindsFiles (Birthday _)      = False
+atomFindsFiles (Getaway _)       = False
+atomFindsFiles (GrandVacation _) = False
+atomFindsFiles (Vacation _)      = False
+atomFindsFiles (WorkTrip _)      = False
+atomFindsFiles (FClass _)        = False
+atomFindsFiles (And a b)         = atomFindsFiles a && atomFindsFiles b
+atomFindsFiles (Or a b)          = atomFindsFiles a || atomFindsFiles b
+atomFindsFiles (Not a)           = atomFindsFiles a
+atomFindsFiles (All as)          = all atomFindsFiles as
+atomFindsFiles (Any as)          = any atomFindsFiles as
+atomFindsFiles ConstTrue         = True
+atomFindsFiles _                 = True
 
 -- Actual key value, representation for display, and count.
 type AtomStats = [(Maybe Text, Maybe Text, Integer)]
@@ -1202,6 +1335,13 @@ getAtoms TKwdCnt       = gaBuilder (sformat int) (formatZeroOneMore "keyword" "k
 getAtoms TFlashSrc     = gaBuilder showFlash formatFlashSource . flashStats
 getAtoms TFlashMode    = symBuilder . gExifFlashMode . repoExif
 getAtoms TMegapixels   = fancyTextBuilder (sformat (shortest % " MP")) . gExifMegapixels . repoExif
+-- TODO: implement atom stats for events
+getAtoms TEvent = const []
+getAtoms TBirthday = const []
+getAtoms TGetaway = const []
+getAtoms TGrandVacation = const []
+getAtoms TVacation = const []
+getAtoms TWorkTrip = const []
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats MediaType
@@ -1655,6 +1795,12 @@ atomToParams (KwdCnt   v)     = [formatParam TKwdCnt       v]
 atomToParams (FlashSrc v)     = [formatParam TFlashSrc     v]
 atomToParams (FlashMode v)    = [formatParam TFlashMode    v]
 atomToParams (Megapixels v)   = [formatParam TMegapixels   v]
+atomToParams (Event v)        = [formatParam TEvent        v]
+atomToParams (Birthday v)     = [formatParam TBirthday     v]
+atomToParams (Getaway  v)     = [formatParam TGetaway      v]
+atomToParams (GrandVacation v) = [formatParam TGrandVacation v]
+atomToParams (Vacation v)     = [formatParam TVacation     v]
+atomToParams (WorkTrip v)     = [formatParam TWorkTrip     v]
 atomToParams (And a b)        =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)         =
