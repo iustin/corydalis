@@ -53,14 +53,15 @@ handlerImages = BrowseImagesR 0
 getBestHandler :: Maybe ViewMode  -- ^ View mode, if already selected
                -> Bool            -- ^ Whether images (True) or folders are desired
                -> Route App       -- ^ Best handler
-getBestHandler Nothing True                = handlerImages
-getBestHandler Nothing False               = handlerFolders
-getBestHandler (Just ViewSingleImage) _    = SearchViewR
-getBestHandler (Just ViewFoldersList) _    = handlerFolders
-getBestHandler (Just ViewImagesList) False = handlerFolders
-getBestHandler (Just ViewImagesGrid) False = handlerFolders
-getBestHandler (Just ViewImagesList) True  = ListImagesR
-getBestHandler (Just ViewImagesGrid) True  = handlerImages
+getBestHandler Nothing True                 = handlerImages
+getBestHandler Nothing False                = handlerFolders
+getBestHandler (Just ViewSingleImage) False = handlerFolders
+getBestHandler (Just ViewSingleImage) True  = SearchViewR
+getBestHandler (Just ViewFoldersList) _     = handlerFolders
+getBestHandler (Just ViewImagesList) False  = handlerFolders
+getBestHandler (Just ViewImagesGrid) False  = handlerFolders
+getBestHandler (Just ViewImagesList) True   = ListImagesR
+getBestHandler (Just ViewImagesGrid) True   = handlerImages
 
 getSearchViewR :: Handler Html
 getSearchViewR = do
