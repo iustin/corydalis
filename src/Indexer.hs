@@ -140,6 +140,7 @@ data Symbol = TCountry
             | TGrandVacation
             | TVacation
             | TWorkTrip
+            | TEventKind
             deriving (Enum, Bounded, Show, Read, Eq)
 
 instance PathPiece Symbol where
@@ -180,6 +181,8 @@ instance PathPiece Symbol where
   toPathPiece TGrandVacation = "grandvacation"
   toPathPiece TVacation      = "vacation"
   toPathPiece TWorkTrip      = "worktrip"
+  toPathPiece TEventKind     = "event-kind"
+
   fromPathPiece "countries"     = Just TCountry
   fromPathPiece "provinces"     = Just TProvince
   fromPathPiece "cities"        = Just TCity
@@ -217,6 +220,7 @@ instance PathPiece Symbol where
   fromPathPiece "grandvacation" = Just TGrandVacation
   fromPathPiece "vacation"      = Just TVacation
   fromPathPiece "worktrip"      = Just TWorkTrip
+  fromPathPiece "event-kind"    = Just TEventKind
   fromPathPiece _               = Nothing
 
 symbolFindsFiles :: Symbol -> Bool
@@ -228,6 +232,7 @@ symbolFindsFiles TVacation      = False
 symbolFindsFiles TGetaway       = False
 symbolFindsFiles TGrandVacation = False
 symbolFindsFiles TWorkTrip      = False
+symbolFindsFiles TEventKind     = False
 symbolFindsFiles _              = True
 
 -- TODO: Replace this with Data.CaseInsensitive from case-insensitive
@@ -343,6 +348,15 @@ evalNum (OpGe a) = maybe False (>= a)
 evalNum (OpGt a) = maybe False (> a)
 evalNum OpNa     = isNothing
 
+data EventKindOp
+  = EKGeneric
+  | EKBirthday
+  | EKGetaway
+  | EKGrandVacation
+  | EKWorkTrip
+  | EKNoEvent
+  deriving (Show, Eq, Ord, Enum, Bounded)
+
 data Atom = Country  StrOp
           | Province StrOp
           | City     StrOp
@@ -380,6 +394,7 @@ data Atom = Country  StrOp
           | GrandVacation StrOp     -- ^ Matches the event description
           | Vacation StrOp     -- ^ Matches the event description
           | WorkTrip StrOp    -- ^ Matches the event description
+          | EventKind EventKindOp
           -- Meta atoms below
           | And Atom Atom
           | Or  Atom Atom
@@ -430,6 +445,7 @@ symbolName TGetaway       = "getaway"
 symbolName TGrandVacation = "grand-vacation"
 symbolName TVacation      = "vacation"
 symbolName TWorkTrip      = "work-trip"
+symbolName TEventKind     = "event-kind"
 
 negSymbolName :: Symbol -> Text
 negSymbolName atom = "no-" <> symbolName atom
@@ -472,6 +488,7 @@ parseSymbol "getaway"        = Just TGetaway
 parseSymbol "grand-vacation" = Just TGrandVacation
 parseSymbol "vacation"       = Just TVacation
 parseSymbol "work-trip"      = Just TWorkTrip
+parseSymbol "event-kind"     = Just TEventKind
 parseSymbol _                = Nothing
 
 buildMissingAtom :: Symbol -> Atom
@@ -508,6 +525,7 @@ buildMissingAtom s =
     TGrandVacation -> GrandVacation OpMissing
     TVacation      -> Vacation OpMissing
     TWorkTrip      -> WorkTrip OpMissing
+    TEventKind     -> EventKind EKNoEvent
     -- FIXME: these should fail instead (using Maybe).
     TFolder        -> error "No missing atom for folder"
     TFileName      -> error "No missing atom for filename"
@@ -528,6 +546,7 @@ parseAtom a v = do
       str = parseString v
       typ = parseType v
       sta = parseImageStatus v
+      ekind = parseEventKind v
   case s of
     TCountry       -> Country      <$> str
     TProvince      -> Province     <$> str
@@ -566,6 +585,7 @@ parseAtom a v = do
     TGrandVacation -> GrandVacation <$> str
     TVacation      -> Vacation     <$> str
     TWorkTrip      -> WorkTrip     <$> str
+    TEventKind     -> EventKind    <$> ekind
 
 quickSearch :: Symbol -> Text -> Maybe Atom
 quickSearch s v =
@@ -607,6 +627,7 @@ quickSearch s v =
     TGrandVacation -> fuzzer GrandVacation
     TVacation      -> fuzzer Vacation
     TWorkTrip      -> fuzzer WorkTrip
+    TEventKind     -> EventKind <$> parseEventKind v
   where f = makeFuzzy v
         fuzzer c = Just . c . OpFuzzy $ f
         dec = parseNumDecimal v
@@ -650,6 +671,7 @@ atomTypeDescriptions TGetaway       = "getaways"
 atomTypeDescriptions TGrandVacation = "grand vacations"
 atomTypeDescriptions TVacation      = "vacations"
 atomTypeDescriptions TWorkTrip      = "work trips"
+atomTypeDescriptions TEventKind     = "event types"
 
 class (Show a) => ToText a where
   toText :: a -> Text
@@ -866,6 +888,13 @@ atomDescription (Getaway name) = describeStr "getaway" name
 atomDescription (GrandVacation name) = describeStr "grand vacation" name
 atomDescription (Vacation name) = describeStr "vacation" name
 atomDescription (WorkTrip name) = describeStr "work trip" name
+
+atomDescription (EventKind EKGeneric)         = "is a generic event"
+atomDescription (EventKind EKBirthday)        = "is a birthday event"
+atomDescription (EventKind EKGetaway)         = "is a getaway event"
+atomDescription (EventKind EKGrandVacation)   = "is a grand vacation event"
+atomDescription (EventKind EKWorkTrip)        = "is a work trip event"
+atomDescription (EventKind EKNoEvent)         = "is not an event"
 
 atomDescription (And (Month m) (Day (MonthDay d))) = formatDayOfTheMonth d m
 atomDescription (And (Day (MonthDay d)) (Month m)) = formatDayOfTheMonth d m
@@ -1090,6 +1119,7 @@ folderSearchFunction (WorkTrip e) = maybe False (\case
     evalStr' e eventName || any (evalStr' e) eventPeople
   _ -> False
   ) . pdEvent
+folderSearchFunction (EventKind e) = (== e) . extractEventType . pdEvent
 
 -- Generic ops below
 
@@ -1235,6 +1265,7 @@ imageSearchFunction (Getaway _) = const False
 imageSearchFunction (GrandVacation _) = const False
 imageSearchFunction (Vacation _) = const False
 imageSearchFunction (WorkTrip _) = const False
+imageSearchFunction (EventKind _) = const False
 
 -- Generic ops below
 
@@ -1266,6 +1297,7 @@ atomFindsFiles (Getaway _)       = False
 atomFindsFiles (GrandVacation _) = False
 atomFindsFiles (Vacation _)      = False
 atomFindsFiles (WorkTrip _)      = False
+atomFindsFiles (EventKind _)     = False
 atomFindsFiles (FClass _)        = False
 atomFindsFiles (And a b)         = atomFindsFiles a && atomFindsFiles b
 atomFindsFiles (Or a b)          = atomFindsFiles a || atomFindsFiles b
@@ -1325,6 +1357,14 @@ formatFlashSource FlashExternal = "shot with an external flash"
 formatFlashSource FlashAny      = "shot with an active flash (any type)"
 formatFlashSource FlashUnknown  = "does not have flash information"
 
+extractEventType :: Maybe Event -> EventKindOp
+extractEventType (Just (Types.GenericEvent {})) = EKGeneric
+extractEventType (Just (BirthdayEvent {}))      = EKBirthday
+extractEventType (Just (GetawayEvent {}))       = EKGetaway
+extractEventType (Just (GrandVacationEvent {})) = EKGrandVacation
+extractEventType (Just (WorkTripEvent {}))      = EKWorkTrip
+extractEventType Nothing                        = EKNoEvent
+
 getAtoms :: Symbol -> Repository -> AtomStats
 getAtoms TCountry      = symBuilder . gExifCountries . repoExif
 getAtoms TProvince     = symBuilder . gExifProvinces . repoExif
@@ -1367,6 +1407,8 @@ getAtoms TGetaway = const []
 getAtoms TGrandVacation = const []
 getAtoms TVacation = const []
 getAtoms TWorkTrip = const []
+getAtoms TEventKind = gaBuilder showEventKind showEventKind .
+  foldl' (\a p -> Map.insertWith (+) (Just $ extractEventType $ pdEvent p) 1 a) Map.empty . repoDirs
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats MediaType
@@ -1734,6 +1776,24 @@ showShutterSpeed v
   | v >= 1 = sformat (shortest % "s") v
   | otherwise = sformat ("1/" % fixed 0 % "s") (1/v)
 
+showEventKind :: EventKindOp -> Text
+showEventKind EKGeneric       = "generic"
+showEventKind EKBirthday      = "birthday"
+showEventKind EKGetaway       = "getaway"
+showEventKind EKGrandVacation = "grandvacation"
+showEventKind EKWorkTrip      = "worktrip"
+showEventKind EKNoEvent       = "noevent"
+
+parseEventKind :: Text -> Maybe EventKindOp
+parseEventKind (Text.toLower -> v)
+  | v == "generic"       = Just EKGeneric
+  | v == "birthday"      = Just EKBirthday
+  | v == "getaway"       = Just EKGetaway
+  | v == "grandvacation" = Just EKGrandVacation
+  | v == "worktrip"      = Just EKWorkTrip
+  | v == "noevent"       = Just EKNoEvent
+  | otherwise            = Nothing
+
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params =
   if length params > 50
@@ -1786,6 +1846,10 @@ instance OpParam FlashOp where
   opToParam s FlashUnknown = formatNo s
   opToParam s v            = (s, showFlash v)
 
+instance OpParam EventKindOp where
+  opToParam s EKNoEvent = formatNo s
+  opToParam s v         = (s, showEventKind v)
+
 formatParam :: (OpParam a) => Symbol -> a -> (Text, Text)
 formatParam s = opToParam (symbolName s)
 
@@ -1827,6 +1891,7 @@ atomToParams (Getaway  v)     = [formatParam TGetaway      v]
 atomToParams (GrandVacation v) = [formatParam TGrandVacation v]
 atomToParams (Vacation v)     = [formatParam TVacation     v]
 atomToParams (WorkTrip v)     = [formatParam TWorkTrip     v]
+atomToParams (EventKind v)    = [formatParam TEventKind    v]
 atomToParams (And a b)        =
   concat [atomToParams a, atomToParams b, [("and", "")]]
 atomToParams (Or a b)         =

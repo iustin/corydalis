@@ -83,6 +83,7 @@ symbolPlCap TGetaway       = "Getaways"
 symbolPlCap TGrandVacation = "Grand vacations"
 symbolPlCap TVacation      = "All vacations"
 symbolPlCap TWorkTrip      = "Work trips"
+symbolPlCap TEventKind     = "Event types"
 
 divClassForNoAtom :: Symbol -> Text
 divClassForNoAtom TProblem = "border-info"

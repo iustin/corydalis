@@ -152,6 +152,7 @@ atomIcon TGetaway       = "fa-solid fa-car-side"
 atomIcon TGrandVacation = "fa-solid fa-mountain-sun"
 atomIcon TVacation      = "fa-solid fa-plane-departure"
 atomIcon TWorkTrip      = "fa-solid fa-briefcase"
+atomIcon TEventKind     = "fa-solid fa-calendar-check"
 
 dataMasonry :: Text
 dataMasonry   = "{\"percentPosition\": true}"
