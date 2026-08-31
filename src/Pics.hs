@@ -156,6 +156,7 @@ import           Stats                   (CameraInfo (..), DateRange,
                                           Occurrence (..), Trends,
                                           mergeMinMaxPair, ocFromSize)
 import           Utils.Parsing           (parseDecimal)
+import           Utils.Yaml              (loadOptionalYaml)
 
 type Ctx = Context Repository SearchCache
 
@@ -821,6 +822,8 @@ mergeFolders c x y =
     -- completely (e.g. in x is unprocessed, in y is standalone, in
     -- x+y is processed).
     , pdStats = computeImagesStats newimages
+    -- FIXME: record error if we have duplicate event information
+    , pdEvent = pdEvent x <|> pdEvent y
     }
   where
     (bestMainPath, otherMainPath) =
@@ -1104,6 +1107,7 @@ loadFolder ctx name path isSource = do
       totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0
       pstats = computeImagesStats images
+  (_, event) <- loadOptionalYaml (path </> "corydalis.yaml")
   -- FIXME: incProgress is always called with an empty error list?
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
   return $!!
@@ -1117,7 +1121,7 @@ loadFolder ctx name path isSource = do
            , pdTimestamp = timestamp
            , pdExif = exif
            , pdStats = pstats
-           , pdEvent = Nothing }
+           , pdEvent = event }
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
