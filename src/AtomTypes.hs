@@ -67,7 +67,7 @@ data SeasonOp
   | Autumn
   | Winter
   | SeasonUnknown
-    deriving (Show, Eq, Ord, Generic)
+    deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 instance Store SeasonOp
 
@@ -88,7 +88,7 @@ data MonthOp
   | November
   | December
   | MonthUnknown
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 instance Store MonthOp
 
