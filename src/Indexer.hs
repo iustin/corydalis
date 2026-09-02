@@ -57,23 +57,16 @@ module Indexer ( Symbol(..)
                , SeasonOp(..)
                , FlashOp(..)
                , makeFuzzy
-               , weekdayToEnd
-               , monthToSeason
                , picSeason
                , picDay
                , picMonthDay
                , picMonth
-               , showSeason
-               , showDay
-               , showMonth
                , showMedia
-               , showFlash
                , showShutterSpeed
                , parseShutterSpeed
                , parseNumReal
                , parseNumDecimal
                , parseString
-               , parseFlash
                , parseSymbol
 #endif
                ) where
@@ -87,7 +80,6 @@ import           Data.Set                    (Set)
 import qualified Data.Set                    as Set
 import           Data.Text                   (Text)
 import qualified Data.Text                   as Text
-import qualified Data.Text.Read              as Text
 import           Data.Text.Short             (ShortText)
 import qualified Data.Text.Short             as TS
 import           Data.Time.Calendar          (toGregorian)
@@ -97,6 +89,7 @@ import           Formatting
 import           Yesod                       (PathPiece (..))
 
 
+import           AtomTypes
 import           Exif
 import           Pics
 
@@ -263,68 +256,6 @@ data NumOp a where
 deriving instance Show a => Show (NumOp a)
 deriving instance Eq   a => Eq   (NumOp a)
 
-data SeasonOp
-  = Spring
-  | Summer
-  | Autumn
-  | Winter
-  | SeasonUnknown
-    deriving (Show, Eq, Ord)
-
-data MonthOp
-  = January
-  | February
-  | March
-  | April
-  | May
-  | June
-  | July
-  | August
-  | September
-  | October
-  | November
-  | December
-  | MonthUnknown
-  deriving (Show, Eq, Ord)
-
-data DayOp
-  = Monday
-  | Tuesday
-  | Wednesday
-  | Thursday
-  | Friday
-  | Saturday
-  | Sunday
-  | Weekday
-  | Weekend
-  | MonthDay Int
-  | DayUnknown
-  deriving (Show, Eq, Ord)
-
-
-data FlashOp
- = FlashNone
- | FlashInternal
- | FlashExternal
- | FlashAny
- | FlashUnknown
- deriving (Show, Eq, Enum, Bounded, Ord)
-
-parseFlash :: Text -> Maybe FlashOp
-parseFlash v
-  | v == "none"                    = Just FlashNone
-  | v == "internal" || v == "int"  = Just FlashInternal
-  | v == "external" || v == "ext"  = Just FlashExternal
-  | v == "yes" || v == "any"       = Just FlashAny
-  | otherwise                      = Nothing
-
-showFlash :: FlashOp -> Text
-showFlash FlashNone     = "none"
-showFlash FlashInternal = "internal"
-showFlash FlashExternal = "external"
-showFlash FlashAny      = "any"
-showFlash FlashUnknown  = "unknown"
-
 fuzzyMatch :: FuzzyText -> ShortText -> Bool
 fuzzyMatch fz =
   (TS.toText (unFuzzy fz) `Text.isInfixOf`) . Text.toCaseFold . TS.toText
@@ -347,15 +278,6 @@ evalNum (OpLe a) = maybe False (<= a)
 evalNum (OpGe a) = maybe False (>= a)
 evalNum (OpGt a) = maybe False (> a)
 evalNum OpNa     = isNothing
-
-data EventKindOp
-  = EKGeneric
-  | EKBirthday
-  | EKGetaway
-  | EKGrandVacation
-  | EKWorkTrip
-  | EKNoEvent
-  deriving (Show, Eq, Ord, Enum, Bounded)
 
 data Atom = Country  StrOp
           | Province StrOp
@@ -1349,22 +1271,6 @@ formatZeroOneMore _ p 0 = sformat ("no " % stext) p
 formatZeroOneMore s _ 1 = sformat ("1 " % stext) s
 formatZeroOneMore _ p n = sformat (int % " " % stext) n p
 
--- TODO: remove duplication with Handler/Utils.hs
-formatFlashSource :: FlashOp -> Text
-formatFlashSource FlashNone     = "shot without flash"
-formatFlashSource FlashInternal = "shot with internal flash"
-formatFlashSource FlashExternal = "shot with an external flash"
-formatFlashSource FlashAny      = "shot with an active flash (any type)"
-formatFlashSource FlashUnknown  = "does not have flash information"
-
-extractEventType :: Maybe Event -> EventKindOp
-extractEventType (Just (Types.GenericEvent {})) = EKGeneric
-extractEventType (Just (BirthdayEvent {}))      = EKBirthday
-extractEventType (Just (GetawayEvent {}))       = EKGetaway
-extractEventType (Just (GrandVacationEvent {})) = EKGrandVacation
-extractEventType (Just (WorkTripEvent {}))      = EKWorkTrip
-extractEventType Nothing                        = EKNoEvent
-
 getAtoms :: Symbol -> Repository -> AtomStats
 getAtoms TCountry      = symBuilder . gExifCountries . repoExif
 getAtoms TProvince     = symBuilder . gExifProvinces . repoExif
@@ -1510,15 +1416,6 @@ picMonthDay img = do
   let (_, _, md) = toGregorian $ localDay d
   return $ MonthDay md
 
--- | Converts a Day into another Day representing weekend or not.
---
--- Ordinal month days will be classified as weekday, sadly. This
--- points to some lack of soundness in the argument.
-weekdayToEnd :: DayOp -> DayOp
-weekdayToEnd Saturday = Weekend
-weekdayToEnd Sunday   = Weekend
-weekdayToEnd _        = Weekday
-
 -- | Returns the month of a picture.
 picMonth :: Image -> Maybe MonthOp
 picMonth img = do
@@ -1529,18 +1426,6 @@ picMonth img = do
 -- | Returns the season of a picture.
 picSeason :: Image -> Maybe SeasonOp
 picSeason img = picMonth img >>= monthToSeason
-
--- | Computes the season based on a month.
---
--- Note that the definition of season is currently hardcoded to
--- month-boundaries, not based on equinox, etc.
-monthToSeason :: MonthOp -> Maybe SeasonOp
-monthToSeason m
-  | m == December || m == January || m == February = Just Winter
-  | m == March || m == April || m == May = Just Spring
-  | m == June || m == July || m == August = Just Summer
-  | m == September || m == October || m == November = Just Autumn
-  | otherwise = Nothing -- FIXME: is this needed?
 
 -- | Builder for all atom.
 --
@@ -1564,25 +1449,6 @@ anyAtom = go . nub
   where go [x]    = x
         go [x, y] = Or x y
         go xs     = Any xs
-
--- | Simpler Text to ordinal parsing with error handling.
---
--- It accepts usual prefixes such as 'th', 'st', 'nd', 'rd', as long as they're valid.
-parseOrdinal :: (Integral a) => Text -> Either Text a
-parseOrdinal w =
-  case Text.decimal w of
-    Right (w', "") -> Right w'
-    Right (w', suff) | w == showOrdinal w' &&
-                       (suff == "th" ||
-                        suff == "st" ||
-                        suff == "nd" ||
-                        suff == "rd") -> Right w'
-    Right (w', leftover) ->
-      Left $ sformat ("Parsed " % int % " decimal but with leftover text '" %
-                      stext % "'") w' leftover
-    Left msg ->
-      Left $ sformat ("Failed to parse integer from '" % stext % "': " %
-                      string) w msg
 
 -- | Helper that applies a "pop N from stack and build atom" function
 -- to the stack.
@@ -1656,111 +1522,6 @@ showMedia MediaMovie   = "movie"
 showMedia MediaImage   = "image"
 showMedia MediaUnknown = "unknown"
 
-parseSeason :: Text -> Maybe SeasonOp
-parseSeason (Text.toLower -> s)
-  | s == "winter" = Just Winter
-  | s == "spring" = Just Spring
-  | s == "summer" = Just Summer
-  | s == "autumn" = Just Autumn
-  | otherwise     = Nothing
-
-showSeason :: SeasonOp -> Text
-showSeason Winter        = "winter"
-showSeason Spring        = "spring"
-showSeason Summer        = "summer"
-showSeason Autumn        = "autumn"
-showSeason SeasonUnknown = "unknown"
-
-intToMonth :: Int -> Maybe MonthOp
-intToMonth 1  = Just January
-intToMonth 2  = Just February
-intToMonth 3  = Just March
-intToMonth 4  = Just April
-intToMonth 5  = Just May
-intToMonth 6  = Just June
-intToMonth 7  = Just July
-intToMonth 8  = Just August
-intToMonth 9  = Just September
-intToMonth 10 = Just October
-intToMonth 11 = Just November
-intToMonth 12 = Just December
-intToMonth _  = Nothing
-
-parseMonth :: Text -> Maybe MonthOp
-parseMonth (Text.toLower -> m)
-  | m == "january"   = Just January
-  | m == "february"  = Just February
-  | m == "march"     = Just March
-  | m == "april"     = Just April
-  | m == "may"       = Just May
-  | m == "june"      = Just June
-  | m == "july"      = Just July
-  | m == "august"    = Just August
-  | m == "september" = Just September
-  | m == "october"   = Just October
-  | m == "november"  = Just November
-  | m == "december"  = Just December
-  | otherwise =
-      either (const Nothing) intToMonth $ parseDecimal m
-
-showMonth :: MonthOp -> Text
-showMonth MonthUnknown = "unknown"
-showMonth s            = sformat shown s
-
-parseDay :: Text -> Maybe DayOp
-parseDay (Text.toLower -> d)
-  | d == "monday"    = Just Monday
-  | d == "tuesday"   = Just Tuesday
-  | d == "wednesday" = Just Wednesday
-  | d == "thursday"  = Just Thursday
-  | d == "friday"    = Just Friday
-  | d == "saturday"  = Just Saturday
-  | d == "sunday"    = Just Sunday
-  | d == "weekday"   = Just Weekday
-  | d == "weekend"   = Just Weekend
-  | otherwise =
-      case parseOrdinal d of
-        Right v | v >= 1 && v <= 31 -> Just $ MonthDay v
-        _                           -> Nothing
-
-showDay :: DayOp -> Text
-showDay Monday       = "Monday"
-showDay Tuesday      = "Tuesday"
-showDay Wednesday    = "Wednesday"
-showDay Thursday     = "Thursday"
-showDay Friday       = "Friday"
-showDay Saturday     = "Saturday"
-showDay Sunday       = "Sunday"
-showDay Weekday      = "weekday"
-showDay Weekend      = "weekend"
-showDay (MonthDay d) = showOrdinal d
-showDay DayUnknown   = "unknown"
-
--- FIXME: replace with ords when newer formatting library (no longer
--- .0 bug) [dependency].
-showOrdinal :: (Integral a) => a -> Text
-showOrdinal n
-  | n < 0 = sformat int n
-  | tens > 3 && tens < 21 = sformat int n <> "th"
-  | otherwise =
-      sformat int n <>
-      case n `mod` 10 of
-        1 -> "st"
-        2 -> "nd"
-        3 -> "rd"
-        _ -> "th"
-  where tens = n `mod` 100
-
-intToWeekDay :: Int -> Maybe DayOp
-intToWeekDay 1 = Just Monday
-intToWeekDay 2 = Just Tuesday
-intToWeekDay 3 = Just Wednesday
-intToWeekDay 4 = Just Thursday
-intToWeekDay 5 = Just Friday
-intToWeekDay 6 = Just Saturday
-intToWeekDay 7 = Just Sunday
-intToWeekDay _ = Nothing
-
 stripSuf :: Text -> Text -> Text
 stripSuf v suf = fromMaybe v (Text.stripSuffix suf v)
 
@@ -1775,24 +1536,6 @@ showShutterSpeed :: Double -> Text
 showShutterSpeed v
   | v >= 1 = sformat (shortest % "s") v
   | otherwise = sformat ("1/" % fixed 0 % "s") (1/v)
-
-showEventKind :: EventKindOp -> Text
-showEventKind EKGeneric       = "generic"
-showEventKind EKBirthday      = "birthday"
-showEventKind EKGetaway       = "getaway"
-showEventKind EKGrandVacation = "grandvacation"
-showEventKind EKWorkTrip      = "worktrip"
-showEventKind EKNoEvent       = "noevent"
-
-parseEventKind :: Text -> Maybe EventKindOp
-parseEventKind (Text.toLower -> v)
-  | v == "generic"       = Just EKGeneric
-  | v == "birthday"      = Just EKBirthday
-  | v == "getaway"       = Just EKGetaway
-  | v == "grandvacation" = Just EKGrandVacation
-  | v == "worktrip"      = Just EKWorkTrip
-  | v == "noevent"       = Just EKNoEvent
-  | otherwise            = Nothing
 
 parseAtomParams :: [(Text, Text)] -> Either Text Atom
 parseAtomParams params =

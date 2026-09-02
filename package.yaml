@@ -129,6 +129,7 @@ library:
     - app
   exposed-modules:
     - Application
+    - AtomTypes
     - Cache
     - Exif
     - Foundation

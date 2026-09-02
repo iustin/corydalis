@@ -30,8 +30,7 @@ import           Data.Time.LocalTime
 import           Yesod.Core          (fromPathPiece, toPathPiece)
 
 import           GHC.Stack           ()
-import           Test.QuickCheck     (Arbitrary (..), chooseEnum, forAll,
-                                      suchThat)
+import           Test.QuickCheck     (Arbitrary (..), chooseEnum)
 
 import           Exif
 import           Indexer
@@ -201,22 +200,6 @@ spec = parallel $ do
       picSeason testImage `shouldBe` Just Summer
 
   describe "ShowText instances" $ do
-    it "shows season correctly" $ do
-      showSeason Winter `shouldBe` "winter"
-      showSeason Summer `shouldBe` "summer"
-
-    it "shows month correctly" $ do
-      showMonth January `shouldBe` "January"
-      showMonth December `shouldBe` "December"
-
-    it "shows day correctly" $ do
-      showDay Monday `shouldBe` "Monday"
-      showDay Weekday `shouldBe` "weekday"
-      showDay (MonthDay 1) `shouldBe` "1st"
-      showDay (MonthDay 2) `shouldBe` "2nd"
-      showDay (MonthDay 3) `shouldBe` "3rd"
-      showDay (MonthDay 4) `shouldBe` "4th"
-
     it "shows media type correctly" $ do
       showMedia MediaImage `shouldBe` "image"
       showMedia MediaMovie `shouldBe` "movie"
@@ -259,49 +242,3 @@ spec = parallel $ do
     it "formats speeds 1 second or longer as decimals" $ do
       showShutterSpeed 1.0 `shouldBe` "1s"
       showShutterSpeed 2.5 `shouldBe` "2.5s"
-
-  describe "weekdayToEnd" $ do
-    it "classifies weekends correctly" $ do
-      weekdayToEnd Saturday `shouldBe` Weekend
-      weekdayToEnd Sunday `shouldBe` Weekend
-
-    it "classifies weekdays correctly" $ do
-      weekdayToEnd Monday `shouldBe` Weekday
-      weekdayToEnd Friday `shouldBe` Weekday
-
-  describe "monthToSeason" $ do
-    it "maps winter months correctly" $ do
-      monthToSeason December `shouldBe` Just Winter
-      monthToSeason January `shouldBe` Just Winter
-      monthToSeason February `shouldBe` Just Winter
-
-    it "maps spring months correctly" $ do
-      monthToSeason March `shouldBe` Just Spring
-      monthToSeason April `shouldBe` Just Spring
-      monthToSeason May `shouldBe` Just Spring
-
-    it "maps summer months correctly" $ do
-      monthToSeason June `shouldBe` Just Summer
-      monthToSeason July `shouldBe` Just Summer
-      monthToSeason August `shouldBe` Just Summer
-
-    it "maps autumn months correctly" $ do
-      monthToSeason September `shouldBe` Just Autumn
-      monthToSeason October `shouldBe` Just Autumn
-      monthToSeason November `shouldBe` Just Autumn
-
-  describe "intToMonth and intToWeekDay" $ do
-    it "converts integers to months" $ do
-      intToMonth 1 `shouldBe` Just January
-      intToMonth 12 `shouldBe` Just December
-      intToMonth 13 `shouldBe` Nothing
-
-    it "converts integers to weekdays" $ do
-      intToWeekDay 1 `shouldBe` Just Monday
-      intToWeekDay 7 `shouldBe` Just Sunday
-      intToWeekDay 8 `shouldBe` Nothing
-
-  describe "flash parsing roundtrip" $ do
-    prop "any valid flash value is parsed correctly" $
-      forAll (chooseEnum (minBound, maxBound) `suchThat` (/= FlashUnknown)) $ \flash ->
-        parseFlash (showFlash flash) `shouldBe` Just flash
