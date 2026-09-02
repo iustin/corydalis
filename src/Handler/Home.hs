@@ -88,8 +88,7 @@ getHomeR = do
       seasons       = map (sformat shown) $ catMaybes $ Map.keys $ seasonStats pics
       -- FIXME: this is a very ugly hack.
       eventkinds    = ( filter (/= "noevent")
-                        . catMaybes
-                        . map (\(k, _, _) -> k)
+                        . mapMaybe (\(k, _, _) -> k)
                         $ getAtoms TEventKind pics
                       , []
                       )

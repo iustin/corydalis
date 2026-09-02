@@ -336,7 +336,7 @@ evalStr  OpMissing  = isNothing
 
 evalStr' :: StrOp -> ShortText -> Bool
 evalStr' (OpEqual a) = (a ==)
-evalStr' (OpFuzzy a) = (fuzzyMatch a)
+evalStr' (OpFuzzy a) = fuzzyMatch a
 evalStr'  OpMissing  = const False
 
 evalNum :: NumOp a -> Maybe a -> Bool
