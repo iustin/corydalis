@@ -1313,8 +1313,7 @@ getAtoms TGetaway = const []
 getAtoms TGrandVacation = const []
 getAtoms TVacation = const []
 getAtoms TWorkTrip = const []
-getAtoms TEventKind = gaBuilder showEventKind showEventKind .
-  foldl' (\a p -> Map.insertWith (+) (Just $ extractEventType $ pdEvent p) 1 a) Map.empty . repoDirs
+getAtoms TEventKind = gaBuilder showEventKind showEventKind . eventKindStats
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats MediaType
@@ -1336,6 +1335,11 @@ fClassStats =
   Map.fromList . map (\(a, b) -> (Just $ showFolderClass a,
                                   fromIntegral b)) .
   Map.toList . rsFCStats . repoStats
+
+eventKindStats :: Repository -> NameStats EventKindOp
+eventKindStats =
+  Map.fromList . map (\(a, b) -> (Just a, fromIntegral b)) .
+  Map.toList . rsEventStats . repoStats
 
 -- | Helper to increase a count in a NameStats Text.
 bumpCount :: (Ord a) => Maybe a -> NameStats a -> NameStats a

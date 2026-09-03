@@ -25,6 +25,7 @@ module PicsSpec (spec) where
 import           Data.Default
 import qualified Data.Map     as Map
 
+import           AtomTypes
 import           Pics
 import           TestImport
 
@@ -77,6 +78,23 @@ spec = parallel $ do
       fileExif f `shouldBe` exif
       fileFullPath f `shouldBe` "/pics/2022/dir/subdir/file.jpg"
       fileRelPath f `shouldBe` "dir/subdir/file.jpg"
+  describe "computeRepoStats" $ do
+    it "returns empty event stats for an empty repository" $ \_ -> do
+      rsEventStats (computeRepoStats Map.empty) `shouldBe` Map.empty
+    it "counts folders by event kind" $ \_ -> do
+      let noEvent = createTestPicDir "none"
+          birthday = (createTestPicDir "bday")
+            { pdEvent = Just BirthdayEvent { eventName = "x", eventPeople = [] } }
+          generic1 = (createTestPicDir "g1")
+            { pdEvent = Just GenericEvent { eventName = "a", eventPeople = [] } }
+          generic2 = (createTestPicDir "g2")
+            { pdEvent = Just GenericEvent { eventName = "b", eventPeople = [] } }
+          dirs = Map.fromList [(pdName d, d) | d <- [noEvent, birthday, generic1, generic2]]
+      rsEventStats (computeRepoStats dirs) `shouldBe` Map.fromList
+        [ (EKNoEvent, 1)
+        , (EKBirthday, 1)
+        , (EKGeneric, 2)
+        ]
   withContext $
     describe "search cache" $ do
       it "caches a search result" $ \ctx -> do

@@ -148,6 +148,7 @@ import qualified Text.Regex.TDFA         as TDFA
 import           UnliftIO.Exception
 
 
+import           AtomTypes               (EventKindOp, extractEventType)
 import           Cache
 import           Compat.Orphans          ()
 import           Exif
@@ -523,6 +524,9 @@ rescanningRepository repo = repo { repoStatus = RepoStarting }
 
 type FolderClassStats = Map FolderClass Int
 
+-- | Counts of folders grouped by their event kind.
+type EventKindStats = Map EventKindOp Int
+
 -- | Data type holding per-folder picture statistics.
 data Stats = Stats
   { sRaw            :: !Int
@@ -550,18 +554,20 @@ instance NFData Stats where
                   rnf sByLens
 
 data RepoStats = RepoStats
-  { rsPicStats :: !Stats
-  , rsFCStats  :: !FolderClassStats
+  { rsPicStats    :: !Stats
+  , rsFCStats     :: !FolderClassStats
+  , rsEventStats  :: !EventKindStats
   } deriving (Show, Generic)
 
 instance Store RepoStats
 
 instance NFData RepoStats where
   rnf RepoStats{..} = rnf rsPicStats `seq`
-                      rnf rsFCStats
+                      rnf rsFCStats `seq`
+                      rnf rsEventStats
 
 instance Default RepoStats where
-  def = RepoStats def def
+  def = RepoStats def def def
 
 
 -- | Type alias for image search results, weakly capture-time-sorted.
@@ -677,18 +683,19 @@ computeFolderStats :: PicDir -> Stats
 computeFolderStats =
   computeImagesStats . pdImages
 
-data StrictPair a b = StrictPair !a !b
+data StrictTriple a b c = StrictTriple !a !b !c
 
 computeRepoStats :: RepoDirs -> RepoStats
 computeRepoStats =
-  (\(StrictPair a b) -> RepoStats a b) .
-  Map.foldl' (\(StrictPair picstats fcstats) dir ->
+  (\(StrictTriple a b c) -> RepoStats a b c) .
+  Map.foldl' (\(StrictTriple picstats fcstats eventstats) dir ->
                 let stats = pdStats dir
                     fc = folderClassFromStats stats
                     picstats' = sumStats picstats stats
                     fcstats' = Map.insertWith (+) fc 1 fcstats
-                in StrictPair picstats' fcstats'
-             ) (StrictPair zeroStats Map.empty)
+                    eventstats' = Map.insertWith (+) (extractEventType $ pdEvent dir) 1 eventstats
+                in StrictTriple picstats' fcstats' eventstats'
+             ) (StrictTriple zeroStats Map.empty Map.empty)
 
 repoGlobalExif :: RepoDirs -> GroupExif
 repoGlobalExif =

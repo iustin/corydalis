@@ -105,7 +105,7 @@ getCurateR = do
   let RepoStats
         (Stats unprocessed standalone processed orphaned untracked movies
              rawsize procsize standalonesize sidecarsize untrksize moviesize
-             bycamera bylens _pplcnt daterange) fcm =
+             bycamera bylens _pplcnt daterange) fcm _ =
           repoStats pics
       allpics = unprocessed + standalone + processed + movies
       totalsize = rawsize + procsize + standalonesize + sidecarsize + untrksize + moviesize
