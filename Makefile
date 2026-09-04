@@ -108,9 +108,15 @@ clean:
 really-clean: clean
 	rm -rf .stack-*
 
-test:
+coverage:
 	stack --work-dir .stack-coverage test --coverage --flag corydalis:dev
 	STACK_WORK=.stack-coverage hpc-lcov
+
+test:
+	# Fast tests with ghc options from
+	# https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
+	stack --work-dir .stack-test test --flag corydalis:dev \
+		--ghc-options="-j +RTS -A128m -n2m -RTS"
 
 fast-tests:
 	# Fast tests with ghc options from
@@ -121,7 +127,7 @@ fast-tests:
 fast-build:
 	stack --work-dir .stack-test build --file-watch --flag corydalis:dev
 
-coverage-tests:
+coverage-watch:
 	stack --work-dir .stack-coverage test --file-watch --coverage --flag corydalis:dev
 
 lint:
