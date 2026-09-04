@@ -72,6 +72,7 @@ module Indexer ( Symbol(..)
                ) where
 
 import           Control.Monad               (foldM, when)
+import           Data.Bifunctor
 import           Data.List                   (nub, partition)
 import qualified Data.Map                    as Map
 import           Data.Maybe                  (fromMaybe, isJust, isNothing,
@@ -1338,7 +1339,7 @@ fClassStats =
 
 eventKindStats :: Repository -> NameStats EventKindOp
 eventKindStats =
-  Map.fromList . map (\(a, b) -> (Just a, fromIntegral b)) .
+  Map.fromList . map (bimap Just fromIntegral) .
   Map.toList . rsEventStats . repoStats
 
 -- | Helper to increase a count in a NameStats Text.
