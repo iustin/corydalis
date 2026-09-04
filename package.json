@@ -27,7 +27,7 @@
     "infinite-scroll": "5.0.0",
     "jquery": "^3.7.1",
     "masonry-layout": "^4.2.2",
-    "plotly.js-cartesian-dist": "^3.0.1",
+    "plotly.js-cartesian-dist": "^4.0.0",
     "prettier": "3.6.2",
     "screenfull": "6.0.2",
     "tablesorter": "^2.31.3",

@@ -70,7 +70,7 @@ function onDataReceived(series: any) {
     showLink: false,
     sendData: false,
     displaylogo: false,
-    modeBarButtonsToRemove: ['toImage' as const, 'sendDataToCloud' as const],
+    modeBarButtonsToRemove: ['toImage' as const, 'sendChartToCloud' as const],
     responsive: true,
   };
   Plotly.newPlot('lensChart', series.imagecount, lensLayout, config);
