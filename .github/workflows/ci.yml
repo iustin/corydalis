@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest # or macOS-latest, or windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -36,7 +36,7 @@ jobs:
           stack-version: 'latest'
 
       - name: Cache Haskell dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.stack
           key: v3-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
@@ -46,19 +46,19 @@ jobs:
             v2-haskell-deps-
 
       - name: Cache node modules
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.npm
           key: v2-npm-deps-${{ hashFiles('**/package-lock.json') }}
           restore-keys: v2-npm-deps-
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
       - name: Cache pip
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           # This path is specific to Ubuntu
           path: ~/.cache/pip
@@ -96,13 +96,13 @@ jobs:
         run: stack test --coverage --flag corydalis:dev
 
       - name: Generate coverage report
-        uses: 8c6794b6/hpc-codecov-action@v3
+        uses: 8c6794b6/hpc-codecov-action@v4
         with:
           target: stack:test
           excludes: Main
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -113,7 +113,7 @@ jobs:
         run: make release
 
       - name: Upload normal release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release
           path: ./dist/
@@ -124,7 +124,7 @@ jobs:
         run: make demo-release
 
       - name: Upload public release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: demo-release
           path: ./dist/
