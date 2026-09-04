@@ -110,7 +110,7 @@ really-clean: clean
 
 coverage:
 	stack --work-dir .stack-coverage test --coverage --flag corydalis:dev
-	STACK_WORK=.stack-coverage hpc-lcov
+	hpc-codecov -b .stack-coverage -o lcov.info -f lcov -x Main stack:all
 
 test:
 	# Fast tests with ghc options from
