@@ -479,12 +479,19 @@ maybeDesymbolizeItem' = fmap deSymbolizeItem'
 lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedItem)
 lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
 
+data EventSource
+  = EventImplicit
+  | EventExplicit
+  deriving (Show, Generic)
+
+instance Store EventSource
+
 data Event
-  = GenericEvent { eventName :: ShortText, eventPeople :: [ShortText] }
-  | BirthdayEvent { eventName :: ShortText, eventPeople :: [ShortText] }
-  | GetawayEvent { eventName :: ShortText, eventPeople :: [ShortText] }
-  | GrandVacationEvent { eventName :: ShortText, eventPeople :: [ShortText] }
-  | WorkTripEvent { eventName :: ShortText, eventPeople :: [ShortText] }
+  = GenericEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
+  | BirthdayEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
+  | GetawayEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
+  | GrandVacationEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
+  | WorkTripEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
   deriving (Show, Generic)
 
 instance Store Event
@@ -501,9 +508,9 @@ instance HSY.FromYAML Event where
           Text.strip kindRaw
 
     case kind of
-      "generic"       -> pure $ GenericEvent { eventName = name, eventPeople = people }
-      "birthday"      -> pure $ BirthdayEvent { eventName = name, eventPeople = people }
-      "getaway"       -> pure $ GetawayEvent { eventName = name, eventPeople = people }
-      "grandvacation" -> pure $ GrandVacationEvent { eventName = name, eventPeople = people }
-      "worktrip"      -> pure $ WorkTripEvent { eventName = name, eventPeople = people }
+      "generic"       -> pure $ GenericEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
+      "birthday"      -> pure $ BirthdayEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
+      "getaway"       -> pure $ GetawayEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
+      "grandvacation" -> pure $ GrandVacationEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
+      "worktrip"      -> pure $ WorkTripEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
       _               -> fail $ "Unknown event kind: " <> Text.unpack kindRaw
