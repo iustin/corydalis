@@ -117,8 +117,22 @@ spec = parallel $ do
       kindOf (range 1 15) `shouldBe` EKGrandVacation
     it "marks inferred events as implicit with the folder name" $ \_ ->
       implicitEventFromDateRange name (range 1 4) `shouldBe`
-        Just GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit }
-  withContext $
+        Just GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
+  withContext $ do
+    describe "addDirToRepo event merge" $ do
+      let ev = Just GrandVacationEvent
+            { eventName = "trip"
+            , eventPeople = []
+            , eventSource = EventImplicit implicitDateRangeDesc
+            }
+          noEvent = createTestPicDir "trip"
+          withEvent = noEvent { pdEvent = ev }
+      it "keeps an event when merging a new folder into one without" $ \ctx -> do
+        let merged = addDirToRepo (ctxConfig ctx) withEvent (Map.singleton "trip" noEvent)
+        pdEvent (merged Map.! "trip") `shouldBe` ev
+      it "keeps an event when merging a folder without one into one with" $ \ctx -> do
+        let merged = addDirToRepo (ctxConfig ctx) noEvent (Map.singleton "trip" withEvent)
+        pdEvent (merged Map.! "trip") `shouldBe` ev
     describe "search cache" $ do
       it "caches a search result" $ \ctx -> do
         let image = simpleRawImage (ctxConfig ctx)

@@ -75,6 +75,7 @@ module Types ( Config(..)
              , lookupSymbolized
              , EventSource(..)
              , Event(..)
+             , implicitDateRangeDesc
              ) where
 
 import           Control.Applicative
@@ -481,9 +482,12 @@ lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedIte
 lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
 
 data EventSource
-  = EventImplicit
+  = EventImplicit SymbolizedItem
   | EventExplicit (Maybe FilePath)
   deriving (Show, Eq, Generic)
+
+implicitDateRangeDesc :: SymbolizedItem
+implicitDateRangeDesc = mkSymbolizedItem ("Auto-computed on date range" :: Text)
 
 instance Store EventSource
 

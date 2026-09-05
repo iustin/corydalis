@@ -829,9 +829,10 @@ mergeFolders c x y =
     -- merge can change an image's type, thus throwing off the stats
     -- completely (e.g. in x is unprocessed, in y is standalone, in
     -- x+y is processed).
-    , pdStats = computeImagesStats newimages
+    , pdStats = stats
     -- FIXME: record error if we have duplicate event information
-    , pdEvent = pdEvent x <|> pdEvent y
+    , pdEvent = (pdEvent x <|> pdEvent y)
+                <|> implicitEventFromDateRange (pdName x) (sDateRange stats)
     }
   where
     (bestMainPath, otherMainPath) =
@@ -839,6 +840,7 @@ mergeFolders c x y =
                                      GT -> (x, y)
                                      _  -> (y, x)
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
+    stats = computeImagesStats newimages
 
 -- | Compute the number of pictures with an associated raw file.
 numRawPics :: PicDir -> Int
@@ -1033,8 +1035,8 @@ implicitEventFromDateRange name range = do
   let days = diffDays (localDay end) (localDay start)
   guard $ days > 2
   pure $ if days >= 7
-    then GrandVacationEvent { eventName = name, eventPeople = [], eventSource = EventImplicit }
-    else GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit }
+    then GrandVacationEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
+    else GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
 
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Ctx -> String -> FilePath -> Bool -> IO PicDir
@@ -1042,6 +1044,7 @@ loadFolder ctx name path isSource = do
   -- throwString "boo"
   let config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
+      --logfn = ctxLogger ctx
   contents <- recursiveScanPath config path []
 
   (readexifs, lcache) <- getExif config path $ map inodeFullName contents
@@ -1128,6 +1131,10 @@ loadFolder ctx name path isSource = do
   let event = yamlEvent <|> implicitEventFromDateRange tname (sDateRange pstats)
   -- FIXME: incProgress is always called with an empty error list?
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
+  --logfn LevelInfo . toLogStr $
+  --  "Scanned folder '" ++ path ++ "' with " ++ show (Map.size images) ++ " images, " ++
+  -- show (Map.size shadows) ++ " shadows, and " ++ show totalitems ++ " total items, date range " ++
+  --  show (sDateRange pstats) ++ ", event " ++ show event
   return $!!
     PicDir { pdName = tname
            , pdMainPath = dirpath

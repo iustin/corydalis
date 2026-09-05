@@ -76,8 +76,8 @@ showFolderEvent (Just ev) = do
               #{formatPerson True p}
 
     $case eventSource ev
-      $of EventImplicit
-        <div .text-muted>This event was inferred from the folder contents.
+      $of EventImplicit desc
+        <div .text-muted>This event was inferred from the folder contents (#{desc}).
       $of EventExplicit mPath
         $maybe path <- mPath
           <div .text-muted>This event was explicitly defined in #
