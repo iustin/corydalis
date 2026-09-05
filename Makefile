@@ -109,19 +109,20 @@ really-clean: clean
 	rm -rf .stack-*
 
 coverage:
-	stack --work-dir .stack-coverage test --coverage --flag corydalis:dev
+	stack --work-dir .stack-coverage test --coverage \
+		--flag corydalis:dev --pedantic --keep-going
 	hpc-codecov -b .stack-coverage -o lcov.info -f lcov -x Main stack:all
 
+# Fast tests with ghc options from
+# https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
 test:
-	# Fast tests with ghc options from
-	# https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
-	stack --work-dir .stack-test test --flag corydalis:dev \
+	stack --work-dir .stack-test test --pedantic \
+		--keep-going --flag corydalis:dev \
 		--ghc-options="-j +RTS -A128m -n2m -RTS"
 
 fast-tests:
-	# Fast tests with ghc options from
-	# https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
-	stack --work-dir .stack-test test --file-watch --flag corydalis:dev \
+	stack --work-dir .stack-test test --predantic --file-watch \
+		--keep-going --flag corydalis:dev \
 		--ghc-options="-j +RTS -A128m -n2m -RTS"
 
 fast-build:

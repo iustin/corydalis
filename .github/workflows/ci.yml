@@ -90,7 +90,7 @@ jobs:
         run: stack test --only-dependencies
 
       - name: Build the code
-        run: stack build --pedantic --test --no-run-tests --coverage --flag corydalis:dev
+        run: stack build --pedantic --test --no-run-tests --keep-going --coverage --flag corydalis:dev
 
       - name: Run tests
         run: stack test --coverage --flag corydalis:dev
