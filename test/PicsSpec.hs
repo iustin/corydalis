@@ -85,11 +85,11 @@ spec = parallel $ do
     it "counts folders by event kind" $ \_ -> do
       let noEvent = createTestPicDir "none"
           birthday = (createTestPicDir "bday")
-            { pdEvent = Just BirthdayEvent { eventName = "x", eventPeople = [] } }
+           { pdEvent = Just BirthdayEvent { eventName = "x", eventPeople = [], eventSource = EventExplicit Nothing } }
           generic1 = (createTestPicDir "g1")
-            { pdEvent = Just GenericEvent { eventName = "a", eventPeople = [] } }
+           { pdEvent = Just GenericEvent { eventName = "a", eventPeople = [], eventSource = EventExplicit Nothing } }
           generic2 = (createTestPicDir "g2")
-            { pdEvent = Just GenericEvent { eventName = "b", eventPeople = [] } }
+           { pdEvent = Just GenericEvent { eventName = "b", eventPeople = [], eventSource = EventExplicit Nothing } }
           dirs = Map.fromList [(pdName d, d) | d <- [noEvent, birthday, generic1, generic2]]
       rsEventStats (computeRepoStats dirs) `shouldBe` Map.fromList
         [ (EKNoEvent, 1)
