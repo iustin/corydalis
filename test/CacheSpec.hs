@@ -23,6 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module CacheSpec (spec) where
 
+import           Control.Concurrent (threadDelay)
+import qualified Data.ByteString.Char8 as BS8
 import           System.Directory
 
 import           Cache
@@ -40,6 +42,60 @@ pathShouldNotExist p = doesPathExist p `shouldReturn` False
 
 spec :: Spec
 spec = parallel $ withConfig $ do
+  describe "cachedBasename" $ do
+    it "builds cache basename from cache dir, path, and suffix" $ \config -> do
+      cachedBasename config "foo/bar" "thumb"
+        `shouldBe` (cfgCacheDir config ++ "/foo/bar-thumb")
+
+  describe "writeCacheFile/readCacheFile" $ do
+    let sourcePath config = cfgSourceDirs config !! 0 </> "image.nef"
+        extraPath config = cfgSourceDirs config !! 0 </> "image.xmp"
+        cachePath config = cfgCacheDir config </> "nested/cache.bin"
+        cacheFn config _ = cachePath config
+        cacheData = BS8.pack "cache-data"
+
+    it "writes cache files and creates missing parent directories" $ \config -> do
+      writeCacheFile config (sourcePath config) cacheFn cacheData
+      pathShouldExist (cachePath config)
+      BS8.readFile (cachePath config) `shouldReturn` cacheData
+
+    it "returns Nothing for missing cache files" $ \config -> do
+      readCacheFile config (sourcePath config) cacheFn False []
+        `shouldReturn` (Nothing :: Maybe BS8.ByteString)
+
+    it "reads cache when validation is disabled even if source becomes newer" $ \config -> do
+      writeFile (sourcePath config) "raw"
+      writeCacheFile config (sourcePath config) cacheFn cacheData
+      threadDelay 100000
+      writeFile (sourcePath config) "raw-updated"
+      readCacheFile config (sourcePath config) cacheFn False []
+        `shouldReturn` Just cacheData
+
+    it "reads cache when source and extras are not newer than cache" $ \config -> do
+      writeFile (sourcePath config) "raw"
+      writeFile (extraPath config) "xmp"
+      threadDelay 100000
+      writeCacheFile config (sourcePath config) cacheFn cacheData
+      readCacheFile config (sourcePath config) cacheFn True [extraPath config]
+        `shouldReturn` Just cacheData
+
+    it "returns Nothing when source is newer than cache and validation is enabled" $ \config -> do
+      writeFile (sourcePath config) "raw"
+      writeCacheFile config (sourcePath config) cacheFn cacheData
+      threadDelay 100000
+      writeFile (sourcePath config) "raw-updated"
+      readCacheFile config (sourcePath config) cacheFn True []
+        `shouldReturn` (Nothing :: Maybe BS8.ByteString)
+
+    it "returns Nothing when an extra dependency is newer than cache" $ \config -> do
+      writeFile (sourcePath config) "raw"
+      writeFile (extraPath config) "xmp"
+      writeCacheFile config (sourcePath config) cacheFn cacheData
+      threadDelay 100000
+      writeFile (extraPath config) "xmp-updated"
+      readCacheFile config (sourcePath config) cacheFn True [extraPath config]
+        `shouldReturn` (Nothing :: Maybe BS8.ByteString)
+
   describe "deleteCachedFile" $ do
     describe "refuses to delete file outside of cache" $ do
       it "refuses to navigate via prefix ../" $ \config -> do
