@@ -74,6 +74,17 @@ showFolderEvent (Just ev) = do
           $with searchParams <- [(symbolName kindSymbol, pText)]
             <a .btn .btn-light .btn-sm .me-1 .mb-1 href="@?{(SearchR,searchParams)}">
               #{formatPerson True p}
+
+    $case eventSource ev
+      $of EventImplicit
+        <div .text-muted>This event was inferred from the folder contents.
+      $of EventExplicit mPath
+        $maybe path <- mPath
+          <div .text-muted>This event was explicitly defined in #
+            <span .monolight>#{quoteMarkup path}
+            .
+        $nothing
+          <div .text-muted>This event was explicitly defined, but the source is unknown.
   |]
 
 getFolderR :: ShortText -> Handler Html

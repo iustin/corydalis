@@ -554,9 +554,9 @@ instance NFData Stats where
                   rnf sByLens
 
 data RepoStats = RepoStats
-  { rsPicStats    :: !Stats
-  , rsFCStats     :: !FolderClassStats
-  , rsEventStats  :: !EventKindStats
+  { rsPicStats   :: !Stats
+  , rsFCStats    :: !FolderClassStats
+  , rsEventStats :: !EventKindStats
   } deriving (Show, Generic)
 
 instance Store RepoStats

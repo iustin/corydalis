@@ -29,10 +29,15 @@ import           Import.NoFoundation hiding (leftover)
 import qualified Data.ByteString     as BS
 import qualified Data.YAML           as HsYAML
 import qualified System.Directory    as Dir
--- adjust imports/types to your exact HsYAML module
+
+class YAMLWithSource a where
+  setSource :: FilePath -> a -> a
+
+instance YAMLWithSource Event where
+  setSource fp ev = ev { eventSource = EventExplicit (Just fp) }
 
 loadOptionalYaml
-  :: Data.YAML.FromYAML a
+  :: (Data.YAML.FromYAML a, YAMLWithSource a)
   => FilePath
   -> IO (Maybe String, Maybe a)
 loadOptionalYaml filepath = do
@@ -42,5 +47,5 @@ loadOptionalYaml filepath = do
     else do
       file_bytes <- BS.readFile filepath
       case HsYAML.decode1Strict file_bytes of
-        Right v -> pure (Nothing, Just v)
+        Right v -> pure (Nothing, Just (setSource filepath v))
         Left e  -> pure (Just (show e), Nothing)

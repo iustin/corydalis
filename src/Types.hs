@@ -73,6 +73,7 @@ module Types ( Config(..)
              , maybeDesymbolizeItem
              , maybeDesymbolizeItem'
              , lookupSymbolized
+             , EventSource(..)
              , Event(..)
              ) where
 
@@ -481,7 +482,7 @@ lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
 
 data EventSource
   = EventImplicit
-  | EventExplicit
+  | EventExplicit (Maybe FilePath)
   deriving (Show, Generic)
 
 instance Store EventSource
@@ -508,9 +509,9 @@ instance HSY.FromYAML Event where
           Text.strip kindRaw
 
     case kind of
-      "generic"       -> pure $ GenericEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
-      "birthday"      -> pure $ BirthdayEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
-      "getaway"       -> pure $ GetawayEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
-      "grandvacation" -> pure $ GrandVacationEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
-      "worktrip"      -> pure $ WorkTripEvent { eventName = name, eventPeople = people, eventSource = EventExplicit }
+      "generic"       -> pure $ GenericEvent { eventName = name, eventPeople = people, eventSource = EventExplicit Nothing }
+      "birthday"      -> pure $ BirthdayEvent { eventName = name, eventPeople = people, eventSource = EventExplicit Nothing }
+      "getaway"       -> pure $ GetawayEvent { eventName = name, eventPeople = people, eventSource = EventExplicit Nothing }
+      "grandvacation" -> pure $ GrandVacationEvent { eventName = name, eventPeople = people, eventSource = EventExplicit Nothing }
+      "worktrip"      -> pure $ WorkTripEvent { eventName = name, eventPeople = people, eventSource = EventExplicit Nothing }
       _               -> fail $ "Unknown event kind: " <> Text.unpack kindRaw
