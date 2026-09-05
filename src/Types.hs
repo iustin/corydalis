@@ -483,7 +483,7 @@ lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
 data EventSource
   = EventImplicit
   | EventExplicit (Maybe FilePath)
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 instance Store EventSource
 
@@ -493,7 +493,7 @@ data Event
   | GetawayEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
   | GrandVacationEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
   | WorkTripEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 instance Store Event
 

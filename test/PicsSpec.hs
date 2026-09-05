@@ -24,6 +24,7 @@ module PicsSpec (spec) where
 
 import           Data.Default
 import qualified Data.Map     as Map
+import           Data.Time    (LocalTime (..), midnight)
 
 import           AtomTypes
 import           Pics
@@ -95,6 +96,28 @@ spec = parallel $ do
         , (EKBirthday, 1)
         , (EKGeneric, 2)
         ]
+  describe "implicitEventFromDateRange" $ do
+    let day d = LocalTime (fromGregorian 2024 6 d) midnight
+        range a b = Just (day a, day b)
+        name = "folder" :: ShortText
+        kindOf = extractEventType . implicitEventFromDateRange name
+    it "does nothing without a date range" $ \_ ->
+      kindOf Nothing `shouldBe` EKNoEvent
+    it "does nothing for a same-day span" $ \_ ->
+      kindOf (range 1 1) `shouldBe` EKNoEvent
+    it "does nothing for a two-day span" $ \_ ->
+      kindOf (range 1 3) `shouldBe` EKNoEvent
+    it "uses getaway for a three-day span" $ \_ ->
+      kindOf (range 1 4) `shouldBe` EKGetaway
+    it "uses getaway for a six-day span" $ \_ ->
+      kindOf (range 1 7) `shouldBe` EKGetaway
+    it "uses grand vacation for a seven-day span" $ \_ ->
+      kindOf (range 1 8) `shouldBe` EKGrandVacation
+    it "uses grand vacation for a longer span" $ \_ ->
+      kindOf (range 1 15) `shouldBe` EKGrandVacation
+    it "marks inferred events as implicit with the folder name" $ \_ ->
+      implicitEventFromDateRange name (range 1 4) `shouldBe`
+        Just GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit }
   withContext $
     describe "search cache" $ do
       it "caches a search result" $ \ctx -> do

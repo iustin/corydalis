@@ -113,6 +113,7 @@ module Pics ( PicDir(..)
             , InodeInfo(..)
             , inodeFullName
             , mkFileFromInode
+            , implicitEventFromDateRange
 #endif
             ) where
 
@@ -1026,6 +1027,15 @@ mkFileFromInode parent ii exif =
         , fileExif   = exif
         }
 
+implicitEventFromDateRange :: ShortText -> Maybe DateRange -> Maybe Event
+implicitEventFromDateRange name range = do
+  (start, end) <- range
+  let days = diffDays (localDay end) (localDay start)
+  guard $ days > 2
+  pure $ if days >= 7
+    then GrandVacationEvent { eventName = name, eventPeople = [], eventSource = EventImplicit }
+    else GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit }
+
 -- | Builds a `PicDir` (folder) from an entire filesystem subtree.
 loadFolder :: Ctx -> String -> FilePath -> Bool -> IO PicDir
 loadFolder ctx name path isSource = do
@@ -1114,7 +1124,8 @@ loadFolder ctx name path isSource = do
       totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0
       pstats = computeImagesStats images
-  (_, event) <- loadOptionalYaml (path </> "corydalis.yaml")
+  (_, yamlEvent) <- loadOptionalYaml (path </> "corydalis.yaml")
+  let event = yamlEvent <|> implicitEventFromDateRange tname (sDateRange pstats)
   -- FIXME: incProgress is always called with an empty error list?
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
   return $!!
