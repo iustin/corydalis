@@ -120,19 +120,34 @@ spec = parallel $ do
         Just GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
   withContext $ do
     describe "addDirToRepo event merge" $ do
-      let ev = Just GrandVacationEvent
+      let implicitEv = Just GrandVacationEvent
             { eventName = "trip"
             , eventPeople = []
             , eventSource = EventImplicit implicitDateRangeDesc
             }
-          noEvent = createTestPicDir "trip"
-          withEvent = noEvent { pdEvent = ev }
+          explicitEv = Just BirthdayEvent
+            { eventName = "trip"
+            , eventPeople = []
+            , eventSource = EventExplicit (Just "corydalis.yaml")
+            }
+          picDirnoEvent = createTestPicDir "trip"
+          picDirImplicitEvent = picDirnoEvent { pdEvent = implicitEv }
+          picDirExplicitEvent = picDirnoEvent { pdEvent = explicitEv }
       it "keeps an event when merging a new folder into one without" $ \ctx -> do
-        let merged = addDirToRepo (ctxConfig ctx) withEvent (Map.singleton "trip" noEvent)
-        pdEvent (merged Map.! "trip") `shouldBe` ev
+        let mergedImpl = addDirToRepo (ctxConfig ctx) picDirImplicitEvent (Map.singleton "trip" picDirnoEvent)
+            mergedExpl = addDirToRepo (ctxConfig ctx) picDirExplicitEvent (Map.singleton "trip" picDirnoEvent)
+        pdEvent (mergedImpl Map.! "trip") `shouldBe` implicitEv
+        pdEvent (mergedExpl Map.! "trip") `shouldBe` explicitEv
       it "keeps an event when merging a folder without one into one with" $ \ctx -> do
-        let merged = addDirToRepo (ctxConfig ctx) noEvent (Map.singleton "trip" withEvent)
-        pdEvent (merged Map.! "trip") `shouldBe` ev
+        let mergedImpl = addDirToRepo (ctxConfig ctx) picDirnoEvent (Map.singleton "trip" picDirImplicitEvent)
+            mergedExpl = addDirToRepo (ctxConfig ctx) picDirnoEvent (Map.singleton "trip" picDirExplicitEvent)
+        pdEvent (mergedImpl Map.! "trip") `shouldBe` implicitEv
+        pdEvent (mergedExpl Map.! "trip") `shouldBe` explicitEv
+      it "prefers an explicit event over an implicit one" $ \ctx -> do
+        let mergedNew = addDirToRepo (ctxConfig ctx) picDirExplicitEvent (Map.singleton "trip" picDirImplicitEvent)
+            mergedOld = addDirToRepo (ctxConfig ctx) picDirImplicitEvent (Map.singleton "trip" picDirExplicitEvent)
+        pdEvent (mergedNew Map.! "trip") `shouldBe` explicitEv
+        pdEvent (mergedOld Map.! "trip") `shouldBe` explicitEv
     describe "search cache" $ do
       it "caches a search result" $ \ctx -> do
         let image = simpleRawImage (ctxConfig ctx)

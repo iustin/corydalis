@@ -831,7 +831,7 @@ mergeFolders c x y =
     -- x+y is processed).
     , pdStats = stats
     -- FIXME: record error if we have duplicate event information
-    , pdEvent = (pdEvent x <|> pdEvent y)
+    , pdEvent = pickEvent (pdEvent x) (pdEvent y)
                 <|> implicitEventFromDateRange (pdName x) (sDateRange stats)
     }
   where
@@ -841,6 +841,12 @@ mergeFolders c x y =
                                      _  -> (y, x)
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     stats = computeImagesStats newimages
+    pickEvent a b = explicitEvent a <|> explicitEvent b <|> a <|> b
+    explicitEvent mev@(Just ev) =
+      case eventSource ev of
+        EventExplicit {} -> mev
+        EventImplicit {} -> Nothing
+    explicitEvent Nothing = Nothing
 
 -- | Compute the number of pictures with an associated raw file.
 numRawPics :: PicDir -> Int
