@@ -205,15 +205,15 @@ spec = parallel $ do
 
   describe "extractEventType" $ do
     it "classifies events" $ do
-      extractEventType (Just GenericEvent { eventName = "x", eventPeople = [] })
+      extractEventType (Just GenericEvent { eventName = "x", eventPeople = [], eventSource = EventExplicit Nothing })
         `shouldBe` EKGeneric
-      extractEventType (Just BirthdayEvent { eventName = "x", eventPeople = [] })
+      extractEventType (Just BirthdayEvent { eventName = "x", eventPeople = [], eventSource = EventExplicit Nothing })
         `shouldBe` EKBirthday
-      extractEventType (Just GetawayEvent { eventName = "x", eventPeople = [] })
+      extractEventType (Just GetawayEvent { eventName = "x", eventPeople = [], eventSource = EventExplicit Nothing })
         `shouldBe` EKGetaway
-      extractEventType (Just GrandVacationEvent { eventName = "x", eventPeople = [] })
+      extractEventType (Just GrandVacationEvent { eventName = "x", eventPeople = [], eventSource = EventExplicit Nothing })
         `shouldBe` EKGrandVacation
-      extractEventType (Just WorkTripEvent { eventName = "x", eventPeople = [] })
+      extractEventType (Just WorkTripEvent { eventName = "x", eventPeople = [], eventSource = EventExplicit Nothing })
         `shouldBe` EKWorkTrip
       extractEventType Nothing `shouldBe` EKNoEvent
 
