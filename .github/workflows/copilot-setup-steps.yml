@@ -1,0 +1,85 @@
+name: Copilot Setup Steps
+
+"on":
+    workflow_dispatch:
+    push:
+        paths:
+            - .github/workflows/copilot-setup-steps.yml
+    pull_request:
+        paths:
+            - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+    # This exact job name is required by Copilot cloud agent.
+    copilot-setup-steps:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Setup Haskell
+              uses: haskell-actions/setup@v2
+              with:
+                  enable-stack: true
+                  stack-version: latest
+
+            - name: Cache Haskell dependencies
+              uses: actions/cache@v6
+              with:
+                  path: ~/.stack
+                  key: v3-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
+                  restore-keys: |
+                      v3-haskell-deps-${{ runner.os }}-store-
+                      v3-haskell-deps-
+                      v2-haskell-deps-
+
+            - name: Cache node modules
+              uses: actions/cache@v6
+              with:
+                  path: ~/.npm
+                  key: v2-npm-deps-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: v2-npm-deps-
+
+            - name: Setup Python
+              uses: actions/setup-python@v7
+              with:
+                  python-version: "3.x"
+
+            - name: Cache pip
+              uses: actions/cache@v6
+              with:
+                  path: ~/.cache/pip
+                  key: v2-pip-${{ runner.os }}
+                  restore-keys: |
+                      ${{ runner.os }}-pip-
+                      ${{ runner.os }}-
+
+            - name: Install mkdocs
+              run: pip install --upgrade pip mkdocs
+
+            - name: Create git-version
+              run: make git-version
+
+            - name: Bootstrap npm/typescript code
+              run: make bootstrap
+
+            - name: Setup GHC for the resolver
+              run: stack setup --no-terminal
+
+            - name: Install hlint
+              run: stack install hlint
+
+            - name: Build the dependencies
+              run: stack build --only-dependencies
+
+            - name: Build the test dependencies
+              run: stack test --only-dependencies
+
+            - name: Build the code
+              run: stack build --pedantic --test --no-run-tests --keep-going --coverage --flag corydalis:dev
