@@ -48,8 +48,10 @@ spec = parallel $ withConfig $ do
         `shouldBe` (cfgCacheDir config ++ "/foo/bar-thumb")
 
   describe "writeCacheFile/readCacheFile" $ do
-    let sourcePath config = cfgSourceDirs config !! 0 </> "image.nef"
-        extraPath config = cfgSourceDirs config !! 0 </> "image.xmp"
+    let sourceRoot config = fromMaybe (error "No source directory in test config")
+                                      (headMay $ cfgSourceDirs config)
+        sourcePath config = sourceRoot config </> "image.nef"
+        extraPath config = sourceRoot config </> "image.xmp"
         cachePath config = cfgCacheDir config </> "nested/cache.bin"
         cacheFn config _ = cachePath config
         cacheData = BS8.pack "cache-data"
