@@ -114,6 +114,7 @@ module Pics ( PicDir(..)
             , inodeFullName
             , mkFileFromInode
             , implicitEventFromDateRange
+            , startupRepository
 #endif
             ) where
 

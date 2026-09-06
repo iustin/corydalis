@@ -43,7 +43,8 @@ import           Pics                           (Ctx, File (..), Image (..),
                                                  computeImagesStats,
                                                  computeRepoStats, initContext,
                                                  launchScanFileSystem, mkImage,
-                                                 repoGlobalExif, waitForScan)
+                                                 repoGlobalExif,
+                                                 startupRepository, waitForScan)
 import           Test.Hspec                     as X
 import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
 import           Test.Hspec.QuickCheck          as X
@@ -277,6 +278,13 @@ simpleRawImage config =
   let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = mkSym "test", fileDirs = mkSym "", fileExif = def }
   in mkImage config "a" "test" (Just f) Nothing []
              Nothing [] [] Nothing MediaImage def
+
+mkRepository :: RepoDirs -> Repository
+mkRepository dirs =
+  startupRepository { repoDirs = dirs
+                    , repoStats = computeRepoStats dirs
+                    , repoExif = repoGlobalExif dirs
+                    }
 
 -- | Create a minimal PicDir for testing
 createTestPicDir :: ShortText -> PicDir
