@@ -82,15 +82,12 @@ spec = parallel $ withConfig $ do
     it "reads cache when source and extras are not newer than cache" $ \config -> do
       writeFile (sourcePath config) "raw"
       writeFile (extraPath config) "xmp"
-      setMtimeOffset (sourcePath config) (-7200)
-      setMtimeOffset (extraPath config) (-3600)
       writeCacheFile config (sourcePath config) cacheFn cacheData
       readCacheFile config (sourcePath config) cacheFn True [extraPath config]
         `shouldReturn` Just cacheData
 
     it "returns Nothing when source is newer than cache and validation is enabled" $ \config -> do
       writeFile (sourcePath config) "raw"
-      setMtimeOffset (sourcePath config) (-3600)
       writeCacheFile config (sourcePath config) cacheFn cacheData
       setMtimeOffset (sourcePath config) 3600
       readCacheFile config (sourcePath config) cacheFn True []
@@ -99,8 +96,6 @@ spec = parallel $ withConfig $ do
     it "returns Nothing when an extra dependency is newer than cache" $ \config -> do
       writeFile (sourcePath config) "raw"
       writeFile (extraPath config) "xmp"
-      setMtimeOffset (sourcePath config) (-3600)
-      setMtimeOffset (extraPath config) (-3600)
       writeCacheFile config (sourcePath config) cacheFn cacheData
       setMtimeOffset (extraPath config) 3600
       readCacheFile config (sourcePath config) cacheFn True [extraPath config]
