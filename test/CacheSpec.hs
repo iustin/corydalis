@@ -23,9 +23,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module CacheSpec (spec) where
 
-import           Control.Concurrent (threadDelay)
 import qualified Data.ByteString.Char8 as BS8
+import           Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
 import           System.Directory
+import           System.Posix.Files (setFileTimesHiRes)
 
 import           Cache
 import           TestImport
@@ -39,6 +40,12 @@ pathShouldExist p = doesPathExist p `shouldReturn` True
 
 pathShouldNotExist :: FilePath -> IO ()
 pathShouldNotExist p = doesPathExist p `shouldReturn` False
+
+setMtimeOffset :: FilePath -> POSIXTime -> IO ()
+setMtimeOffset path delta = do
+  now <- getPOSIXTime
+  let stamp = now + delta
+  setFileTimesHiRes path stamp stamp
 
 spec :: Spec
 spec = parallel $ withConfig $ do
@@ -68,33 +75,34 @@ spec = parallel $ withConfig $ do
     it "reads cache when validation is disabled even if source becomes newer" $ \config -> do
       writeFile (sourcePath config) "raw"
       writeCacheFile config (sourcePath config) cacheFn cacheData
-      threadDelay 100000
-      writeFile (sourcePath config) "raw-updated"
+      setMtimeOffset (sourcePath config) 3600
       readCacheFile config (sourcePath config) cacheFn False []
         `shouldReturn` Just cacheData
 
     it "reads cache when source and extras are not newer than cache" $ \config -> do
       writeFile (sourcePath config) "raw"
       writeFile (extraPath config) "xmp"
-      threadDelay 100000
+      setMtimeOffset (sourcePath config) (-7200)
+      setMtimeOffset (extraPath config) (-3600)
       writeCacheFile config (sourcePath config) cacheFn cacheData
       readCacheFile config (sourcePath config) cacheFn True [extraPath config]
         `shouldReturn` Just cacheData
 
     it "returns Nothing when source is newer than cache and validation is enabled" $ \config -> do
       writeFile (sourcePath config) "raw"
+      setMtimeOffset (sourcePath config) (-3600)
       writeCacheFile config (sourcePath config) cacheFn cacheData
-      threadDelay 100000
-      writeFile (sourcePath config) "raw-updated"
+      setMtimeOffset (sourcePath config) 3600
       readCacheFile config (sourcePath config) cacheFn True []
         `shouldReturn` (Nothing :: Maybe BS8.ByteString)
 
     it "returns Nothing when an extra dependency is newer than cache" $ \config -> do
       writeFile (sourcePath config) "raw"
       writeFile (extraPath config) "xmp"
+      setMtimeOffset (sourcePath config) (-3600)
+      setMtimeOffset (extraPath config) (-3600)
       writeCacheFile config (sourcePath config) cacheFn cacheData
-      threadDelay 100000
-      writeFile (extraPath config) "xmp-updated"
+      setMtimeOffset (extraPath config) 3600
       readCacheFile config (sourcePath config) cacheFn True [extraPath config]
         `shouldReturn` (Nothing :: Maybe BS8.ByteString)
 
