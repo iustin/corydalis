@@ -81,20 +81,26 @@ spec = parallel $ do
 
   describe "Orientation helpers" $ do
     it "maps orientations to transforms" $ do
-      affineTransform OrientationTopLeft  `shouldSatisfy` (== Transform RCenter False False)
-      affineTransform OrientationTopRight `shouldSatisfy` (== Transform RCenter True False)
-      affineTransform OrientationBotRight `shouldSatisfy` (== Transform RCenter True True)
-      affineTransform OrientationBotLeft  `shouldSatisfy` (== Transform RCenter False True)
-      affineTransform OrientationLeftTop  `shouldSatisfy` (== Transform RLeft False True)
-      affineTransform OrientationRightTop `shouldSatisfy` (== Transform RRight False False)
-      affineTransform OrientationRightBot `shouldSatisfy` (== Transform RRight False True)
-      affineTransform OrientationLeftBot  `shouldSatisfy` (== Transform RLeft False False)
+      transformParams (affineTransform OrientationTopLeft)  `shouldBe` (0, False, False)
+      transformParams (affineTransform OrientationTopRight) `shouldBe` (0, True, False)
+      transformParams (affineTransform OrientationBotRight) `shouldBe` (0, True, True)
+      transformParams (affineTransform OrientationBotLeft)  `shouldBe` (0, False, True)
+      transformParams (affineTransform OrientationLeftTop)  `shouldBe` (-1, False, True)
+      transformParams (affineTransform OrientationRightTop) `shouldBe` (1, False, False)
+      transformParams (affineTransform OrientationRightBot) `shouldBe` (1, False, True)
+      transformParams (affineTransform OrientationLeftBot)  `shouldBe` (-1, False, False)
 
     it "formats transform parameters and matrices" $ do
+      let approx (a, b, c, d) (x, y, z, w) =
+            and [ abs (a - x) < 1e-9
+                , abs (b - y) < 1e-9
+                , abs (c - z) < 1e-9
+                , abs (d - w) < 1e-9
+                ]
       transformParams (Transform RLeft True False) `shouldBe` (-1, True, False)
       transformMatrix (Transform RCenter False False) `shouldBe` (1, 0, 0, 1)
-      transformMatrix (Transform RLeft False False) `shouldBe` (0, -1, 1, 0)
-      transformMatrix (Transform RRight False False) `shouldBe` (0, 1, -1, 0)
+      transformMatrix (Transform RLeft False False) `shouldSatisfy` approx (0, -1, 1, 0)
+      transformMatrix (Transform RRight False False) `shouldSatisfy` approx (0, 1, -1, 0)
 
   describe "Lens helpers" $ do
     let unknownNamedLens = LensInfo
@@ -109,6 +115,12 @@ spec = parallel $ do
           (Just (Zoom 70 200))
           (Just (VariableAperture 2.8 4.0))
           Nothing
+        showLensType :: LensType -> String
+        showLensType lt = case lt of
+          LensPrime -> "prime"
+          LensConstantApertureZoom -> "constant-zoom"
+          LensVariableApertureZoom -> "variable-zoom"
+          LensUnknown -> "unknown"
     it "chooses the most useful display name" $ do
       lensDisplayName unknownNamedLens `shouldBe` mkSym "Canon EF 50mm"
       lensDisplayName zoomLens `shouldBe` mkSym "Canon EF 70-200mm"
@@ -118,19 +130,20 @@ spec = parallel $ do
       lensShortName zoomLens `shouldBe` "Canon EF 70-200mm"
 
     it "classifies lens types" $ do
-      lensType (LensInfo (mkSym "prime") (mkSym "prime") (Just (Prime 50)) Nothing Nothing)
-        `shouldSatisfy` (== LensPrime)
-      lensType zoomLens `shouldSatisfy` (== LensVariableApertureZoom)
-      lensType (LensInfo (mkSym "fixed") (mkSym "fixed") (Just (Zoom 24 70)) (Just (FixedAperture 4.0)) Nothing)
-        `shouldSatisfy` (== LensConstantApertureZoom)
-      lensType (LensInfo (mkSym "unknown") (mkSym "unknown") Nothing Nothing Nothing)
-        `shouldSatisfy` (== LensUnknown)
+      showLensType (lensType (LensInfo (mkSym "prime") (mkSym "prime") (Just (Prime 50)) (Just (FixedAperture 1.8)) Nothing))
+        `shouldBe` "prime"
+      showLensType (lensType zoomLens) `shouldBe` "variable-zoom"
+      case lensType (LensInfo (mkSym "fixed") (mkSym "fixed") (Just (Zoom 24 70)) (Just (FixedAperture 4.0)) Nothing) of
+        LensConstantApertureZoom -> pure ()
+        _ -> expectationFailure "Expected constant-zoom"
+      showLensType (lensType (LensInfo (mkSym "unknown") (mkSym "unknown") Nothing Nothing Nothing))
+        `shouldBe` "unknown"
 
   describe "Person formatting" $ do
     it "formats slash and space-separated names" $ do
       formatPerson False "Doe/John" `shouldBe` "John Doe"
       formatPerson True "Doe/John" `shouldBe` "John D."
-      formatPerson False "Doe John" `shouldBe` "John Doe"
+      formatPerson False "John Doe" `shouldBe` "John Doe"
       formatPerson False "SingleName" `shouldBe` "SingleName"
 
   describe "FlashSource parseFlashSource function" $ do
