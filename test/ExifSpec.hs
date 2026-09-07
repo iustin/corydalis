@@ -81,14 +81,14 @@ spec = parallel $ do
 
   describe "Orientation helpers" $ do
     it "maps orientations to transforms" $ do
-      affineTransform OrientationTopLeft  `shouldBe` Transform RCenter False False
-      affineTransform OrientationTopRight `shouldBe` Transform RCenter True False
-      affineTransform OrientationBotRight `shouldBe` Transform RCenter True True
-      affineTransform OrientationBotLeft  `shouldBe` Transform RCenter False True
-      affineTransform OrientationLeftTop  `shouldBe` Transform RLeft False True
-      affineTransform OrientationRightTop `shouldBe` Transform RRight False False
-      affineTransform OrientationRightBot `shouldBe` Transform RRight False True
-      affineTransform OrientationLeftBot  `shouldBe` Transform RLeft False False
+      affineTransform OrientationTopLeft  `shouldSatisfy` (== Transform RCenter False False)
+      affineTransform OrientationTopRight `shouldSatisfy` (== Transform RCenter True False)
+      affineTransform OrientationBotRight `shouldSatisfy` (== Transform RCenter True True)
+      affineTransform OrientationBotLeft  `shouldSatisfy` (== Transform RCenter False True)
+      affineTransform OrientationLeftTop  `shouldSatisfy` (== Transform RLeft False True)
+      affineTransform OrientationRightTop `shouldSatisfy` (== Transform RRight False False)
+      affineTransform OrientationRightBot `shouldSatisfy` (== Transform RRight False True)
+      affineTransform OrientationLeftBot  `shouldSatisfy` (== Transform RLeft False False)
 
     it "formats transform parameters and matrices" $ do
       transformParams (Transform RLeft True False) `shouldBe` (-1, True, False)
@@ -119,12 +119,12 @@ spec = parallel $ do
 
     it "classifies lens types" $ do
       lensType (LensInfo (mkSym "prime") (mkSym "prime") (Just (Prime 50)) Nothing Nothing)
-        `shouldBe` LensPrime
-      lensType zoomLens `shouldBe` LensVariableApertureZoom
+        `shouldSatisfy` (== LensPrime)
+      lensType zoomLens `shouldSatisfy` (== LensVariableApertureZoom)
       lensType (LensInfo (mkSym "fixed") (mkSym "fixed") (Just (Zoom 24 70)) (Just (FixedAperture 4.0)) Nothing)
-        `shouldBe` LensConstantApertureZoom
+        `shouldSatisfy` (== LensConstantApertureZoom)
       lensType (LensInfo (mkSym "unknown") (mkSym "unknown") Nothing Nothing Nothing)
-        `shouldBe` LensUnknown
+        `shouldSatisfy` (== LensUnknown)
 
   describe "Person formatting" $ do
     it "formats slash and space-separated names" $ do
