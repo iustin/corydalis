@@ -79,6 +79,60 @@ spec = parallel $ do
             parseMaybe (withObject "test" (.: "province")) val `shouldBe` Just (String "CA")
         _ -> expectationFailure "Failed to decode as Value"
 
+  describe "Orientation helpers" $ do
+    it "maps orientations to transforms" $ do
+      affineTransform OrientationTopLeft  `shouldBe` Transform RCenter False False
+      affineTransform OrientationTopRight `shouldBe` Transform RCenter True False
+      affineTransform OrientationBotRight `shouldBe` Transform RCenter True True
+      affineTransform OrientationBotLeft  `shouldBe` Transform RCenter False True
+      affineTransform OrientationLeftTop  `shouldBe` Transform RLeft False True
+      affineTransform OrientationRightTop `shouldBe` Transform RRight False False
+      affineTransform OrientationRightBot `shouldBe` Transform RRight False True
+      affineTransform OrientationLeftBot  `shouldBe` Transform RLeft False False
+
+    it "formats transform parameters and matrices" $ do
+      transformParams (Transform RLeft True False) `shouldBe` (-1, True, False)
+      transformMatrix (Transform RCenter False False) `shouldBe` (1, 0, 0, 1)
+      transformMatrix (Transform RLeft False False) `shouldBe` (0, -1, 1, 0)
+      transformMatrix (Transform RRight False False) `shouldBe` (0, 1, -1, 0)
+
+  describe "Lens helpers" $ do
+    let unknownNamedLens = LensInfo
+          (mkSym "Unknown (Canon)")
+          (mkSym "Canon EF 50mm")
+          (Just (Prime 50))
+          (Just (FixedAperture 1.8))
+          (Just (mkSym "123"))
+        zoomLens = LensInfo
+          (mkSym "Canon EF 70-200mm")
+          (mkSym "Canon EF 70-200mm")
+          (Just (Zoom 70 200))
+          (Just (VariableAperture 2.8 4.0))
+          Nothing
+    it "chooses the most useful display name" $ do
+      lensDisplayName unknownNamedLens `shouldBe` mkSym "Canon EF 50mm"
+      lensDisplayName zoomLens `shouldBe` mkSym "Canon EF 70-200mm"
+
+    it "formats short names and serials" $ do
+      lensShortName unknownNamedLens `shouldBe` "Canon EF 50mm (#123)"
+      lensShortName zoomLens `shouldBe` "Canon EF 70-200mm"
+
+    it "classifies lens types" $ do
+      lensType (LensInfo (mkSym "prime") (mkSym "prime") (Just (Prime 50)) Nothing Nothing)
+        `shouldBe` LensPrime
+      lensType zoomLens `shouldBe` LensVariableApertureZoom
+      lensType (LensInfo (mkSym "fixed") (mkSym "fixed") (Just (Zoom 24 70)) (Just (FixedAperture 4.0)) Nothing)
+        `shouldBe` LensConstantApertureZoom
+      lensType (LensInfo (mkSym "unknown") (mkSym "unknown") Nothing Nothing Nothing)
+        `shouldBe` LensUnknown
+
+  describe "Person formatting" $ do
+    it "formats slash and space-separated names" $ do
+      formatPerson False "Doe/John" `shouldBe` "John Doe"
+      formatPerson True "Doe/John" `shouldBe` "John D."
+      formatPerson False "Doe John" `shouldBe` "John Doe"
+      formatPerson False "SingleName" `shouldBe` "SingleName"
+
   describe "FlashSource parseFlashSource function" $ do
     it "handles valid values" $ do
       parseFlashSource (0 :: Int) `shouldBe` Just FlashSourceNone
