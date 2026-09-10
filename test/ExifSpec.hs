@@ -146,6 +146,17 @@ spec = parallel $ do
       formatPerson False "John Doe" `shouldBe` "John Doe"
       formatPerson False "SingleName" `shouldBe` "SingleName"
 
+  describe "exiftool batching" $ do
+    it "keeps a positive batch size" $
+      exifToolBatchSize `shouldSatisfy` (> 0)
+    it "does not split a batch-sized list" $
+      chunkPaths [1..exifToolBatchSize] `shouldBe` [[1..exifToolBatchSize :: Int]]
+    it "splits just over one batch into two" $ do
+      let xs = [1..exifToolBatchSize + 1] :: [Int]
+      chunkPaths xs `shouldBe` [[1..exifToolBatchSize], [exifToolBatchSize + 1]]
+    it "returns no chunks for an empty list" $
+      chunkPaths ([] :: [Int]) `shouldBe` []
+
   describe "NFData" $ do
     it "forces previously skipped exif fields" $ do
       evaluate (rnf (def :: Exif)) `shouldReturn` ()

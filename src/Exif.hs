@@ -55,6 +55,10 @@ module Exif ( Exif(..)
             , Orientation(..)
             , parseFlashSource
 #endif
+#ifdef TEST
+            , exifToolBatchSize
+            , chunkPaths
+#endif
             ) where
 
 import           Control.Applicative
@@ -1130,33 +1134,51 @@ getExif config dir paths = do
                                 writeBExif config fpath e
                                 return (Map.insert (Text.pack p) e c, m)
                  ) (cache1, []) m1
-  jsons <- if null m2
-             then return []
-             else do
-               -- TODO: fix this. It is very ugly, catches _all_
-               -- exceptions, but it's the only way I found to
-               -- reliably disable the slowloris protection. There a
-               -- quite a few issues on the wai project regarding the
-               -- timeout reaper, but without conclusive
-               -- solutions. See
-               -- https://github.com/yesodweb/wai/issues/351 for
-               -- example.
-               exifs <- (parseExifs <$> extractExifs dir m2) `catch`
-                 (\e -> let e' = sformat shown (e :: SomeException)
-                        in putStrLn ("Error: " ++ e') >> return (Left e'))
-               return $ case exifs of
-                          Left msg -> map (\p ->
-                                             let freFilePath = p
-                                                 freMessage = msg
-                                                 freValue = Nothing
-                                             in Left FailRExif{..}) m2
-                          Right rs -> rs
-  let expensive = length m2
-  cache3 <- foldM (\m r -> do
-                      (path, e) <- writeExifs config dir r
-                      return $ Map.insert (Text.pack path) e m
-                  ) cache2 jsons
-  return (expensive, cache3)
+  cache3 <- foldM (runExifToolBatch config dir) cache2
+              (chunkPaths m2)
+  return (length m2, cache3)
+
+-- | Max files per exiftool invocation.
+--
+-- @exiftool -json -l@ emits a @{num,val}@ object per tag, so a single
+-- RAW can be 100KB+ of JSON. Parsing a whole folder at once retains
+-- the ByteString, the Aeson tree, and a RawExif Object per file, which
+-- OOMs even for a few thousand files.
+exifToolBatchSize :: Int
+exifToolBatchSize = 32
+
+chunkPaths :: [a] -> [[a]]
+chunkPaths [] = []
+chunkPaths xs =
+  let (h, t) = splitAt exifToolBatchSize xs
+  in h : chunkPaths t
+
+runExifToolBatch :: Config -> FilePath -> Map Text EExif -> [FilePath]
+                 -> IO (Map Text EExif)
+runExifToolBatch config dir acc batch = do
+  -- TODO: fix this. It is very ugly, catches _all_
+  -- exceptions, but it's the only way I found to
+  -- reliably disable the slowloris protection. There a
+  -- quite a few issues on the wai project regarding the
+  -- timeout reaper, but without conclusive
+  -- solutions. See
+  -- https://github.com/yesodweb/wai/issues/351 for
+  -- example.
+  exifs <- (parseExifs <$> extractExifs dir batch) `catch`
+    (\e -> let e' = sformat shown (e :: SomeException)
+           in putStrLn ("Error: " ++ e') >> return (Left e'))
+  let parsed = case exifs of
+        Left msg -> map (\p ->
+                           let freFilePath = p
+                               freMessage = msg
+                               freValue = Nothing
+                           in Left FailRExif{..}) batch
+        Right rs -> rs
+  foldM (\m r -> do
+           (path, e) <- writeExifs config dir r
+           e' <- evaluate $ force e
+           return $ Map.insert (Text.pack path) e' m
+        ) acc parsed
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =
