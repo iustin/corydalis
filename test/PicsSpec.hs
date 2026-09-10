@@ -216,6 +216,11 @@ spec = parallel $ do
         expandRangeFile config "img_01-03" `shouldBe` ["img_01", "img_02", "img_03"]
         expandRangeFile config "img_1-3" `shouldBe` ["img_1", "img_2", "img_3"]
         expandRangeFile config "nope" `shouldBe` []
+      it "rejects inverted or huge ranges" $ \config -> do
+        expandRangeFile config "img_9-1" `shouldBe` []
+        expandRangeFile config "img_1-1025" `shouldBe` []
+        expandRangeFile config "img_3982-1773958749527" `shouldBe` []
+        length (expandRangeFile config "img_1-1024") `shouldBe` maxRangeExpansion
     describe "mkImageStatus" $ do
       it "classifies backing-file combinations" $ \config -> do
         let raw = simpleFile "a.nef"

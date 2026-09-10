@@ -124,6 +124,7 @@ module Pics ( PicDir(..)
             , scanBaseDir
             , dropCopySuffix
             , expandRangeFile
+            , maxRangeExpansion
             , isOKDir
             , makeRel
             , mkImageStatus
@@ -209,6 +210,13 @@ dropCopySuffix cfg name =
 makeRel :: FilePath -> FilePath
 makeRel = dropWhile (== pathSeparator)
 
+-- | Upper bound on names generated from a range file.
+--
+-- Filenames like @img_3982-1773958749527@ match the range regex but
+-- are timestamps, not brackets; expanding them OOMs.
+maxRangeExpansion :: Int
+maxRangeExpansion = 1024
+
 expandRangeFile :: Config -> Text -> [Text]
 expandRangeFile cfg name =
   case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
@@ -216,8 +224,11 @@ expandRangeFile cfg name =
                                    ie = parseDecimal end
                                    formatPadded = sformat (left (length begin) '0' %. int)
                                in case (ib, ie) of
-                                    (Right b, Right e) ->
-                                      [root `Text.append` formatPadded i | i <- [b..e]]
+                                    (Right b, Right e)
+                                      | let n = toInteger e - toInteger b + 1
+                                      , n >= 1
+                                      , n <= toInteger maxRangeExpansion ->
+                                          [root `Text.append` formatPadded i | i <- [b..e]]
                                     _ -> []
     _ -> []
 
