@@ -1112,6 +1112,13 @@ readExif config path = do
   contents <- readCacheFile config path exifPath True []
   return $ contents >>= Just . first Text.pack . eitherDecodeStrict'
 
+-- | Insert an exif value after fully evaluating it so cache/JSON thunks
+-- (especially a RawExif Object) can be garbage-collected.
+insertForced :: Map Text EExif -> Text -> EExif -> IO (Map Text EExif)
+insertForced m k e = do
+  e' <- evaluate $ force e
+  return $ Map.insert k e' m
+
 -- | Try to get an exif value for a path, either from cache or from filesystem.
 getExif :: Config -> FilePath -> [FilePath] -> IO (Int, Map Text EExif)
 getExif config dir paths = do
@@ -1120,7 +1127,9 @@ getExif config dir paths = do
                             exif <- readBExif config fpath
                             case exif of
                               Nothing -> return (c, p:m)
-                              Just e  -> return (Map.insert (Text.pack p) e c, m)
+                              Just e  -> do
+                                c' <- insertForced c (Text.pack p) e
+                                return (c', m)
                         ) (Map.empty, []) paths
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
@@ -1130,9 +1139,10 @@ getExif config dir paths = do
                               Nothing -> return (c, p:m)
                               -- found file, but parsing might have failed.
                               Just v -> do
-                                let e = second (exifFromRaw config) v
+                                e <- evaluate $ force $ second (exifFromRaw config) v
                                 writeBExif config fpath e
-                                return (Map.insert (Text.pack p) e c, m)
+                                c' <- insertForced c (Text.pack p) e
+                                return (c', m)
                  ) (cache1, []) m1
   cache3 <- foldM (runExifToolBatch config dir) cache2
               (chunkPaths m2)
@@ -1176,8 +1186,7 @@ runExifToolBatch config dir acc batch = do
         Right rs -> rs
   foldM (\m r -> do
            (path, e) <- writeExifs config dir r
-           e' <- evaluate $ force e
-           return $ Map.insert (Text.pack path) e' m
+           insertForced m (Text.pack path) e
         ) acc parsed
 
 exifPath :: Config -> FilePath -> FilePath
