@@ -140,3 +140,15 @@ spec = parallel $ do
           s1 = mkSymbolizedItem t1
           s2 = mkSymbolizedItem t2
       s1 `shouldBe` s2
+  describe "tests Event NFData" $ do
+    it "forces event fields and sources" $ do
+      let ev = GenericEvent "trip" [] (EventExplicit Nothing)
+      evaluate (rnf ev) `shouldReturn` ()
+      evaluate (rnf (ev { eventName = error "name" }))
+        `shouldThrow` anyErrorCall
+      evaluate (rnf (ev { eventPeople = [error "person"] }))
+        `shouldThrow` anyErrorCall
+      evaluate (rnf (ev { eventSource = EventImplicit (error "src") }))
+        `shouldThrow` anyErrorCall
+      evaluate (rnf (EventExplicit (Just (error "path"))))
+        `shouldThrow` anyErrorCall

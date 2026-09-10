@@ -146,6 +146,14 @@ spec = parallel $ do
       formatPerson False "John Doe" `shouldBe` "John Doe"
       formatPerson False "SingleName" `shouldBe` "SingleName"
 
+  describe "NFData" $ do
+    it "forces previously skipped exif fields" $ do
+      evaluate (rnf (def :: Exif)) `shouldReturn` ()
+      evaluate (rnf (def { exifMake = Just (error "make") } :: Exif))
+        `shouldThrow` anyErrorCall
+      evaluate (rnf (def { exifLensMake = Just (error "lensmake") } :: Exif))
+        `shouldThrow` anyErrorCall
+
   describe "FlashSource parseFlashSource function" $ do
     it "handles valid values" $ do
       parseFlashSource (0 :: Int) `shouldBe` Just FlashSourceNone

@@ -105,6 +105,9 @@ instance Default Orientation where
 
 instance Store Orientation
 
+instance NFData Orientation where
+  rnf = rwhnf
+
 instance ToJSON Orientation where
   toJSON OrientationTopLeft  = Number 1
   toJSON OrientationTopRight = Number 2
@@ -605,6 +608,7 @@ instance NFData Exif where
                  rnf exifModel        `seq`
                  rnf exifSerial       `seq`
                  rnf exifLens         `seq`
+                 rnf exifOrientation  `seq`
                  rnf exifCreateDate   `seq`
                  rnf exifTitle        `seq`
                  rnf exifCaption      `seq`
@@ -621,6 +625,8 @@ instance NFData Exif where
                  rnf exifWidth        `seq`
                  rnf exifHeight       `seq`
                  rnf exifMegapixels   `seq`
+                 rnf exifMake         `seq`
+                 rnf exifLensMake     `seq`
                  rnf exifWarning
 
 instance Default Exif where

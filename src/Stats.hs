@@ -98,7 +98,9 @@ instance Semigroup a => Semigroup (Occurrence a) where
                       }
 
 instance NFData a => NFData (Occurrence a) where
-  rnf occ = rwhnf occ `seq` rnf (ocData occ)
+  rnf Occurrence{..} = rnf ocData      `seq`
+                       rnf ocTrends    `seq`
+                       rnf ocDateRange
 
 ocFromSize :: FileOffset -> a -> Maybe TrendsKey -> Maybe DateRange -> Occurrence a
 ocFromSize size d tk dr =

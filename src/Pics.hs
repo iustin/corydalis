@@ -319,7 +319,11 @@ instance NFData Image where
                   rnf imgRawPath     `seq`
                   rnf imgSidecarPath `seq`
                   rnf imgJpegPath    `seq`
+                  rnf imgMasterMov   `seq`
+                  rnf imgMovs        `seq`
+                  rnf imgUntracked   `seq`
                   rnf imgRange       `seq`
+                  rnf imgExif        `seq`
                   rnf imgType        `seq`
                   rnf imgStatus      `seq`
                   rnf imgFlags
@@ -461,15 +465,17 @@ data PicDir = PicDir
 instance Store PicDir
 
 instance NFData PicDir where
-  rnf PicDir{..} = rnf pdName     `seq`
-                   rnf pdMainPath `seq`
-                   rnf pdSecPaths `seq`
-                   rnf pdImages   `seq`
-                   rnf pdShadows  `seq`
-                   rnf pdYear     `seq`
+  rnf PicDir{..} = rnf pdName      `seq`
+                   rnf pdMainPath  `seq`
+                   rnf pdSecPaths  `seq`
+                   rnf pdImages    `seq`
+                   rnf pdTimeSort  `seq`
+                   rnf pdShadows   `seq`
+                   rnf pdYear      `seq`
                    rnf pdTimestamp `seq`
-                   rnf pdExif     `seq`
-                   rnf pdStats
+                   rnf pdExif      `seq`
+                   rnf pdStats     `seq`
+                   rnf pdEvent
 
 type RepoDirs = Map ShortText PicDir
 
@@ -573,8 +579,10 @@ data Stats = Stats
 instance Store Stats
 
 instance NFData Stats where
-  rnf Stats{..} = rnf sByCamera `seq`
-                  rnf sByLens
+  rnf Stats{..} = rnf sByCamera  `seq`
+                  rnf sByLens    `seq`
+                  rnf sPeople    `seq`
+                  rnf sDateRange
 
 data RepoStats = RepoStats
   { rsPicStats   :: !Stats

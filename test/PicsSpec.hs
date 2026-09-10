@@ -180,6 +180,29 @@ spec = parallel $ do
     it "returns Nothing when the request is below all sizes" $
       findBestSize (ImageSize 32) sizes `shouldBe` Nothing
   withConfig $ do
+    describe "NFData" $ do
+      it "forces image movie and untracked files" $ \config -> do
+        let img = simpleRawImage config
+        evaluate (rnf img) `shouldReturn` ()
+        evaluate (rnf (img { imgMasterMov = Just (error "master-mov") }))
+          `shouldThrow` anyErrorCall
+        evaluate (rnf (img { imgMovs = [error "mov"] }))
+          `shouldThrow` anyErrorCall
+        evaluate (rnf (img { imgUntracked = [error "untracked"] }))
+          `shouldThrow` anyErrorCall
+      it "forces promoted image exif" $ \config -> do
+        let img = simpleRawImage config
+            thunked = img { imgExif = def { exifTitle = Just (error "title") } }
+        evaluate (rnf thunked) `shouldThrow` anyErrorCall
+      it "forces folder time sort, stats date range, and events" $ \_ -> do
+        let dir = createTestPicDir "test"
+        evaluate (rnf dir) `shouldReturn` ()
+        evaluate (rnf (dir { pdTimeSort = Set.singleton (Just (error "time"), "a") }))
+          `shouldThrow` anyErrorCall
+        evaluate (rnf (dir { pdEvent = Just (error "event") }))
+          `shouldThrow` anyErrorCall
+        evaluate (rnf (dir { pdStats = def { sDateRange = Just (error "range") } }))
+          `shouldThrow` anyErrorCall
     describe "path regex helpers" $ do
       it "matches date-prefixed folder names" $ \config -> do
         isOKDir config "2024-01-01-trip" `shouldBe` True

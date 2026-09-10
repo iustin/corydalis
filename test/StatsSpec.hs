@@ -119,6 +119,13 @@ spec = parallel $ do
         ocTrends empty' `shouldBe` Map.empty
         ocDateRange empty' `shouldBe` Nothing
 
+    describe "NFData instance" $ do
+      it "forces date ranges left lazy by WHNF" $ do
+        let empty' = def :: Occurrence Text
+        evaluate (rnf empty') `shouldReturn` ()
+        evaluate (rnf (empty' { ocDateRange = Just (error "range") }))
+          `shouldThrow` anyErrorCall
+
     describe "Semigroup instance" $ do
       it "combines two occurrences correctly" $ do
         let occ1 = Occurrence 2 1000 1 ("data1" :: Text) sampleTrends (Just sampleDateRange1)

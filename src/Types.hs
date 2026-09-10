@@ -491,6 +491,10 @@ implicitDateRangeDesc = mkSymbolizedItem ("Auto-computed on date range" :: Text)
 
 instance Store EventSource
 
+instance NFData EventSource where
+  rnf (EventImplicit s) = rnf s
+  rnf (EventExplicit p) = rnf p
+
 data Event
   = GenericEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
   | BirthdayEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
@@ -500,6 +504,11 @@ data Event
   deriving (Show, Eq, Generic)
 
 instance Store Event
+
+instance NFData Event where
+  rnf ev = rnf (eventName ev) `seq`
+           rnf (eventPeople ev) `seq`
+           rnf (eventSource ev)
 
 instance HSY.FromYAML Event where
   parseYAML = HSY.withMap "Event" $ \o -> do
