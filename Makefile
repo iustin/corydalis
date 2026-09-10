@@ -121,7 +121,7 @@ test:
 		--ghc-options="-j +RTS -A128m -n2m -RTS"
 
 fast-tests:
-	stack --work-dir .stack-test test --predantic --file-watch \
+	stack --work-dir .stack-test test --pedantic --file-watch \
 		--keep-going --flag corydalis:dev \
 		--ghc-options="-j +RTS -A128m -n2m -RTS"
 
