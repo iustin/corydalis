@@ -22,6 +22,9 @@ Add tests for any new Haskell code. Specs live under `test/` and are
 discovered by hspec (`test/Spec.hs`). Mirror the module path (e.g.
 `src/Pics.hs` → `test/PicsSpec.hs`).
 
+In general, do not use time-based tests (via `threadDelay`) for checking
+behaviour; try to use synchronisation primitives instead.
+
 ## TypeScript
 
 npm is the frontend toolchain (`package.json`, `js/tsconfig.json`).
