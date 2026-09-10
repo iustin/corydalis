@@ -433,39 +433,39 @@ instance NFData FlashInfo where
                       rnf fiMode
 
 data RawExif = RawExif
-  { rExifSrcFile      :: Text
-  , rExifModel        :: Maybe Text
-  , rExifSerial       :: Maybe Text
-  , rExifLens         :: Maybe LensInfo
-  , rExifOrientation  :: Maybe Orientation
-  , rExifHSubjects    :: [[Text]]
-  , rExifPeople       :: [Text]
-  , rExifCountry      :: Maybe Text
-  , rExifProvince     :: Maybe Text
-  , rExifCity         :: Maybe Text
-  , rExifLocation     :: Maybe Text
-  , rExifCreateDate   :: Maybe ExifTime
-  , rExifTitle        :: Maybe Text
-  , rExifCaption      :: Maybe Text
-  , rExifAperture     :: Maybe Double
-  , rExifFocalLength  :: Maybe Double
-  , rExifFL35mm       :: Maybe Double
-  , rExifISO          :: Maybe Integer
-  , rExifSSpeedDesc   :: Maybe Text
-  , rExifSSpeedVal    :: Maybe Double
-  , rExifShutterCount :: Maybe Integer
-  , rExifMimeType     :: Maybe Text
-  , rExifRating       :: Maybe Int
-  , rExifFlashSource  :: Maybe Int
-  , rExifFlashMode    :: Maybe Text
-  , rExifWidth        :: Maybe Int
-  , rExifHeight       :: Maybe Int
-  , rExifMegapixels   :: Maybe Double
-  , rExifMake         :: Maybe Text
-  , rExifLensMake     :: Maybe Text
+  { rExifSrcFile      :: !Text
+  , rExifModel        :: !(Maybe Text)
+  , rExifSerial       :: !(Maybe Text)
+  , rExifLens         :: !(Maybe LensInfo)
+  , rExifOrientation  :: !(Maybe Orientation)
+  , rExifHSubjects    :: ![[Text]]
+  , rExifPeople       :: ![Text]
+  , rExifCountry      :: !(Maybe Text)
+  , rExifProvince     :: !(Maybe Text)
+  , rExifCity         :: !(Maybe Text)
+  , rExifLocation     :: !(Maybe Text)
+  , rExifCreateDate   :: !(Maybe ExifTime)
+  , rExifTitle        :: !(Maybe Text)
+  , rExifCaption      :: !(Maybe Text)
+  , rExifAperture     :: !(Maybe Double)
+  , rExifFocalLength  :: !(Maybe Double)
+  , rExifFL35mm       :: !(Maybe Double)
+  , rExifISO          :: !(Maybe Integer)
+  , rExifSSpeedDesc   :: !(Maybe Text)
+  , rExifSSpeedVal    :: !(Maybe Double)
+  , rExifShutterCount :: !(Maybe Integer)
+  , rExifMimeType     :: !(Maybe Text)
+  , rExifRating       :: !(Maybe Int)
+  , rExifFlashSource  :: !(Maybe Int)
+  , rExifFlashMode    :: !(Maybe Text)
+  , rExifWidth        :: !(Maybe Int)
+  , rExifHeight       :: !(Maybe Int)
+  , rExifMegapixels   :: !(Maybe Double)
+  , rExifMake         :: !(Maybe Text)
+  , rExifLensMake     :: !(Maybe Text)
   -- meta fields below
-  , rExifRaw          :: Object
-  , rExifWarning      :: Maybe ShortText
+  , rExifRaw          :: !Object
+  , rExifWarning      :: !(Maybe ShortText)
   } deriving (Show)
 
 instance FromJSON RawExif where
@@ -668,9 +668,9 @@ type EExif = Either Text Exif
 
 -- | Data type for raw exif parse failures.
 data FailRExif = FailRExif
-  { freFilePath :: FilePath
-  , freMessage  :: Text
-  , freValue    :: Maybe Value
+  { freFilePath :: !FilePath
+  , freMessage  :: !Text
+  , freValue    :: !(Maybe Value)
   }
 
 -- | Type alias for either an error in parsing the raw exif data, or
@@ -794,9 +794,9 @@ rotateToJSON RLeft   = -1
 rotateToJSON RRight  =  1
 
 data Transform = Transform
-                   Rotate
-                   Bool -- Flip X.
-                   Bool -- Flip Y.
+                   !Rotate
+                   !Bool -- Flip X.
+                   !Bool -- Flip Y.
 
 instance Default Transform where
   def = Transform RCenter False False

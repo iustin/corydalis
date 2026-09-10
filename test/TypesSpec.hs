@@ -144,11 +144,11 @@ spec = parallel $ do
     it "forces event fields and sources" $ do
       let ev = GenericEvent "trip" [] (EventExplicit Nothing)
       evaluate (rnf ev) `shouldReturn` ()
-      evaluate (rnf (ev { eventName = error "name" }))
+      evaluate (GenericEvent (error "name") [] (EventExplicit Nothing))
         `shouldThrow` anyErrorCall
       evaluate (rnf (ev { eventPeople = [error "person"] }))
         `shouldThrow` anyErrorCall
-      evaluate (rnf (ev { eventSource = EventImplicit (error "src") }))
+      evaluate (EventImplicit (error "src"))
         `shouldThrow` anyErrorCall
       evaluate (rnf (EventExplicit (Just (error "path"))))
         `shouldThrow` anyErrorCall

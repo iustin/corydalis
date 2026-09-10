@@ -482,8 +482,8 @@ lookupSymbolized :: (ST.Textual str, MonadIO m) => str -> m (Maybe SymbolizedIte
 lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
 
 data EventSource
-  = EventImplicit SymbolizedItem
-  | EventExplicit (Maybe FilePath)
+  = EventImplicit !SymbolizedItem
+  | EventExplicit !(Maybe FilePath)
   deriving (Show, Eq, Generic)
 
 implicitDateRangeDesc :: SymbolizedItem
@@ -496,11 +496,11 @@ instance NFData EventSource where
   rnf (EventExplicit p) = rnf p
 
 data Event
-  = GenericEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
-  | BirthdayEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
-  | GetawayEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
-  | GrandVacationEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
-  | WorkTripEvent { eventName :: ShortText, eventPeople :: [ShortText], eventSource :: EventSource }
+  = GenericEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
+  | BirthdayEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
+  | GetawayEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
+  | GrandVacationEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
+  | WorkTripEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
   deriving (Show, Eq, Generic)
 
 instance Store Event
