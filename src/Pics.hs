@@ -1191,15 +1191,25 @@ loadFolder :: Ctx       -- ^ Scan context.
 loadFolder ctx name path isSource = do
   let config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
+      logfn = ctxLogger ctx
+  logfn LevelDebug $ "loadFolder scan " <> toLogStr path
   contents <- recursiveScanPath config path []
-  (readexifs, lcache) <- getExif (ctxLogger ctx) config path $
+  logfn LevelDebug $ "loadFolder scanned " <> toLogStr path <> " (" <>
+    toLogStr (show (length contents)) <> " inodes)"
+  (readexifs, lcache) <- getExif logfn config path $
                            map inodeFullName contents
+  logfn LevelDebug $ "loadFolder yaml " <> toLogStr path
   (_, yamlEvent) <- loadOptionalYaml (path </> "corydalis.yaml")
+  logfn LevelDebug $ "loadFolder build " <> toLogStr path
   let totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0
       folder = buildFolderFromInodes config name path isSource contents lcache yamlEvent
+  logfn LevelDebug $ "loadFolder progress " <> toLogStr path
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
-  return $!! folder
+  logfn LevelDebug $ "loadFolder force " <> toLogStr path
+  folder' <- evaluate $ force folder
+  logfn LevelDebug $ "loadFolder done " <> toLogStr path
+  return folder'
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
