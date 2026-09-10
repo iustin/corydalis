@@ -36,10 +36,10 @@ import           Database.Persist.Sql           (SqlPersistM,
 import           Foundation                     as X
 import           Model                          as X
 import           Pics                           (Ctx, File (..), Image (..),
-                                                 MediaType (..), PicDir (..),
-                                                 RepoDirs, Repository (..),
-                                                 addDirToRepo, buildGroupExif,
-                                                 buildTimeSort,
+                                                 InodeInfo (..), MediaType (..),
+                                                 PicDir (..), RepoDirs,
+                                                 Repository (..), addDirToRepo,
+                                                 buildGroupExif, buildTimeSort,
                                                  computeImagesStats,
                                                  computeRepoStats, initContext,
                                                  launchScanFileSystem, mkImage,
@@ -66,7 +66,9 @@ import qualified Data.Text.Short                as TS
 import           Formatting
 import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
+                                                 createDirectoryIfMissing,
                                                  removeDirectoryRecursive)
+import           System.FilePath                (takeDirectory)
 import           System.IO.Temp
 import           System.Log.FastLogger          (fromLogStr)
 
@@ -175,6 +177,22 @@ withContext' action = do
 withContext :: SpecWith Ctx -> Spec
 withContext = around withContext'
 
+openUnscannedContext :: AppSettings -> IO (FilePath, Ctx)
+openUnscannedContext settings = do
+  tempDir <- setTempDir
+  config <- updateConfig tempDir settings
+  let logger level msg = when (level >= appLogLevel settings) $ BS8.putStrLn . fromLogStr $ msg
+  ctx <- atomically $ initContext config logger
+  return (tempDir, ctx)
+
+withUnscannedContext' :: (Ctx -> IO ()) -> IO ()
+withUnscannedContext' action = do
+  settings <- loadSettings
+  bracket (openUnscannedContext settings) (cleanupTempDir . fst) (action . snd)
+
+withUnscannedContext :: SpecWith Ctx -> Spec
+withUnscannedContext = around withUnscannedContext'
+
 -- App spec definitions.
 
 -- | Builds and returns a valid app.
@@ -261,6 +279,21 @@ followRedirectOK = do
 -- Picture mocking functions
 mkSym :: Text -> SymbolizedItem
 mkSym = mkSymbolizedItem
+
+mkInode :: FilePath -> InodeInfo
+mkInode name = InodeInfo
+  { inodeName = name
+  , inodeDirs = []
+  , inodeIsDir = False
+  , inodeMTime = 0
+  , inodeCTime = 0
+  , inodeSize = 0
+  }
+
+touchFile :: FilePath -> IO ()
+touchFile path = do
+  createDirectoryIfMissing True (takeDirectory path)
+  BS8.writeFile path ""
 
 simpleFile :: Text -> File
 simpleFile filename =

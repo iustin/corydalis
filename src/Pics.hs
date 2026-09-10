@@ -115,6 +115,27 @@ module Pics ( PicDir(..)
             , mkFileFromInode
             , implicitEventFromDateRange
             , startupRepository
+            , loadImage
+            , buildFolderFromInodes
+            , loadFolder
+            , getDirContents
+            , recursiveScanPath
+            , scanSubDir
+            , scanBaseDir
+            , dropCopySuffix
+            , expandRangeFile
+            , isOKDir
+            , makeRel
+            , mkImageStatus
+            , isBetterMaster
+            , selectMasterFile
+            , mergePictures
+            , mergeFolders
+            , mergeShadows
+            , resolveProcessedRanges
+            , maybeUpdateStandaloneRange
+            , findBestSize
+            , viewableAsIs
 #endif
             ) where
 
@@ -1045,85 +1066,93 @@ implicitEventFromDateRange name range = do
     then GrandVacationEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
     else GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
 
--- | Builds a `PicDir` (folder) from an entire filesystem subtree.
-loadFolder :: Ctx -> String -> FilePath -> Bool -> IO PicDir
-loadFolder ctx name path isSource = do
-  -- throwString "boo"
-  let config = ctxConfig ctx
-      scanProgress = ctxScanProgress ctx
-      --logfn = ctxLogger ctx
-  contents <- recursiveScanPath config path []
-
-  (readexifs, lcache) <- getExif config path $ map inodeFullName contents
+-- | Classifies a scanned inode into an image and any range shadows.
+loadImage :: Config
+          -> ShortText           -- ^ Folder name.
+          -> SymbolizedItem      -- ^ Parent directory path.
+          -> Bool                -- ^ Whether the file comes from a source directory.
+          -> Map Text EExif      -- ^ Exif cache keyed by inode full name.
+          -> InodeInfo           -- ^ Filesystem inode to classify.
+          -> (Image, [Image])
+loadImage config tname parent isSource lcache ii =
   let rawe = cfgRawExtsSet config
       side = cfgSidecarExts config
       jpeg = cfgJpegExts config
       move = cfgMovieExts config
-      tname = TS.fromString name
       ewarn txt = def { exifWarning = Set.singleton txt }
+      file_name = inodeFullName ii
+      file_text = Text.pack file_name
+      (base_full, ext') = splitExtension file_name
+      ext = Text.pack $ case ext' of
+        '.':v -> v
+        _     -> ext'
+      base_name = dropCopySuffix config base_full
+      base_name_text = Text.pack base_name
+      exif = case file_text `Map.lookup` lcache of
+               Nothing         -> ewarn "Internal error: exif not read"
+               Just (Left msg) -> ewarn $ "Cannot read exif: " `TS.append` TS.fromText msg
+               Just (Right e)  -> e
+      file_obj = mkFileFromInode parent ii exif
+      just_file = strictJust file_obj
+      isSoftMaster = is_jpeg && isSource
+      raw_file =
+        if ext `Set.member` rawe || isSoftMaster
+        then just_file
+        else Nothing
+      sidecar_file =
+        if ext `Set.member` side
+        then just_file
+        else Nothing
+      is_jpeg = ext `Set.member` jpeg
+      is_mov = ext `Set.member` move
+      m_mov = if is_mov && isSource
+                then just_file
+                else Nothing
+      jpeg_file = [file_obj | is_jpeg && not isSource]
+      p_mov = [file_obj | is_mov && not isSource]
+      snames = expandRangeFile config base_name_text
+      range = case fromNullable snames of
+                Nothing -> Nothing
+                Just s  -> Just (ImageName . TS.fromText . head $ s, ImageName . TS.fromText . last $ s)
+      flags = Flags {
+        flagsSoftMaster = isSoftMaster
+        }
+      simgs = map (\expname ->
+                     mkImage config (ImageName  (TS.fromText expname)) tname
+                             Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
+                  ) snames
+      onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
+      mtype = if | is_mov     -> MediaMovie
+                 | null untrk -> MediaImage
+                 | otherwise  -> MediaUnknown
+      untrk = case (raw_file, jpeg_file, sidecar_file, m_mov, p_mov) of
+        (Nothing, [], Nothing, Nothing, []) -> [file_obj]
+        _                                   -> []
+      img = force $
+        mkImage config (ImageName (TS.fromText base_name_text)) tname
+        raw_file sidecar_file jpeg_file m_mov p_mov
+        untrk range mtype flags
+  in (img, if onlySidecar then [] else simgs)
+
+-- | Builds a folder from already-scanned inodes and exif data.
+buildFolderFromInodes :: Config
+                      -> String              -- ^ Folder name.
+                      -> FilePath            -- ^ Folder path on disk.
+                      -> Bool                -- ^ Whether the folder is under a source directory.
+                      -> [InodeInfo]         -- ^ Inodes belonging to the folder.
+                      -> Map Text EExif      -- ^ Exif cache keyed by inode full name.
+                      -> Maybe Event         -- ^ Event loaded from @corydalis.yaml@, if any.
+                      -> PicDir
+buildFolderFromInodes config name path isSource contents lcache yamlEvent =
+  let tname = TS.fromString name
       dirpath = TS.fromString path
-      loadImage ii  =
-        -- TODO: don't concatenate, pass unchanged to File and later to Image.
-        -- TODO: file name becomes ImageName, and that means duplicated parent dir. Need dedup.
-        let file_name = inodeFullName ii
-            file_text = Text.pack file_name
-            (base_full, ext') = splitExtension file_name
-            ext = Text.pack $ case ext' of
-              '.':v -> v
-              _     -> ext'
-            base_name = dropCopySuffix config base_full
-            base_name_text = Text.pack base_name
-            exif = case file_text `Map.lookup` lcache of
-                     Nothing         -> ewarn "Internal error: exif not read"
-                     Just (Left msg) -> ewarn $ "Cannot read exif: " `TS.append` TS.fromText msg
-                     Just (Right e)  -> e
-            file_obj = mkFileFromInode (mkSymbolizedItem dirpath) ii exif
-            just_file = strictJust file_obj
-            isSoftMaster = is_jpeg && isSource
-            raw_file =
-              if ext `Set.member` rawe || isSoftMaster
-              then just_file
-              else Nothing
-            sidecar_file =
-              if ext `Set.member` side
-              then just_file
-              else Nothing
-            is_jpeg = ext `Set.member` jpeg
-            is_mov = ext `Set.member` move
-            m_mov = if is_mov && isSource
-                      then just_file
-                      else Nothing
-            jpeg_file = [file_obj | is_jpeg && not isSource]
-            p_mov = [file_obj | is_mov && not isSource]
-            snames = expandRangeFile config base_name_text
-            range = case fromNullable snames of
-                      Nothing -> Nothing
-                      Just s  -> Just (ImageName . TS.fromText . head $ s, ImageName . TS.fromText . last $ s)
-            flags = Flags {
-              flagsSoftMaster = isSoftMaster
-              }
-            simgs = map (\expname ->
-                           mkImage config (ImageName  (TS.fromText expname)) tname
-                                   Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
-                        ) snames
-            onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
-            mtype = if | is_mov     -> MediaMovie
-                       | null untrk -> MediaImage
-                       | otherwise  -> MediaUnknown
-            untrk = case (raw_file, jpeg_file, sidecar_file, m_mov, p_mov) of
-              (Nothing, [], Nothing, Nothing, []) -> [file_obj]
-              _                                   -> []
-            img = force $
-              mkImage config (ImageName (TS.fromText base_name_text)) tname
-              raw_file sidecar_file jpeg_file m_mov p_mov
-              untrk range mtype flags
-        in (img, if onlySidecar then [] else simgs)
+      parent = mkSymbolizedItem dirpath
       (images, shadows) =
         foldl' (\(images', shadows') f ->
-                  let (img, newss) = loadImage f
+                  let (img, newss) = loadImage config tname parent isSource lcache f
                   in (addImg config images' img, addImgs config shadows' newss)
                ) (Map.empty, Map.empty) contents
-  let timestamp = Map.foldl' (\a img ->
+      timestamp = Map.foldl' (\a img ->
                            (min <$> a <*> imageLocalDate img) <|>
                            a <|>
                            imageLocalDate img
@@ -1131,29 +1160,37 @@ loadFolder ctx name path isSource = do
       year = localDateToYear <$> timestamp
       exif = buildGroupExif images
       timesort = buildTimeSort images
-      totalitems = length contents
-      noopexifs = max (totalitems - readexifs) 0
       pstats = computeImagesStats images
+      event = yamlEvent <|> implicitEventFromDateRange tname (sDateRange pstats)
+  in PicDir { pdName = tname
+            , pdMainPath = dirpath
+            , pdSecPaths = []
+            , pdImages = images
+            , pdTimeSort = timesort
+            , pdShadows = shadows
+            , pdYear = year
+            , pdTimestamp = timestamp
+            , pdExif = exif
+            , pdStats = pstats
+            , pdEvent = event }
+
+-- | Builds a `PicDir` from an entire filesystem subtree.
+loadFolder :: Ctx       -- ^ Scan context.
+           -> String    -- ^ Folder name.
+           -> FilePath  -- ^ Folder path on disk.
+           -> Bool      -- ^ Whether the folder is under a source directory.
+           -> IO PicDir
+loadFolder ctx name path isSource = do
+  let config = ctxConfig ctx
+      scanProgress = ctxScanProgress ctx
+  contents <- recursiveScanPath config path []
+  (readexifs, lcache) <- getExif config path $ map inodeFullName contents
   (_, yamlEvent) <- loadOptionalYaml (path </> "corydalis.yaml")
-  let event = yamlEvent <|> implicitEventFromDateRange tname (sDateRange pstats)
-  -- FIXME: incProgress is always called with an empty error list?
+  let totalitems = length contents
+      noopexifs = max (totalitems - readexifs) 0
+      folder = buildFolderFromInodes config name path isSource contents lcache yamlEvent
   atomically $ modifyTVar' scanProgress (incProgress [] noopexifs readexifs)
-  --logfn LevelInfo . toLogStr $
-  --  "Scanned folder '" ++ path ++ "' with " ++ show (Map.size images) ++ " images, " ++
-  -- show (Map.size shadows) ++ " shadows, and " ++ show totalitems ++ " total items, date range " ++
-  --  show (sDateRange pstats) ++ ", event " ++ show event
-  return $!!
-    PicDir { pdName = tname
-           , pdMainPath = dirpath
-           , pdSecPaths = []
-           , pdImages = images
-           , pdTimeSort = timesort
-           , pdShadows = shadows
-           , pdYear = year
-           , pdTimestamp = timestamp
-           , pdExif = exif
-           , pdStats = pstats
-           , pdEvent = event }
+  return $!! folder
 
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =

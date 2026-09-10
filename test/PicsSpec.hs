@@ -23,12 +23,60 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module PicsSpec (spec) where
 
 import           Data.Default
-import qualified Data.Map     as Map
-import           Data.Time    (LocalTime (..), midnight)
+import qualified Data.Map         as Map
+import qualified Data.Set         as Set
+import           Data.Time        (LocalTime (..), ZonedTime (..), midnight, utc)
+import           System.Directory (createDirectoryIfMissing)
 
 import           AtomTypes
+import           Exif
 import           Pics
 import           TestImport
+
+parentSym :: SymbolizedItem
+parentSym = mkSym "/pics/folder"
+
+runLoad :: Config -> Bool -> InodeInfo -> (Image, [Image])
+runLoad config isSource =
+  loadImage config "folder" parentSym isSource Map.empty
+
+runLoadExif :: Config -> Bool -> InodeInfo -> Map Text EExif -> (Image, [Image])
+runLoadExif config isSource ii cache =
+  loadImage config "folder" parentSym isSource cache ii
+
+picDirWith :: ShortText -> [Image] -> PicDir
+picDirWith name images =
+  let imgMap = Map.fromList [(imgName i, i) | i <- images]
+  in (createTestPicDir name)
+       { pdImages = imgMap
+       , pdTimeSort = buildTimeSort imgMap
+       , pdStats = computeImagesStats imgMap
+       , pdExif = buildGroupExif imgMap
+       }
+
+fileSized :: Text -> FileOffset -> File
+fileSized name sz = (simpleFile name) { fileSize = sz }
+
+withProdNameRegexes :: Config -> Config
+withProdNameRegexes config =
+  config
+    { cfgRangeRegex = fromMaybe (cfgRangeRegex config) $
+        mkRegex "^(.*_)([0-9]+)-([0-9]+)$"
+    , cfgCopyRegex = fromMaybe (cfgCopyRegex config) $
+        mkRegex "^(.*)(-(close_view|copy_|publish|published|aspect_change))$"
+    }
+
+datedExif :: Integer -> Int -> Int -> Exif
+datedExif y m d =
+  def { exifCreateDate = Just (ExifTime (ZonedTime (LocalTime (fromGregorian y m d) midnight) utc)) }
+
+sourceDir :: Ctx -> FilePath
+sourceDir ctx =
+  fromMaybe (error "No source directory") (headMay $ cfgSourceDirs $ ctxConfig ctx)
+
+outputDir :: Ctx -> FilePath
+outputDir ctx =
+  fromMaybe (error "No output directory") (headMay $ cfgOutputDirs $ ctxConfig ctx)
 
 spec :: Spec
 spec = parallel $ do
@@ -118,6 +166,293 @@ spec = parallel $ do
     it "marks inferred events as implicit with the folder name" $ \_ ->
       implicitEventFromDateRange name (range 1 4) `shouldBe`
         Just GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
+  describe "makeRel" $ do
+    it "strips leading separators" $
+      makeRel "/foo/bar" `shouldBe` "foo/bar"
+    it "leaves relative paths unchanged" $
+      makeRel "foo/bar" `shouldBe` "foo/bar"
+  describe "findBestSize" $ do
+    let sizes = Set.fromList [64, 1024, 1920]
+    it "returns the greatest size not above the request" $
+      findBestSize (ImageSize 1024) sizes `shouldBe` Just 1024
+    it "steps down when the request is between sizes" $
+      findBestSize (ImageSize 1000) sizes `shouldBe` Just 64
+    it "returns Nothing when the request is below all sizes" $
+      findBestSize (ImageSize 32) sizes `shouldBe` Nothing
+  withConfig $ do
+    describe "path regex helpers" $ do
+      it "matches date-prefixed folder names" $ \config -> do
+        isOKDir config "2024-01-01-trip" `shouldBe` True
+        isOKDir config "not-a-date" `shouldBe` False
+        isOKDir config "level1" `shouldBe` False
+      it "drops copy suffixes" $ \config -> do
+        dropCopySuffix config "IMG_1234-1" `shouldBe` "IMG_1234"
+        dropCopySuffix config "IMG_1234-Edit" `shouldBe` "IMG_1234"
+        dropCopySuffix config "IMG_1234" `shouldBe` "IMG_1234"
+      it "expands padded range names" $ \config -> do
+        expandRangeFile config "img_01-03" `shouldBe` ["img_01", "img_02", "img_03"]
+        expandRangeFile config "img_1-3" `shouldBe` ["img_1", "img_2", "img_3"]
+        expandRangeFile config "nope" `shouldBe` []
+    describe "mkImageStatus" $ do
+      it "classifies backing-file combinations" $ \config -> do
+        let raw = simpleFile "a.nef"
+            jpeg = simpleFile "a.jpg"
+            sidecar = simpleFile "a.xmp"
+        mkImageStatus config (Just raw) [] Nothing False `shouldBe` ImageUnprocessed
+        mkImageStatus config (Just raw) [jpeg] Nothing False `shouldBe` ImageProcessed
+        mkImageStatus config Nothing [jpeg] Nothing False `shouldBe` ImageStandalone
+        mkImageStatus config Nothing [] (Just sidecar) False `shouldBe` ImageOrphaned
+        mkImageStatus config Nothing [jpeg] (Just sidecar) False `shouldBe` ImageStandalone
+        mkImageStatus config Nothing [] Nothing True `shouldBe` ImageProcessed
+      it "errors when nothing backs the image" $ \config ->
+        evaluate (mkImageStatus config Nothing [] Nothing False) `shouldThrow` anyErrorCall
+    describe "loadImage" $ do
+      it "treats a source raw as unprocessed" $ \config -> do
+        let (img, shadows) = runLoad config True (mkInode "a.nef")
+        imgName img `shouldBe` "a"
+        imgStatus img `shouldBe` ImageUnprocessed
+        imgType img `shouldBe` MediaImage
+        isJust (imgRawPath img) `shouldBe` True
+        shadows `shouldBe` []
+      it "treats an output jpeg as standalone" $ \config -> do
+        let (img, _) = runLoad config False (mkInode "a.jpg")
+        imgStatus img `shouldBe` ImageStandalone
+        null (imgJpegPath img) `shouldBe` False
+        isNothing (imgRawPath img) `shouldBe` True
+      it "treats a source jpeg as a soft master" $ \config -> do
+        let (img, _) = runLoad config True (mkInode "a.jpg")
+        flagsSoftMaster (imgFlags img) `shouldBe` True
+        isJust (imgRawPath img) `shouldBe` True
+        imgJpegPath img `shouldBe` []
+        imgStatus img `shouldBe` ImageUnprocessed
+      it "treats a sidecar-only file as orphaned without shadows" $ \config -> do
+        let (img, shadows) = runLoad config False (mkInode "a.xmp")
+        imgStatus img `shouldBe` ImageOrphaned
+        isJust (imgSidecarPath img) `shouldBe` True
+        shadows `shouldBe` []
+      it "classifies source movies as master movies" $ \config -> do
+        let (img, _) = runLoad config True (mkInode "clip.mov")
+        imgType img `shouldBe` MediaMovie
+        isJust (imgMasterMov img) `shouldBe` True
+        imgMovs img `shouldBe` []
+      it "classifies output movies as processed movies" $ \config -> do
+        let (img, _) = runLoad config False (mkInode "clip.mp4")
+        imgType img `shouldBe` MediaMovie
+        imgMasterMov img `shouldBe` Nothing
+        null (imgMovs img) `shouldBe` False
+      it "classifies unknown extensions as untracked" $ \config -> do
+        let (img, _) = runLoad config True (mkInode "notes.other")
+        imgType img `shouldBe` MediaUnknown
+        null (imgUntracked img) `shouldBe` False
+      it "expands range jpegs into shadows" $ \config -> do
+        let (img, shadows) = runLoad (withProdNameRegexes config) False (mkInode "a_1-3.jpg")
+        imgName img `shouldBe` "a_1-3"
+        imgRange img `shouldBe` Just ("a_1", "a_3")
+        map imgName shadows `shouldBe` ["a_1", "a_2", "a_3"]
+      it "drops copy suffixes from the image name" $ \config -> do
+        let (img, _) = runLoad config True (mkInode "foo-1.nef")
+        imgName img `shouldBe` "foo"
+      it "warns when exif is missing from the cache" $ \config -> do
+        let (img, _) = runLoad config True (mkInode "a.nef")
+        imgProblems img `shouldBe` Set.singleton "exif: Internal error: exif not read"
+      it "warns when exif reading failed" $ \config -> do
+        let cache = Map.singleton "a.nef" (Left "boom")
+            (img, _) = runLoadExif config True (mkInode "a.nef") cache
+        imgProblems img `shouldBe` Set.singleton "exif: Cannot read exif: boom"
+      it "attaches a successful exif entry" $ \config -> do
+        let ex = datedExif 2021 3 4
+            cache = Map.singleton "a.nef" (Right ex)
+            (img, _) = runLoadExif config True (mkInode "a.nef") cache
+        imageYear img `shouldBe` Just 2021
+        imageYearMonth img `shouldBe` Just (2021, 3)
+      it "classifies nested inodes as raw with relative dirs" $ \config -> do
+        let ii = (mkInode "a.nef") { inodeDirs = ["sub"] }
+            (img, _) = runLoad config True ii
+        imgName img `shouldBe` "sub/a"
+        fileRelPath <$> imgRawPath img `shouldBe` Just "sub/a.nef"
+    describe "buildFolderFromInodes" $ do
+      it "assembles a folder from raw inodes" $ \config -> do
+        let folder = buildFolderFromInodes config "2024-01-01" "/pics/2024-01-01" True
+                       [mkInode "a.nef"] Map.empty Nothing
+        pdName folder `shouldBe` "2024-01-01"
+        imgStatus (pdImages folder Map.! "a") `shouldBe` ImageUnprocessed
+        pdEvent folder `shouldBe` Nothing
+      it "keeps an explicit yaml event" $ \config -> do
+        let ev = BirthdayEvent { eventName = "Birthday", eventPeople = [], eventSource = EventExplicit Nothing }
+            folder = buildFolderFromInodes config "folder" "/p" True [mkInode "a.nef"] Map.empty (Just ev)
+        pdEvent folder `shouldBe` Just ev
+      it "infers an implicit event from a multi-day date range" $ \config -> do
+        let e1 = datedExif 2024 6 1
+            e2 = datedExif 2024 6 5
+            cache = Map.fromList [("a.nef", Right e1), ("b.nef", Right e2)]
+            folder = buildFolderFromInodes config "folder" "/p" True
+                       [mkInode "a.nef", mkInode "b.nef"] cache Nothing
+        extractEventType (pdEvent folder) `shouldBe` EKGetaway
+    describe "isBetterMaster" $ do
+      it "prefers earlier extensions" $ \_ -> do
+        isBetterMaster ["nef", "raf"] "nef" "raf" `shouldBe` True
+        isBetterMaster ["nef", "raf"] "raf" "nef" `shouldBe` False
+      it "chooses the first file when neither extension matches" $ \_ ->
+        isBetterMaster ["nef"] "xxx" "yyy" `shouldBe` True
+      it "chooses the first file on an empty extension list" $ \_ ->
+        isBetterMaster [] "a" "b" `shouldBe` True
+    describe "selectMasterFile and mergePictures" $ do
+      it "keeps a hard master over a soft one" $ \config -> do
+        let hard = simpleRawImage config
+            jpeg = simpleFile "a.jpg"
+            soft = mkImage config "a" "test" (Just jpeg) Nothing [] Nothing [] [] Nothing MediaImage (Flags True)
+            (chosen, softFlag, extra) = selectMasterFile (cfgRawExts config) imgRawPath hard soft
+        chosen `shouldBe` imgRawPath hard
+        softFlag `shouldBe` False
+        extra `shouldBe` [jpeg]
+      it "merges raw and jpeg into a processed image" $ \config -> do
+        let raw = simpleRawImage config
+            jpegImg = mkImage config "a" "test" Nothing Nothing [simpleFile "a.jpg"] Nothing [] [] Nothing MediaImage def
+            merged = mergePictures config raw jpegImg
+        imgStatus merged `shouldBe` ImageProcessed
+        isJust (imgRawPath merged) `shouldBe` True
+        null (imgJpegPath merged) `shouldBe` False
+      it "selects nef over raf as the real master" $ \config -> do
+        let nef = mkImage config "a" "test" (Just $ simpleFile "a.nef") Nothing [] Nothing [] [] Nothing MediaImage def
+            raf = mkImage config "a" "test" (Just $ simpleFile "a.raf") Nothing [] Nothing [] [] Nothing MediaImage def
+            merged = mergePictures config nef raf
+        fileName <$> imgRawPath merged `shouldBe` Just "a.nef"
+        map fileName (imgJpegPath merged) `shouldBe` ["a.raf"]
+    describe "mergeFolders" $ do
+      it "keeps the path with more raw files as main" $ \config -> do
+        let raw = simpleRawImage config
+            jpegImg = mkImage config "b" "trip" Nothing Nothing [simpleFile "b.jpg"] Nothing [] [] Nothing MediaImage def
+            d1 = (picDirWith "trip" [raw]) { pdMainPath = "/raw/trip" }
+            d2 = (picDirWith "trip" [jpegImg]) { pdMainPath = "/jpg/trip" }
+            merged = mergeFolders config d1 d2
+        pdMainPath merged `shouldBe` "/raw/trip"
+        pdSecPaths merged `shouldContain` ["/jpg/trip"]
+      it "recomputes stats after raw and jpeg of the same image merge" $ \config -> do
+        let raw = simpleRawImage config
+            jpegImg = mkImage config "a" "test" Nothing Nothing [simpleFile "a.jpg"] Nothing [] [] Nothing MediaImage def
+            merged = mergeFolders config (picDirWith "test" [raw]) (picDirWith "test" [jpegImg])
+        imgStatus (pdImages merged Map.! "a") `shouldBe` ImageProcessed
+        sProcessed (pdStats merged) `shouldBe` 1
+        sRaw (pdStats merged) `shouldBe` 0
+        sStandalone (pdStats merged) `shouldBe` 0
+    describe "mergeShadows and ranges" $ do
+      it "applies shadows onto matching images" $ \config -> do
+        let raw = simpleRawImage config
+            shadow = mkImage config "a" "test" Nothing Nothing [simpleFile "a.jpg"] Nothing [] [] Nothing MediaImage def
+            dir = (createTestPicDir "test")
+                    { pdImages = Map.singleton "a" raw
+                    , pdShadows = Map.singleton "a" shadow
+                    }
+            merged = mergeShadows config dir
+        imgStatus (pdImages merged Map.! "a") `shouldBe` ImageProcessed
+      it "promotes a standalone range jpeg when the begin image has a raw" $ \config -> do
+        let root = simpleRawImage config
+            ranged = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"]
+                             Nothing [] [] (Just ("a", "a_3")) MediaImage def
+            dir = picDirWith "test" [root, ranged]
+        imgStatus ranged `shouldBe` ImageStandalone
+        case maybeUpdateStandaloneRange config dir ranged of
+          Nothing -> expectationFailure "expected standalone range to be updated"
+          Just img -> do
+            imgStatus img `shouldBe` ImageProcessed
+            isJust (imgRawPath img) `shouldBe` True
+      it "does nothing when the range begin has no raw" $ \config -> do
+        let begin = mkImage config "a" "test" Nothing Nothing [simpleFile "a.jpg"] Nothing [] [] Nothing MediaImage def
+            ranged = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"]
+                             Nothing [] [] (Just ("a", "a_3")) MediaImage def
+            dir = picDirWith "test" [begin, ranged]
+        maybeUpdateStandaloneRange config dir ranged `shouldBe` Nothing
+      it "rewrites standalone range images in the folder" $ \config -> do
+        let root = simpleRawImage config
+            ranged = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"]
+                             Nothing [] [] (Just ("a", "a_3")) MediaImage def
+            dir = resolveProcessedRanges config (picDirWith "test" [root, ranged])
+        imgStatus (pdImages dir Map.! "a_1") `shouldBe` ImageProcessed
+    describe "stats and folder class" $ do
+      it "counts sizes and files across image kinds" $ \config -> do
+        let raw = mkImage config "a" "t" (Just $ fileSized "a.nef" 100) Nothing [] Nothing [] [] Nothing MediaImage def
+            standalone = mkImage config "b" "t" Nothing Nothing [fileSized "b.jpg" 40] Nothing [] [] Nothing MediaImage def
+            processed = mkImage config "c" "t" (Just $ fileSized "c.nef" 50) Nothing [fileSized "c.jpg" 20] Nothing [] [] Nothing MediaImage def
+            orphaned = mkImage config "d" "t" Nothing (Just $ fileSized "d.xmp" 5) [] Nothing [] [] Nothing MediaImage def
+            movie = mkImage config "e" "t" Nothing Nothing [] (Just $ fileSized "e.mov" 80) [] [] Nothing MediaMovie def
+            untracked = mkImage config "f" "t" Nothing Nothing [] Nothing [] [fileSized "f.other" 7] Nothing MediaUnknown def
+            stats = foldl' updateStatsWithPic zeroStats [raw, standalone, processed, orphaned, movie, untracked]
+        sRaw stats `shouldBe` 1
+        sStandalone stats `shouldBe` 1
+        sProcessed stats `shouldBe` 1
+        sOrphaned stats `shouldBe` 1
+        sMovies stats `shouldBe` 1
+        sUntracked stats `shouldBe` 1
+        totalStatsCount stats `shouldBe` 6
+        totalStatsSize stats `shouldBe` 100 + 40 + 50 + 20 + 5 + 80 + 7
+        sRawSize stats `shouldBe` 150
+      it "sums two stats structures" $ \_ -> do
+        let a = zeroStats { sRaw = 1, sRawSize = 10 }
+            b = zeroStats { sStandalone = 2, sStandaloneSize = 5 }
+            s = sumStats a b
+        sRaw s `shouldBe` 1
+        sStandalone s `shouldBe` 2
+        totalStatsSize s `shouldBe` 15
+      it "maps stats onto folder classes" $ \_ -> do
+        folderClassFromStats zeroStats `shouldBe` FolderEmpty
+        folderClassFromStats (zeroStats { sRaw = 1 }) `shouldBe` FolderRaw
+        folderClassFromStats (zeroStats { sRaw = 1, sProcessed = 1 }) `shouldBe` FolderUnprocessed
+        folderClassFromStats (zeroStats { sStandalone = 1 }) `shouldBe` FolderStandalone
+        folderClassFromStats (zeroStats { sStandalone = 1, sProcessed = 1 }) `shouldBe` FolderMixed
+        folderClassFromStats (zeroStats { sOrphaned = 1 }) `shouldBe` FolderMixed
+        folderClassFromStats (zeroStats { sProcessed = 1 }) `shouldBe` FolderProcessed
+        folderClassFromStats (zeroStats { sMovies = 1 }) `shouldBe` FolderProcessed
+      it "computes folderClass from images" $ \config -> do
+        folderClass (createTestPicDir "empty") `shouldBe` FolderEmpty
+        folderClass (picDirWith "raw" [simpleRawImage config]) `shouldBe` FolderRaw
+    describe "queries" $ do
+      it "filters images by class" $ \config -> do
+        let raw = simpleRawImage config
+            jpeg = mkImage config "b" "test" Nothing Nothing [simpleFile "b.jpg"] Nothing [] [] Nothing MediaImage def
+            dir = picDirWith "test" [raw, jpeg]
+            repo = mkRepository (Map.singleton "test" dir)
+        map imgName (filterImagesByClass [ImageUnprocessed] repo) `shouldBe` ["a"]
+        map imgName (filterImagesByClass [ImageStandalone] repo) `shouldBe` ["b"]
+      it "reports image file kinds" $ \config -> do
+        let raw = simpleRawImage config
+            movie = mkImage config "m" "t" Nothing Nothing [] (Just $ simpleFile "m.mov") [] [] Nothing MediaMovie def
+            untracked = simpleUntrackedImage config "t" "u"
+        imageHasImages raw `shouldBe` True
+        imageHasMovies raw `shouldBe` False
+        imageHasMovies movie `shouldBe` True
+        imageHasUntracked untracked `shouldBe` True
+        imageHasUntracked raw `shouldBe` False
+        null (allImageFiles raw) `shouldBe` False
+        null (allViewableImageFiles raw) `shouldBe` False
+      it "counts pictures in a folder" $ \config -> do
+        let dir = picDirWith "test" [simpleRawImage config]
+        numPics dir `shouldBe` 1
+        numRawPics dir `shouldBe` 1
+        hasViewablePics dir `shouldBe` False
+        hasViewablePics (picDirWith "s" [mkImage config "b" "s" Nothing Nothing [simpleFile "b.jpg"] Nothing [] [] Nothing MediaImage def]) `shouldBe` True
+      it "aggregates image problems" $ \config -> do
+        let warned = (simpleRawImage config) { imgExif = def { exifWarning = Set.singleton "bad" } }
+            clean = mkImage config "b" "test" Nothing Nothing [simpleFile "b.jpg"] Nothing [] [] Nothing MediaImage def
+            dir = picDirWith "test" [warned, clean]
+        imgProblems warned `shouldBe` Set.singleton "exif: bad"
+        pdProblems dir Map.! Just "exif: bad" `shouldBe` 1
+        pdProblems dir Map.! Nothing `shouldBe` 1
+      it "builds time keys from exif dates" $ \config -> do
+        let img = (simpleRawImage config) { imgExif = datedExif 2020 7 15 }
+        imageYear img `shouldBe` Just 2020
+        imageYearMonth img `shouldBe` Just (2020, 7)
+        fst (imageTimeKey img) `shouldBe` Just (LocalTime (fromGregorian 2020 7 15) midnight)
+      it "uses default orientation when the view file has none" $ \config ->
+        transformParams (transformForImage (simpleRawImage config)) `shouldBe` transformParams def
+      it "uses the jpeg orientation when present" $ \config -> do
+        let f = (simpleFile "a.jpg") { fileExif = def { exifOrientation = OrientationRightTop } }
+            img = mkImage config "a" "test" Nothing Nothing [f] Nothing [] [] Nothing MediaImage def
+        transformParams (transformForImage img) `shouldBe` transformParams (affineTransform OrientationRightTop)
+    describe "viewableAsIs" $ do
+      it "matches configured viewable extensions" $ \config -> do
+        viewableAsIs "photo.jpg" config `shouldBe` True
+        viewableAsIs "photo.png" config `shouldBe` True
+        viewableAsIs "photo.nef" config `shouldBe` False
   withContext $ do
     describe "addDirToRepo event merge" $ do
       let implicitEv = Just GrandVacationEvent
@@ -167,3 +502,76 @@ spec = parallel $ do
         launchScanFileSystem ctx
         _ <- waitForScan ctx
         getSearchResults ctx m2 [] `shouldReturn` m2
+  withUnscannedContext $ do
+    describe "getDirContents" $ do
+      it "lists files and dirs and skips blacklisted names" $ \ctx -> do
+        let config = ctxConfig ctx
+            tmp = cfgCacheDir config </> "listing"
+        createDirectoryIfMissing True (tmp </> ".thumbnails")
+        createDirectoryIfMissing True (tmp </> "keep")
+        touchFile (tmp </> "file.nef")
+        touchFile (tmp </> ".thumbnails" </> "x")
+        (dirs, files) <- getDirContents config tmp
+        dirs `shouldMatchList` ["keep"]
+        map inodeName files `shouldMatchList` ["file.nef"]
+        dirs `shouldNotContain` [".", "..", ".thumbnails"]
+    describe "recursiveScanPath" $ do
+      it "records reverse directory stacks for nested files" $ \ctx -> do
+        let config = ctxConfig ctx
+            tmp = cfgCacheDir config </> "tree"
+        touchFile (tmp </> "a.nef")
+        touchFile (tmp </> "sub" </> "b.nef")
+        contents <- recursiveScanPath config tmp []
+        let byName = Map.fromList [(inodeName ii, ii) | ii <- contents]
+        inodeDirs (byName Map.! "a.nef") `shouldBe` []
+        inodeDirs (byName Map.! "b.nef") `shouldBe` ["sub"]
+        inodeFullName (byName Map.! "b.nef") `shouldBe` "sub/b.nef"
+    describe "loadFolder" $ do
+      it "classifies dummy files by extension" $ \ctx -> do
+        let folder = sourceDir ctx </> "2024-01-01-trip"
+        touchFile (folder </> "a.nef")
+        touchFile (folder </> "notes.other")
+        pic <- loadFolder ctx "2024-01-01-trip" folder True
+        imgStatus (pdImages pic Map.! "a") `shouldBe` ImageUnprocessed
+        imgType (pdImages pic Map.! "notes") `shouldBe` MediaUnknown
+      it "treats output jpegs as standalone" $ \ctx -> do
+        let folder = outputDir ctx </> "2024-01-01-trip"
+        touchFile (folder </> "b.jpg")
+        pic <- loadFolder ctx "2024-01-01-trip" folder False
+        imgStatus (pdImages pic Map.! "b") `shouldBe` ImageStandalone
+      it "loads an explicit event from corydalis.yaml" $ \ctx -> do
+        let folder = sourceDir ctx </> "2024-02-02-party"
+        touchFile (folder </> "a.nef")
+        writeFile (folder </> "corydalis.yaml") ("name: Birthday\nkind: birthday\n" :: ByteString)
+        pic <- loadFolder ctx "2024-02-02-party" folder True
+        pdEvent pic `shouldBe` Just BirthdayEvent
+          { eventName = "Birthday"
+          , eventPeople = []
+          , eventSource = EventExplicit (Just (folder </> "corydalis.yaml"))
+          }
+      it "attaches sidecars as orphaned when alone" $ \ctx -> do
+        let folder = sourceDir ctx </> "2024-03-03-xmp"
+        touchFile (folder </> "solo.xmp")
+        pic <- loadFolder ctx "2024-03-03-xmp" folder True
+        imgStatus (pdImages pic Map.! "solo") `shouldBe` ImageOrphaned
+    describe "scanSubDir" $ do
+      it "loads date-named folders and skips others" $ \ctx -> do
+        let level1 = sourceDir ctx </> "level1"
+        touchFile (level1 </> "2024-01-01-trip" </> "a.nef")
+        touchFile (level1 </> "not-a-date" </> "a.nef")
+        dirs <- scanSubDir ctx level1 True
+        map pdName dirs `shouldMatchList` ["2024-01-01-trip"]
+    describe "scanBaseDir" $ do
+      it "merges source raw and output jpeg of the same image" $ \ctx -> do
+        let config = ctxConfig ctx
+            rawRoot = sourceDir ctx
+            jpgRoot = outputDir ctx
+        touchFile (rawRoot </> "level1" </> "2024-01-01-trip" </> "a.nef")
+        touchFile (jpgRoot </> "level1" </> "2024-01-01-trip" </> "a.jpg")
+        rawPics <- scanBaseDir ctx rawRoot True
+        jpgPics <- scanBaseDir ctx jpgRoot False
+        let merged = foldl' (flip (addDirToRepo config)) Map.empty (rawPics ++ jpgPics)
+            img = pdImages (merged Map.! "2024-01-01-trip") Map.! "a"
+        imgStatus img `shouldBe` ImageProcessed
+        isJust (imgRawPath img) `shouldBe` True
+        null (imgJpegPath img) `shouldBe` False
