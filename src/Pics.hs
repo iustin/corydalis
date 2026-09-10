@@ -137,6 +137,9 @@ module Pics ( PicDir(..)
             , maybeUpdateStandaloneRange
             , findBestSize
             , viewableAsIs
+            , newRepo
+            , forceBuildThumbCaches
+            , runScanAction
 #endif
             ) where
 
@@ -763,6 +766,12 @@ tryUpdateRepo ctx new = do
   unless owning $ throwString "Repository ownership changed, aborting"
   return new
 
+checkRepoOwnership :: Ctx -> Repository -> IO ()
+checkRepoOwnership ctx candidate = do
+  current <- readTVarIO (ctxRepo ctx)
+  unless (repoSerial current <= repoSerial candidate) $
+    throwString "Repository ownership changed, aborting"
+
 getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
 getSearchResults ctx lazy key =
   atomically $ stateTVar (ctxSearchCache ctx) $ \oldCache ->
@@ -1343,13 +1352,13 @@ launchScanFileSystem ctx =
            scannerThread = ctxScanner ctx
 
 scanFSWrapper :: Ctx -> Repository -> IO Repository
-scanFSWrapper ctx newrepo = do
-  scanner <- async $ scanFilesystem ctx newrepo
-  result <- waitCatch scanner
-  case result of
-    Left err ->
-      tryUpdateRepo ctx newrepo {repoStatus = RepoError (sformat shown err)}
-    Right r -> return r
+scanFSWrapper ctx newrepo =
+  runScanAction ctx newrepo (scanFilesystem ctx newrepo)
+
+runScanAction :: Ctx -> Repository -> IO Repository -> IO Repository
+runScanAction ctx newrepo action =
+  action `catch` \(err :: SomeException) ->
+    tryUpdateRepo ctx newrepo {repoStatus = RepoError (sformat shown err)}
 
 scanFilesystem :: Ctx -> Repository -> IO Repository
 scanFilesystem ctx newrepo = do
@@ -1409,7 +1418,7 @@ scanFilesystem ctx newrepo = do
   writeDiskCache config repo_as
   logfn LevelInfo "Finished building repo, starting rendering"
   traceMarkerIO "scanFilesystem start rendering"
-  rendered <- forceBuildThumbCaches config (ctxRenderProgress ctx) repo_as totalrender
+  rendered <- forceBuildThumbCaches ctx repo_as totalrender
   endr <- getZonedTime
   let wrrender = WorkResults { wrStart = end
                              , wrEnd = endr
@@ -1444,13 +1453,17 @@ scanFilesystem ctx newrepo = do
 renderableImages :: Repository -> [Image]
 renderableImages = filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
 
-forceBuildThumbCaches :: Config -> TVar Progress -> Repository -> Int -> IO Progress
-forceBuildThumbCaches config renderProgress repo totalrender = do
+forceBuildThumbCaches :: Ctx -> Repository -> Int -> IO Progress
+forceBuildThumbCaches ctx repo totalrender = do
+  checkRepoOwnership ctx repo
+  let config = ctxConfig ctx
+      renderProgress = ctxRenderProgress ctx
   atomically $ writeTVar renderProgress (def { pgGoal = totalrender})
   let images = renderableImages repo
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
                         (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
       thbuild i = mapM_ (\size -> do
+                            checkRepoOwnership ctx repo
                             res <- imageAtRes config i . Just . ImageSize $ size
                             let modifier = case res of
                                   Left err            -> incErrors (imageForError i size) (Text.pack $ show err)

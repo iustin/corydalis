@@ -23,10 +23,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module PicsSpec (spec) where
 
 import           Data.Default
-import qualified Data.Map         as Map
-import qualified Data.Set         as Set
-import           Data.Time        (LocalTime (..), ZonedTime (..), midnight, utc)
-import           System.Directory (createDirectoryIfMissing)
+import qualified Data.Map             as Map
+import qualified Data.Set             as Set
+import           Data.Time            (LocalTime (..), ZonedTime (..), midnight,
+                                       utc)
+import           System.Directory     (createDirectoryIfMissing)
 
 import           AtomTypes
 import           Exif
@@ -69,6 +70,9 @@ withProdNameRegexes config =
 datedExif :: Integer -> Int -> Int -> Exif
 datedExif y m d =
   def { exifCreateDate = Just (ExifTime (ZonedTime (LocalTime (fromGregorian y m d) midnight) utc)) }
+
+isOwnershipAbort :: SomeException -> Bool
+isOwnershipAbort e = "ownership changed" `isInfixOf` show e
 
 sourceDir :: Ctx -> FilePath
 sourceDir ctx =
@@ -531,6 +535,32 @@ spec = parallel $ do
         _ <- waitForScan ctx
         getSearchResults ctx m2 [] `shouldReturn` m2
   withUnscannedContext $ do
+    describe "scan abort" $ do
+      it "records synchronous scan failures as RepoError" $ \ctx -> do
+        repo <- getRepo ctx
+        result <- runScanAction ctx repo (throwString "scan exploded")
+        case repoStatus result of
+          RepoError msg -> msg `shouldSatisfy` ("scan exploded" `isInfixOf`)
+          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+        repo' <- getRepo ctx
+        case repoStatus repo' of
+          RepoError msg -> msg `shouldSatisfy` ("scan exploded" `isInfixOf`)
+          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+      it "stops scan work when the scanner thread is cancelled" $ \ctx -> do
+        started <- newEmptyMVar
+        block <- newEmptyMVar
+        cleaned <- newIORef False
+        repo <- getRepo ctx
+        scanner <- async $ runScanAction ctx repo $
+          (putMVar started () >> takeMVar block >> return repo)
+          `finally` writeIORef cleaned True
+        takeMVar started
+        cancel scanner
+        readIORef cleaned `shouldReturn` True
+      it "aborts thumbnail builds after a newer scan takes ownership" $ \ctx -> do
+        old <- getRepo ctx
+        _ <- atomically $ newRepo (ctxRepo ctx)
+        forceBuildThumbCaches ctx old 0 `shouldThrow` isOwnershipAbort
     describe "getDirContents" $ do
       it "lists files and dirs and skips blacklisted names" $ \ctx -> do
         let config = ctxConfig ctx
