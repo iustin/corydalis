@@ -1192,7 +1192,8 @@ loadFolder ctx name path isSource = do
   let config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
   contents <- recursiveScanPath config path []
-  (readexifs, lcache) <- getExif config path $ map inodeFullName contents
+  (readexifs, lcache) <- getExif (ctxLogger ctx) config path $
+                           map inodeFullName contents
   (_, yamlEvent) <- loadOptionalYaml (path </> "corydalis.yaml")
   let totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0

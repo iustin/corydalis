@@ -69,7 +69,7 @@ import           Data.Aeson
 import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
                                             parseMaybe, typeMismatch)
 import           Data.Bifunctor
-import qualified Data.ByteString           as BS (ByteString, readFile)
+import qualified Data.ByteString           as BS (ByteString, length, readFile)
 import           Data.Default
 import qualified Data.Map.Strict           as Map
 import           Data.Scientific           (toBoundedInteger)
@@ -81,6 +81,7 @@ import qualified Data.Text.Read            as Text
 import qualified Data.Text.Short           as TS
 import           Data.Time.Format
 import           Data.Time.LocalTime
+import           System.Log.FastLogger     (toLogStr)
 import           System.Process.Typed
 
 import           Cache
@@ -1120,8 +1121,10 @@ insertForced m k e = do
   return $ Map.insert k e' m
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: Config -> FilePath -> [FilePath] -> IO (Int, Map Text EExif)
-getExif config dir paths = do
+getExif :: LogFn -> Config -> FilePath -> [FilePath] -> IO (Int, Map Text EExif)
+getExif logfn config dir paths = do
+  logfn LevelDebug $ "getExif " <> toLogStr dir <> ": " <>
+    toLogStr (show (length paths)) <> " paths"
   (cache1, m1) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
                             exif <- readBExif config fpath
@@ -1131,6 +1134,9 @@ getExif config dir paths = do
                                 c' <- insertForced c (Text.pack p) e
                                 return (c', m)
                         ) (Map.empty, []) paths
+  logfn LevelDebug $ "getExif " <> toLogStr dir <> ": bexif hits=" <>
+    toLogStr (show (Map.size cache1)) <> " misses=" <>
+    toLogStr (show (length m1))
   (cache2, m2) <- foldM (\(c, m) p -> do
                             let fpath = buildPath dir p
                             exif <- readExif config fpath
@@ -1144,7 +1150,10 @@ getExif config dir paths = do
                                 c' <- insertForced c (Text.pack p) e
                                 return (c', m)
                  ) (cache1, []) m1
-  cache3 <- foldM (runExifToolBatch config dir) cache2
+  logfn LevelDebug $ "getExif " <> toLogStr dir <> ": json hits=" <>
+    toLogStr (show (Map.size cache2 - Map.size cache1)) <> " exiftool=" <>
+    toLogStr (show (length m2))
+  cache3 <- foldM (runExifToolBatch logfn config dir) cache2
               (chunkPaths m2)
   return (length m2, cache3)
 
@@ -1163,9 +1172,9 @@ chunkPaths xs =
   let (h, t) = splitAt exifToolBatchSize xs
   in h : chunkPaths t
 
-runExifToolBatch :: Config -> FilePath -> Map Text EExif -> [FilePath]
+runExifToolBatch :: LogFn -> Config -> FilePath -> Map Text EExif -> [FilePath]
                  -> IO (Map Text EExif)
-runExifToolBatch config dir acc batch = do
+runExifToolBatch logfn config dir acc batch = do
   -- TODO: fix this. It is very ugly, catches _all_
   -- exceptions, but it's the only way I found to
   -- reliably disable the slowloris protection. There a
@@ -1174,9 +1183,10 @@ runExifToolBatch config dir acc batch = do
   -- solutions. See
   -- https://github.com/yesodweb/wai/issues/351 for
   -- example.
-  exifs <- (parseExifs <$> extractExifs dir batch) `catch`
+  exifs <- (parseExifs <$> extractExifs logfn dir batch) `catch`
     (\e -> let e' = sformat shown (e :: SomeException)
-           in putStrLn ("Error: " ++ e') >> return (Left e'))
+           in logfn LevelError ("exiftool batch failed: " <> toLogStr e') >>
+              return (Left e'))
   let parsed = case exifs of
         Left msg -> map (\p ->
                            let freFilePath = p
@@ -1184,6 +1194,8 @@ runExifToolBatch config dir acc batch = do
                                freValue = Nothing
                            in Left FailRExif{..}) batch
         Right rs -> rs
+  logfn LevelDebug $ "extractExifs: parsed " <> toLogStr (show (length parsed)) <>
+    " results for " <> toLogStr dir
   foldM (\m r -> do
            (path, e) <- writeExifs config dir r
            insertForced m (Text.pack path) e
@@ -1197,8 +1209,8 @@ bExifPath :: Config -> FilePath -> FilePath
 bExifPath config path =
   cachedBasename config path ("bexif" ++ devSuffix)
 
-extractExifs :: FilePath -> [FilePath] -> IO BS.ByteString
-extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
+extractExifs :: LogFn -> FilePath -> [FilePath] -> IO BS.ByteString
+extractExifs logfn dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
   -- TODO: should instead make exiftool write directly to individual raw exifs?
   let args = [
         "-json",
@@ -1212,12 +1224,19 @@ extractExifs dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle ->
         . setCloseFds True
         . setWorkingDir dir
         $ proc "exiftool" args
+  logfn LevelDebug $ "extractExifs: spawning exiftool on " <>
+    toLogStr (show (length paths)) <> " files in " <> toLogStr dir <>
+    " -> " <> toLogStr fpath
   -- Note: exiftool exits with non-zero exit code if errors happened,
   -- but still generates valid JSON output. So we ignore the exit code
   -- completely, as we can't attribute the error to a specific
   -- file. That should be rather done via 'Error' entry in the object.
   _ <- runProcess pconfig
-  BS.readFile fpath
+  logfn LevelDebug $ "extractExifs: exiftool exited, reading " <> toLogStr fpath
+  bs <- BS.readFile fpath
+  logfn LevelDebug $ "extractExifs: read " <> toLogStr (show (BS.length bs)) <>
+    " bytes"
+  return bs
 
 parseExifs :: BS.ByteString -> Either Text [ERawExif]
 parseExifs bs =
