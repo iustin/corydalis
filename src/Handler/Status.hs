@@ -230,6 +230,7 @@ scanFailed =
 
 percentsDone :: ProgressKind -> Progress -> (Int, Int, Int, Int)
 percentsDone WorkOnly Progress{..}
+  | pgGoal <= 0 && pgNoop > 0 = (0, 100, 0, 0)
   | pgGoal <= 0 = (0, 0, 100, 0)
 percentsDone kind p@Progress{..} =
   -- Normalisation for total: if total < counted, then take the
