@@ -40,6 +40,11 @@ Add tests for any new TypeScript code as well.
 User documentation lives in `docs/`. If a change is user-visible, remind the
 user to update the documentation.
 
+The semi-user important change log is in `CHANGELOG.md` at the root of
+the repository. Usually this has a `vNext` section, if the code change you
+are generating is meaningful, update the appropriate section (see the file
+for structure of older changelog entries).
+
 ## General
 
 Add tests for any new code, regardless of language.
