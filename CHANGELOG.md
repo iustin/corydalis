@@ -54,6 +54,12 @@ In the movie play mode, if the end of the movie is reached, pressing
 spacebar once again will advance to the next item, instead of replaying
 the movie.
 
+The rendering phase of the repository scan has now been changed to better
+show the progress; it does two passes, first classifying what is already
+rendered (and up to date) and what is pending, and in the second pass,
+processing the pending items, so that both the remaining count and the ETA
+of the computation are more accurate.
+
 ### Fixed bugs
 
 When going from any other page to the image viewer, and then moving to

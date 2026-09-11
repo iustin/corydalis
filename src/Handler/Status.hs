@@ -122,8 +122,18 @@ repoContents repo =
       |]
   where totalImages = totalStatsCount . rsPicStats . repoStats $ repo
 
-progressDetails :: Progress -> Widget
-progressDetails counter =
+data ProgressKind = InvestigateAll | WorkOnly
+
+-- | Items that count toward the displayed N/M fraction.
+countedItems :: ProgressKind -> Progress -> Int
+countedItems InvestigateAll = pgTotal
+countedItems WorkOnly       = pgWork
+
+remainingItems :: ProgressKind -> Progress -> Int
+remainingItems kind p = pgGoal p - countedItems kind p
+
+progressDetails :: ProgressKind -> Progress -> Widget
+progressDetails kind counter =
   toWidget [hamlet|
                 <ul>
                   <li>#{swissNumOrNone $ pgNoop counter} items were already up-to-date.
@@ -133,62 +143,74 @@ progressDetails counter =
                     <a href=@{StatusErrorsR}>
                       issues
                     \ during processing.
-                  <li>#{swissNumOrNone $ remaining} items to left to investigate.
+                  <li>#{swissNumOrNone $ remainingItems kind counter} #{remainingLabel}
                   |]
-  where remaining = pgGoal counter - pgTotal counter
+  where remainingLabel = case kind of
+          InvestigateAll -> "items to left to investigate." :: Text
+          WorkOnly       -> "items left to process."
 
-progressThroughput :: Progress -> NominalDiffTime -> Widget
-progressThroughput counter delta =
+progressThroughput :: ProgressKind -> Progress -> NominalDiffTime -> Widget
+progressThroughput InvestigateAll counter delta =
   toWidget [hamlet|
             <p .card-text>
               Throughput: #{showThroughput $ throughput (pgTotal counter) delta} files/s overall,
-              #{showThroughput $ throughput totalWork delta} files/s for actual work.
+              #{showThroughput $ throughput (pgWork counter) delta} files/s for actual work.
               |]
-  where totalWork = pgDone counter + pgNumErrors counter
+progressThroughput WorkOnly counter delta =
+  toWidget [hamlet|
+            <p .card-text>
+              Throughput: #{showThroughput $ throughput (pgWork counter) delta} files/s.
+              |]
 
-workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> Widget
-workInProgress now work counter@Progress{..} WorkStart{..} =
+workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> ProgressKind -> Widget
+workInProgress now work counter@Progress{..} WorkStart{..} kind =
   [whamlet|
           <div .card-body>
             <p .card-text>
-               #{work} progress: #{swissNum (pgTotal counter)}/#{swissNum pgGoal}:
-            ^{progressDetails counter}
+               #{work} progress: #{swissNum $ countedItems kind counter}/#{swissNum pgGoal}:
+            ^{progressDetails kind counter}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
                ETA: #{relTime True remaining}.
-            ^{progressThroughput counter delta}
-            ^{percentsBar counter}
+            ^{progressThroughput kind counter delta}
+            ^{percentsBar kind counter}
                |]
-  where doneitems = pgTotal counter - pgNoop
+  where doneitems = pgWork counter
         -- Tricky: if we actually did work, estimate on (goal - noop)
         -- / actual work. If not, then fall back to goal /
         -- work. Otherwise, with the former we'd never get an ETA for
         -- all-cached scenario, and with the latter, we'd get overly
         -- optimistic estimations in the partially-cached case. Of
         -- course, can still show inf right at the start, but
-        -- that's acceptable.
-        multiplier = if doneitems > 0
-                     then fromIntegral (pgGoal - pgNoop) /
-                          fromIntegral doneitems::Double
-                     else fromIntegral pgGoal / fromIntegral (pgTotal counter)
+        -- that's acceptable. WorkOnly goals already exclude noops.
+        multiplier :: Double
+        multiplier = case kind of
+          InvestigateAll ->
+            if doneitems > 0
+            then fromIntegral (pgGoal - pgNoop) / fromIntegral doneitems
+            else fromIntegral pgGoal / fromIntegral (pgTotal counter)
+          WorkOnly ->
+            if doneitems > 0
+            then fromIntegral pgGoal / fromIntegral doneitems
+            else if pgGoal == 0 then 1 else 1/0
         elapsed = realToFrac $ diffZ now wsStart
         totaltime = elapsed * multiplier
         remaining = totaltime - elapsed
         delta = diffZ now wsStart
         -- TODO: add actual ETA once upgrading to newer time library [easy] [dependency].
 
-workResults :: ZonedTime -> WorkResults -> Text -> Text -> Widget
-workResults now WorkResults{..} work item =
+workResults :: ZonedTime -> WorkResults -> Text -> Text -> ProgressKind -> Widget
+workResults now WorkResults{..} work item kind =
   [whamlet|
           <div .card-body>
             <p .card-text>
-              #{work} finished, #{swissNum $ pgTotal wrDone} #{item} processed:
-                 ^{progressDetails wrDone}
+              #{work} finished, #{swissNum $ countedItems kind wrDone} #{item} processed:
+                 ^{progressDetails kind wrDone}
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
-            ^{progressThroughput wrDone delta}
-            ^{percentsBar wrDone}
+            ^{progressThroughput kind wrDone delta}
+            ^{percentsBar kind wrDone}
               |]
   where delta = diffZ wrEnd wrStart
 
@@ -206,15 +228,20 @@ scanFailed =
             Repository scanning failed.
             |]
 
-percentsDone :: Progress -> (Int, Int, Int, Int)
-percentsDone p@Progress{..} =
-  -- Normalisation for total: if total < pgTotal p, then take the
+percentsDone :: ProgressKind -> Progress -> (Int, Int, Int, Int)
+percentsDone WorkOnly Progress{..}
+  | pgGoal <= 0 = (0, 0, 100, 0)
+percentsDone kind p@Progress{..} =
+  -- Normalisation for total: if total < counted, then take the
   -- latter as goal (some weird error in this case). If that's still 0
   -- (in 0/0 case), make it 1 to not have to deal with ±∞.
-  let atotal = fromIntegral (maximumEx [pgGoal, pgTotal p, 1])::Double
+  let counted = countedItems kind p
+      atotal = fromIntegral (maximumEx [pgGoal, counted, 1])::Double
       f x = truncate $ fromIntegral x * 100 / atotal
       pE = f (pgNumErrors p)
-      pN = f pgNoop
+      pN = case kind of
+        InvestigateAll -> f pgNoop
+        WorkOnly       -> 0
       pD = f pgDone
       pR = 100 - pE - pN - pD
   in (pE, pN, pD, pR)
@@ -229,8 +256,8 @@ pgBar perc classes title =
         #{perc}%
         |]
 
-percentsBar :: Progress -> Widget
-percentsBar counter =
+percentsBar :: ProgressKind -> Progress -> Widget
+percentsBar kind counter =
   [whamlet|
     <div .progress>
       ^{pgBar pN "bg-success" "Already up-to-date"}
@@ -238,7 +265,7 @@ percentsBar counter =
       ^{pgBar pD "bg-info progress-bar-striped" "Processed successfully"}
       ^{pgBar pR "bg-light text-secondary" "Left to do"}
       |]
-  where (pE, pN, pD, pR) = percentsDone counter
+  where (pE, pN, pD, pR) = percentsDone kind counter
 
 readProgresses :: Ctx -> STM (Progress, Progress, Progress)
 readProgresses ctx = do
@@ -247,9 +274,9 @@ readProgresses ctx = do
   clean <- readTVar $ ctxCleanProgress ctx
   return (scan, render, clean)
 
-percentBetween :: Progress -> Int -> Int -> Int
-percentBetween p low high
-  | Just perc <- pgProgress p =
+percentBetween :: (Progress -> Maybe Double) -> Progress -> Int -> Int -> Int
+percentBetween prog p low high
+  | Just perc <- prog p =
       truncate (fromIntegral (high - low) * perc) + low
   | otherwise = low
 
@@ -266,11 +293,11 @@ overallState :: RepoStatus -> Progress -> Progress -> Progress
              -> (Int, Text, Text, Bool)
 overallState RepoEmpty        _ _ _  = (0, "empty", "bg-warning", False)
 overallState RepoStarting     _ _ _  = (5, "preparing scan", "bg-warning", False)
-overallState RepoScanning {}  s _ _ = (percentBetween s scanStart renderStart,
+overallState RepoScanning {}  s _ _ = (percentBetween pgProgress s scanStart renderStart,
                                        "scanning filesystem", "bg-info", True)
-overallState RepoRendering {} _ r _ = (percentBetween r renderStart cleanStart,
+overallState RepoRendering {} _ r _ = (percentBetween pgWorkProgress r renderStart cleanStart,
                                        "rendering images", "bg-info", True)
-overallState RepoCleaning {}  _ _ c = (percentBetween c cleanStart 100,
+overallState RepoCleaning {}  _ _ c = (percentBetween pgProgress c cleanStart 100,
                                        "cleaning the cache", "bg-info", True)
 overallState RepoFinished {}  _ _ _ = (100, "all done", "bg-info", False)
 overallState RepoError {}     _ _ _ = (100, "error", "bg-danger", False)

@@ -117,6 +117,14 @@ spec = parallel $ do
       pgTotal (incDone pgzero) `shouldBe` 1
       pgTotal (incErrors "a" "b" pgzero) `shouldBe` 1
       pgTotal (incNoop pgzero) `shouldBe` 1
+      pgWork (incDone pgone) `shouldBe` 1
+      pgWork (incNoop pgone) `shouldBe` 0
+      pgWorkRemaining (incDone pgone) `shouldBe` 0
+      pgWorkRemaining pgone `shouldBe` 1
+      pgWorkProgress pgzero `shouldBe` Nothing
+      pgWorkProgress pgone `shouldBe` Just 0
+      pgWorkProgress pgdone `shouldBe` Just 1
+      pgWorkProgress (incNoop pgzero) `shouldBe` Just 1
     prop "incError construction" $ \item err ->
       let pg = incErrors item err def
       in case pgErrors pg of

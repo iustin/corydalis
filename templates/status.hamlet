@@ -41,13 +41,13 @@
         $of RepoStarting
           ^{workIdle scanning}
         $of RepoScanning { rsScanGoal = ws }
-          ^{workInProgress now scanning scanProgress ws}
+          ^{workInProgress now scanning scanProgress ws InvestigateAll}
         $of RepoRendering { rsScanResults = sr }
-          ^{workResults now sr scanning "files"}
+          ^{workResults now sr scanning "files" InvestigateAll}
         $of RepoCleaning { rsScanResults = sr }
-          ^{workResults now sr scanning "files"}
+          ^{workResults now sr scanning "files" InvestigateAll}
         $of RepoFinished { rsScanResults = sr }
-          ^{workResults now sr scanning "files"}
+          ^{workResults now sr scanning "files" InvestigateAll}
         $of RepoError _
           ^{scanFailed}
 
@@ -62,11 +62,11 @@
         $of RepoScanning {}
           ^{workIdle rendering}
         $of RepoRendering { rsRenderGoal = ws }
-          ^{workInProgress now rendering renderProgress ws}
+          ^{workInProgress now rendering renderProgress ws WorkOnly}
         $of RepoCleaning { rsRenderResults = rr }
-          ^{workResults now rr rendering "images"}
+          ^{workResults now rr rendering "images" WorkOnly}
         $of RepoFinished { rsRenderResults = rr }
-          ^{workResults now rr rendering "images"}
+          ^{workResults now rr rendering "images" WorkOnly}
         $of RepoError _
           ^{scanFailed}
 
@@ -83,8 +83,8 @@
         $of RepoRendering {}
           ^{workIdle cleaning}
         $of RepoCleaning { rsCleanGoal = ws }
-          ^{workInProgress now cleaning cleanProgress ws}
+          ^{workInProgress now cleaning cleanProgress ws InvestigateAll}
         $of RepoFinished { rsCleanResults = rr }
-          ^{workResults now rr cleaning "files"}
+          ^{workResults now rr cleaning "files" InvestigateAll}
         $of RepoError _
           ^{scanFailed}

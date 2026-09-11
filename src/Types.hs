@@ -45,7 +45,10 @@ module Types ( Config(..)
              , Progress(..)
              , pgTotal
              , pgNumErrors
+             , pgWork
+             , pgWorkRemaining
              , pgProgress
+             , pgWorkProgress
              , incErrors
              , incNoop
              , incDone
@@ -333,12 +336,27 @@ pgNumErrors = length . pgErrors
 pgTotal :: Progress -> Int
 pgTotal p = pgNumErrors p + pgNoop p + pgDone p
 
+pgWork :: Progress -> Int
+pgWork p = pgNumErrors p + pgDone p
+
+pgWorkRemaining :: Progress -> Int
+pgWorkRemaining p = max 0 (pgGoal p - pgWork p)
+
 -- | Returns progress as a ratio, or Nothing if no goal.
 pgProgress :: Progress -> Maybe Double
 pgProgress p@Progress{..} =
   if pgGoal == 0
   then Nothing
   else Just $ fromIntegral (pgTotal p) / fromIntegral pgGoal
+
+-- | Progress toward a work-only goal. Noops are informational and are
+-- not part of the ratio. 'Nothing' means the pending work is not known
+-- yet (goal still unset).
+pgWorkProgress :: Progress -> Maybe Double
+pgWorkProgress p@Progress{..}
+  | pgGoal > 0 = Just $ fromIntegral (pgWork p) / fromIntegral pgGoal
+  | pgNoop > 0 || pgWork p > 0 = Just 1
+  | otherwise = Nothing
 
 incErrors :: Text -> Text -> Progress -> Progress
 incErrors item err p@Progress { pgErrors = old } =

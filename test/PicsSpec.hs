@@ -23,11 +23,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module PicsSpec (spec) where
 
 import           Data.Default
-import qualified Data.Map             as Map
-import qualified Data.Set             as Set
-import           Data.Time            (LocalTime (..), ZonedTime (..), midnight,
-                                       utc)
-import           System.Directory     (createDirectoryIfMissing)
+import qualified Data.Map         as Map
+import qualified Data.Set         as Set
+import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
+                                   utc)
+import           System.Directory (createDirectoryIfMissing)
 
 import           AtomTypes
 import           Exif
@@ -81,6 +81,28 @@ sourceDir ctx =
 outputDir :: Ctx -> FilePath
 outputDir ctx =
   fromMaybe (error "No output directory") (headMay $ cfgOutputDirs $ ctxConfig ctx)
+
+jpegFile :: Ctx -> File
+jpegFile ctx =
+  (simpleFile "a.jpg")
+    { fileParent = mkSym (pack $ cfgCacheDir $ ctxConfig ctx)
+    }
+
+insertJpeg :: Ctx -> File -> IO (Repository, Image)
+insertJpeg ctx jpeg = do
+  repo <- getRepo ctx
+  let config = ctxConfig ctx
+      img = mkImage config "a" "folder" Nothing Nothing [jpeg] Nothing [] [] Nothing MediaImage def
+      dirs = addImageToRepo config (repoDirs repo) img
+      repo' = repo { repoDirs = dirs
+                   , repoStats = computeRepoStats dirs
+                   , repoExif = repoGlobalExif dirs
+                   }
+  atomically $ writeTVar (ctxRepo ctx) repo'
+  return (repo', img)
+
+autoSizeList :: Ctx -> [Int]
+autoSizeList = Set.toList . cfgAutoImageSizes . ctxConfig
 
 spec :: Spec
 spec = parallel $ do
@@ -183,6 +205,37 @@ spec = parallel $ do
       findBestSize (ImageSize 1000) sizes `shouldBe` Just 64
     it "returns Nothing when the request is below all sizes" $
       findBestSize (ImageSize 32) sizes `shouldBe` Nothing
+  withConfig $ do
+    describe "scaled cache freshness" $ do
+      it "treats a missing cache file as needing a rebuild" $ \config ->
+        cacheFileNeedsBuild (cfgCacheDir config </> "missing") 0 `shouldReturn` True
+      it "treats an older cache file as needing a rebuild" $ \config -> do
+        let path = cfgCacheDir config </> "stale"
+        touchFile path
+        -- Note: this is about year 2096. After that, the test
+        -- will fail and will need to be updated.
+        cacheFileNeedsBuild path 4000000000 `shouldReturn` True
+      it "treats a newer cache file as up to date" $ \config -> do
+        let path = cfgCacheDir config </> "fresh"
+        touchFile path
+        cacheFileNeedsBuild path 0 `shouldReturn` False
+      it "does not need a scaled cache when no configured size applies" $ \config ->
+        -- Note: this works as long as size 1 is not in the test image sizes.
+        scaledCacheNeedsBuild config "x.jpg" 0 (ImageSize 1) `shouldReturn` False
+      it "needs a rebuild when the scaled cache is missing" $ \config ->
+        -- Note: this again works if the 1920 or smaller is in the test sizes.
+        scaledCacheNeedsBuild config (cfgCacheDir config </> "src.jpg") 0 (ImageSize 1920)
+          `shouldReturn` True
+      it "is up to date when the scaled cache is newer than the source" $ \config -> do
+        -- Note: again, the size needs to be in sync with the image sizes
+        -- set for the test config.
+        let orig = cfgCacheDir config </> "src.jpg"
+            size = ImageSize 1920
+        case findBestSize size (cfgAllImageSizes config) of
+          Nothing -> expectationFailure "expected a cached size for 1920"
+          Just res -> do
+            touchFile (scaledImagePath config orig res)
+            scaledCacheNeedsBuild config orig 0 size `shouldReturn` False
   withConfig $ do
     describe "NFData" $ do
       it "forces image movie and untracked files" $ \config -> do
@@ -560,7 +613,42 @@ spec = parallel $ do
       it "aborts thumbnail builds after a newer scan takes ownership" $ \ctx -> do
         old <- getRepo ctx
         _ <- atomically $ newRepo (ctxRepo ctx)
-        forceBuildThumbCaches ctx old 0 `shouldThrow` isOwnershipAbort
+        forceBuildThumbCaches ctx old `shouldThrow` isOwnershipAbort
+    describe "forceBuildThumbCaches" $ do
+      it "leaves the render goal at zero when nothing is renderable" $ \ctx -> do
+        repo <- getRepo ctx
+        pg <- forceBuildThumbCaches ctx repo
+        pgGoal pg `shouldBe` 0
+        pgNoop pg `shouldBe` 0
+        pgDone pg `shouldBe` 0
+        pgNumErrors pg `shouldBe` 0
+      it "counts only stale previews toward the render goal" $ \ctx -> do
+        let config = ctxConfig ctx
+            jpeg = jpegFile ctx
+            orig = fileFullPath jpeg
+        case autoSizeList ctx of
+          [] -> expectationFailure "expected auto image sizes"
+          (freshSize:staleSizes) -> do
+            (repo, _) <- insertJpeg ctx jpeg
+            touchFile (scaledImagePath config orig freshSize)
+            pg <- forceBuildThumbCaches ctx repo
+            pgNoop pg `shouldBe` 1
+            pgGoal pg `shouldBe` length staleSizes
+            pgDone pg `shouldBe` 0
+            pgNumErrors pg `shouldBe` length staleSizes
+            pgWork pg `shouldBe` length staleSizes
+      it "records a fully cached image as noops with an empty work goal" $ \ctx -> do
+        let config = ctxConfig ctx
+            jpeg = jpegFile ctx
+            orig = fileFullPath jpeg
+            sizes = autoSizeList ctx
+        (repo, _) <- insertJpeg ctx jpeg
+        mapM_ (touchFile . scaledImagePath config orig) sizes
+        pg <- forceBuildThumbCaches ctx repo
+        pgNoop pg `shouldBe` length sizes
+        pgGoal pg `shouldBe` 0
+        pgDone pg `shouldBe` 0
+        pgNumErrors pg `shouldBe` 0
     describe "getDirContents" $ do
       it "lists files and dirs and skips blacklisted names" $ \ctx -> do
         let config = ctxConfig ctx

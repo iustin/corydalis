@@ -140,6 +140,9 @@ module Pics ( PicDir(..)
             , newRepo
             , forceBuildThumbCaches
             , runScanAction
+            , scaledImagePath
+            , cacheFileNeedsBuild
+            , scaledCacheNeedsBuild
 #endif
             ) where
 
@@ -1398,11 +1401,6 @@ scanFilesystem ctx newrepo = do
                        mergeShadows config) repo
       stats = computeRepoStats repo'
       rexif = repoGlobalExif repo'
-      -- For render stats:
-      allsizes  = cfgAutoImageSizes config
-      -- urgh, renderable images needs a full repo…
-      allimgs = renderableImages (newrepo { repoDirs = repo' })
-      totalrender = length allsizes * length allimgs
       wrscan = WorkResults { wrStart = start
                            , wrEnd = end
                            , wrDone = scanned
@@ -1418,7 +1416,7 @@ scanFilesystem ctx newrepo = do
   writeDiskCache config repo_as
   logfn LevelInfo "Finished building repo, starting rendering"
   traceMarkerIO "scanFilesystem start rendering"
-  rendered <- forceBuildThumbCaches ctx repo_as totalrender
+  rendered <- forceBuildThumbCaches ctx repo_as
   endr <- getZonedTime
   let wrrender = WorkResults { wrStart = end
                              , wrEnd = endr
@@ -1453,28 +1451,47 @@ scanFilesystem ctx newrepo = do
 renderableImages :: Repository -> [Image]
 renderableImages = filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
 
-forceBuildThumbCaches :: Ctx -> Repository -> Int -> IO Progress
-forceBuildThumbCaches ctx repo totalrender = do
+-- | Pre-render all auto image sizes, converting only stale caches.
+--
+-- First classifies every image×size (stat the scaled cache, no
+-- convert), then runs convert only for the stale ones. Render
+-- progress 'pgGoal' is the pending work, not the classified total.
+forceBuildThumbCaches :: Ctx -> Repository -> IO Progress
+forceBuildThumbCaches ctx repo = do
   checkRepoOwnership ctx repo
   let config = ctxConfig ctx
       renderProgress = ctxRenderProgress ctx
-  atomically $ writeTVar renderProgress (def { pgGoal = totalrender})
-  let images = renderableImages repo
+      images = renderableImages repo
+      sizes = cfgAutoImageSizes config
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
-                        (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
-      thbuild i = mapM_ (\size -> do
-                            checkRepoOwnership ctx repo
-                            res <- imageAtRes config i . Just . ImageSize $ size
-                            let modifier = case res of
-                                  Left err            -> incErrors (imageForError i size) (Text.pack $ show err)
-                                  Right (False, _, _) -> incNoop
-                                  Right (True, _, _)  -> incDone
-                            atomically $ modifyTVar' renderProgress modifier
-                        )
-                    (cfgAutoImageSizes config)
+                         (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
+      classifySize (pend, n, es) i size = do
+        checkRepoOwnership ctx repo
+        res <- imageNeedsRender config i size
+        return $ case res of
+          Left err ->
+            (pend, n, ProgressError (imageForError i size) (Text.pack $ show err):es)
+          Right False -> (pend, n + 1, es)
+          Right True  -> ((i, size):pend, n, es)
+      classifyImage acc i = foldM (`classifySize` i) acc sizes
+  atomically $ writeTVar renderProgress def
+  (pending, noops, errs) <- foldM classifyImage ([], 0, []) images
+  atomically $ writeTVar renderProgress Progress
+    { pgErrors = errs
+    , pgNoop = noops
+    , pgDone = 0
+    , pgGoal = length pending + length errs
+    }
   -- TODO: add some concurrency for image cache builds.
-  -- pooledMapConcurrentlyN_ 8 thbuild images
-  mapM_ thbuild images
+  -- pooledMapConcurrentlyN_ 8 ...
+  mapM_ (\(i, size) -> do
+            checkRepoOwnership ctx repo
+            res <- imageAtRes config i . Just . ImageSize $ size
+            let modifier = case res of
+                  Left   err      -> incErrors (imageForError i size) (Text.pack $ show err)
+                  Right (_, _, _) -> incDone
+            atomically $ modifyTVar' renderProgress modifier
+        ) pending
   readTVarIO renderProgress
 
 repoDiskFile :: String
@@ -1612,6 +1629,38 @@ scaledImagePath :: Config -> FilePath -> Int -> String
 scaledImagePath config path res =
   cachedBasename config path (show res)
 
+-- | Whether a cache file is missing or older than the source mtime.
+cacheFileNeedsBuild :: FilePath -> POSIXTime -> IO Bool
+cacheFileNeedsBuild fpath mtime = do
+  stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
+  return $ case stat of
+    Left _   -> True
+    Right st -> modificationTimeHiRes st < mtime
+
+-- | Whether a scaled preview for this request size needs generating.
+--
+-- Snaps @size@ through 'findBestSize' onto 'cfgAllImageSizes' so the
+-- check uses the same cache path as 'loadCachedOrBuild'. For auto
+-- sizes (already in that set) the snap is identity. Returns 'False'
+-- when no cached size applies (request smaller than every configured
+-- size).
+scaledCacheNeedsBuild :: Config -> FilePath -> POSIXTime -> ImageSize -> IO Bool
+scaledCacheNeedsBuild config origPath mtime size =
+  case findBestSize size (cfgAllImageSizes config) of
+    Nothing  -> return False
+    Just res -> cacheFileNeedsBuild (scaledImagePath config origPath res) mtime
+
+-- | Whether pre-rendering @size@ for this image would run convert.
+--
+-- Resolves the viewable original (cheap for JPEGs; may extract
+-- embedded previews for RAW/movies), then delegates to
+-- 'scaledCacheNeedsBuild'. Failures from that resolution are returned
+-- as 'Left'.
+imageNeedsRender :: Config -> Image -> Int -> IO (Either ImageError Bool)
+imageNeedsRender config img size = try $ do
+  (origFile, _, _, mtime) <- getViewableVersion config img
+  scaledCacheNeedsBuild config (fileFullPath origFile) mtime (ImageSize size)
+
 -- | Generate a preview for an image.
 --
 -- In this context, a preview is a smaller version of an image, for
@@ -1639,10 +1688,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
       -- since this is a file, not a directory, so symlinks to
       -- somewhere else are OK-ish; we do not recurse into the target
       -- directory.
-      stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
-      let needsGen = case stat of
-                       Left _   -> True
-                       Right st -> modificationTimeHiRes st < mtime
+      needsGen <- cacheFileNeedsBuild fpath mtime
       when needsGen $ do
         let operators = if isThumb
                           then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
