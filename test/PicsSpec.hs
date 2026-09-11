@@ -260,6 +260,19 @@ spec = parallel $ do
           `shouldThrow` anyErrorCall
         evaluate (rnf (dir { pdStats = def { sDateRange = Just (error "range") } }))
           `shouldThrow` anyErrorCall
+    describe "splitPathExt and isKnownMediaInode" $ do
+      it "recognises configured media extensions" $ \config -> do
+        isKnownMediaInode config (mkInode "a.nef") `shouldBe` True
+        isKnownMediaInode config (mkInode "a.jpg") `shouldBe` True
+        isKnownMediaInode config (mkInode "a.xmp") `shouldBe` True
+        isKnownMediaInode config (mkInode "a.mov") `shouldBe` True
+      it "rejects unknown extensions and extensionless names" $ \config -> do
+        isKnownMediaInode config (mkInode "notes.other") `shouldBe` False
+        isKnownMediaInode config (mkInode "SHA1SUMS") `shouldBe` False
+        isKnownMediaInode config (mkInode "corydalis.yaml") `shouldBe` False
+        splitPathExt "SHA1SUMS" `shouldBe` ("SHA1SUMS", "")
+        splitPathExt "a.nef" `shouldBe` ("a", "nef")
+        splitPathExt "sub/a.nef" `shouldBe` ("sub/a", "nef")
     describe "path regex helpers" $ do
       it "matches date-prefixed folder names" $ \config -> do
         isOKDir config "2024-01-01-trip" `shouldBe` True
@@ -329,6 +342,10 @@ spec = parallel $ do
         let (img, _) = runLoad config True (mkInode "notes.other")
         imgType img `shouldBe` MediaUnknown
         null (imgUntracked img) `shouldBe` False
+      it "classifies extensionless files as untracked" $ \config -> do
+        let (img, _) = runLoad config True (mkInode "SHA1SUMS")
+        imgType img `shouldBe` MediaUnknown
+        null (imgUntracked img) `shouldBe` False
       it "expands range jpegs into shadows" $ \config -> do
         let (img, shadows) = runLoad (withProdNameRegexes config) False (mkInode "a_1-3.jpg")
         imgName img `shouldBe` "a_1-3"
@@ -373,6 +390,36 @@ spec = parallel $ do
             folder = buildFolderFromInodes config "folder" "/p" True
                        [mkInode "a.nef", mkInode "b.nef"] cache Nothing
         extractEventType (pdEvent folder) `shouldBe` EKGetaway
+      it "keeps unknown and extensionless files out of the image map" $ \config -> do
+        let eImg = datedExif 2024 6 1
+            eOther = datedExif 1999 1 1
+            cache = Map.fromList
+              [ ("a.nef", Right eImg)
+              , ("notes.other", Right eOther)
+              , ("SHA1SUMS", Right eOther)
+              , ("corydalis.yaml", Right eOther)
+              ]
+            folder = buildFolderFromInodes config "folder" "/p" True
+                       [ mkInode "a.nef"
+                       , mkInode "notes.other"
+                       , mkInode "SHA1SUMS"
+                       , mkInode "corydalis.yaml"
+                       ] cache Nothing
+        Map.keys (pdImages folder) `shouldBe` ["a"]
+        map fileName (pdUntracked folder) `shouldMatchList`
+          ["notes.other", "SHA1SUMS", "corydalis.yaml"]
+        let captured = LocalTime (fromGregorian 2024 6 1) midnight
+        pdTimestamp folder `shouldBe` Just captured
+        sDateRange (pdStats folder) `shouldBe` Just (captured, captured)
+        sUntracked (pdStats folder) `shouldBe` 3
+        Map.notMember "notes" (pdImages folder) `shouldBe` True
+        Map.notMember "SHA1SUMS" (pdImages folder) `shouldBe` True
+        Map.notMember "corydalis" (pdImages folder) `shouldBe` True
+      it "does not attach unknown same-basename files to images" $ \config -> do
+        let folder = buildFolderFromInodes config "folder" "/p" True
+                       [mkInode "a.nef", mkInode "a.txt"] Map.empty Nothing
+        imgUntracked (pdImages folder Map.! "a") `shouldBe` []
+        map fileName (pdUntracked folder) `shouldBe` ["a.txt"]
     describe "isBetterMaster" $ do
       it "prefers earlier extensions" $ \_ -> do
         isBetterMaster ["nef", "raf"] "nef" "raf" `shouldBe` True
@@ -420,6 +467,16 @@ spec = parallel $ do
         sProcessed (pdStats merged) `shouldBe` 1
         sRaw (pdStats merged) `shouldBe` 0
         sStandalone (pdStats merged) `shouldBe` 0
+      it "concatenates untracked files and counts them in stats" $ \config -> do
+        let d1 = (picDirWith "test" [simpleRawImage config])
+                   { pdUntracked = [fileSized "SHA1SUMS" 10] }
+            d2 = (createTestPicDir "test")
+                   { pdUntracked = [fileSized "notes.other" 7] }
+            merged = mergeFolders config d1 d2
+        map fileName (pdUntracked merged) `shouldMatchList` ["SHA1SUMS", "notes.other"]
+        sUntracked (pdStats merged) `shouldBe` 2
+        sUntrackedSize (pdStats merged) `shouldBe` 17
+        Map.member "a" (pdImages merged) `shouldBe` True
     describe "mergeShadows and ranges" $ do
       it "applies shadows onto matching images" $ \config -> do
         let raw = simpleRawImage config
@@ -489,6 +546,8 @@ spec = parallel $ do
         folderClassFromStats (zeroStats { sMovies = 1 }) `shouldBe` FolderProcessed
       it "computes folderClass from images" $ \config -> do
         folderClass (createTestPicDir "empty") `shouldBe` FolderEmpty
+        folderClass ((createTestPicDir "empty") { pdUntracked = [simpleFile "SHA1SUMS"] })
+          `shouldBe` FolderEmpty
         folderClass (picDirWith "raw" [simpleRawImage config]) `shouldBe` FolderRaw
     describe "queries" $ do
       it "filters images by class" $ \config -> do
@@ -498,6 +557,11 @@ spec = parallel $ do
             repo = mkRepository (Map.singleton "test" dir)
         map imgName (filterImagesByClass [ImageUnprocessed] repo) `shouldBe` ["a"]
         map imgName (filterImagesByClass [ImageStandalone] repo) `shouldBe` ["b"]
+      it "omits folder-level untracked files from allRepoFiles" $ \config -> do
+        let dir = (picDirWith "test" [simpleRawImage config])
+                    { pdUntracked = [simpleFile "SHA1SUMS"] }
+            repo = mkRepository (Map.singleton "test" dir)
+        map fileName (allRepoFiles repo) `shouldBe` ["a.nef"]
       it "reports image file kinds" $ \config -> do
         let raw = simpleRawImage config
             movie = mkImage config "m" "t" Nothing Nothing [] (Just $ simpleFile "m.mov") [] [] Nothing MediaMovie def
@@ -622,6 +686,19 @@ spec = parallel $ do
         pgNoop pg `shouldBe` 0
         pgDone pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
+      it "does not try to render untracked-only files" $ \ctx -> do
+        repo <- getRepo ctx
+        let config = ctxConfig ctx
+            untracked = mkImage config "sums" "folder" Nothing Nothing [] Nothing []
+                          [simpleFile "SHA1SUMS"] Nothing MediaUnknown def
+            dirs = addImageToRepo config (repoDirs repo) untracked
+            repo' = repo { repoDirs = dirs }
+        null (renderableImages repo') `shouldBe` True
+        pg <- forceBuildThumbCaches ctx repo'
+        pgGoal pg `shouldBe` 0
+        pgNoop pg `shouldBe` 0
+        pgDone pg `shouldBe` 0
+        pgNumErrors pg `shouldBe` 0
       it "counts only stale previews toward the render goal" $ \ctx -> do
         let config = ctxConfig ctx
             jpeg = jpegFile ctx
@@ -677,9 +754,11 @@ spec = parallel $ do
         let folder = sourceDir ctx </> "2024-01-01-trip"
         touchFile (folder </> "a.nef")
         touchFile (folder </> "notes.other")
+        touchFile (folder </> "SHA1SUMS")
         pic <- loadFolder ctx "2024-01-01-trip" folder True
         imgStatus (pdImages pic Map.! "a") `shouldBe` ImageUnprocessed
-        imgType (pdImages pic Map.! "notes") `shouldBe` MediaUnknown
+        Map.keys (pdImages pic) `shouldBe` ["a"]
+        map fileName (pdUntracked pic) `shouldMatchList` ["notes.other", "SHA1SUMS"]
       it "treats output jpegs as standalone" $ \ctx -> do
         let folder = outputDir ctx </> "2024-01-01-trip"
         touchFile (folder </> "b.jpg")
@@ -695,6 +774,8 @@ spec = parallel $ do
           , eventPeople = []
           , eventSource = EventExplicit (Just (folder </> "corydalis.yaml"))
           }
+        Map.notMember "corydalis" (pdImages pic) `shouldBe` True
+        map fileName (pdUntracked pic) `shouldBe` ["corydalis.yaml"]
       it "attaches sidecars as orphaned when alone" $ \ctx -> do
         let folder = sourceDir ctx </> "2024-03-03-xmp"
         touchFile (folder </> "solo.xmp")

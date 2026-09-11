@@ -336,6 +336,12 @@ categories:
   processed files without a raw file is _mixed_
 - a folder only containing no pictures is _empty_
 
+Files whose extension is not configured as raw, JPEG, sidecar, or
+movie (including files with no extension, checksum files, and
+`corydalis.yaml`) are not treated as pictures. They are still listed
+on the folder page as untracked files, but they are not viewed,
+rendered, or used for folder timestamps.
+
 The classification of folders into only one of these categories is not
 perfect; for example, an _unprocessed_ folder can contain standalone
 files, but is not classified as mixed in order to simplify the

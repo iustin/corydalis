@@ -916,7 +916,6 @@ matchGrandVacation e ev =
       evalStr' e eventName || any (evalStr' e) eventPeople
     _ -> False
 
--- TODO: implement searching type=unknown after untracked merging into image.
 -- TODO: implement better symbolized searches.
 folderSearchFunction :: Atom -> PicDir -> Bool
 folderSearchFunction (Country loc) =
@@ -983,7 +982,9 @@ folderSearchFunction a@(FocalLength _) =
 folderSearchFunction a@(Problem _) =
   imagesMatchAtom a . pdImages
 
--- TODO: make something smarter here?
+folderSearchFunction (Type MediaUnknown) =
+  \p -> not (null (pdUntracked p)) || imagesMatchAtom (Type MediaUnknown) (pdImages p)
+
 folderSearchFunction a@(Type _) =
   imagesMatchAtom a . pdImages
 

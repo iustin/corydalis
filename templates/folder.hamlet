@@ -83,6 +83,18 @@
         $if sUntrackedSize stats > 0
           <li>#{showBinary $ sUntrackedSize stats} untracked files
 
+  $if not (null $ pdUntracked dir)
+    <div .col-12 .col-md-4 .mb-4>
+     <div .card>
+      <div .card-header>Untracked files
+      <div .card-body>
+        These files are not a known image, movie, or sidecar format, so they are not treated as pictures.
+        <ul>
+          $forall f <- pdUntracked dir
+            <li>
+              <span .monolight>#{Pics.fileRelPath f}
+              \ (#{showBinary $ Pics.fileSize f})
+
   <div .col-6 .col-md-3 .mb-4>
    <div .card>
     <div .card-header>Camera(s)

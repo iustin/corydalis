@@ -172,6 +172,7 @@ data Config = Config
     , cfgSidecarExts     :: Set Text
     , cfgOtherImgExts    :: [FilePath]
     , cfgMovieExts       :: Set Text
+    , cfgAllMediaExts    :: Set Text  -- ^ Union of raw/jpeg/sidecar/movie extensions.
     , cfgDirRegex        :: Regex
     , cfgRangeRegex      :: Regex
     , cfgCopyRegex       :: Regex
@@ -192,6 +193,10 @@ instance FromJSON Config where
         allsizes = Set.union <$> autosizes <*> demandsizes
         rawexts = v .: "rawexts"
         rawextsset = Set.fromList . map Text.pack <$> rawexts
+        jpegexts = v .: "jpegexts"
+        sidecarexts = v .: "sidecarexts"
+        movieexts = v .: "movieexts"
+        allmediaexts = Set.unions <$> sequenceA [rawextsset, jpegexts, sidecarexts, movieexts]
         viewableimages = v .: "viewableimages"
         viewableimageslist = map (Text.pack . ('.':)) <$> viewableimages
     in
@@ -208,10 +213,11 @@ instance FromJSON Config where
          v .: "pagesize"        <*>
          rawexts                <*>
          rawextsset             <*>
-         v .: "jpegexts"        <*>
-         v .: "sidecarexts"     <*>
+         jpegexts               <*>
+         sidecarexts            <*>
          v .: "otherexts"       <*>
-         v .: "movieexts"       <*>
+         movieexts              <*>
+         allmediaexts           <*>
          v .: "dirregex"        <*>
          v .: "rangeregex"      <*>
          v .: "copyregex"       <*>

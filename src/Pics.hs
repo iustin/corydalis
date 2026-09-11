@@ -143,6 +143,9 @@ module Pics ( PicDir(..)
             , scaledImagePath
             , cacheFileNeedsBuild
             , scaledCacheNeedsBuild
+            , splitPathExt
+            , isKnownMediaInode
+            , renderableImages
 #endif
             ) where
 
@@ -470,6 +473,7 @@ data PicDir = PicDir
   , pdImages    :: !(Map ImageName Image)
   , pdTimeSort  :: !(Set ImageTimeKey)
   , pdShadows   :: !(Map ImageName Image)
+  , pdUntracked :: ![File]           -- ^ Files of unknown type, not treated as images.
   , pdYear      :: !(Maybe Integer)  -- ^ The approximate year of the
                                      -- earliest picture.
   , pdTimestamp :: !(Maybe LocalTime)  -- ^ The approximate date of the
@@ -488,6 +492,7 @@ instance NFData PicDir where
                    rnf pdImages    `seq`
                    rnf pdTimeSort  `seq`
                    rnf pdShadows   `seq`
+                   rnf pdUntracked `seq`
                    rnf pdYear      `seq`
                    rnf pdTimestamp `seq`
                    rnf pdExif      `seq`
@@ -727,9 +732,16 @@ updateStatsWithPic orig img =
 computeImagesStats :: (Foldable a) => a Image -> Stats
 computeImagesStats = Data.Foldable.foldl' updateStatsWithPic zeroStats
 
+addUntrackedFiles :: [File] -> Stats -> Stats
+addUntrackedFiles files stats =
+  stats
+    { sUntracked = sUntracked stats + length files
+    , sUntrackedSize = sUntrackedSize stats + sum (map fileSize files)
+    }
+
 computeFolderStats :: PicDir -> Stats
-computeFolderStats =
-  computeImagesStats . pdImages
+computeFolderStats dir =
+  addUntrackedFiles (pdUntracked dir) (computeImagesStats (pdImages dir))
 
 data StrictTriple a b c = StrictTriple !a !b !c
 
@@ -872,6 +884,7 @@ mergeFolders c x y =
     , pdSecPaths = pdSecPaths x ++ pdMainPath otherMainPath:pdSecPaths y
     , pdImages = newimages
     , pdTimeSort = buildTimeSort newimages
+    , pdUntracked = newuntracked
     , pdYear = min <$> pdYear x <*> pdYear y <|>
                pdYear x <|>
                pdYear y
@@ -893,7 +906,8 @@ mergeFolders c x y =
                                      GT -> (x, y)
                                      _  -> (y, x)
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
-    stats = computeImagesStats newimages
+    newuntracked = pdUntracked x ++ pdUntracked y
+    stats = addUntrackedFiles newuntracked (computeImagesStats newimages)
     pickEvent a b = explicitEvent a <|> explicitEvent b <|> a <|> b
     explicitEvent mev@(Just ev) =
       case eventSource ev of
@@ -1075,6 +1089,22 @@ buildGroupExif =
 buildTimeSort :: Map ImageName Image -> Set ImageTimeKey
 buildTimeSort = Set.fromList . map imageTimeKey . Map.elems
 
+-- | Split a path into basename and extension without the leading dot.
+splitPathExt :: FilePath -> (FilePath, Text)
+splitPathExt path =
+  let (stem, ext') = splitExtension path
+      ext = Text.pack $ case ext' of
+        '.':v -> v
+        _     -> ext'
+  in (stem, ext)
+
+isKnownMediaExt :: Config -> Text -> Bool
+isKnownMediaExt config = (`Set.member` cfgAllMediaExts config)
+
+isKnownMediaInode :: Config -> InodeInfo -> Bool
+isKnownMediaInode config =
+  isKnownMediaExt config . snd . splitPathExt . inodeFullName
+
 -- | Builds a `File` object from its base `Inode` and other data.
 mkFileFromInode :: SymbolizedItem -> InodeInfo -> Exif -> File
 mkFileFromInode parent ii exif =
@@ -1113,10 +1143,7 @@ loadImage config tname parent isSource lcache ii =
       ewarn txt = def { exifWarning = Set.singleton txt }
       file_name = inodeFullName ii
       file_text = Text.pack file_name
-      (base_full, ext') = splitExtension file_name
-      ext = Text.pack $ case ext' of
-        '.':v -> v
-        _     -> ext'
+      (base_full, ext) = splitPathExt file_name
       base_name = dropCopySuffix config base_full
       base_name_text = Text.pack base_name
       exif = case file_text `Map.lookup` lcache of
@@ -1178,11 +1205,13 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
   let tname = TS.fromString name
       dirpath = TS.fromString path
       parent = mkSymbolizedItem dirpath
+      (known, otherFiles) = partition (isKnownMediaInode config) contents
       (images, shadows) =
         foldl' (\(images', shadows') f ->
                   let (img, newss) = loadImage config tname parent isSource lcache f
                   in (addImg config images' img, addImgs config shadows' newss)
-               ) (Map.empty, Map.empty) contents
+               ) (Map.empty, Map.empty) known
+      untracked = map (\ii -> mkFileFromInode parent ii def) otherFiles
       timestamp = Map.foldl' (\a img ->
                            (min <$> a <*> imageLocalDate img) <|>
                            a <|>
@@ -1191,7 +1220,7 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
       year = localDateToYear <$> timestamp
       exif = buildGroupExif images
       timesort = buildTimeSort images
-      pstats = computeImagesStats images
+      pstats = addUntrackedFiles untracked (computeImagesStats images)
       event = yamlEvent <|> implicitEventFromDateRange tname (sDateRange pstats)
   in PicDir { pdName = tname
             , pdMainPath = dirpath
@@ -1199,6 +1228,7 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
             , pdImages = images
             , pdTimeSort = timesort
             , pdShadows = shadows
+            , pdUntracked = untracked
             , pdYear = year
             , pdTimestamp = timestamp
             , pdExif = exif
@@ -1219,8 +1249,9 @@ loadFolder ctx name path isSource = do
   contents <- recursiveScanPath config path []
   logfn LevelDebug $ "loadFolder scanned " <> toLogStr path <> " (" <>
     toLogStr (show (length contents)) <> " inodes)"
+  let known = filter (isKnownMediaInode config) contents
   (readexifs, lcache) <- getExif logfn config path $
-                           map inodeFullName contents
+                           map inodeFullName known
   logfn LevelDebug $ "loadFolder yaml " <> toLogStr path
   (_, yamlEvent) <- loadOptionalYaml (path </> "corydalis.yaml")
   logfn LevelDebug $ "loadFolder build " <> toLogStr path
@@ -1449,7 +1480,9 @@ scanFilesystem ctx newrepo = do
 
 -- | Computes the list of images that can be rendered.
 renderableImages :: Repository -> [Image]
-renderableImages = filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
+renderableImages =
+  filter (not . null . allViewableImageFiles) .
+  filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
 
 -- | Pre-render all auto image sizes, converting only stale caches.
 --

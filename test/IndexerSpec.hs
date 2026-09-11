@@ -819,6 +819,10 @@ spec = parallel $ do
       folderSearchFunction (FocalLength (OpEq 50)) spainDir `shouldBe` True
       folderSearchFunction (Problem (OpEqual "exif: truncated")) spainDir `shouldBe` True
       folderSearchFunction (Type MediaImage) spainDir `shouldBe` True
+      folderSearchFunction (Type MediaUnknown) spainDir `shouldBe` False
+      folderSearchFunction (Type MediaUnknown)
+        ((createTestPicDir "u") { pdUntracked = [simpleFile "SHA1SUMS"] })
+        `shouldBe` True
       folderSearchFunction (Folder (OpEqual "spain")) spainDir `shouldBe` True
       folderSearchFunction (FileName (OpEqual "rich.jpg")) spainDir `shouldBe` True
       folderSearchFunction (Status ImageStandalone) spainDir `shouldBe` True

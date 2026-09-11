@@ -71,6 +71,11 @@ spec = parallel $ do
       let c = ctxConfig ctx
           common = cfgAutoImageSizes c  `intersect` cfgOnDemandSizes c
       common `shouldBe` Data.Set.empty
+    it "builds the combined media extension set" $ \ctx -> do
+      let c = ctxConfig ctx
+          expected = Data.Set.unions
+            [ cfgRawExtsSet c, cfgJpegExts c, cfgSidecarExts c, cfgMovieExts c ]
+      cfgAllMediaExts c `shouldBe` expected
   describe "tests Regex data type" $ do
     prop "rejects invalid regexes" $ forAll (elements ['?', '+', '*']) $
       isNothing . mkRegex . Text.pack . (: [])

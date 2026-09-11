@@ -328,6 +328,7 @@ createTestPicDir name =
          , pdImages = Map.empty
          , pdTimeSort = Set.empty
          , pdShadows = Map.empty
+         , pdUntracked = []
          , pdYear = Nothing
          , pdTimestamp = Nothing
          , pdExif = def

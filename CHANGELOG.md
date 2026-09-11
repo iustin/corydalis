@@ -62,6 +62,15 @@ of the computation are more accurate.
 
 ### Fixed bugs
 
+Files that are not a known image, movie, or sidecar format (for
+example `SHA1SUMS`, `corydalis.yaml`, or files with no extension) are
+no longer treated as pictures. They are listed separately on the
+folder page, they do not affect folder timestamps or date ranges, and
+the renderer no longer tries to generate previews for them. If there are
+many such files in the repository, this will speed up the scans, and
+furthermore it will not run `exiftool` and `convert` on arbitrary files,
+which might be problematic.
+
 When going from any other page to the image viewer, and then moving to
 another image (still inside the image viewer), navigating back in history
 to the first image was not working. This has been fixed.
