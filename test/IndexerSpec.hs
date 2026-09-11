@@ -285,6 +285,8 @@ spec = parallel $ do
     it "returns True for most atoms" $ do
       atomFindsFiles (Country (OpEqual "Spain")) `shouldBe` True
       atomFindsFiles (Year (OpEq 2020)) `shouldBe` True
+      atomFindsFiles (Type MediaImage) `shouldBe` True
+      atomFindsFiles (Type MediaUnknown) `shouldBe` False
 
     prop "returns False for folder class atoms" $ \fclass ->
       atomFindsFiles (FClass fclass) `shouldBe` False
@@ -885,6 +887,9 @@ spec = parallel $ do
       [d | (_, Just d, _) <- getAtoms TFlashSrc populatedRepo]
         `shouldSatisfy` any ("flash" `Text.isInfixOf`)
       getAtoms TType populatedRepo `shouldSatisfy` (not . null)
+      let unknownDir = (createTestPicDir "u") { pdUntracked = [simpleFile "SHA1SUMS"] }
+      [c | (Just "unknown", _, c) <- getAtoms TType (testRepo [unknownDir])]
+        `shouldBe` [1]
       getAtoms TStatus populatedRepo `shouldSatisfy` (not . null)
       getAtoms TFClass populatedRepo `shouldSatisfy` (not . null)
       getAtoms TFolder populatedRepo `shouldSatisfy` (not . null)

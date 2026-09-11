@@ -123,7 +123,8 @@ The search atoms are:
   focal length, without conversion into 35-mm equivalent
 - problem (this is what can be potentially errors; right now limited
   to exif metadata read issues)
-- type (set: movie, image, or unknown)
+- type (set: movie, image, or unknown); unknown matches folders that
+  contain files which are not a known image, movie, or sidecar format
 - folder (string): matches folder name
 - filename (string): matches image name (with any intermediate
   sub-paths)

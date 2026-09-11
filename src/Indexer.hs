@@ -1215,21 +1215,22 @@ imageSearchFunction ConstTrue = const True
 -- | Computes whether a given atom can ever find files.
 atomFindsFiles :: Atom -> Bool
 -- TODO: should events find images?
-atomFindsFiles (Event _)         = False
-atomFindsFiles (Birthday _)      = False
-atomFindsFiles (Getaway _)       = False
-atomFindsFiles (GrandVacation _) = False
-atomFindsFiles (Vacation _)      = False
-atomFindsFiles (WorkTrip _)      = False
-atomFindsFiles (EventKind _)     = False
-atomFindsFiles (FClass _)        = False
-atomFindsFiles (And a b)         = atomFindsFiles a && atomFindsFiles b
-atomFindsFiles (Or a b)          = atomFindsFiles a || atomFindsFiles b
-atomFindsFiles (Not a)           = atomFindsFiles a
-atomFindsFiles (All as)          = all atomFindsFiles as
-atomFindsFiles (Any as)          = any atomFindsFiles as
-atomFindsFiles ConstTrue         = True
-atomFindsFiles _                 = True
+atomFindsFiles (Event _)           = False
+atomFindsFiles (Birthday _)        = False
+atomFindsFiles (Getaway _)         = False
+atomFindsFiles (GrandVacation _)   = False
+atomFindsFiles (Vacation _)        = False
+atomFindsFiles (WorkTrip _)        = False
+atomFindsFiles (EventKind _)       = False
+atomFindsFiles (FClass _)          = False
+atomFindsFiles (Type MediaUnknown) = False
+atomFindsFiles (And a b)           = atomFindsFiles a && atomFindsFiles b
+atomFindsFiles (Or a b)            = atomFindsFiles a || atomFindsFiles b
+atomFindsFiles (Not a)             = atomFindsFiles a
+atomFindsFiles (All as)            = all atomFindsFiles as
+atomFindsFiles (Any as)            = any atomFindsFiles as
+atomFindsFiles ConstTrue           = True
+atomFindsFiles _                   = True
 
 -- Actual key value, representation for display, and count.
 type AtomStats = [(Maybe Text, Maybe Text, Integer)]
@@ -1319,7 +1320,14 @@ getAtoms TEventKind = gaBuilder showEventKind showEventKind . eventKindStats
 
 -- | Computes type statistics.
 typeStats :: Repository -> NameStats MediaType
-typeStats = computePicStats $ \i -> [Just $ imgType i]
+typeStats repo =
+  Map.foldl' addUntracked (computePicStats (\i -> [Just $ imgType i]) repo)
+             (repoDirs repo)
+  where
+    addUntracked stats dir =
+      let n = fromIntegral (length (pdUntracked dir))
+      in if n == 0 then stats
+         else Map.insertWith (+) (Just MediaUnknown) n stats
 
 -- | Gets status stastics from repository statistics.
 statusStats :: Repository -> NameStats Text
