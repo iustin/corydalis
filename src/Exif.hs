@@ -58,6 +58,8 @@ module Exif ( Exif(..)
 #ifdef TEST
             , exifToolBatchSize
             , chunkPaths
+            , exifToolArgs
+            , exifPath
 #endif
             ) where
 
@@ -1209,14 +1211,25 @@ bExifPath :: Config -> FilePath -> FilePath
 bExifPath config path =
   cachedBasename config path ("bexif" ++ devSuffix)
 
+-- | Builds the exiftool command line for paths relative to its working
+-- directory.
+--
+-- The paths come from the file system, and a name starting with a dash
+-- would otherwise be parsed as an option: @-Comment=x.jpg@ switches
+-- exiftool to write mode, modifying the other files in the batch. The
+-- paths must therefore always come after the end of options marker.
+exifToolArgs :: [FilePath] -> [String]
+exifToolArgs paths = [
+  "-json",
+  "-struct",
+  "-l",
+  "--"
+  ] ++ paths
+
 extractExifs :: LogFn -> FilePath -> [FilePath] -> IO BS.ByteString
 extractExifs logfn dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
   -- TODO: should instead make exiftool write directly to individual raw exifs?
-  let args = [
-        "-json",
-        "-struct",
-        "-l"
-        ] ++ paths
+  let args = exifToolArgs paths
       pconfig =
         setStdin closed
         . setStdout (useHandleClose fhandle)

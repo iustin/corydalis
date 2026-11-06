@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections     #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module ExifSpec (spec) where
@@ -29,8 +30,52 @@ import           TestImport
 import           ClassyPrelude.Yesod
 import           Data.Aeson
 import           Data.Aeson.Types    (parseMaybe)
+import qualified Data.ByteString     as BS
+import           Data.Either         (isLeft, isRight)
+import qualified Data.Map            as Map
 import           Data.Text.Arbitrary ()
+import           System.Directory    (findExecutable, listDirectory)
 import           Test.QuickCheck
+
+-- | A 1x1 pixel JPEG, which exiftool is able to rewrite.
+--
+-- Generated with ImageMagick 7.1.1-43:
+--
+-- > convert -size 1x1 xc:white -strip jpeg:- | od -An -v -tx1
+minimalJpeg :: ByteString
+minimalJpeg = BS.pack
+  [ 0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01
+  , 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xdb, 0x00, 0x43
+  , 0x00, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x03
+  , 0x03, 0x03, 0x03, 0x04, 0x06, 0x04, 0x04, 0x04, 0x04, 0x04, 0x08, 0x06
+  , 0x06, 0x05, 0x06, 0x09, 0x08, 0x0a, 0x0a, 0x09, 0x08, 0x09, 0x09, 0x0a
+  , 0x0c, 0x0f, 0x0c, 0x0a, 0x0b, 0x0e, 0x0b, 0x09, 0x09, 0x0d, 0x11, 0x0d
+  , 0x0e, 0x0f, 0x10, 0x10, 0x11, 0x10, 0x0a, 0x0c, 0x12, 0x13, 0x12, 0x10
+  , 0x13, 0x0f, 0x10, 0x10, 0x10, 0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x01
+  , 0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xff, 0xc4, 0x00, 0x14, 0x00, 0x01
+  , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  , 0x00, 0x00, 0x00, 0x09, 0xff, 0xc4, 0x00, 0x14, 0x10, 0x01, 0x00, 0x00
+  , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  , 0x00, 0x00, 0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00
+  , 0x54, 0xdf, 0xff, 0xd9
+  ]
+
+-- | Marks the test as pending if exiftool is not installed.
+requireExifTool :: IO ()
+requireExifTool =
+  findExecutable "exiftool" >>=
+    maybe (pendingWith "exiftool is not available") (const (return ()))
+
+-- | Creates files in the source directory, and returns the directory.
+populateSourceDir :: Config -> [(FilePath, ByteString)] -> IO FilePath
+populateSourceDir config files = do
+  let dir = fromMaybe (error "No source directory") $
+              headMay (cfgSourceDirs config)
+  forM_ files $ \(name, contents) -> BS.writeFile (dir </> name) contents
+  return dir
+
+noLog :: LogFn
+noLog _ _ = return ()
 
 -- Arbitrary instances for testing
 
@@ -156,6 +201,45 @@ spec = parallel $ do
       chunkPaths xs `shouldBe` [[1..exifToolBatchSize], [exifToolBatchSize + 1]]
     it "returns no chunks for an empty list" $
       chunkPaths ([] :: [Int]) `shouldBe` []
+
+  describe "exiftool arguments" $ do
+    it "passes file names unchanged after the end of options" $
+      exifToolArgs ["-Comment=x.jpg", "-Directory=/tmp/x.jpg", "sub/a.jpg"]
+        `shouldBe` ["-json", "-struct", "-l", "--",
+                    "-Comment=x.jpg", "-Directory=/tmp/x.jpg", "sub/a.jpg"]
+
+  withConfig $ describe "exiftool file name handling" $ do
+    it "does not interpret file names as options" $ \config -> do
+      requireExifTool
+      let names = ["-Comment=x.jpg", "-Directory=moved.jpg", "normal.jpg"]
+      dir <- populateSourceDir config $ map (, minimalJpeg) names
+      (readCount, exifs) <- getExif noLog config dir names
+      -- Nothing was renamed, moved or backed-up by a write mode run.
+      (sort <$> listDirectory dir) `shouldReturn` sort names
+      forM_ names $ \name ->
+        BS.readFile (dir </> name) `shouldReturn` minimalJpeg
+      readCount `shouldBe` length names
+      Map.keys exifs `shouldBe` map pack (sort names)
+      Map.filter isLeft exifs `shouldSatisfy` null
+
+    it "keys per-file errors by the real file name" $ \config -> do
+      requireExifTool
+      let names = ["-empty.jpg", "normal.jpg"]
+      dir <- populateSourceDir config
+               [("-empty.jpg", BS.empty), ("normal.jpg", minimalJpeg)]
+      (_, exifs) <- getExif noLog config dir names
+      Map.keys exifs `shouldBe` map pack (sort names)
+      (isLeft <$> lookup "-empty.jpg" exifs) `shouldBe` Just True
+      (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
+
+    it "stores the real file name in the raw exif cache" $ \config -> do
+      requireExifTool
+      dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+      _ <- getExif noLog config dir ["normal.jpg"]
+      rawCache <- BS.readFile (exifPath config (dir </> "normal.jpg"))
+      let source = decodeStrict' rawCache >>=
+                     parseMaybe (withObject "cached exif" (.: "SourceFile"))
+      source `shouldBe` Just ("normal.jpg" :: Text)
 
   describe "NFData" $ do
     it "forces previously skipped exif fields" $ do

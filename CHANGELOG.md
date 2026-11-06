@@ -81,6 +81,14 @@ maximum size auto-render, this could lead to significant cache usage. This
 has now been fixed, but the "too-large" thumbnails will not be
 automatically cleaned, it's recommended to wipe the cache manually.
 
+Security: file names starting with a dash were interpreted as options by
+`exiftool` while scanning a folder. A file named, for example,
+`-Comment=x.jpg` could switch `exiftool` to write mode, and modify, rename
+or move the other files being scanned with it. File names can no longer be
+interpreted as options. If untrusted users can add files to your picture
+folders, consider checking for such files, and for unexpected `_original`
+backups.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
