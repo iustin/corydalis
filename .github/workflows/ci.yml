@@ -73,6 +73,11 @@ jobs:
       - name: Install mkdocs
         run: pip install --upgrade pip mkdocs
 
+      - name: Install exiftool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libimage-exiftool-perl
+
       - name: Create git-version
         run: make git-version
 
