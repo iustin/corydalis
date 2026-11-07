@@ -106,6 +106,7 @@ module Pics ( PicDir(..)
             , updateStatsWithPic
             , computeImagesStats
 #ifdef TEST
+            , readToolProcess
             , mkImage
             , buildTimeSort
             , buildGroupExif
@@ -1771,6 +1772,18 @@ ensureParent path = do
   let (dir, _) = splitFileName path
   createDirectoryIfMissing True dir
 
+-- | Runs an external tool, returning its exit code and output.
+--
+-- Failing to run the tool at all, e.g. because it isn't installed, is
+-- returned as an error instead of being thrown: a single image's preview
+-- must not abort the whole repository scan.
+readToolProcess :: ProcessConfig stdin stdout stderr
+                -> IO (Either Text (ExitCode, LByteString, LByteString))
+readToolProcess pconfig =
+  first describe <$> try (readProcess pconfig)
+  where describe :: IOException -> Text
+        describe = sformat ("Failed to run external tool: " % shown)
+
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extract image type is presumed (and required) to be jpeg.
@@ -1794,14 +1807,17 @@ extractEmbedded config path tag = do
             setStdin closed
             . setCloseFds True
             $ proc "exiftool" args
-      (exitCode, out, err) <- readProcess pconfig
-      if exitCode == ExitSuccess && BSL.length out >= minImageSize
-        then do
-          ensureParent outputPath
-          BSL.writeFile outputPath out
-          return goodRet
-        else
-          return $ Left $ TextL.toStrict $ Text.decodeUtf8 err -- partial function!
+      result <- readToolProcess pconfig
+      case result of
+        Left msg -> return $ Left msg
+        Right (exitCode, out, err) ->
+          if exitCode == ExitSuccess && BSL.length out >= minImageSize
+            then do
+              ensureParent outputPath
+              BSL.writeFile outputPath out
+              return goodRet
+            else
+              return $ Left $ TextL.toStrict $ Text.decodeUtf8 err -- partial function!
     else
       -- TODO: mtime-based regen.
       return goodRet
@@ -1849,15 +1865,18 @@ extractFirstFrame config path = do
             setStdin closed
             . setCloseFds True
             $ proc "ffmpeg" args
-      (exitCode, out, err) <- readProcess pconfig
-      if exitCode == ExitSuccess
-        then
-          return goodRet
-        else
-          let err' = Text.decodeUtf8 err -- note partial function!
-              out' = Text.decodeUtf8 out
-              msg = out' `TextL.append` err'
-          in return . Left . TextL.toStrict $ msg
+      result <- readToolProcess pconfig
+      case result of
+        Left msg -> return $ Left msg
+        Right (exitCode, out, err) ->
+          if exitCode == ExitSuccess
+            then
+              return goodRet
+            else
+              let err' = Text.decodeUtf8 err -- note partial function!
+                  out' = Text.decodeUtf8 out
+                  msg = out' `TextL.append` err'
+              in return . Left . TextL.toStrict $ msg
     else
       return goodRet
 

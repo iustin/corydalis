@@ -65,6 +65,11 @@ intermediate page, and afterwards always shows the login page.
 
 ### Fixed bugs
 
+If `ffmpeg` was not installed, a single movie without an embedded preview
+made the whole repository scan fail, leaving the repository empty with an
+error status. Failing to run `ffmpeg` (or `exiftool`, when extracting
+previews) now only affects the preview of that one image or movie.
+
 Files that are not a known image, movie, or sidecar format (for example
 `SHA1SUMS`, `corydalis.yaml`, or files with no extension) are no longer
 treated as pictures. They are listed separately on the folder page, they

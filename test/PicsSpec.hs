@@ -28,6 +28,8 @@ import qualified Data.Set         as Set
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
 import           System.Directory (createDirectoryIfMissing)
+import           System.Exit      (ExitCode (..))
+import           System.Process.Typed (proc)
 
 import           AtomTypes
 import           Exif
@@ -145,6 +147,14 @@ spec = parallel $ do
         fileMimeType "image/jpeg" (fileWithMimeType (Just mime)) `shouldBe` "image/jpeg"
     it "uses the default without a reported type" $ \_ ->
       fileMimeType "video/mp4" (fileWithMimeType Nothing) `shouldBe` "video/mp4"
+  describe "external tools" $ do
+    it "returns an error if a tool cannot be run" $ \_ -> do
+      result <- readToolProcess (proc "corydalis-no-such-tool" [])
+      -- The error names the tool, to make the failure easy to diagnose.
+      result `shouldSatisfy` either ("corydalis-no-such-tool" `isInfixOf`) (const False)
+    it "returns the exit code and output of a tool" $ \_ -> do
+      result <- readToolProcess (proc "sh" ["-c", "echo out; echo err >&2; exit 3"])
+      result `shouldBe` Right (ExitFailure 3, "out\n", "err\n")
   describe "build file from inode" $ do
     it "builds a file from an inode with no subdirs" $ \_ -> do
       let ii = InodeInfo "file.jpg" [] False 0 0 0
