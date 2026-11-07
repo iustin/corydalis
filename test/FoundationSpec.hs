@@ -71,6 +71,7 @@ checkSecurityPolicy = do
   liftIO $ do
     lookup "default-src" directives `shouldBe` Just ["'self'"]
     lookup "script-src" directives `shouldBe` Just ["'self'"]
+    lookup "img-src" directives `shouldBe` Just ["'self'", "data:"]
     lookup "object-src" directives `shouldBe` Just ["'none'"]
     lookup "base-uri" directives `shouldBe` Just ["'self'"]
     lookup "frame-ancestors" directives `shouldBe` Just ["'none'"]

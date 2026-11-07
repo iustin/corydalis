@@ -194,9 +194,9 @@ contentSecurityPolicy = intercalate "; "
     -- Plotly creates style elements, and some templates use style
     -- attributes.
   , "style-src 'self' 'unsafe-inline'"
-    -- Bootstrap's CSS uses data: icons, and Plotly's image export uses
-    -- data: and blob: images.
-  , "img-src 'self' data: blob:"
+    -- Bootstrap's CSS uses data: icons. (Plotly's image export would also
+    -- need blob:, but it is disabled in all charts.)
+  , "img-src 'self' data:"
   , "object-src 'none'"
   , "base-uri 'self'"
   , "form-action 'self'"
