@@ -71,7 +71,12 @@ $doctype 5
               <span .d-none .d-xl-inline>
                 About
             $if is_auth
-              <a .nav-item .nav-link href=@{AuthR LogoutR}>
+              $# A form posting directly, rather than a link to the logout
+              $# page, as the latter submits its own form via inline script.
+              <form action=@{AuthR LogoutR} method=post .form-inline>
+                $maybe tok <- mtok
+                  <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
+                <button .nav-item .nav-link type="submit" title="Logout">
                   <span .fa-solid .fa-sign-out-alt>
                   <span .d-none .d-xl-inline>
                     Logout

@@ -60,6 +60,9 @@ rendered (and up to date) and what is pending, and in the second pass,
 processing the pending items, so that both the remaining count and the ETA
 of the computation are more accurate.
 
+The logout button now logs out directly, instead of going through an
+intermediate page, and afterwards always shows the login page.
+
 ### Fixed bugs
 
 Files that are not a known image, movie, or sidecar format (for example

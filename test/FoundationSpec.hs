@@ -127,7 +127,16 @@ spec = parallel $ withApp $ do
       checkRoute HomeR
       tokenAfter <- pageCsrfToken
       liftIO $ tokenAfter `shouldBe` tokenBefore
-    it "allows logging out via the logout link" $ do
+    it "allows logging out via the button in the page layout" $ do
+      login
+      checkRoute HomeR
+      request $ do
+        setMethod "POST"
+        setUrl $ AuthR LogoutR
+        addToken_ "form[action$=/auth/logout] "
+      statusIs 303
+      checkRouteIs HomeR 303
+    it "still allows logging out via the logout page" $ do
       login
       checkRoute $ AuthR LogoutR
       request $ do
