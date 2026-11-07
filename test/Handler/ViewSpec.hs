@@ -92,7 +92,12 @@ addUntrustedFolder = do
       "<!DOCTYPE html><html><body><script>alert(1)</script></body></html>"
     BS.writeFile (dir </> "scan.tif") minimalTiff
     _ <- launchScanFileSystem ctx
-    void $ waitForScan ctx
+    repo <- waitForScan ctx
+    -- A failed scan leaves an empty repository, which would otherwise only
+    -- show up as puzzling 404s in the tests.
+    case repoStatus repo of
+      RepoError err -> expectationFailure $ "The scan failed: " ++ unpack err
+      _             -> return ()
 
 -- | Returns the values of a header in the last response.
 responseHeader :: HeaderName -> YesodExample App [ByteString]
