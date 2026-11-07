@@ -25,6 +25,8 @@ module FoundationSpec (spec) where
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Map              as M
 import           Network.Wai.Test      (simpleHeaders)
+import           Text.HTML.DOM         (parseLBS)
+import           Text.XML.Cursor       (attribute, fromDocument)
 import           Web.Cookie
 
 import           Handler.Cookies
@@ -36,6 +38,13 @@ responseCookie name = withResponse $ \response ->
   return $ find ((== name) . setCookieName) $
     [ parseSetCookie value
     | (header, value) <- simpleHeaders response, header == "Set-Cookie" ]
+
+-- | Pages that render (with an empty repository) when logged in.
+htmlPages :: [Route App]
+htmlPages = [ HomeR, CurateR, FlaggedImagesR, CameraStatsR, LensStatsR
+            , SettingsR, AboutR, StatusR, ListFoldersR, ListImagesR
+            , BrowseImagesR 0, AuthR LoginR
+            ]
 
 handlerView :: [(Route App, ViewMode)]
 handlerView = [ (BrowseImagesR 0, ViewImagesGrid)
@@ -127,3 +136,11 @@ spec = parallel $ withApp $ do
         addToken
       statusIs 303
       checkRouteIs HomeR 303
+  describe "renders no inline scripts, so that the CSP can forbid them" $
+    forM_ htmlPages $ \route ->
+      it ("on " ++ show route) $ do
+        login
+        checkRoute route
+        scripts <- htmlQuery "script"
+        let inline = filter (null . attribute "src" . fromDocument . parseLBS) scripts
+        liftIO $ inline `shouldBe` []
