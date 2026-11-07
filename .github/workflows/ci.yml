@@ -84,6 +84,9 @@ jobs:
       - name: Bootstrap npm/typescript code
         run: make bootstrap
 
+      - name: Lint and test the TypeScript code
+        run: npm test
+
       - name: Setup GHC for the resolver
         run: stack setup --no-terminal
 
