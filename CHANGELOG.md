@@ -66,8 +66,10 @@ intermediate page, and afterwards always shows the login page.
 ### Fixed bugs
 
 If `ffmpeg` was not installed, a single movie without an embedded preview
-made the whole repository scan fail, leaving the repository empty with an
-error status. Failing to run `ffmpeg` (or `exiftool`, when extracting
+made the whole repository scan fail with an error status: on a rescan, the
+repository kept the contents of the previous scan, missing any changes
+since, and on a first scan (without cached data) it remained empty.
+Failing to run `ffmpeg` (or `exiftool`, when extracting
 previews) now only affects the preview of that one image or movie.
 Similarly, error output from these tools (including `convert`) that is not
 valid UTF-8, e.g. because it contains a file name, no longer causes
