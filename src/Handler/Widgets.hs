@@ -241,12 +241,18 @@ noItemsFound filter_desc images =
            |]
 
 imageFlagActions :: ShortText -> ImageName -> Bool -> Widget
-imageFlagActions folder image flag =
+imageFlagActions folder image flag = do
+  mtok <- reqToken <$> getRequest
   toWidget [hamlet|
             <form action=@{ImageFlagR folder image} method=post style="display:inline-block">
               $if flag
                 <button .btn .btn-light type="submit" name="_method" value="PUT">Flag
               <button .btn .btn-light type="submit" name="_method" value="DELETE">Un-flag
+              $# The token must stay after the buttons: browsers send fields in
+              $# document order, and methodOverridePost only honours _method if
+              $# it is the first field.
+              $maybe tok <- mtok
+                <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
               |]
 
 imageViewActions :: ShortText -> ImageName -> UrlParams -> Widget

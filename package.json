@@ -39,7 +39,8 @@
     "watch": "NODE_ENV=developement node esbuild.js --watch",
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",
-    "test": "eslint js/"
+    "test": "eslint js/ && npm run test:unit",
+    "test:unit": "esbuild js/csrf.test.mjs --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/corydalis/csrf.test.mjs && node --test node_modules/.cache/corydalis/csrf.test.mjs"
   },
   "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",

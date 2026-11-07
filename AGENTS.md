@@ -30,7 +30,8 @@ behaviour; try to use synchronisation primitives instead.
 npm is the frontend toolchain (`package.json`, `js/tsconfig.json`).
 
 - Type-check: `npm run type-check-oneshot`
-- Lint: `npm test` (eslint on `js/`)
+- Lint and unit tests: `npm test` (eslint on `js/`, then `node:test` tests
+  for `js/*.test.mjs`, bundled with esbuild since they import TypeScript)
 - Build: `npm run build`
 
 Add tests for any new TypeScript code as well.

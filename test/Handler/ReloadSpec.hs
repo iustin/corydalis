@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.ReloadSpec (spec) where
 
+import           Yesod.Core (defaultCsrfParamName)
+
 import           TestImport
 
 spec :: Spec
@@ -31,6 +33,32 @@ spec = parallel $ withApp $ do
     checkRouteIs ReloadR 405
   it "loads the reload page and checks redirect message" $ do
     login
-    post ReloadR
+    performWithToken "POST" ReloadR
     followRedirectOK
     htmlAllContain "span#corydalis-app-message" "Rescan triggered"
+  it "rejects a request without a CSRF token" $ do
+    login
+    post ReloadR
+    statusIs 403
+  it "rejects a request with a wrong CSRF token" $ do
+    login
+    request $ do
+      setMethod "POST"
+      setUrl ReloadR
+      addPostParam defaultCsrfParamName "wrong"
+    statusIs 403
+  it "accepts the token from the form in the page layout" $ do
+    login
+    checkRoute HomeR
+    request $ do
+      setMethod "POST"
+      setUrl ReloadR
+      addPostParam "unused" "unused"
+      addToken_ "form[action$=/reload] "
+    followRedirectOK
+    htmlAllContain "span#corydalis-app-message" "Rescan triggered"
+  it "includes the token in the form on the curate page" $ do
+    login
+    checkRoute CurateR
+    -- One in the page layout, one in the page itself.
+    htmlCount "form[action$=/reload] input[name=_token]" 2

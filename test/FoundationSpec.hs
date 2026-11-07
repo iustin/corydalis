@@ -22,11 +22,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module FoundationSpec (spec) where
 
-import qualified Data.Map        as M
+import qualified Data.ByteString.Char8 as BS8
+import qualified Data.Map              as M
+import           Network.Wai.Test      (simpleHeaders)
 import           Web.Cookie
 
 import           Handler.Cookies
 import           TestImport
+
+-- | Returns a cookie set by the last response.
+responseCookie :: ByteString -> YesodExample App (Maybe SetCookie)
+responseCookie name = withResponse $ \response ->
+  return $ find ((== name) . setCookieName) $
+    [ parseSetCookie value
+    | (header, value) <- simpleHeaders response, header == "Set-Cookie" ]
 
 handlerView :: [(Route App, ViewMode)]
 handlerView = [ (BrowseImagesR 0, ViewImagesGrid)
@@ -54,3 +63,67 @@ spec = parallel $ withApp $ do
     forM_ [CurateR, LensStatsR] $ \route -> do
       checkRoute route
       checkViewCookie Nothing
+  describe "checks the security cookie attributes" $ do
+    it "sets the session cookie as SameSite=Lax" $ do
+      get $ AuthR LoginR
+      cookie <- responseCookie "_SESSION"
+      liftIO $ (setCookieSameSite =<< cookie) `shouldBe` Just sameSiteLax
+    it "does not set a CSRF cookie" $ do
+      get $ AuthR LoginR
+      cookie <- responseCookie $ BS8.pack "XSRF-TOKEN"
+      liftIO $ isNothing cookie `shouldBe` True
+  describe "checks CSRF protection on authentication" $ do
+    it "rejects a login without a token" $ do
+      userEntity <- createUser "foo"
+      get $ AuthR LoginR
+      request $ do
+        setMethod "POST"
+        addPostParam "ident" $ userName $ entityVal userEntity
+        setUrl $ AuthR $ PluginR "dummy" []
+      statusIs 403
+      checkRouteIs HomeR 303
+    it "accepts the token from the password login form" $ do
+      get $ AuthR LoginR
+      request $ do
+        setMethod "POST"
+        setUrl $ AuthR $ PluginR "hashdb" ["login"]
+        addPostParam "username" "foo"
+        addPostParam "password" "bar"
+        addToken_ "form[action$=/hashdb/login] "
+      -- The credentials are wrong, but they got as far as being checked.
+      statusIs 303
+    it "rejects a password login without a token" $ do
+      get $ AuthR LoginR
+      request $ do
+        setMethod "POST"
+        setUrl $ AuthR $ PluginR "hashdb" ["login"]
+        addPostParam "username" "foo"
+        addPostParam "password" "bar"
+      statusIs 403
+    it "redirects an anonymous write to login, instead of rejecting it" $ do
+      get $ AuthR LoginR
+      post ReloadR
+      statusIs 303
+    it "keeps the token across logging out and in again" $ do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+      checkRoute HomeR
+      tokenBefore <- pageCsrfToken
+      checkRoute $ AuthR LogoutR
+      request $ do
+        setMethod "POST"
+        setUrl $ AuthR LogoutR
+        addToken
+      authenticateAs userEntity
+      checkRoute HomeR
+      tokenAfter <- pageCsrfToken
+      liftIO $ tokenAfter `shouldBe` tokenBefore
+    it "allows logging out via the logout link" $ do
+      login
+      checkRoute $ AuthR LogoutR
+      request $ do
+        setMethod "POST"
+        setUrl $ AuthR LogoutR
+        addToken
+      statusIs 303
+      checkRouteIs HomeR 303

@@ -19,6 +19,9 @@ import $ from 'jquery';
 import screenfull from 'screenfull';
 import 'bootstrap';
 import { Modal } from 'bootstrap';
+import { isCsrfRejection, setupCsrf } from './csrf';
+
+setupCsrf($);
 
 // The Haskell types.
 
@@ -1162,7 +1165,10 @@ $(function () {
       })
       .fail(function (xhr, status, details) {
         writeMessage(
-          'Error flagging image: ' + status + ', details: ' + details,
+          isCsrfRejection(xhr.status)
+            ? 'Could not flag the image: this page is out of date, ' +
+                'please reload it and try again.'
+            : 'Error flagging image: ' + status + ', details: ' + details,
         );
       });
   }

@@ -235,16 +235,17 @@ instance Yesod App where
       (if appSecureSessions $ appSettings app
         then sslOnlySessions
         else id) $
+      laxSameSiteSessions $
       Just <$> defaultClientSessionBackend sessionTimeout clientSessionKeyFile
 
     -- Yesod Middleware allows you to run code before and after each handler function.
     -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
-    -- Some users may also want to add the defaultCsrfMiddleware, which:
-    --   a) Sets a cookie with a CSRF token in it.
-    --   b) Validates that incoming write requests include that token in either a header or POST parameter.
-    -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
+    -- The defaultCsrfCheckMiddleware validates that incoming write requests
+    -- include the session's CSRF token in either a header or POST parameter.
+    -- Forms embed the token in a hidden field, and JavaScript reads it from
+    -- the csrf-token meta tag in the page layout; no CSRF cookie is set.
     -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
-    yesodMiddleware = maybeSecureSessions . defaultYesodMiddleware
+    yesodMiddleware = maybeSecureSessions . defaultYesodMiddleware . defaultCsrfCheckMiddleware
       where maybeSecureSessions handler = do
               master <- getYesod
               let settings = appSettings master
@@ -312,6 +313,7 @@ instance Yesod App where
             parentsIdx = zip3 inflist parents crumbsVisibilityClasses
 
         is_auth <- isJust <$> maybeAuthId
+        mtok <- reqToken <$> getRequest
         withUrlRenderer $(hamletFile "templates/layout-wrapper.hamlet")
 
     -- The page to be redirected to when authentication is required.

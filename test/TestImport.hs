@@ -27,7 +27,8 @@ module TestImport
     , module TS
     ) where
 
-import           Application                    (makeFoundation, makeLogWare)
+import           Application                    (appMiddlewares, makeFoundation,
+                                                 makeLogWare)
 import           ClassyPrelude                  as X hiding (Handler, delete,
                                                       deleteBy)
 import           Database.Persist               as X hiding (get)
@@ -71,6 +72,8 @@ import           System.Directory               (createDirectory,
 import           System.FilePath                (takeDirectory)
 import           System.IO.Temp
 import           System.Log.FastLogger          (fromLogStr)
+import           Text.HTML.DOM                  (parseLBS)
+import           Text.XML.Cursor                (attribute, fromDocument)
 
 -- Helper functions for running tests.
 
@@ -202,7 +205,7 @@ openTempApp = do
   settings <- loadSettings >>= updateSettings tempDir
   foundation <- makeFoundation settings
   logWare <- liftIO $ makeLogWare foundation
-  return (tempDir, (foundation, logWare))
+  return (tempDir, (foundation, logWare . appMiddlewares))
 
 -- | Runs an action with a temporary app.
 withApp' :: (TestApp App -> IO ())  -> IO ()
@@ -218,11 +221,38 @@ withApp = around withApp'
 -- being set in test-settings.yaml, which enables dummy authentication in
 -- Foundation.hs
 authenticateAs :: Entity User -> YesodExample App ()
-authenticateAs (Entity _ u) =
+authenticateAs (Entity _ u) = do
+    -- Needed in order to get a CSRF token.
+    get $ AuthR LoginR
+    token <- pageCsrfToken
     request $ do
         setMethod "POST"
         addPostParam "ident" $ userName u
         setUrl $ AuthR $ PluginR "dummy" []
+        addCsrfHeader token
+
+-- | Returns the CSRF token from the meta tag of the last page, as the
+-- frontend code does.
+pageCsrfToken :: YesodExample App Text
+pageCsrfToken = do
+  metas <- htmlQuery "meta[name=csrf-token]"
+  case concatMap (attribute "content" . fromDocument . parseLBS) metas of
+    [token] -> return token
+    found   -> liftIO $ E.throwIO $ userError $
+                 "Expected one csrf-token meta tag, got: " ++ show found
+
+-- | Sends the CSRF token as a header, as the frontend code does.
+addCsrfHeader :: Text -> RequestBuilder App ()
+addCsrfHeader = addRequestHeader . (,) "X-XSRF-TOKEN" . encodeUtf8
+
+-- | Performs a request, sending the CSRF token from the last page.
+performWithToken :: ByteString -> Route App -> YesodExample App ()
+performWithToken method route = do
+  token <- pageCsrfToken
+  request $ do
+    setMethod method
+    setUrl route
+    addCsrfHeader token
 
 -- | Create a user.
 createUser :: Text -> YesodExample App (Entity User)

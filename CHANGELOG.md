@@ -89,6 +89,16 @@ interpreted as options. If untrusted users can add files to your picture
 folders, consider checking for such files, and for unexpected `_original`
 backups.
 
+Security: state-changing requests (flagging and un-flagging images, and
+triggering a rescan) had no CSRF protection, so any web site could trigger
+them on behalf of a logged-in user. They, and the login form, now require
+a CSRF token, and the session cookie is now `SameSite=Lax`. Pages opened
+before upgrading must be reloaded, and any scripts posting to these
+endpoints directly must now send a token. If the token in a page becomes
+stale, for example after the session expired and you logged in again in
+another tab, flagging an image in the viewer will ask you to reload the
+page.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

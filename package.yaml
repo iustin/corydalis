@@ -242,9 +242,11 @@ tests:
       - clientsession
       - hspec >=2.0.0
       - hspec-expectations-lifted
+      - html-conduit
       - http-types
       - QuickCheck
       - quickcheck-text
+      - xml-conduit
       - yesod-test
     ghc-options:
       - -Wall

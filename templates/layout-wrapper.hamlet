@@ -9,6 +9,8 @@ $doctype 5
     <meta name="author" content="">
 
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    $maybe tok <- mtok
+      <meta name="csrf-token" content=#{tok}>
 
     <link rel="manifest" href=@{StaticR corydalis_manifest_json} />
 
@@ -44,6 +46,8 @@ $doctype 5
 
         <div .navbar-nav>
             <form action=@{ReloadR} method=post .form-inline>
+                $maybe tok <- mtok
+                  <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
                 <!-- This unused input is needed to avoid Chrome's SPDY protocol error. Sigh… -->
                 <input type="hidden" name="unused" value="unused">
                 <button .btn .btn-light type="submit" title="Rescan directories and image information" .d-none .d-sm-inline>

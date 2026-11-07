@@ -29,11 +29,25 @@ import           TestImport
 deleteWithType :: ByteString -> YesodExample App ()
 deleteWithType kind = do
   loginAndCheckFlagged
+  token <- pageCsrfToken
   request $ do
     setMethod "DELETE"
     setUrl $ ImageFlagR "a" "b"
     addRequestHeader (hReferer, "/")
     addRequestHeader (hAccept, kind)
+    addCsrfHeader token
+
+-- | Sends what a browser does for the image flag form: a POST with the
+-- fields in document order, the method being in the first one.
+postForm :: ByteString -> Maybe Text -> YesodExample App ()
+postForm method token = request $ do
+  setMethod "POST"
+  setUrl $ ImageFlagR "a" "b"
+  addRequestHeader (hReferer, "/")
+  addRequestHeader (hAccept, "text/html")
+  addRequestHeader (hContentType, "application/x-www-form-urlencoded")
+  setRequestBody $ fromStrict $ "_method=" <> method <>
+    maybe "" (("&_token=" <>) . encodeUtf8) token
 
 loginAndCheckFlagged :: YesodExample App ()
 loginAndCheckFlagged = do
@@ -48,13 +62,13 @@ spec = parallel $ withApp $ do
     loginAndCheckFlagged
   it "checks that flagging a non-existing image fails" $ do
     loginAndCheckFlagged
-    performMethod "PUT" $ ImageFlagR "a" "b"
+    performWithToken "PUT" $ ImageFlagR "a" "b"
     statusIs 404
   it "checks that flagging an image results in 1 image flagged" $ do
     -- TODO: also add json checks when having image
     liftIO $ pendingWith "Needs repository with images"
     loginAndCheckFlagged
-    performMethod "PUT" $ ImageFlagR "a" "b"
+    performWithToken "PUT" $ ImageFlagR "a" "b"
     followRedirectOK
     bodyContains "1 flagged images"
   describe "checks that de-flagging a non-existing image does not error out" $ do
@@ -66,3 +80,42 @@ spec = parallel $ withApp $ do
       deleteWithType "application/json"
       statusIs 200
       bodyContains "Image was not flagged!"
+  describe "checks CSRF protection" $ do
+    forM_ ["PUT", "DELETE"] $ \method -> do
+      it ("rejects a " ++ show method ++ " without a token") $ do
+        loginAndCheckFlagged
+        performMethod method $ ImageFlagR "a" "b"
+        statusIs 403
+      it ("rejects a form overriding the method to " ++ show method ++
+          " without a token") $ do
+        loginAndCheckFlagged
+        postForm method Nothing
+        statusIs 403
+    it "accepts a form overriding the method to PUT with a token" $ do
+      loginAndCheckFlagged
+      pageCsrfToken >>= postForm "PUT" . Just
+      statusIs 404
+    it "accepts a form overriding the method to DELETE with a token" $ do
+      loginAndCheckFlagged
+      pageCsrfToken >>= postForm "DELETE" . Just
+      followRedirectOK
+      bodyContains "Image was not flagged!"
+    -- The viewer relies on these two, to tell the user to reload the page
+    -- only when the token is the problem.
+    it "rejects a JSON request with a stale token as forbidden" $ do
+      loginAndCheckFlagged
+      request $ do
+        setMethod "PUT"
+        setUrl $ ImageFlagR "a" "b"
+        addRequestHeader (hAccept, "application/json")
+        addCsrfHeader "stale"
+      statusIs 403
+    it "reports an anonymous JSON request as unauthenticated" $ do
+      get $ AuthR LoginR
+      token <- pageCsrfToken
+      request $ do
+        setMethod "PUT"
+        setUrl $ ImageFlagR "a" "b"
+        addRequestHeader (hAccept, "application/json")
+        addCsrfHeader token
+      statusIs 401

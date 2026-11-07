@@ -33,6 +33,7 @@ module Application
     , develMain
     , makeFoundation
     , makeLogWare
+    , appMiddlewares
     -- * for DevelMain
     , getApplicationRepl
     , shutdownApp
@@ -164,7 +165,12 @@ makeApplication foundation = do
     logWare <- makeLogWare foundation
     -- Create the WAI application and apply middlewares
     appPlain <- toWaiAppPlain foundation
-    return $ logWare $ (defaultMiddlewaresNoLogging . methodOverridePost) appPlain
+    return $ logWare $ appMiddlewares appPlain
+
+-- | The middlewares applied on top of the plain application, except for
+-- logging.
+appMiddlewares :: Middleware
+appMiddlewares = defaultMiddlewaresNoLogging . methodOverridePost
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =
