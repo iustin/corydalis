@@ -138,6 +138,9 @@ can now be skipped, since usually the header is emitted in front-line
 applications, and thus when Corydalis is being reverse proxied, it should
 not be emitted from it too; duplicate HSTS headers are technically
 incorrect and will prevent sites from reaching an A+ score on SSL tests.
+Note that the sample configuration file initially named this setting
+`secure-transport-security`, which is ignored; if you copied it from
+there, rename it to `strict-transport-security`.
 
 Additionally, it is now possible to bind the app to a Unix socket, instead
 of a host:port TCP connection, in order to improve performance and

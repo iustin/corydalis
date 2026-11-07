@@ -17,10 +17,11 @@ builds, the simplest way is to use the
 [stack](https://docs.haskellstack.org/en/stable/README/) tool.
 
 It uses [ImageMagick](https://www.imagemagick.org/) to generate the
-correctly-sized images for the client and
-[ExifTool](https://www.sno.phy.queensu.ca/~phil/exiftool/) to extract
-the EXIF/IPTC/XMP information from the source pictures, and
-[ffmpeg](https://www.ffmpeg.org/) to extract movie information.
+correctly-sized images for the client,
+[ExifTool](https://exiftool.org/) to extract the EXIF/IPTC/XMP
+information from the source pictures, and
+[ffmpeg](https://www.ffmpeg.org/) to extract the first frame of movies
+without an embedded preview, to be used as their preview image.
 
 It also uses sqlite (via Haskell bindings), so you might need to have
 devel libraries for it.
@@ -30,7 +31,8 @@ appropriately-sized images, instead of relying on in-client scaling),
 and due to extraction of metadata from all images, it also needs a
 relatively large cache space for itself; for my own usage, with two
 pre-rendered resolutions, this amounts to around 10% of the actual
-library space. Also, currently there's no cache maintenance yet…
+library space. Cache files belonging to pictures that are no longer in
+the library are deleted at the end of each scan.
 
 All the pre-rendering and exif extraction needs as well quite a bit of
 CPU; on my own collection, a cold start will probably take many hours
@@ -69,21 +71,52 @@ Create a few needed directories:
     cd /path/to/target
     mkdir config db
 
-At runtime, the application depends on ImageMagick and exiftool, so
-make sure to install them before you run the application, e.g.:
+At runtime, the application depends on ImageMagick, exiftool and
+ffmpeg, so make sure to install them before you run the application,
+e.g.:
 
-    sudo apt install imagemagick libimage-exiftool-perl
+    sudo apt install imagemagick libimage-exiftool-perl ffmpeg
 
-The application is configured to work only over https; as such, you
-must install the certificate in `config/cert.pem` and the key in
-`config/cert.key` in the target directory:
-
-    mkdir /path/to/target/config
-    cp cert.pem cert.key /path/to/target/config
+Without ffmpeg, the application still works, but movies without an
+embedded preview have no preview image.
 
 Install the sample configuration file from the source code:
 
     cp config/settings.yml.sample /path/to/target/settings.yml
+
+## Serving over HTTPS
+
+Corydalis can serve HTTPS itself, or run behind a reverse proxy that
+handles HTTPS.
+
+To serve HTTPS directly, set `https: true` (as in the sample
+configuration), and install the certificate in `config/cert.pem` and
+the key in `config/cert.key` in the target directory:
+
+    cp cert.pem cert.key /path/to/target/config
+
+Behind a reverse proxy:
+
+- set `https: false`, and point the proxy either to the configured
+  `host` and `port`, or to a Unix socket, configured via `unix-socket`
+  (which is more efficient, and ignores the `host`, `port` and `https`
+  settings);
+- keep `secure-sessions: true` if the proxy serves HTTPS, so that the
+  cookies are only sent over HTTPS;
+- set `approot` to the public URL, as seen by the browser;
+- set `ip-from-header: true`, so that the logs show the clients'
+  addresses instead of the proxy's.
+
+The `Strict-Transport-Security` (HSTS) header is controlled by the
+`strict-transport-security` setting, which defaults to the `https` one;
+behind a proxy, it is usually better configured in the proxy, for the
+whole domain.
+
+Corydalis sends its own `Content-Security-Policy` and
+`X-Content-Type-Options: nosniff` headers with all responses. The proxy
+should not add a different `Content-Security-Policy` for Corydalis:
+browsers enforce all the policies they receive, so an additional one can
+break pages.
 
 ## Basic configuration
 
