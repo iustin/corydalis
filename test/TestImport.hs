@@ -218,11 +218,15 @@ withApp = around withApp'
 
 -- Helper test functions
 
--- | Marks the test as pending if exiftool is not installed.
+-- | Fails the test if exiftool is not installed.
+--
+-- Corydalis cannot work without exiftool, so the tests require it too,
+-- rather than being skipped and silently giving less coverage.
 requireExifTool :: IO ()
 requireExifTool =
   findExecutable "exiftool" >>=
-    maybe (pendingWith "exiftool is not available") (const (return ()))
+    maybe (expectationFailure "exiftool is required for running the tests")
+          (const (return ()))
 
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in
