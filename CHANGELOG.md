@@ -102,6 +102,13 @@ stale, for example after the session expired and you logged in again in
 another tab, flagging an image in the viewer will ask you to reload the
 page.
 
+Security hardening: all responses now include a `Content-Security-Policy`
+header. It only allows scripts loaded from Corydalis' own static files, so
+that a bug allowing HTML injection cannot be used to run code, and it
+forbids embedding Corydalis pages in frames. If a reverse proxy in front
+of Corydalis already sets such a header, browsers apply both policies, so
+you might want to remove or align the proxy's one.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

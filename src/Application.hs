@@ -73,6 +73,7 @@ import           Network.Wai.Handler.WarpTLS               (OnInsecure (..),
                                                             TLSSettings,
                                                             onInsecure, runTLS,
                                                             tlsSettings)
+import           Network.Wai.Middleware.AddHeaders         (addHeaders)
 import           Network.Wai.Middleware.MethodOverridePost
 import           Network.Wai.Middleware.RequestLogger      (Destination (Callback, Logger),
                                                             IPAddrSource (..),
@@ -169,8 +170,35 @@ makeApplication foundation = do
 
 -- | The middlewares applied on top of the plain application, except for
 -- logging.
+--
+-- The security policy is added at this level, rather than in the Yesod
+-- middleware, so that it covers all responses, including errors.
 appMiddlewares :: Middleware
-appMiddlewares = defaultMiddlewaresNoLogging . methodOverridePost
+appMiddlewares =
+  addHeaders [("Content-Security-Policy", contentSecurityPolicy)] .
+  defaultMiddlewaresNoLogging . methodOverridePost
+
+-- | The Content-Security-Policy sent with all responses.
+--
+-- All scripts must come from our own static files, so that injected
+-- markup cannot run code; see the test ensuring no page has inline
+-- scripts.
+contentSecurityPolicy :: ByteString
+contentSecurityPolicy = intercalate "; "
+  [ "default-src 'self'"
+  , "script-src 'self'"
+    -- Plotly creates style elements, and some templates use style
+    -- attributes.
+  , "style-src 'self' 'unsafe-inline'"
+    -- Bootstrap's CSS uses data: icons, and Plotly's image export uses
+    -- data: and blob: images.
+  , "img-src 'self' data: blob:"
+  , "object-src 'none'"
+  , "base-uri 'self'"
+  , "form-action 'self'"
+    -- Disallow framing, to prevent clickjacking.
+  , "frame-ancestors 'none'"
+  ]
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =

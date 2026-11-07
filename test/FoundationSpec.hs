@@ -46,6 +46,29 @@ htmlPages = [ HomeR, CurateR, FlaggedImagesR, CameraStatsR, LensStatsR
             , BrowseImagesR 0, AuthR LoginR
             ]
 
+-- | Returns the directives of the security policy of the last response.
+cspDirectives :: YesodExample App [(Text, [Text])]
+cspDirectives = withResponse $ \response ->
+  case [ value | (header, value) <- simpleHeaders response
+               , header == "Content-Security-Policy" ] of
+    [value] -> return [ (name, args)
+                      | directive <- splitSeq ";" (decodeUtf8 value)
+                      , name:args <- [words directive] ]
+    values  -> liftIO (expectationFailure $
+                 "Expected one Content-Security-Policy header, got: " ++
+                 show values) >> return []
+
+-- | Checks the important properties of the security policy.
+checkSecurityPolicy :: YesodExample App ()
+checkSecurityPolicy = do
+  directives <- cspDirectives
+  liftIO $ do
+    lookup "default-src" directives `shouldBe` Just ["'self'"]
+    lookup "script-src" directives `shouldBe` Just ["'self'"]
+    lookup "object-src" directives `shouldBe` Just ["'none'"]
+    lookup "base-uri" directives `shouldBe` Just ["'self'"]
+    lookup "frame-ancestors" directives `shouldBe` Just ["'none'"]
+
 handlerView :: [(Route App, ViewMode)]
 handlerView = [ (BrowseImagesR 0, ViewImagesGrid)
               , (ListImagesR, ViewImagesList)
@@ -153,3 +176,17 @@ spec = parallel $ withApp $ do
         scripts <- htmlQuery "script"
         let inline = filter (null . attribute "src" . fromDocument . parseLBS) scripts
         liftIO $ inline `shouldBe` []
+  describe "checks the security policy" $ do
+    forM_ htmlPages $ \route ->
+      it ("is sent with " ++ show route) $ do
+        login
+        checkRoute route
+        checkSecurityPolicy
+    it "is sent to anonymous users" $ do
+      get $ AuthR LoginR
+      checkSecurityPolicy
+    it "is sent with error pages" $ do
+      login
+      get ("/no-such-page" :: Text)
+      statusIs 404
+      checkSecurityPolicy
