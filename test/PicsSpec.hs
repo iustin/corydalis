@@ -152,6 +152,10 @@ spec = parallel $ do
       result <- readToolProcess (proc "corydalis-no-such-tool" [])
       -- The error names the tool, to make the failure easy to diagnose.
       result `shouldSatisfy` either ("corydalis-no-such-tool" `isInfixOf`) (const False)
+    it "decodes invalid UTF-8 in tool output without failing" $ \_ -> do
+      -- 0xff is never valid in UTF-8; forcing the text must not throw.
+      text <- evaluate . force $ decodeToolOutput "bad \xff name: no such file"
+      text `shouldBe` "bad \xfffd name: no such file"
     it "returns the exit code and output of a tool" $ \_ -> do
       result <- readToolProcess (proc "sh" ["-c", "echo out; echo err >&2; exit 3"])
       result `shouldBe` Right (ExitFailure 3, "out\n", "err\n")

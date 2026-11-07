@@ -69,6 +69,9 @@ If `ffmpeg` was not installed, a single movie without an embedded preview
 made the whole repository scan fail, leaving the repository empty with an
 error status. Failing to run `ffmpeg` (or `exiftool`, when extracting
 previews) now only affects the preview of that one image or movie.
+Similarly, error output from these tools (including `convert`) that is not
+valid UTF-8, e.g. because it contains a file name, no longer causes
+further failures.
 
 Files that are not a known image, movie, or sidecar format (for example
 `SHA1SUMS`, `corydalis.yaml`, or files with no extension) are no longer

@@ -107,6 +107,7 @@ module Pics ( PicDir(..)
             , computeImagesStats
 #ifdef TEST
             , readToolProcess
+            , decodeToolOutput
             , mkImage
             , buildTimeSort
             , buildGroupExif
@@ -164,7 +165,8 @@ import qualified Data.Store
 import           Data.Char               (isAlphaNum, isAscii)
 import qualified Data.Text               as Text
 import qualified Data.Text.Lazy          as TextL
-import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)
+import           Data.Text.Encoding.Error (lenientDecode)
+import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8With)
 import qualified Data.Text.Short         as TS
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
@@ -1755,7 +1757,7 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
         (exitCode, out, err) <- readProcess (proc "convert" (concat [[bytesPath], operators, [outFile]])) `catch`
                                 (\e -> let e' = sformat shown (e :: SomeException)
                                        in throwIO . ImageError $ e')
-        when (exitCode /= ExitSuccess) . throwIO . ImageError . TextL.toStrict . Text.decodeUtf8 $ err `BSL.append` out
+        when (exitCode /= ExitSuccess) . throwIO . ImageError . decodeToolOutput $ err `BSL.append` out
       return (needsGen, sformat ("image/" % string) fmt, fpath)
 
 -- | Ordered list of tags that represent embedded images.
@@ -1783,6 +1785,15 @@ readToolProcess pconfig =
   first describe <$> try (readProcess pconfig)
   where describe :: IOException -> Text
         describe = sformat ("Failed to run external tool: " % shown)
+
+-- | Decodes the output of an external tool, for error messages.
+--
+-- The output can contain anything, e.g. file names which are not valid
+-- UTF-8; invalid bytes are replaced rather than throwing an exception,
+-- which (being lazy) could otherwise happen much later, e.g. when the
+-- error is logged during a scan.
+decodeToolOutput :: LByteString -> Text
+decodeToolOutput = TextL.toStrict . Text.decodeUtf8With lenientDecode
 
 -- | Extracts and saves an embedded thumbnail from an image.
 --
@@ -1817,7 +1828,7 @@ extractEmbedded config path tag = do
               BSL.writeFile outputPath out
               return goodRet
             else
-              return $ Left $ TextL.toStrict $ Text.decodeUtf8 err -- partial function!
+              return . Left $ decodeToolOutput err
     else
       -- TODO: mtime-based regen.
       return goodRet
@@ -1873,10 +1884,7 @@ extractFirstFrame config path = do
             then
               return goodRet
             else
-              let err' = Text.decodeUtf8 err -- note partial function!
-                  out' = Text.decodeUtf8 out
-                  msg = out' `TextL.append` err'
-              in return . Left . TextL.toStrict $ msg
+              return . Left . decodeToolOutput $ out `BSL.append` err
     else
       return goodRet
 
