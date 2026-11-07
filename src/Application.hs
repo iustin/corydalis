@@ -171,11 +171,15 @@ makeApplication foundation = do
 -- | The middlewares applied on top of the plain application, except for
 -- logging.
 --
--- The security policy is added at this level, rather than in the Yesod
--- middleware, so that it covers all responses, including errors.
+-- The security headers are added at this level, rather than in the Yesod
+-- middleware, so that they cover all responses, including errors. The
+-- nosniff header prevents browsers from guessing a different type than
+-- the one we send, e.g. executing a file as a script.
 appMiddlewares :: Middleware
 appMiddlewares =
-  addHeaders [("Content-Security-Policy", contentSecurityPolicy)] .
+  addHeaders [ ("Content-Security-Policy", contentSecurityPolicy)
+             , ("X-Content-Type-Options", "nosniff")
+             ] .
   defaultMiddlewaresNoLogging . methodOverridePost
 
 -- | The Content-Security-Policy sent with all responses.

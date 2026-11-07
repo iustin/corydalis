@@ -109,6 +109,14 @@ forbids embedding Corydalis pages in frames. If a reverse proxy in front
 of Corydalis already sets such a header, browsers apply both policies, so
 you might want to remove or align the proxy's one.
 
+Security: image and movie files were served with the type detected from
+their contents, so for example an SVG or HTML file named `photo.jpg` or
+`clip.mp4` in the repository was served as a document, and could run
+scripts as the logged-in user. Only image and video types (excluding SVG)
+are now passed through, anything else being served as a JPEG image or MP4
+movie; additionally, file contents are sandboxed when opened directly,
+and all responses forbid content type guessing (`nosniff`).
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

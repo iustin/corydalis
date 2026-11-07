@@ -58,6 +58,12 @@ cspDirectives = withResponse $ \response ->
                  "Expected one Content-Security-Policy header, got: " ++
                  show values) >> return []
 
+-- | Checks that the last response forbids content type sniffing.
+responseNoSniff :: YesodExample App ()
+responseNoSniff = withResponse $ \response ->
+  liftIO $ lookup "X-Content-Type-Options" (simpleHeaders response)
+    `shouldBe` Just "nosniff"
+
 -- | Checks the important properties of the security policy.
 checkSecurityPolicy :: YesodExample App ()
 checkSecurityPolicy = do
@@ -190,3 +196,13 @@ spec = parallel $ withApp $ do
       get ("/no-such-page" :: Text)
       statusIs 404
       checkSecurityPolicy
+  describe "checks the nosniff header" $ do
+    it "is sent with pages" $ do
+      login
+      checkRoute HomeR
+      responseNoSniff
+    it "is sent with error pages" $ do
+      login
+      get ("/no-such-page" :: Text)
+      statusIs 404
+      responseNoSniff

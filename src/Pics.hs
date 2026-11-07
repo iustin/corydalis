@@ -160,6 +160,7 @@ import           Data.Semigroup
 import qualified Data.Set                as Set
 import           Data.Store              (Store)
 import qualified Data.Store
+import           Data.Char               (isAlphaNum, isAscii)
 import qualified Data.Text               as Text
 import qualified Data.Text.Lazy          as TextL
 import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8)
@@ -277,9 +278,29 @@ fileRelPath File{..} =
   System.FilePath.joinPath [deSymbolizeItem' fileDirs, TS.toString fileName]
 
 -- | Try to find a valid mime type for a file.
+--
+-- The type found by exiftool is derived from the file's contents, which
+-- can be anything, e.g. an SVG or HTML document named @photo.jpg@; served
+-- with its real type, such a document would run scripts in the context of
+-- the site. Hence the type is only used if it is an image or video type
+-- that browsers do not treat as a document, and the default otherwise.
 fileMimeType :: Text -> File -> Text
-fileMimeType d =
-  maybe d deSymbolizeItem . exifMimeType . fileExif
+fileMimeType d f =
+  case deSymbolizeItem <$> exifMimeType (fileExif f) of
+    Just t | isSafeMediaType t -> t
+    _                          -> d
+
+-- | Whether a MIME type is a plain image or video type.
+--
+-- SVG is excluded since it can contain scripts, and so is anything that is
+-- not a simple type token, which also rules out header injection.
+isSafeMediaType :: Text -> Bool
+isSafeMediaType t =
+  Text.all validChar t &&
+  (("image/" `Text.isPrefixOf` lower && not ("image/svg" `Text.isPrefixOf` lower)) ||
+   "video/" `Text.isPrefixOf` lower)
+  where lower = Text.toLower t
+        validChar c = isAscii c && (isAlphaNum c || c `elem` ("+-./" :: String))
 
 -- | Flags (on an image or a directory) showing exceptional
 -- statuses.

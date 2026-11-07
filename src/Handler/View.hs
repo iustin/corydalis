@@ -242,12 +242,22 @@ imageError :: Text -> TypedContent
 imageError msg =
   TypedContent typeSvg . toContent $ basicSvg ("Error: " <> msg)
 
+-- | Restricts what browsers can do with raw file contents opened directly.
+--
+-- The contents come from the repository, and might be crafted documents
+-- rather than media; in a sandbox, they cannot run scripts, nor act as
+-- part of the site. This doesn't affect their use as images or movies in
+-- our own pages.
+sandboxRawContents :: Handler ()
+sandboxRawContents = addHeader "Content-Security-Policy" "sandbox"
+
 -- | Returns the image bytes for a given image.
 --
 -- This always returns the image bytes, even for a movie (in which case
 -- the poster image is returned), potentially at the requested resolution.
 getImageBytesR :: ShortText -> ImageName -> Handler ()
 getImageBytesR folder iname = do
+  sandboxRawContents
   config <- getConfig
   img <- getImage folder iname
   res <- getResParam
@@ -266,6 +276,7 @@ getImageBytesR folder iname = do
 -- handle file types well.
 getMovieBytesR :: ShortText -> ImageName -> Handler ()
 getMovieBytesR folder iname = do
+  sandboxRawContents
   img <- getImage folder iname
   case bestMovie img of
     Just f -> sendFile

@@ -68,6 +68,7 @@ import           Formatting
 import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
                                                  createDirectoryIfMissing,
+                                                 findExecutable,
                                                  removeDirectoryRecursive)
 import           System.FilePath                (takeDirectory)
 import           System.IO.Temp
@@ -216,6 +217,12 @@ withApp :: SpecWith (TestApp App) -> Spec
 withApp = around withApp'
 
 -- Helper test functions
+
+-- | Marks the test as pending if exiftool is not installed.
+requireExifTool :: IO ()
+requireExifTool =
+  findExecutable "exiftool" >>=
+    maybe (pendingWith "exiftool is not available") (const (return ()))
 
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in

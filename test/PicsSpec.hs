@@ -104,6 +104,11 @@ insertJpeg ctx jpeg = do
 autoSizeList :: Ctx -> [Int]
 autoSizeList = Set.toList . cfgAutoImageSizes . ctxConfig
 
+-- | A file for which exiftool reported the given MIME type.
+fileWithMimeType :: Maybe Text -> File
+fileWithMimeType mime =
+  (simpleFile "a.jpg") { fileExif = def { exifMimeType = mkSym <$> mime } }
+
 spec :: Spec
 spec = parallel $ do
   describe "inode info" $ do
@@ -126,6 +131,20 @@ spec = parallel $ do
       let f = File { fileName = "file.jpg", fileCTime = 0, fileMTime = 0, fileSize = 0, fileDirs = mkSym "dir/subdir", fileParent = mkSym "/pics/2022", fileExif = def }
       fileFullPath f `shouldBe` "/pics/2022/dir/subdir/file.jpg"
       fileRelPath f `shouldBe` "dir/subdir/file.jpg"
+  describe "file MIME type" $ do
+    forM_ ["image/jpeg", "image/png", "image/avif", "image/x-canon-cr2",
+           "video/mp4", "video/quicktime"] $ \mime ->
+      it ("uses the type reported by exiftool for " ++ show mime) $ \_ ->
+        fileMimeType "image/jpeg" (fileWithMimeType (Just mime)) `shouldBe` mime
+    -- Types that browsers treat as documents, malformed types, and header
+    -- injection attempts all get the default.
+    forM_ ["image/svg+xml", "IMAGE/SVG+XML", "text/html", "text/plain",
+           "application/xhtml+xml", "application/pdf", "text/xml", "",
+           "image/jpeg; charset=utf-8", "image/jpeg\r\nX-Injected: 1"] $ \mime ->
+      it ("uses the default instead of " ++ show mime) $ \_ ->
+        fileMimeType "image/jpeg" (fileWithMimeType (Just mime)) `shouldBe` "image/jpeg"
+    it "uses the default without a reported type" $ \_ ->
+      fileMimeType "video/mp4" (fileWithMimeType Nothing) `shouldBe` "video/mp4"
   describe "build file from inode" $ do
     it "builds a file from an inode with no subdirs" $ \_ -> do
       let ii = InodeInfo "file.jpg" [] False 0 0 0

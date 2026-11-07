@@ -34,7 +34,7 @@ import qualified Data.ByteString     as BS
 import           Data.Either         (isLeft, isRight)
 import qualified Data.Map            as Map
 import           Data.Text.Arbitrary ()
-import           System.Directory    (findExecutable, listDirectory)
+import           System.Directory    (listDirectory)
 import           Test.QuickCheck
 
 -- | A 1x1 pixel JPEG, which exiftool is able to rewrite.
@@ -59,12 +59,6 @@ minimalJpeg = BS.pack
   , 0x00, 0x00, 0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00
   , 0x54, 0xdf, 0xff, 0xd9
   ]
-
--- | Marks the test as pending if exiftool is not installed.
-requireExifTool :: IO ()
-requireExifTool =
-  findExecutable "exiftool" >>=
-    maybe (pendingWith "exiftool is not available") (const (return ()))
 
 -- | Creates files in the source directory, and returns the directory.
 populateSourceDir :: Config -> [(FilePath, ByteString)] -> IO FilePath
