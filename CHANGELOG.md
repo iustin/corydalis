@@ -63,6 +63,13 @@ of the computation are more accurate.
 The logout button now logs out directly, instead of going through an
 intermediate page, and afterwards always shows the login page.
 
+Many icons have been changed so that different things no longer share the
+same icon: the search attributes (e.g. lens vs. camera, person vs. people
+count, season/month/day vs. year, flash mode vs. flash source), the viewer
+buttons (zoom vs. search, the folder list vs. the image list), and a few
+homepage and status icons. The "random image" button on the homepage now
+uses the same icon as the one in the viewer.
+
 ### Fixed bugs
 
 If `ffmpeg` was not installed, a single movie without an embedded preview

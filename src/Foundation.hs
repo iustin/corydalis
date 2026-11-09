@@ -505,7 +505,7 @@ repoStatusIcon RepoScanning {}  = "fa-solid fa-hourglass-half"
 repoStatusIcon RepoRendering {} = "fa-solid fa-check"
 repoStatusIcon RepoCleaning {}  = "fa-solid fa-check"
 repoStatusIcon RepoFinished {}  = "fa-solid fa-check-double"
-repoStatusIcon RepoError {}     = "fa-solid fa-exclamation"
+repoStatusIcon RepoError {}     = "fa-solid fa-triangle-exclamation"
 
 instance YesodAuthPersist App
 

@@ -28,7 +28,7 @@ $maybe msg <- homeMessage
   <div .col-12 .col-sm-6 .col-lg-4 .mb-4>
     <div .card>
       <div .card-header .py-2>
-        <span .fa-solid .fa-gears>
+        <span .fa-solid .fa-layer-group>
         Specialised views
       <div .card-body>
         $forall t <- specialViews

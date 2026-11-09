@@ -10,7 +10,7 @@
           <span .fa-solid .fa-play>
           Start at the beginning
         <a .btn .btn-light .py-1 .my-1 href="@{ViewR (imgParent ri) (imgName ri)}">
-          <span .fa-solid .fa-up-down-left-right>
+          <span .fa-solid .fa-shuffle>
           View a random image
         <a .btn .btn-light .py-1 .my-1 href="@?{(SearchR,onThisDate)}">
           <span .fa-solid .fa-calendar-day>
