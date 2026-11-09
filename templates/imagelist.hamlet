@@ -21,7 +21,7 @@
                     $if showParent
                       <td>
                         <a href=@{FolderR p}>
-                          <span .far .fa-folder>
+                          <span .fa-regular .fa-folder>
                           #{p}
                     <td>
                         <a href=@{ImageR p (imgName img)}>#{imgName img}

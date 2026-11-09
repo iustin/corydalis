@@ -259,7 +259,7 @@ imageViewActions :: ShortText -> ImageName -> UrlParams -> Widget
 imageViewActions folder image params =
   toWidget [hamlet|
             <a href=@?{(ViewR folder image, params)} title="View image in Corydalis">
-              <span .far .fa-image .fa-lg>#
+              <span .fa-regular .fa-image .fa-lg>#
             <a href=@{ImageBytesR folder image} target=_blank title="View image in the browser">
               <span .fa-solid .fa-eye .fa-lg>#
             <a href=@{ImageBytesR folder image} download=#{image} title="Download image">
@@ -273,7 +273,7 @@ movieViewActions img params = do
       download = maybe "" Pics.fileName (bestMovie img)
   toWidget [hamlet|
             <a href=@?{(ViewR folder image, params)} title="View movie in Corydalis">
-              <span .far .fa-image .fa-lg>#
+              <span .fa-regular .fa-image .fa-lg>#
             <a href=@{MovieBytesR folder image} target=_blank title="Play movie in the browser">
               <span .fa-solid .fa-eye .fa-lg>#
             <a href=@{MovieBytesR folder image} download=#{download} title="Download the movie">

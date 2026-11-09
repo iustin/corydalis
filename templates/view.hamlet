@@ -196,7 +196,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Go to the first image in the previous folder">
             <span>
-              <span .fa-solid .fa-angle-double-left>
+              <span .fa-solid .fa-angles-left>
               View previous folder
             <kbd .ms-2>
               [
@@ -205,7 +205,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
             .d-flex .justify-content-between .align-items-center
             title="Go to the first image in the next folder">
             <span>
-              <span .fa-solid .fa-angle-double-right>
+              <span .fa-solid .fa-angles-right>
               View next folder
             <kbd .ms-2>
               ]
@@ -249,7 +249,7 @@ $# https://webkit.org/blog/5610/more-responsive-tapping-on-ios/.
     $# Common buttons.
     <button type="button" .btn .btn-light #imageRand
       title="Go to a random image">
-      <span .fa-solid .fa-2x .fa-random>
+      <span .fa-solid .fa-2x .fa-shuffle>
     <button type="button" .btn .btn-light #imageFull
       title="Toggle full-screen state">
       <span .fa-solid .fa-2x .fa-maximize>

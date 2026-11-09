@@ -13,10 +13,10 @@ export function configureTablesorterTheme(): void {
     // to the <i> in the header
     icons: '',
     // class name added to icon when column is not sorted
-    iconSortNone: 'fas fa-sort',
+    iconSortNone: 'fa-solid fa-sort',
     // class name added to icon when column has ascending sort
-    iconSortAsc: 'fas fa-sort-up',
+    iconSortAsc: 'fa-solid fa-sort-up',
     // class name added to icon when column has descending sort
-    iconSortDesc: 'fas fa-sort-down',
+    iconSortDesc: 'fa-solid fa-sort-down',
   });
 }

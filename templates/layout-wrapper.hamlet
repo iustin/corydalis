@@ -22,7 +22,7 @@ $doctype 5
         <ul .navbar-nav .me-auto #nav-breadcrumbs>
           <li .nav-item>
             <a .nav-link href=@{HomeR}>
-              <span .fa-solid .fa-home>
+              <span .fa-solid .fa-house>
               <span .d-none .d-xxl-inline>
                 Corydalis
           $forall (idx, bc, visibilityClass) <- parentsIdx
@@ -42,7 +42,7 @@ $doctype 5
             <input type="text" .form-control placeholder="Search" aria-label="Search" name="q" #entry>
             <div .d-none .d-sm-flex>
               <button .btn .input-group-text type="submit" .btn-secondary>
-                <span .fa-solid .fa-search>
+                <span .fa-solid .fa-magnifying-glass>
 
         <div .navbar-nav>
             <form action=@{ReloadR} method=post .form-inline>
@@ -51,7 +51,7 @@ $doctype 5
                 <!-- This unused input is needed to avoid Chrome's SPDY protocol error. Sigh… -->
                 <input type="hidden" name="unused" value="unused">
                 <button .btn .btn-light type="submit" title="Rescan directories and image information" .d-none .d-sm-inline>
-                  <span .fa-solid .fa-sync>
+                  <span .fa-solid .fa-arrows-rotate>
                   <span .d-none .d-xl-inline>
                     Rescan
             <a .nav-item .nav-link href=@{StatusR}>
@@ -59,11 +59,11 @@ $doctype 5
                 <span .d-none .d-xl-inline>
                   Status
             <a .nav-item .nav-link href=@{CurateR}>
-                <span .fa-solid .fa-tasks>
+                <span .fa-solid .fa-list-check>
                 <span .d-none .d-xl-inline>
                   Curate
             <a .nav-item .nav-link .d-none .d-sm-inline href=@{SettingsR}>
-                <span .fa-solid .fa-cog>
+                <span .fa-solid .fa-gear>
                 <span .d-none .d-xl-inline>
                   Settings
             <a .nav-item .nav-link href=@{AboutR}>
@@ -77,12 +77,12 @@ $doctype 5
                 $maybe tok <- mtok
                   <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
                 <button .nav-item .nav-link type="submit" title="Logout">
-                  <span .fa-solid .fa-sign-out-alt>
+                  <span .fa-solid .fa-right-from-bracket>
                   <span .d-none .d-xl-inline>
                     Logout
             $else
               <a .nav-item .nav-link href=@{AuthR LoginR}>
-                  <span .fa-solid .fa-sign-in-alt>
+                  <span .fa-solid .fa-right-to-bracket>
                   <span .d-none .d-xl-inline>
                     Login
 

@@ -79,10 +79,10 @@ iconRaw :: Text
 iconRaw = "fa-solid fa-file-image"
 
 iconProcessed :: Text
-iconProcessed = "far fa-file-image"
+iconProcessed = "fa-regular fa-file-image"
 
 iconPlainFile :: Text
-iconPlainFile = "far fa-file-alt"
+iconPlainFile = "fa-regular fa-file-lines"
 
 iconMovie :: Text
 iconMovie = "fa-solid fa-video"
@@ -94,7 +94,7 @@ iconWIP :: Text
 iconWIP = "fa-solid fa-hourglass-half"
 
 iconFolder :: Text
-iconFolder = "far fa-folder"
+iconFolder = "fa-regular fa-folder"
 
 fcIcon :: FolderClass -> [Text]
 fcIcon FolderRaw         = [iconRaw]
@@ -118,7 +118,7 @@ atomIcon :: Symbol -> Text
 atomIcon TCountry       = "fa-solid fa-globe"
 atomIcon TProvince      = "fa-solid fa-map"
 atomIcon TCity          = "fa-solid fa-building"
-atomIcon TLocation      = "fa-solid fa-map-signs"
+atomIcon TLocation      = "fa-solid fa-signs-post"
 atomIcon TPerson        = "fa-solid fa-users"
 atomIcon TKeyword       = "fa-solid fa-tags"
 atomIcon TTitle         = "fa-solid fa-comment"
@@ -129,7 +129,7 @@ atomIcon TMonth         = "fa-solid fa-calendar"
 atomIcon TDay           = "fa-solid fa-calendar"
 atomIcon TCamera        = "fa-solid fa-camera"
 atomIcon TLens          = "fa-solid fa-camera" -- :(
-atomIcon TFStop         = "far fa-circle" -- FIXME: check font-awesome sometimes
+atomIcon TFStop         = "fa-regular fa-circle" -- FIXME: check font-awesome sometimes
 atomIcon TShutterSpeed  = "fa-solid fa-stopwatch"
 atomIcon TIso           = "fa-solid fa-cloud-sun-rain"
 atomIcon TFocalLength   = "fa-solid fa-ruler-horizontal" -- FIXME: sigh…
@@ -137,7 +137,7 @@ atomIcon TProblem       = "fa-solid fa-bomb"
 atomIcon TType          = "fa-solid fa-file"
 atomIcon TFolder        = "fa-solid fa-folder"
 atomIcon TFileName      = "fa-solid fa-file"
-atomIcon TStatus        = "fa-solid fa-file-alt"
+atomIcon TStatus        = "fa-solid fa-file-lines"
 atomIcon TFClass        = "fa-solid fa-folder"
 atomIcon TRating        = "fa-solid fa-star"
 atomIcon TPplCnt        = "fa-solid fa-users"
