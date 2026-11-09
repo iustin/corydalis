@@ -55,7 +55,7 @@ $doctype 5
                   <span .d-none .d-xl-inline>
                     Rescan
             <a .nav-item .nav-link href=@{StatusR}>
-                <span class="#{repoStatusIcon repoState}"`>
+                <span class="#{repoStatusIcon repoState}">
                 <span .d-none .d-xl-inline>
                   Status
             <a .nav-item .nav-link href=@{CurateR}>

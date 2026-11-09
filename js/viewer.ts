@@ -901,11 +901,11 @@ $(function () {
    */
   function updateFullScreenIcon() {
     if (cory.state.fullscreen) {
-      fullScreenIcon.removeClass('fa-mazimize');
+      fullScreenIcon.removeClass('fa-maximize');
       fullScreenIcon.addClass('fa-minimize');
     } else {
       fullScreenIcon.removeClass('fa-minimize');
-      fullScreenIcon.addClass('fa-mazimize');
+      fullScreenIcon.addClass('fa-maximize');
     }
   }
 
