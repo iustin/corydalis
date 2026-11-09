@@ -1,6 +1,12 @@
 <h1>Settings
 
 <div .row>
+  <div .col-12 .mb-2>
+     <div .card .border-info>
+       <div .card-body>
+            Note that this page only shows the settings as configured in the configuration file.
+            To change them, update the file and restart the application.
+
   <div .col-12 .col-md-6>
      <div .card>
       <div .card-header>Input configuration
