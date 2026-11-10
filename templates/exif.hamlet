@@ -34,7 +34,10 @@ $with smf <- showMaybeSymItem "?"
   <tr>
     <td>Make
     <td>
-      ^{smf exifMake} / ^{smf exifLensMake}
+      $if exifMake == exifLensMake
+        ^{smf exifMake}
+      $else
+        ^{smf exifMake} / ^{smf exifLensMake}
   <tr>
     <td>Capture time
     <td>^{showMaybeField "?" create_date}
