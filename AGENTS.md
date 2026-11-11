@@ -33,9 +33,9 @@ npm is the frontend toolchain (`package.json`, `js/tsconfig.json`).
 - Type-check: `npm run type-check-oneshot`
 - Lint and unit tests: `npm test` (oxlint on `js/`, configured in
   `.oxlintrc.json` with type-aware rules and type-checking enabled, then
-  `node:test` tests for `js/*.test.mjs`, run directly by Node, which
-  strips the TypeScript types of the imported modules; imports from tests
-  need explicit `.ts` extensions)
+  `node:test` tests for `js/*.test.ts`, run directly by Node, which
+  strips the TypeScript types; imports from tests need explicit `.ts`
+  extensions)
 - Node.js version: as in `.node-version` (also used by CI)
 - Build: `npm run build`
 

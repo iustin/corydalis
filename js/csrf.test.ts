@@ -58,7 +58,7 @@ describe('setupCsrf', () => {
   }
 
   /** Runs a request through the prefilter, returning its headers. */
-  function headersFor(options, token = 'abc123') {
+  function headersFor(options, token: string | null = 'abc123') {
     const prefilter = installPrefilter(() => token);
     const headers = {};
     prefilter(options, options, {

@@ -12,13 +12,15 @@ describe('playFailureMessage', () => {
   });
   it('explains blocked playback', () => {
     assert.match(
-      playFailureMessage(new DOMException('denied', 'NotAllowedError')),
+      // A null result fails the match, as intended.
+      playFailureMessage(new DOMException('denied', 'NotAllowedError')) ?? '',
       /did not allow/,
     );
   });
   it('explains unsupported or failed sources', () => {
     assert.match(
-      playFailureMessage(new DOMException('bad source', 'NotSupportedError')),
+      playFailureMessage(new DOMException('bad source', 'NotSupportedError')) ??
+        '',
       /cannot play this movie/,
     );
   });

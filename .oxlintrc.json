@@ -16,6 +16,18 @@
     "no-fallthrough": "error",
     "no-case-declarations": "error",
     "typescript/no-explicit-any": "error",
-    "typescript/ban-ts-comment": "error"
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-floating-promises": [
+      "error",
+      {
+        "allowForKnownSafeCalls": [
+          {
+            "from": "package",
+            "name": ["describe", "it", "test"],
+            "package": "node:test"
+          }
+        ]
+      }
+    ]
   }
 }

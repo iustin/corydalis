@@ -10,6 +10,7 @@
     "@types/infinite-scroll": "^4.0.4",
     "@types/jquery": "^3.5.32",
     "@types/masonry-layout": "^4.2.7",
+    "@types/node": "^24.19.2",
     "@types/plotly.js": "^3.0.0",
     "@types/tablesorter": "^2.31.8",
     "bootstrap": "^5.3.3",
@@ -34,7 +35,7 @@
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",
     "test": "oxlint js/ && npm run test:unit",
-    "test:unit": "node --test js/*.test.mjs"
+    "test:unit": "node --test js/*.test.ts"
   },
   "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",

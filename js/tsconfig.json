@@ -11,6 +11,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true /* esbuild handles emission */,
+    /* The tests import modules with .ts extensions, as Node requires */
+    "allowImportingTsExtensions": true,
+    /* Types for node:test and node:assert in the tests */
+    "types": ["node"],
 
     /* Add this to include JS files */
     "allowJs": true,
