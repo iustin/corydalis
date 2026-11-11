@@ -870,17 +870,33 @@ $(function () {
     requestOffscreenImage(cory.next, cory.info.next, 'next');
   }
 
+  /**
+   * Emulates full screen by hiding the navigation menu and expanding the
+   * main area, for when the browser's full screen API is not available.
+   */
+  function enterFakeFullScreen() {
+    LOG('entering fake full screen');
+    cory.state.fullscreen = true;
+    navMenu.addClass('nav-hidden');
+    divMain.addClass('fake-fullscreen');
+    resizeCanvasAndRedraw();
+  }
+
+  function leaveFakeFullScreen() {
+    LOG('exiting fake full screen');
+    cory.state.fullscreen = false;
+    navMenu.removeClass('nav-hidden');
+    divMain.removeClass('fake-fullscreen');
+    resizeCanvasAndRedraw();
+  }
+
   function enterFullScreen() {
     const div = divMain[0];
     if (screenfull.isEnabled) {
       LOG('entering full screen via screenfull');
       screenfull.request(div);
     } else {
-      LOG('entering fake full screen');
-      cory.state.fullscreen = true;
-      navMenu.addClass('nav-hidden');
-      divMain.addClass('fake-fullscreen');
-      resizeCanvasAndRedraw();
+      enterFakeFullScreen();
     }
   }
 
@@ -889,11 +905,7 @@ $(function () {
       LOG('exiting full screen via screenfull');
       screenfull.exit();
     } else {
-      LOG('exiting fake full screen');
-      cory.state.fullscreen = false;
-      navMenu.removeClass('nav-hidden');
-      divMain.removeClass('fake-fullscreen');
-      resizeCanvasAndRedraw();
+      leaveFakeFullScreen();
     }
   }
 
