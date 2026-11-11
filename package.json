@@ -33,7 +33,7 @@
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",
     "test": "oxlint js/ && npm run test:unit",
-    "test:unit": "esbuild js/csrf.test.mjs --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/corydalis/csrf.test.mjs && node node_modules/.cache/corydalis/csrf.test.mjs"
+    "test:unit": "rm -rf node_modules/.cache/corydalis/tests && esbuild js/*.test.mjs --bundle --platform=node --format=esm --log-level=warning --out-extension:.js=.mjs --outdir=node_modules/.cache/corydalis/tests && node --test node_modules/.cache/corydalis/tests/*.test.mjs"
   },
   "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",
