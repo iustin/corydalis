@@ -28,6 +28,16 @@
        <div .card>
          ^{imageGrid config imagesize params elems}
 
+       <div .page-load-status .mt-3>
+         <div .infinite-scroll-request .alert .alert-info .py-2>
+           <span .spinner-border .spinner-border-sm .me-2 aria-hidden="true">
+           Loading more images...
+         <div .infinite-scroll-last .alert .alert-secondary .py-2>
+           No more images
+         <div .infinite-scroll-error .alert .alert-danger .py-2>
+           <i .fa-solid .fa-triangle-exclamation .me-2>
+           Failed to load more images; reload the page to try again.
+
        <div .card .pagination>
          <div .card-body>
            $if null remElems

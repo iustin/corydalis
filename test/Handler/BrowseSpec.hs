@@ -25,6 +25,7 @@ module Handler.BrowseSpec (spec) where
 import           TestImport
 
 import           Indexer
+import           Pics       (launchScanFileSystem, waitForScan)
 
 spec :: Spec
 spec = parallel $ withApp $ do
@@ -43,6 +44,21 @@ spec = parallel $ withApp $ do
       htmlAnyContain "div.card-body" "doesn't match any images"
       bodyContains "data-page-index=\"0\""
       bodyContains "data-initial-count=\"0\""
+      htmlCount ".page-load-status" 0
+    it "shows the image grid with page load status messages" $ do
+      ctx <- appContext <$> getTestYesod
+      -- Finish scanning first, so that the scan won't drop the injected image.
+      _ <- liftIO $ launchScanFileSystem ctx
+      _ <- liftIO $ waitForScan ctx
+      injectImages [simpleRawImage (ctxConfig ctx)]
+      login
+      checkRoute $ BrowseImagesR 0
+      bodyContains "data-initial-count=\"1\""
+      htmlCount ".page-load-status" 1
+      htmlAnyContain ".page-load-status .infinite-scroll-request" "Loading"
+      htmlAnyContain ".page-load-status .infinite-scroll-last" "No more images"
+      htmlAnyContain ".page-load-status .infinite-scroll-error"
+        "Failed to load more images"
     it "checks empty search on page 3" $ do
       login
       checkRoute $ BrowseImagesR 3

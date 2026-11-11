@@ -145,6 +145,12 @@ screen (for example, due to a permissions policy when embedded), nothing
 happened. The viewer now falls back to its emulated full screen mode, the
 same as on browsers without full screen support.
 
+In the image browse mode, if loading more images while scrolling failed
+(e.g. due to a network error), the grid silently stopped growing. It now
+shows an error message below the images, and also a "Loading more
+images..." message while a page is loading, and "No more images" once the
+end is reached.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

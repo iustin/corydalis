@@ -59,7 +59,14 @@ function initImageGrid(): void {
     // TODO: what was this about? Conversion to plain JS uncovered this doesn't exist.
     // prefill: true,
     hideNav: '.pagination',
+    // Shows the loading, last page and error messages from the template.
+    status: '.page-load-status',
     debug: debug,
+  });
+  // Failed page loads are reported via this event (the library catches
+  // the errors itself, so the loading promises never reject).
+  infScroll.on('error', (error, path) => {
+    console.error('Failed to load more images from', path, error);
   });
   // Handle appended items
   infScroll.on('append', (response, path, items) => {

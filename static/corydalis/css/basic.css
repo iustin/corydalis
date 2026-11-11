@@ -109,6 +109,13 @@ body {
     max-width: 100%;
 }
 
+/* Infinite scroll status messages below the image grid. They start out
+ * hidden; the library shows the relevant one by setting an inline style. */
+.page-load-status,
+.page-load-status > div {
+    display: none;
+}
+
 .icon-overlay {
     position: absolute;
     left: 10px;
