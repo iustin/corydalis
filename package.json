@@ -24,7 +24,7 @@
     "prettier": "3.6.2",
     "screenfull": "6.0.2",
     "tablesorter": "^2.31.3",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "scripts": {
     "type-check": "tsc --noEmit -p js/tsconfig.json --watch",

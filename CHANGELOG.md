@@ -174,6 +174,9 @@ depends on the `typescript` package, which unblocks moving to TypeScript
 The dependencies have been updated as follows:
 
 - The graphing library `plotly` has been updated to version 3.0.
+- TypeScript (used only for type-checking, since `esbuild` does the
+  bundling) has been updated to version 7, the native Go port, which
+  type-checks the code about three times faster.
 
 ## v2025.21.0 - "Zooming for all"
 
