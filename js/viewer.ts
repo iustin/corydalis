@@ -20,6 +20,7 @@ import screenfull from 'screenfull';
 import 'bootstrap';
 import { Modal } from 'bootstrap';
 import { isCsrfRejection, setupCsrf } from './csrf';
+import { playFailureMessage } from './media';
 
 setupCsrf($);
 
@@ -1075,7 +1076,22 @@ $(function () {
       // with the video, it's no longer relevant.
       writePersistent('');
       if (cory.state.video.paused) {
-        cory.state.video.play();
+        // play() fails if the browser blocks playback, or the movie can't
+        // be loaded; in that case, revert the optimistic icon change.
+        const video = cory.state.video;
+        video.play().catch((err: unknown) => {
+          if (cory.state.video !== video) {
+            // We already navigated away; the button is no longer ours.
+            return;
+          }
+          moviePlaySpan.classList.remove('fa-pause');
+          moviePlaySpan.classList.add('fa-play');
+          const msg = playFailureMessage(err);
+          if (msg != null) {
+            console.error('Failed to play movie:', err);
+            writePersistent(msg);
+          }
+        });
         moviePlaySpan.classList.remove('fa-play');
         moviePlaySpan.classList.add('fa-pause');
       } else {
