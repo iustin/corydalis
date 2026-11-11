@@ -188,6 +188,10 @@ depends on the `typescript` package, which unblocks moving to TypeScript
 runs type-aware rules and type-checks the code, which found the movie
 playback and full screen bugs listed above.
 
+The Node.js version used for development is now pinned in a
+`.node-version` file (currently Node 24), which CI uses as well; Node 20,
+as shipped by Debian stable, is no longer sufficient.
+
 ### Dependencies
 
 The dependencies have been updated as follows:

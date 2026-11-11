@@ -39,12 +39,11 @@ jobs:
                       v3-haskell-deps-
                       v2-haskell-deps-
 
-            - name: Cache node modules
-              uses: actions/cache@v6
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
               with:
-                  path: ~/.npm
-                  key: v2-npm-deps-${{ hashFiles('**/package-lock.json') }}
-                  restore-keys: v2-npm-deps-
+                  node-version-file: ".node-version"
+                  cache: "npm"
 
             - name: Setup Python
               uses: actions/setup-python@v7

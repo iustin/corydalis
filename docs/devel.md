@@ -39,7 +39,9 @@ Haskell:
 
 JS:
 
-- npm, from distribution or upstream.
+- Node.js and npm, in the version given in `.node-version` (also used by
+  CI); a version manager such as `fnm` or `nvm` picks it up from there.
+  Distribution packages are usually too old.
 - run `npm install` and `make bootstrap` to create initial JS files.
 
 App config:
