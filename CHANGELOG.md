@@ -178,7 +178,9 @@ The TypeScript code is now linted with
 uses oxlint's default (correctness) rules plus a few extra ones, and
 removes a large number of development dependencies. It also no longer
 depends on the `typescript` package, which unblocks moving to TypeScript
-7 (the native Go port).
+7 (the native Go port). With TypeScript 7 in place, the linter now also
+runs type-aware rules and type-checks the code, which found the movie
+playback and full screen bugs listed above.
 
 ### Dependencies
 

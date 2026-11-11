@@ -3,6 +3,10 @@
   "env": {
     "browser": true
   },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
   "categories": {
     "correctness": "error"
   },
