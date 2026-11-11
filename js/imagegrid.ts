@@ -77,7 +77,9 @@ function initImageGrid(): void {
   // Listen to requests to load the next page, so that the infScroll
   // instance doesn't need to be exported.
   gridElement.addEventListener('corydalis-load-next-page', () => {
-    infScroll.loadNextPage();
+    infScroll.loadNextPage().catch((err: unknown) => {
+      console.error('Failed to load the next page of images:', err);
+    });
   });
 
   infScroll.pageIndex = pageindex;
