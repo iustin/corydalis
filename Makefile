@@ -63,7 +63,7 @@ bootstrap:
 # Continuous typescript compilation
 .PHONY: ts-watch
 ts-watch:
-	npx tsc -w -p js/
+	npm run type-check
 
 # Incremental rebuild and installs binaries in dist/ with the current settings
 # (vs. release which is clean build).
