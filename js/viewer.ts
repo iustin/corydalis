@@ -894,16 +894,26 @@ $(function () {
     const div = divMain[0];
     if (screenfull.isEnabled) {
       LOG('entering full screen via screenfull');
-      screenfull.request(div);
+      // The browser can still refuse (e.g. due to a permissions policy, or
+      // when not triggered by a user action); fall back to emulating it.
+      screenfull.request(div).catch((err: unknown) => {
+        console.warn('Full screen refused, emulating it instead:', err);
+        enterFakeFullScreen();
+        updateFullScreenIcon();
+      });
     } else {
       enterFakeFullScreen();
     }
   }
 
   function leaveFullScreen() {
-    if (screenfull.isEnabled) {
+    // Check the actual mode, as entering real full screen might have
+    // fallen back to the fake one.
+    if (screenfull.isEnabled && screenfull.isFullscreen) {
       LOG('exiting full screen via screenfull');
-      screenfull.exit();
+      screenfull.exit().catch((err: unknown) => {
+        console.error('Failed to exit full screen:', err);
+      });
     } else {
       leaveFakeFullScreen();
     }

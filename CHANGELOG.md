@@ -140,6 +140,11 @@ play button still switched to "pause", as if the movie was playing. The
 button now reverts to "play", and a message explains why the movie did
 not start.
 
+Similarly, if the browser refused to switch the image viewer to full
+screen (for example, due to a permissions policy when embedded), nothing
+happened. The viewer now falls back to its emulated full screen mode, the
+same as on browsers without full screen support.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
