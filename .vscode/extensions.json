@@ -3,7 +3,7 @@
     "ryanluker.vscode-coverage-gutters",
     "haskell.haskell",
     "justusadam.language-haskell",
-    "dbaeumer.vscode-eslint",
+    "oxc.oxc-vscode",
     "esbenp.prettier-vscode",
     "stkb.rewrap",
     "connor4312.esbuild-problem-matchers"

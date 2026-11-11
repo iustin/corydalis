@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": {
+    "browser": true
+  },
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-fallthrough": "error",
+    "no-case-declarations": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": "error"
+  }
+}

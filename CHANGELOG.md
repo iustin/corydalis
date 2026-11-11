@@ -162,6 +162,13 @@ using `esbuild` as a bundler. This has plusses and minuses, but brings the
 code into a more modern era and should simplify use/integration of new
 libraries.
 
+The TypeScript code is now linted with
+[oxlint](https://oxc.rs/docs/guide/usage/linter) instead of ESLint. It
+uses oxlint's default (correctness) rules plus a few extra ones, and
+removes a large number of development dependencies. It also no longer
+depends on the `typescript` package, which unblocks moving to TypeScript
+7 (the native Go port).
+
 ### Dependencies
 
 The dependencies have been updated as follows:
