@@ -26,9 +26,6 @@
     "tablesorter": "^2.31.3",
     "typescript": "^6.0.3"
   },
-  "overrides": {
-    "minimatch@>=7 <11.0.1": "^11.0.1"
-  },
   "scripts": {
     "type-check": "tsc --noEmit -p js/tsconfig.json --watch",
     "type-check-oneshot": "tsc --noEmit -p js/tsconfig.json",
