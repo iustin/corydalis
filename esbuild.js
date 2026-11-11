@@ -1,5 +1,6 @@
 // build.js
 import * as esbuild from 'esbuild';
+import { watch as watchFiles } from 'node:fs';
 
 const isDev = process.env.NODE_ENV === 'development';
 const watch = process.argv.includes('--watch');
@@ -52,10 +53,36 @@ async function runBuild() {
   });
 
   if (watch) {
-    // Start watch mode
-    console.log('[watch] build started');
-    await ctx.watch();
-    console.log('Watch mode active. Press Ctrl+C to stop.');
+    // esbuild's own watch mode polls every 100ms, even when idle. Instead,
+    // build once, then rebuild only when the OS reports a change in js/ or
+    // in the dependencies.
+    const rebuild = async (reason) => {
+      console.log(`[watch] build started${reason}`);
+      await ctx.rebuild().catch(() => {}); // errors are already printed
+      console.log('[watch] build finished');
+    };
+    await rebuild('');
+    let timer;
+    const scheduleRebuild = (file) => {
+      // Editors often save in several steps (temp file, rename, ...), so
+      // wait for things to settle before rebuilding.
+      clearTimeout(timer);
+      timer = setTimeout(() => rebuild(` (change: "${file}")`), 50);
+    };
+    watchFiles('js', { recursive: true }, (_event, file) => {
+      scheduleRebuild(`js/${file}`);
+    });
+    // `npm install` updates package-lock.json once node_modules is in
+    // place. Watch the directory rather than the file itself, since a
+    // file watch stops working if the file gets replaced via a rename.
+    watchFiles('.', (_event, file) => {
+      if (file === 'package-lock.json') {
+        scheduleRebuild(file);
+      }
+    });
+    console.log(
+      'Watching js/ and package-lock.json for changes. Press Ctrl+C to stop.',
+    );
   } else {
     // Just do a single build
     const result = await ctx.rebuild();
