@@ -72,8 +72,8 @@ update = do
     start :: MVar () -- ^ Written to when the thread is killed.
           -> IO ThreadId
     start done = do
-        (port, site, app) <- getApplicationRepl
-        forkIO (finally (runSettings (setPort port defaultSettings) app)
+        (wsettings, site, app) <- getApplicationRepl
+        forkIO (finally (runSettings wsettings app)
                         -- Note that this implies concurrency
                         -- between shutdownApp and the next app that is starting.
                         -- Normally this should be fine

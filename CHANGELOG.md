@@ -140,6 +140,11 @@ malicious site linking to the login page could send users to a fake page
 after they logged in. Now only pages of the Corydalis site itself are
 returned to after login, and logging out always shows the login page.
 
+Security (development only): when run from GHCi via `DevelMain.update`,
+the server ignored the configured `host` and listened on all IPv4
+interfaces, while the password-less development login was enabled. It now
+uses the same Warp settings, including the host, as `yesod devel`.
+
 In the image viewer, if a movie could not be played (for example because
 the browser blocked playback, or the movie format is not supported), the
 play button still switched to "pause", as if the movie was playing. The

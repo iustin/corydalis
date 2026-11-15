@@ -63,7 +63,6 @@ import           Network.Wai                               (Middleware)
 import           Network.Wai.Handler.Warp                  (Settings,
                                                             defaultSettings,
                                                             defaultShouldDisplayException,
-                                                            getPort,
                                                             runSettings,
                                                             runSettingsSocket,
                                                             setHost,
@@ -306,10 +305,12 @@ appMain = do
 --------------------------------------------------------------
 -- Functions for DevelMain.hs (a way to run the app from GHCi)
 --------------------------------------------------------------
-getApplicationRepl :: IO (Int, App, Application)
-getApplicationRepl = do
-    (wsettings, foundation, app) <- getApplicationHelper
-    return (getPort wsettings, foundation, app)
+-- | Returns the full Warp settings, and not just the port, so that the
+-- REPL server listens on the configured host as well: it runs with dummy
+-- authentication enabled, so it must not be reachable from more places
+-- than configured.
+getApplicationRepl :: IO (Settings, App, Application)
+getApplicationRepl = getApplicationHelper
 
 shutdownApp :: App -> IO ()
 shutdownApp _ = return ()
