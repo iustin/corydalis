@@ -42,6 +42,7 @@ module Foundation
   , getContext
   , getLastViewMode
   , clientSessionKeyFile
+  , isWithinRoot
   ) where
 
 import           Data.Type.Equality
@@ -436,8 +437,14 @@ instance YesodAuth App where
     loginDest _ = HomeR
     -- Where to send a user after logout
     logoutDest _ = AuthR LoginR
-    -- Override the above two destinations when a Referer: header is present
-    redirectToReferer _ = True
+    -- Don't let yesod-auth override the above two destinations with any
+    -- Referer: header, as that can point to another site (open redirect).
+    -- Instead, the login page does this for same-origin referers only.
+    redirectToReferer _ = False
+
+    loginHandler = do
+      liftHandler setSameOriginUltDestReferer
+      defaultLoginHandler
 
     authenticate :: (MonadHandler m, HandlerSite m ~ App)
                  => Creds App -> m (AuthenticationResult App)
@@ -469,6 +476,26 @@ instance YesodAuth App where
 #endif
 
     --authHttpManager = getHttpManager
+
+-- | Whether an URL points within the application root.
+--
+-- The root must be given without a trailing slash; anything else in the
+-- URL past the root must start with a slash, so that e.g.
+-- @http://host.evil.example@ doesn't match @http://host@.
+isWithinRoot :: Text -> Text -> Bool
+isWithinRoot root url = url == root || (root <> "/") `isPrefixOf` url
+
+-- | Sets the destination after login to the referring page, if it is part
+-- of this site, and no destination is already set.
+setSameOriginUltDestReferer :: Handler ()
+setSameOriginUltDestReferer = do
+  referer <- lookupHeader "Referer"
+  render <- getUrlRender
+  let home = render HomeR
+      root = fromMaybe home $ stripSuffix "/" home
+  -- setUltDestReferer re-reads the same header.
+  when (maybe False (isWithinRoot root . decodeUtf8) referer)
+    setUltDestReferer
 
 loginWidget :: Route App -> Widget
 loginWidget loginRoute = do

@@ -24,7 +24,9 @@ module FoundationSpec (spec) where
 
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Map              as M
+import           Data.Text.Arbitrary   ()
 import           Network.Wai.Test      (simpleHeaders)
+import           Test.QuickCheck       (Gen, arbitrary, forAll, (==>))
 import           Text.HTML.DOM         (parseLBS)
 import           Text.XML.Cursor       (attribute, fromDocument)
 import           Web.Cookie
@@ -38,6 +40,18 @@ responseCookie name = withResponse $ \response ->
   return $ find ((== name) . setCookieName) $
     [ parseSetCookie value
     | (header, value) <- simpleHeaders response, header == "Set-Cookie" ]
+
+-- | Returns the redirect target of the last response.
+responseLocation :: YesodExample App (Maybe ByteString)
+responseLocation = withResponse $ \response ->
+  return $ lookup "Location" $ simpleHeaders response
+
+-- | Opens a page with the given referer.
+getWithReferer :: Route App -> ByteString -> YesodExample App ()
+getWithReferer route referer = request $ do
+  setMethod "GET"
+  setUrl route
+  addRequestHeader ("Referer", referer)
 
 -- | Pages that render (with an empty repository) when logged in.
 htmlPages :: [Route App]
@@ -90,7 +104,39 @@ checkViewCookie expected = request $ do
   liftIO $ actual `shouldBe` expected
 
 spec :: Spec
-spec = parallel $ withApp $ do
+spec = do
+  isWithinRootSpec
+  appSpec
+
+isWithinRootSpec :: Spec
+isWithinRootSpec = describe "isWithinRoot" $ do
+  let root = "http://localhost:3000"
+  it "accepts the root itself" $
+    isWithinRoot root root `shouldBe` True
+  it "accepts pages under the root" $ do
+    isWithinRoot root "http://localhost:3000/" `shouldBe` True
+    isWithinRoot root "http://localhost:3000/curate?x=1" `shouldBe` True
+  it "rejects other sites" $ do
+    isWithinRoot root "https://evil.example/" `shouldBe` False
+    isWithinRoot root "http://localhost:3000.evil.example/" `shouldBe` False
+    isWithinRoot root "http://localhost:3000@evil.example/" `shouldBe` False
+    isWithinRoot root "http://localhost:30001/" `shouldBe` False
+    isWithinRoot root "" `shouldBe` False
+  prop "accepts any root itself" $ forAll anyText $ \r ->
+    isWithinRoot r r
+  prop "accepts any path under a root" $ forAll anyText $ \r ->
+    forAll anyText $ \p -> isWithinRoot r (r <> "/" <> p)
+  prop "rejects a root followed by anything but a slash" $
+    forAll anyText $ \r -> forAll anyText $ \s ->
+      not (null s) && not ("/" `isPrefixOf` s) ==>
+        not (isWithinRoot r (r <> s))
+  prop "rejects URLs not starting with the root" $
+    forAll anyText $ \r -> forAll anyText $ \u ->
+      not (r `isPrefixOf` u) ==> not (isWithinRoot r u)
+  where anyText = arbitrary :: Gen Text
+
+appSpec :: Spec
+appSpec = parallel $ withApp $ do
   describe "checks view pages set their cookie" $ do
     forM_ handlerView $ \(route, symbol) ->
       it ("validates route " ++ show route) $ do
@@ -175,6 +221,35 @@ spec = parallel $ withApp $ do
         addToken
       statusIs 303
       checkRouteIs HomeR 303
+  describe "checks the redirect after login" $ do
+    it "returns to a referring page of this site" $ do
+      userEntity <- createUser "foo"
+      getWithReferer (AuthR LoginR) "http://localhost:3000/curate"
+      authenticateAs userEntity
+      statusIs 303
+      location <- responseLocation
+      liftIO $ location `shouldBe` Just "http://localhost:3000/curate"
+    forM_ [ "https://evil.example/fake-login"
+          , "http://localhost:3000.evil.example/fake-login"
+          , "http://localhost:3000@evil.example/fake-login"
+          ] $ \referer ->
+      it ("ignores the referer " ++ show referer) $ do
+        userEntity <- createUser "foo"
+        getWithReferer (AuthR LoginR) referer
+        authenticateAs userEntity
+        statusIs 303
+        location <- responseLocation
+        liftIO $ location `shouldBe` Just "http://localhost:3000/"
+    it "ignores the referer when logging out" $ do
+      login
+      getWithReferer (AuthR LogoutR) "https://evil.example/fake-login"
+      request $ do
+        setMethod "POST"
+        setUrl $ AuthR LogoutR
+        addToken
+      statusIs 303
+      location <- responseLocation
+      liftIO $ location `shouldBe` Just "http://localhost:3000/auth/login"
   describe "renders no inline scripts, so that the CSP can forbid them" $
     forM_ htmlPages $ \route ->
       it ("on " ++ show route) $ do

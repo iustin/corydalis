@@ -134,6 +134,12 @@ are now passed through, anything else being served as a JPEG image or MP4
 movie; additionally, file contents are sandboxed when opened directly,
 and all responses forbid content type guessing (`nosniff`).
 
+Security: after logging in or out, Corydalis redirected to the page given
+in the request's `Referer` header, even if it was on another site, so a
+malicious site linking to the login page could send users to a fake page
+after they logged in. Now only pages of the Corydalis site itself are
+returned to after login, and logging out always shows the login page.
+
 In the image viewer, if a movie could not be played (for example because
 the browser blocked playback, or the movie format is not supported), the
 play button still switched to "pause", as if the movie was playing. The
