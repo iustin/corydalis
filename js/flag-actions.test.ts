@@ -23,7 +23,9 @@ import {
   flagActionFor,
   notifyReply,
   parseFlagValue,
+  runFlagAction,
 } from './flag-actions.ts';
+import { type FlagReply, flagFailureMessage } from './flag.ts';
 
 /** A minimal fake element, with attributes and a parent. */
 class FakeElement implements ElementLike {
@@ -123,4 +125,87 @@ describe('notifyReply', () => {
     ]);
     assert.deepEqual(notificationsFor({ text: 'y' }), [['y', 'info']]);
   });
+});
+
+describe('runFlagAction', () => {
+  type Outcome =
+    | { reply: FlagReply }
+    | { httpStatus: number; status: string; details: string };
+
+  /**
+   * Runs a flag action against a fake jQuery whose request has the given
+   * outcome, returning the requests sent and the notifications shown.
+   */
+  function run(outcome: Outcome, flag = true) {
+    const requests: JQuery.AjaxSettings[] = [];
+    const shown: [string, string][] = [];
+    // The input: a fake of the request object (jqXHR) that jQuery returns,
+    // standing in for the server's answer. It mirrors almost 1:1 what
+    // jQuery does in a real run, where done() and fail() register
+    // callbacks, and jQuery later calls the matching one when the answer
+    // arrives. The fake knows the outcome up front, so it calls the
+    // matching callback immediately (synchronously), and decides which
+    // path runFlagAction takes.
+    const xhr = {
+      done(callback: (reply: FlagReply) => void) {
+        if ('reply' in outcome) {
+          callback(outcome.reply);
+        }
+        return xhr;
+      },
+      fail(
+        callback: (
+          xhr: { status: number },
+          status: string,
+          details: string,
+        ) => void,
+      ) {
+        if (!('reply' in outcome)) {
+          callback(
+            { status: outcome.httpStatus },
+            outcome.status,
+            outcome.details,
+          );
+        }
+        return xhr;
+      },
+    };
+    // The outputs: the fake jQuery and the notifier below record what
+    // runFlagAction calls, i.e. the request sent (in `requests`) and the
+    // notifications shown (in `shown`), for the tests to check.
+    const jquery = {
+      ajax: (settings: JQuery.AjaxSettings) => {
+        requests.push(settings);
+        return xhr;
+      },
+    } as unknown as Pick<JQueryStatic, 'ajax'>;
+    runFlagAction(jquery, (text, kind) => shown.push([text, kind]), {
+      url: '/image/flag/a/b',
+      flag,
+    });
+    return { requests, shown };
+  }
+
+  it('sends the request of the action', () => {
+    const { requests } = run({ reply: { text: 'x' } }, false);
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, '/image/flag/a/b');
+    assert.equal(requests[0].type, 'DELETE');
+  });
+  it("shows the server's reply with its kind", () => {
+    const { shown } = run({ reply: { text: 'Image flagged', kind: 'success' } });
+    assert.deepEqual(shown, [['Image flagged', 'success']]);
+  });
+  for (const [httpStatus, status, details] of [
+    [403, 'error', 'Forbidden'],
+    [404, 'error', 'Not Found'],
+    [0, 'timeout', ''],
+  ] as const) {
+    it(`shows a failure (${httpStatus}, ${status}) as an error`, () => {
+      const { shown } = run({ httpStatus, status, details });
+      assert.deepEqual(shown, [
+        [flagFailureMessage(httpStatus, status, details), 'danger'],
+      ]);
+    });
+  }
 });

@@ -83,6 +83,22 @@ export function notifyReply(notify: Notify, reply: FlagReply): void {
 }
 
 /**
+ * Sends the request of a flag action, and shows its result: the server's
+ * reply, or the failure as an error.
+ */
+export function runFlagAction(
+  jquery: Pick<JQueryStatic, 'ajax'>,
+  notify: Notify,
+  action: FlagAction,
+): void {
+  sendFlag(jquery, action.url, action.flag)
+    .done((reply) => notifyReply(notify, reply))
+    .fail((xhr, status, details) =>
+      notify(flagFailureMessage(xhr.status, status, details), 'danger'),
+    );
+}
+
+/**
  * Attaches click handlers to all flag buttons in the document.
  *
  * Must run once the document is parsed; module scripts (as the bundles
@@ -100,11 +116,7 @@ export function setupFlagActions(
     }
     button.addEventListener('click', (event) => {
       event.preventDefault();
-      sendFlag(jquery, action.url, action.flag)
-        .done((reply) => notifyReply(notify, reply))
-        .fail((xhr, status, details) =>
-          notify(flagFailureMessage(xhr.status, status, details), 'danger'),
-        );
+      runFlagAction(jquery, notify, action);
     });
   }
 }
