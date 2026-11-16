@@ -5,31 +5,31 @@
 //   <span data-flag-url="...">
 //     <button type="button" data-flag="true">Flag</button>
 //     <button type="button" data-flag="false">Un-flag</button>
-//     <span class="flag-status" role="status"></span>
 //   </span>
 //
 // Clicking a button sends a PUT (flag) or DELETE (un-flag) request to the
-// URL, and shows the server's reply in the status element.
+// URL, and shows the server's reply (or the error) as a notification.
 //
 // The click handlers must be attached here: the content security policy
 // forbids inline handlers (onclick attributes) in the HTML.
 
-import { flagFailureMessage, sendFlag } from './flag.ts';
+import { type FlagReply, flagFailureMessage, sendFlag } from './flag.ts';
+import { type ToastKind, parseToastKind } from './toast.ts';
 
 /** The parts of a DOM element used here, so that tests can fake them. */
 export interface ElementLike {
   closest(selector: string): ElementLike | null;
   getAttribute(name: string): string | null;
-  querySelector(selector: string): ElementLike | null;
 }
 
 /** What a click on a flag button should do. */
-export type FlagAction<E extends ElementLike> = {
+export type FlagAction = {
   url: string;
   flag: boolean;
-  /** Where to show the result, if the page has a place for it. */
-  status: E | null;
 };
+
+/** Shows a notification, see js/notify.ts. */
+export type Notify = (text: string, kind: ToastKind) => void;
 
 /** Parses the value of a button's `data-flag` attribute. */
 export function parseFlagValue(value: string | null): boolean | null {
@@ -47,9 +47,7 @@ export function parseFlagValue(value: string | null): boolean | null {
  * Returns the action of a flag button, or null if the button is not
  * part of a (well-formed) flag widget.
  */
-export function flagActionFor<E extends ElementLike>(
-  button: E,
-): FlagAction<E> | null {
+export function flagActionFor(button: ElementLike): FlagAction | null {
   const container = button.closest('[data-flag-url]');
   if (container === null) {
     return null;
@@ -59,21 +57,12 @@ export function flagActionFor<E extends ElementLike>(
   if (url === null || url === '' || flag === null) {
     return null;
   }
-  return {
-    url,
-    flag,
-    status: container.querySelector('.flag-status') as E | null,
-  };
+  return { url, flag };
 }
 
-/** Shows a message in a status element. */
-function showStatus(status: Element | null, text: string, isError: boolean) {
-  if (status === null) {
-    return;
-  }
-  // Text only: messages may contain details from the server.
-  status.textContent = text;
-  status.classList.toggle('text-danger', isError);
+/** Shows the server's reply to a flag request. */
+export function notifyReply(notify: Notify, reply: FlagReply): void {
+  notify(reply.text, parseToastKind(reply.kind));
 }
 
 /**
@@ -84,6 +73,7 @@ function showStatus(status: Element | null, text: string, isError: boolean) {
  */
 export function setupFlagActions(
   jquery: Pick<JQueryStatic, 'ajax'>,
+  notify: Notify,
   root: ParentNode = document,
 ): void {
   for (const button of root.querySelectorAll('[data-flag-url] [data-flag]')) {
@@ -93,15 +83,10 @@ export function setupFlagActions(
     }
     button.addEventListener('click', (event) => {
       event.preventDefault();
-      showStatus(action.status, '…', false);
       sendFlag(jquery, action.url, action.flag)
-        .done((json) => showStatus(action.status, json.text, false))
+        .done((reply) => notifyReply(notify, reply))
         .fail((xhr, status, details) =>
-          showStatus(
-            action.status,
-            flagFailureMessage(xhr.status, status, details),
-            true,
-          ),
+          notify(flagFailureMessage(xhr.status, status, details), 'danger'),
         );
     });
   }

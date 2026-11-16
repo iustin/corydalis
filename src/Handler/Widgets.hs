@@ -244,7 +244,7 @@ noItemsFound filter_desc images =
 --
 -- They are handled by js/flag-actions.ts, which sends PUT/DELETE requests
 -- to the flag URL (with the CSRF token from the page), and shows the result
--- in the status element.
+-- as a notification.
 imageFlagActions :: ShortText -> ImageName -> Bool -> Widget
 imageFlagActions folder image flag =
   toWidget [hamlet|
@@ -252,7 +252,6 @@ imageFlagActions folder image flag =
               $if flag
                 <button .btn .btn-light type=button data-flag=true>Flag
               <button .btn .btn-light type=button data-flag=false>Un-flag
-              <span .flag-status .ms-2 role=status>
               |]
 
 imageViewActions :: ShortText -> ImageName -> UrlParams -> Widget

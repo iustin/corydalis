@@ -4,32 +4,26 @@ import { describe, it } from 'node:test';
 import {
   type ElementLike,
   flagActionFor,
+  notifyReply,
   parseFlagValue,
 } from './flag-actions.ts';
 
-/** A minimal fake element, with attributes, a parent and children. */
+/** A minimal fake element, with attributes and a parent. */
 class FakeElement implements ElementLike {
   parent: FakeElement | null = null;
-  children: FakeElement[] = [];
   attrs: Record<string, string>;
-  className: string;
   // No parameter properties: Node's type stripping doesn't support them.
-  constructor(attrs: Record<string, string> = {}, className = '') {
+  constructor(attrs: Record<string, string> = {}) {
     this.attrs = attrs;
-    this.className = className;
   }
   add(child: FakeElement): FakeElement {
     child.parent = this;
-    this.children.push(child);
     return child;
   }
-  /** Supports only `[attr]` and `.class` selectors. */
+  /** Supports only `[attr]` selectors. */
   matches(selector: string): boolean {
     const attr = /^\[([\w-]+)\]$/.exec(selector);
-    if (attr) {
-      return attr[1] in this.attrs;
-    }
-    return selector.startsWith('.') && this.className === selector.slice(1);
+    return attr !== null && attr[1] in this.attrs;
   }
   closest(selector: string): FakeElement | null {
     if (this.matches(selector)) {
@@ -40,18 +34,6 @@ class FakeElement implements ElementLike {
   getAttribute(name: string): string | null {
     return this.attrs[name] ?? null;
   }
-  querySelector(selector: string): FakeElement | null {
-    for (const child of this.children) {
-      if (child.matches(selector)) {
-        return child;
-      }
-      const found = child.querySelector(selector);
-      if (found) {
-        return found;
-      }
-    }
-    return null;
-  }
 }
 
 /** Builds the widget rendered by the server, returning its parts. */
@@ -59,8 +41,7 @@ function widget(url = '/image/flag/a/b') {
   const container = new FakeElement({ 'data-flag-url': url });
   const flagButton = container.add(new FakeElement({ 'data-flag': 'true' }));
   const unflagButton = container.add(new FakeElement({ 'data-flag': 'false' }));
-  const status = container.add(new FakeElement({}, 'flag-status'));
-  return { container, flagButton, unflagButton, status };
+  return { container, flagButton, unflagButton };
 }
 
 describe('parseFlagValue', () => {
@@ -77,19 +58,15 @@ describe('parseFlagValue', () => {
 
 describe('flagActionFor', () => {
   it('flags via the flag button', () => {
-    const { flagButton, status } = widget();
-    assert.deepEqual(flagActionFor(flagButton), {
+    assert.deepEqual(flagActionFor(widget().flagButton), {
       url: '/image/flag/a/b',
       flag: true,
-      status,
     });
   });
   it('un-flags via the un-flag button', () => {
-    const { unflagButton, status } = widget();
-    assert.deepEqual(flagActionFor(unflagButton), {
+    assert.deepEqual(flagActionFor(widget().unflagButton), {
       url: '/image/flag/a/b',
       flag: false,
-      status,
     });
   });
   it('ignores buttons outside a widget', () => {
@@ -103,13 +80,30 @@ describe('flagActionFor', () => {
   it('ignores widgets without a URL', () => {
     assert.equal(flagActionFor(widget('').flagButton), null);
   });
-  it('works without a status element', () => {
-    const container = new FakeElement({ 'data-flag-url': '/x' });
-    const button = container.add(new FakeElement({ 'data-flag': 'false' }));
-    assert.deepEqual(flagActionFor(button), {
-      url: '/x',
-      flag: false,
-      status: null,
-    });
+});
+
+describe('notifyReply', () => {
+  /** Returns the notifications shown for a reply. */
+  function notificationsFor(reply: { text: string; kind?: string }) {
+    const shown: [string, string][] = [];
+    notifyReply((text, kind) => shown.push([text, kind]), reply);
+    return shown;
+  }
+
+  it('shows the message with its kind', () => {
+    assert.deepEqual(
+      notificationsFor({ text: 'Image flagged', kind: 'success' }),
+      [['Image flagged', 'success']],
+    );
+    assert.deepEqual(
+      notificationsFor({ text: 'Image already flagged!', kind: 'warning' }),
+      [['Image already flagged!', 'warning']],
+    );
+  });
+  it('shows messages of unknown or missing kinds as info', () => {
+    assert.deepEqual(notificationsFor({ text: 'x', kind: 'bogus' }), [
+      ['x', 'info'],
+    ]);
+    assert.deepEqual(notificationsFor({ text: 'y' }), [['y', 'info']]);
   });
 });

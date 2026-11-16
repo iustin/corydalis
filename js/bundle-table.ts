@@ -6,10 +6,11 @@ import 'tablesorter';
 import 'tablesorter/dist/js/widgets/widget-grouping.min.js';
 import { setupCsrf } from './csrf';
 import { setupFlagActions } from './flag-actions';
+import { notify } from './notify';
 import { setupTablesorter } from './tablesorter-config';
 
 setupCsrf($);
-setupFlagActions($);
+setupFlagActions($, notify);
 
 function runInitializer(): void {
   setupTablesorter();

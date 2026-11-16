@@ -56,8 +56,10 @@ the movie.
 
 The "Flag" and "Un-flag" buttons on the image information page and on the
 flagged images page now work in place, like flagging in the image viewer:
-the result is shown next to the buttons, instead of reloading the image
-page. They require JavaScript.
+the result is shown as a notification in the bottom right corner of the
+page, instead of reloading the image page. Notifications disappear after
+a few seconds, except for errors, which stay until closed. The buttons
+require JavaScript.
 
 The rendering phase of the repository scan has now been changed to better
 show the progress; it does two passes, first classifying what is already

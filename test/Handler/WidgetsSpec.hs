@@ -46,7 +46,6 @@ spec = parallel $ withApp $
         liftIO $ do
           html `shouldSatisfy` isInfixOf "data-flag=\"false\""
           isInfixOf "data-flag=\"true\"" html `shouldBe` flag
-          html `shouldSatisfy` isInfixOf "class=\"flag-status"
       it ("is not a form, flag=" ++ show flag) $ do
         (_, html) <- render
         liftIO $ do

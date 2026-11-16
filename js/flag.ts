@@ -3,8 +3,11 @@
 // With the extension, as the unit tests run this file directly in Node.
 import { isCsrfRejection } from './csrf.ts';
 
-/** The reply of the server to a flag request. */
-export type FlagReply = { text: string };
+/**
+ * The reply of the server to a flag request: a message, and its kind (e.g.
+ * success, or warning if the image was already flagged).
+ */
+export type FlagReply = { text: string; kind?: string };
 
 /**
  * Sends a request to flag (or un-flag) an image, using the image's flag URL.
