@@ -134,6 +134,13 @@ are now passed through, anything else being served as a JPEG image or MP4
 movie; additionally, file contents are sandboxed when opened directly,
 and all responses forbid content type guessing (`nosniff`).
 
+Security: the drop-down filters on the folder, camera and lens columns of
+image lists were built from the table cells as HTML, so markup in a folder
+name or in a picture's camera or lens EXIF data was turned into actual
+elements (the content security policy above prevents it from running
+scripts). These drop-downs have been removed; the text filters on these
+columns still work, matching any part of the name.
+
 Security: after logging in or out, Corydalis redirected to the page given
 in the request's `Referer` header, even if it was on another site, so a
 malicious site linking to the login page could send users to a fake page

@@ -1,16 +1,19 @@
         <table #imagelist .tablesorter .table .table-sm .vmiddle data-sortlist="#{sortColumnsEnc}">
               <col style="width: #{thumbsize}px;">
               <thead>
+                $# No .filter-select on columns showing file names or EXIF
+                $# data: tablesorter builds the select options as HTML from
+                $# the cell texts, so these would allow markup injection.
                 <tr>
                   <th .parser-false .sorter-false .filter-false>Icon
                   $if showParent
-                    <th .sorter-text .filter-select .group-text>Folder
+                    <th .sorter-text .group-text>Folder
                   <th .group-false>Name
                   <th .sorter-text .group-false>Capture date
                   $if numCameras > 1
-                    <th .filter-select .group-text>Camera
+                    <th .group-text>Camera
                   $if numLenses > 1
-                    <th .filter-select .group-text>Lens
+                    <th .group-text>Lens
                   $if not hideStatus
                     <th .filter-select>Status
               <tbody>

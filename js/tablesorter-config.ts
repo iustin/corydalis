@@ -13,6 +13,10 @@ export function setupTablesorter(): void {
   $.extend(true, ts.defaults, {
     theme: 'bootstrap',
     headerTemplate: '{content} {icon}',
+    // Note: the filter widget builds the options of `.filter-select`
+    // columns as HTML from the cell texts (or `data-text`), without
+    // escaping them. Only use `.filter-select` on columns whose values are
+    // fixed by the server code, never on file names or EXIF data.
     widgets: ['uitheme', 'filter', 'group'],
     widgetOptions: {
       group_collapsible: false, // make the group header clickable and collapse the rows below it.
