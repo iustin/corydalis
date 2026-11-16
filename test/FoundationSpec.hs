@@ -122,7 +122,7 @@ setScanError = do
 
 -- | Read-only pages which require authentication even on public sites.
 privatePages :: [Route App]
-privatePages = [FlaggedImagesR, FlaggedImagesListR, SettingsR]
+privatePages = [FlaggedImagesR, FlaggedImagesListR, SettingsR, StatusR, StatusErrorsR]
 
 spec :: Spec
 spec = do

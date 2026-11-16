@@ -511,12 +511,16 @@ loginWidget loginRoute = do
 -- | Read-only routes which require authentication even on public sites.
 --
 -- The flagged images pages show the names of the users who flagged
--- them, which are also their login names, and the settings page shows
--- the server's configuration, e.g. the paths of the picture folders.
+-- them, which are also their login names, the settings page shows the
+-- server's configuration, e.g. the paths of the picture folders, and
+-- the status pages show the scan errors, which can contain such paths
+-- as well.
 alwaysRequiresAuthentication :: Route App -> Bool
 alwaysRequiresAuthentication FlaggedImagesR     = True
 alwaysRequiresAuthentication FlaggedImagesListR = True
 alwaysRequiresAuthentication SettingsR          = True
+alwaysRequiresAuthentication StatusR            = True
+alwaysRequiresAuthentication StatusErrorsR      = True
 alwaysRequiresAuthentication _                  = False
 
 -- | access function to determine if a user is logged in.

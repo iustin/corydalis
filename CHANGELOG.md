@@ -142,7 +142,9 @@ Security: on public sites (built with the `public-site` flag), anonymous
 visitors could see the flagged images pages, which show the names of the
 users who flagged the images, i.e. valid login names, and the settings
 page, which shows the server configuration, e.g. the paths of the picture
-folders. These pages now always require logging in.
+folders. Similarly, the status pages show the errors of the repository
+scan, which can also contain such paths. These pages now always require
+logging in.
 
 Security: the repository status shown at the top of all pages, including
 the error message of a failed scan (which can contain e.g. paths on the
