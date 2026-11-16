@@ -116,6 +116,17 @@ interpreted as options. If untrusted users can add files to your picture
 folders, consider checking for such files, and for unexpected `_original`
 backups.
 
+Security: previews were built by passing the file to ImageMagick's
+`convert` without saying what format it is, so ImageMagick guessed it from
+the file contents. A PostScript or SVG document named, for example,
+`photo.jpg` (or embedded as the preview of a RAW file) was therefore
+decoded as such, and PostScript is run through Ghostscript, which has had
+several sandbox escapes. If untrusted users can add files to your picture
+folders, this could read other files into a served preview, or worse.
+ImageMagick is now always told which decoder to use, based on the file
+extension (see the new `imagedecoders` setting below), and can
+additionally be restricted by a security policy shipped with Corydalis.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require
@@ -201,6 +212,24 @@ Additionally, it is now possible to bind the app to a Unix socket, instead
 of a host:port TCP connection, in order to improve performance and
 security of reverse-proxied deployments. This is controlled via the new
 `unix-socket` configuration key.
+
+Two new, optional, configuration keys control how previews are built:
+
+- `imagedecoders` maps file extensions (case-insensitively) to the
+  ImageMagick decoder to use for them. The default covers JPEG, HEIC/HEIF,
+  TIFF, PNG and WebP; files with other extensions get no previews, so if
+  you have added extensions to `jpegexts` or `viewableimages`, check that
+  they are covered. Decoders that run programs or read other files (e.g.
+  PostScript, PDF, SVG) are refused.
+- `magickpolicydir` points to a directory holding the ImageMagick security
+  policy to use; a restrictive one is in `config/magick/policy.xml`. When
+  set, Corydalis refuses to start unless ImageMagick actually loads that
+  policy; when not set, it logs a warning. See the installation
+  documentation for details. The sample configuration sets it, so copy
+  the policy too if you start from the sample.
+
+Since the configuration is part of the repository cache, the first start
+after upgrading rescans the repository.
 
 ### Internal changes
 
