@@ -3,10 +3,14 @@ import { describe, it } from 'node:test';
 
 import {
   TOAST_DELAY,
+  TOAST_STYLES,
+  type ToastKind,
   parseToastKind,
   toastClasses,
   toastOptions,
 } from './toast.ts';
+
+const KINDS: ToastKind[] = ['success', 'info', 'warning', 'danger'];
 
 describe('parseToastKind', () => {
   for (const kind of ['success', 'info', 'warning', 'danger']) {
@@ -35,12 +39,26 @@ describe('toastOptions', () => {
   });
 });
 
+// These check how the styles are applied, not what they are, so that the
+// styles can be changed freely.
 describe('toastClasses', () => {
-  it('uses the background matching the kind', () => {
-    assert.ok(toastClasses('warning').includes('text-bg-warning'));
-    assert.ok(toastClasses('danger').includes('text-bg-danger'));
-  });
-  it('is a Bootstrap toast', () => {
-    assert.ok(toastClasses('info').includes('toast'));
+  for (const kind of KINDS) {
+    it(`is a Bootstrap toast, ${kind}`, () => {
+      assert.ok(toastClasses(kind).includes('toast'));
+    });
+    it(`uses the style of the kind, ${kind}`, () => {
+      for (const cls of TOAST_STYLES[kind].classes) {
+        assert.ok(toastClasses(kind).includes(cls), cls);
+      }
+    });
+  }
+});
+
+describe('TOAST_STYLES', () => {
+  it('gives each kind a different look', () => {
+    const looks = KINDS.map((kind) =>
+      [...TOAST_STYLES[kind].classes].sort().join(' '),
+    );
+    assert.equal(new Set(looks).size, KINDS.length);
   });
 });

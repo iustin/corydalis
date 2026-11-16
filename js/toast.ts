@@ -45,14 +45,35 @@ export function toastOptions(kind: ToastKind): Partial<Toast.Options> {
     : { autohide: true, delay: TOAST_DELAY };
 }
 
+/** How a kind of notification looks. */
+export type ToastStyle = {
+  /** Bootstrap classes for the colours (and border) of the notification. */
+  classes: readonly string[];
+  /** Whether the close button must be light, for dark backgrounds. */
+  lightCloseButton: boolean;
+};
+
+/**
+ * The presentation of each kind of notification. Change these to restyle
+ * notifications; e.g. a softer error style would be:
+ *
+ *   classes: ['bg-danger-subtle', 'text-danger-emphasis', 'border',
+ *             'border-danger-subtle'],
+ *   lightCloseButton: false,
+ */
+export const TOAST_STYLES: Readonly<Record<ToastKind, ToastStyle>> = {
+  success: { classes: ['text-bg-success', 'border-0'], lightCloseButton: true },
+  info: { classes: ['text-bg-info', 'border-0'], lightCloseButton: false },
+  warning: {
+    classes: ['text-bg-warning', 'border-0'],
+    lightCloseButton: false,
+  },
+  danger: { classes: ['text-bg-danger', 'border-0'], lightCloseButton: true },
+};
+
 /** Returns the CSS classes of a notification. */
 export function toastClasses(kind: ToastKind): string[] {
-  return ['toast', 'align-items-center', 'border-0', `text-bg-${kind}`];
-}
-
-/** Whether a notification needs a light (white) close button. */
-function hasDarkBackground(kind: ToastKind): boolean {
-  return kind === 'success' || kind === 'danger';
+  return ['toast', 'align-items-center', ...TOAST_STYLES[kind].classes];
 }
 
 /** Shows a notification with the given text. */
@@ -78,7 +99,7 @@ export function showToast(
   const close = doc.createElement('button');
   close.type = 'button';
   close.classList.add('btn-close', 'me-2', 'm-auto');
-  if (hasDarkBackground(kind)) {
+  if (TOAST_STYLES[kind].lightCloseButton) {
     close.classList.add('btn-close-white');
   }
   close.setAttribute('data-bs-dismiss', 'toast');
