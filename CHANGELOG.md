@@ -127,6 +127,12 @@ ImageMagick is now always told which decoder to use, based on the file
 extension (see the new `imagedecoders` setting below), and can
 additionally be restricted by a security policy shipped with Corydalis.
 
+Previews embedded in RAW files and movies are now only used if they are
+actually JPEG images. Exiftool already checks this for most of them, but
+not all; otherwise, a non-JPEG preview was saved and used, failing to
+build the scaled-down versions, and preventing the use of the next
+embedded preview, if any.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

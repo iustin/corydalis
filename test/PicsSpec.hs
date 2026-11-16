@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module PicsSpec (spec) where
 
+import qualified Data.ByteString.Lazy as BSL
 import           Data.Default
 import           Data.Either      (isLeft)
 import qualified Data.Map         as Map
@@ -133,6 +134,35 @@ writeRealJpeg path = do
   (code, _, err) <- readProcess (proc "convert" ["-size", "8x8", "xc:white", "jpeg:" ++ path])
   unless (code == ExitSuccess) $
     expectationFailure ("Failed to create test JPEG: " ++ show err)
+
+-- | Writes a JPEG image large enough to be accepted as an embedded one.
+writePreviewJpeg :: FilePath -> IO ()
+writePreviewJpeg path = do
+  (code, _, err) <- readProcess (proc "convert" ["-size", "128x128", "gradient:red-blue",
+                                                 "jpeg:" ++ path])
+  unless (code == ExitSuccess) $
+    expectationFailure ("Failed to create test JPEG: " ++ show err)
+
+-- | Writes a file with the given embedded preview image.
+--
+-- This uses MIE (Meta Information Encapsulation), a metadata container
+-- format designed by the exiftool author. It is not a camera format,
+-- and Corydalis never sees such files in a library, but exiftool can
+-- create one from scratch, including the preview image; in the real
+-- formats (JPEG, NEF, DNG, etc.), exiftool can only update an existing
+-- preview, so the tests would need real camera files instead. The file
+-- extension doesn't matter, since the tests extract the preview
+-- directly, not via a scan.
+--
+-- Exiftool checks that MIE previews are JPEGs, so this can't create a
+-- file with a non-JPEG preview; that case is only tested via
+-- 'checkEmbeddedImage'.
+writeFileWithPreview :: FilePath -> FilePath -> IO ()
+writeFileWithPreview preview path = do
+  (code, _, err) <- readProcess (proc "exiftool" ["-q", "-o", path,
+                                                  "-PreviewImage<=" ++ preview, preview])
+  unless (code == ExitSuccess) $
+    expectationFailure ("Failed to create test file with preview: " ++ show err)
 
 -- | Builds the thumbnail of a file, returning the result.
 buildThumbnail :: Config -> FilePath -> Either Text String
@@ -267,6 +297,52 @@ spec = parallel $ do
       let path = cfgCacheDir config </> "document.ps"
       writeFile path postScriptDocument
       buildThumbnail config path (Right "ps") >>= shouldFailToBuild config path
+  describe "embedded images" $ do
+    let largeEnough = BSL.replicate 1024 0
+    it "starts all JPEG images with the JPEG magic" $
+      withConfig' $ \config -> do
+        requireConvert
+        let path = cfgCacheDir config </> "real.jpg"
+        writeRealJpeg path
+        contents <- readFile path
+        jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
+    it "accepts JPEG images" $ \_ -> do
+      let image = jpegMagic <> largeEnough
+      checkEmbeddedImage "PreviewImage" ExitSuccess image "" `shouldBe` Right image
+    it "refuses images which are not JPEGs" $ \_ ->
+      checkEmbeddedImage "PreviewImage" ExitSuccess ("\x89PNG\r\n" <> largeEnough) ""
+        `shouldBeLeftWithMessage` "PreviewImage is not a JPEG"
+    it "refuses too small images" $ \_ ->
+      checkEmbeddedImage "PreviewImage" ExitSuccess jpegMagic ""
+        `shouldSatisfy` isLeft
+    it "returns the error of a failed extraction" $ \_ ->
+      checkEmbeddedImage "PreviewImage" (ExitFailure 1) (jpegMagic <> largeEnough) "failed"
+        `shouldBe` Left "failed"
+    it "extracts an embedded JPEG image" $
+      withConfig' $ \config -> do
+        requireExifTool
+        requireConvert
+        let preview = cfgCacheDir config </> "preview.jpg"
+            path = cfgCacheDir config </> "photo.mie"
+        writePreviewJpeg preview
+        writeFileWithPreview preview path
+        result <- extractEmbedded config path "PreviewImage"
+        case result of
+          Left msg -> expectationFailure ("Failed to extract the preview: " ++ show msg)
+          Right (mime, extracted) -> do
+            mime `shouldBe` "image/jpeg"
+            expected <- readFile preview
+            readFile extracted `shouldReturn` asByteString expected
+    it "fails if there is no embedded image" $
+      withConfig' $ \config -> do
+        requireExifTool
+        requireConvert
+        let preview = cfgCacheDir config </> "preview.jpg"
+            path = cfgCacheDir config </> "photo.mie"
+        writePreviewJpeg preview
+        writeFileWithPreview preview path
+        result <- extractEmbedded config path "JpgFromRaw"
+        result `shouldSatisfy` isLeft
   describe "external tools" $ do
     it "returns an error if a tool cannot be run" $ \_ -> do
       result <- readToolProcess (proc "corydalis-no-such-tool" [])

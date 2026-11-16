@@ -109,6 +109,9 @@ module Pics ( PicDir(..)
 #ifdef TEST
             , readToolProcess
             , decodeToolOutput
+            , jpegMagic
+            , checkEmbeddedImage
+            , extractEmbedded
             , mkImage
             , buildTimeSort
             , buildGroupExif
@@ -155,7 +158,8 @@ module Pics ( PicDir(..)
 
 import           Control.Applicative
 import           Control.DeepSeq
-import qualified Data.ByteString.Lazy    as BSL (append, length, writeFile)
+import qualified Data.ByteString.Lazy    as BSL (append, isPrefixOf, length,
+                                                pack, writeFile)
 import qualified Data.Foldable
 import           Data.LruCache           (LruCache)
 import qualified Data.LruCache           as LRU
@@ -1825,6 +1829,15 @@ previewTags = ["JpgFromRaw", "PreviewImage"]
 minImageSize :: Int64
 minImageSize = 512
 
+-- | The bytes every JPEG image starts with.
+--
+-- A JPEG stream must start with the start of image (SOI) marker, @FF
+-- D8@, followed by another marker (e.g. an application or table
+-- segment); all markers, and the fill bytes allowed before them, start
+-- with @FF@.
+jpegMagic :: LByteString
+jpegMagic = BSL.pack [0xFF, 0xD8, 0xFF]
+
 -- | Ensure parent path for path exists.
 ensureParent :: FilePath -> IO ()
 ensureParent path = do
@@ -1852,9 +1865,24 @@ readToolProcess pconfig =
 decodeToolOutput :: LByteString -> Text
 decodeToolOutput = TextL.toStrict . Text.decodeUtf8With lenientDecode
 
+-- | Checks the result of extracting an embedded image with exiftool.
+--
+-- Returns the image if the extraction succeeded, and the image is a
+-- JPEG large enough to be a real image. Exiftool already checks this
+-- for most, but not all, embedded images it knows about.
+checkEmbeddedImage :: String -> ExitCode -> LByteString -> LByteString
+                   -> Either Text LByteString
+checkEmbeddedImage tag exitCode out err
+  | exitCode /= ExitSuccess || BSL.length out < minImageSize =
+      Left $ decodeToolOutput err
+  | not (jpegMagic `BSL.isPrefixOf` out) =
+      Left $ sformat ("The embedded image " % string % " is not a JPEG") tag
+  | otherwise = Right out
+
 -- | Extracts and saves an embedded thumbnail from an image.
 --
--- The extract image type is presumed (and required) to be jpeg.
+-- The extracted image is required to be a JPEG, otherwise it is not
+-- saved, and an error is returned.
 extractEmbedded :: Config -> FilePath -> String -> IO (Either Text (MimeType, FilePath))
 extractEmbedded config path tag = do
   let outputPath = embeddedImagePath config path
@@ -1863,7 +1891,6 @@ extractEmbedded config path tag = do
         "-" ++ tag,
         path
         ]
-      -- FIXME: embedded images are assumed JPEGs.
       mime = "image/jpeg"
       goodRet = Right (mime, outputPath)
   gotThumbnail <- fileExist outputPath
@@ -1879,13 +1906,12 @@ extractEmbedded config path tag = do
       case result of
         Left msg -> return $ Left msg
         Right (exitCode, out, err) ->
-          if exitCode == ExitSuccess && BSL.length out >= minImageSize
-            then do
+          case checkEmbeddedImage tag exitCode out err of
+            Left msg -> return $ Left msg
+            Right image -> do
               ensureParent outputPath
-              BSL.writeFile outputPath out
+              BSL.writeFile outputPath image
               return goodRet
-            else
-              return . Left $ decodeToolOutput err
     else
       -- TODO: mtime-based regen.
       return goodRet
