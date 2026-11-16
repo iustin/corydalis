@@ -1,0 +1,12 @@
+# Keep the GitHub Actions used by the workflows, and the npm packages
+# used by the frontend, up to date.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
