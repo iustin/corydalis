@@ -150,6 +150,8 @@ authenticationSpec = describe "authentication" $ do
       checkRoute HomeR
       bodyContains "Repository scanning failed"
       bodyContains (unpack scanError)
+      bodyContains "fa-triangle-exclamation"
+      bodyNotContains "fa-server"
     -- The not found page is rendered for unknown URLs, before checking
     -- for authentication.
     forM_ [("the login page", "/auth/login", 200), ("the not found page", "/no-such-page", 404)] $
@@ -160,6 +162,8 @@ authenticationSpec = describe "authentication" $ do
           statusIs status
           bodyNotContains "Repository scanning failed"
           bodyNotContains (unpack scanError)
+          bodyNotContains "fa-triangle-exclamation"
+          bodyContains "fa-server"
   withApp $ forM_ privatePages $ \route ->
     it ("redirects an anonymous request for " ++ show route ++ " to login") $ do
       get route

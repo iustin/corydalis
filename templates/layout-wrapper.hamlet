@@ -55,7 +55,12 @@ $doctype 5
                   <span .d-none .d-xl-inline>
                     Rescan
             <a .nav-item .nav-link href=@{StatusR}>
-                <span class="#{repoStatusIcon repoState}">
+                $# As for the repository status in the page, don't show the
+                $# state (e.g. a failed scan) to anonymous visitors.
+                $if is_auth
+                  <span class="#{repoStatusIcon repoState}">
+                $else
+                  <span .fa-solid .fa-server>
                 <span .d-none .d-xl-inline>
                   Status
             <a .nav-item .nav-link href=@{CurateR}>

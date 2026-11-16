@@ -147,7 +147,9 @@ folders. These pages now always require logging in.
 Security: the repository status shown at the top of all pages, including
 the error message of a failed scan (which can contain e.g. paths on the
 server), was also shown to anonymous visitors, on the login page and the
-"not found" page. It is now only shown to logged in users.
+"not found" page. It is now only shown to logged in users, and the
+status icon in the navigation bar no longer shows the repository state
+(e.g. a failed scan) to anonymous visitors.
 
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
