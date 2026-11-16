@@ -1,11 +1,15 @@
 // PageTable bundle
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import $ from 'jquery';
 import 'bootstrap';
 import 'tablesorter';
 // Import the widgets file that contains the grouping widget.
 import 'tablesorter/dist/js/widgets/widget-grouping.min.js';
+import { setupCsrf } from './csrf';
+import { setupFlagActions } from './flag-actions';
 import { setupTablesorter } from './tablesorter-config';
+
+setupCsrf($);
+setupFlagActions($);
 
 function runInitializer(): void {
   setupTablesorter();

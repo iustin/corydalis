@@ -54,6 +54,11 @@ In the movie play mode, if the end of the movie is reached, pressing
 spacebar once again will advance to the next item, instead of replaying
 the movie.
 
+The "Flag" and "Un-flag" buttons on the image information page and on the
+flagged images page now work in place, like flagging in the image viewer:
+the result is shown next to the buttons, instead of reloading the image
+page. They require JavaScript.
+
 The rendering phase of the repository scan has now been changed to better
 show the progress; it does two passes, first classifying what is already
 rendered (and up to date) and what is pending, and in the second pass,

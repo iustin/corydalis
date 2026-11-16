@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.WidgetsSpec (spec) where
 
-import qualified Data.Text                     as Text
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Yesod.Core
 
@@ -32,19 +31,24 @@ import           TestImport
 spec :: Spec
 spec = parallel $ withApp $
   describe "imageFlagActions" $
-    forM_ [True, False] $ \flag ->
-      it ("includes the CSRF token in the form, flag=" ++ show flag) $ do
-        (token, html) <- runHandler $ do
-          mtok <- reqToken <$> getRequest
-          page <- widgetToPageContent $ imageFlagActions "a" "b" flag
-          body <- withUrlRenderer $ pageBody page
-          return (mtok, toStrict $ renderHtml body)
-        case token of
-          Nothing -> liftIO $ expectationFailure "No token in the request"
-          Just tok -> liftIO $ do
-            html `shouldSatisfy`
-              isInfixOf ("name=\"_token\" value=\"" <> tok <> "\"")
-            -- methodOverridePost only honours _method as the first field,
-            -- and browsers send the fields in document order.
-            fst (Text.breakOn "name=\"_token\"" html) `shouldSatisfy`
-              isInfixOf "name=\"_method\""
+    forM_ [True, False] $ \flag -> do
+      let render = runHandler $ do
+            urlRender <- getUrlRender
+            page <- widgetToPageContent $ imageFlagActions "a" "b" flag
+            body <- withUrlRenderer $ pageBody page
+            return (urlRender $ ImageFlagR "a" "b", toStrict $ renderHtml body)
+      it ("points the buttons to the flag URL, flag=" ++ show flag) $ do
+        (url, html) <- render
+        liftIO $ html `shouldSatisfy`
+          isInfixOf ("data-flag-url=\"" <> url <> "\"")
+      it ("has the right buttons, flag=" ++ show flag) $ do
+        (_, html) <- render
+        liftIO $ do
+          html `shouldSatisfy` isInfixOf "data-flag=\"false\""
+          isInfixOf "data-flag=\"true\"" html `shouldBe` flag
+          html `shouldSatisfy` isInfixOf "class=\"flag-status"
+      it ("is not a form, flag=" ++ show flag) $ do
+        (_, html) <- render
+        liftIO $ do
+          html `shouldNotSatisfy` isInfixOf "<form"
+          html `shouldNotSatisfy` isInfixOf "_method"

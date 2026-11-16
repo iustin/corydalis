@@ -240,19 +240,19 @@ noItemsFound filter_desc images =
            doesn't match any #{what}.
            |]
 
+-- | Buttons to flag and un-flag an image (or only to un-flag it).
+--
+-- They are handled by js/flag-actions.ts, which sends PUT/DELETE requests
+-- to the flag URL (with the CSRF token from the page), and shows the result
+-- in the status element.
 imageFlagActions :: ShortText -> ImageName -> Bool -> Widget
-imageFlagActions folder image flag = do
-  mtok <- reqToken <$> getRequest
+imageFlagActions folder image flag =
   toWidget [hamlet|
-            <form action=@{ImageFlagR folder image} method=post style="display:inline-block">
+            <span .image-flag-actions data-flag-url=@{ImageFlagR folder image}>
               $if flag
-                <button .btn .btn-light type="submit" name="_method" value="PUT">Flag
-              <button .btn .btn-light type="submit" name="_method" value="DELETE">Un-flag
-              $# The token must stay after the buttons: browsers send fields in
-              $# document order, and methodOverridePost only honours _method if
-              $# it is the first field.
-              $maybe tok <- mtok
-                <input type=hidden name=#{defaultCsrfParamName} value=#{tok}>
+                <button .btn .btn-light type=button data-flag=true>Flag
+              <button .btn .btn-light type=button data-flag=false>Un-flag
+              <span .flag-status .ms-2 role=status>
               |]
 
 imageViewActions :: ShortText -> ImageName -> UrlParams -> Widget
