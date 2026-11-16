@@ -76,6 +76,29 @@ spec = parallel $ do
           expected = Data.Set.unions
             [ cfgRawExtsSet c, cfgJpegExts c, cfgSidecarExts c, cfgMovieExts c ]
       cfgAllMediaExts c `shouldBe` expected
+    it "uses the default image decoders if none are configured" $ \ctx ->
+      cfgImageDecoders (ctxConfig ctx) `shouldBe` defaultImageDecoders
+  describe "checks image decoders parsing" $ do
+    let parse :: [(Text, Text)] -> Maybe (Map Text Text)
+        parse = parseImageDecoders . mapFromList
+    it "accepts the default decoders" $
+      parseImageDecoders defaultImageDecoders `shouldBe` Just defaultImageDecoders
+    it "lower-cases extensions and decoders" $
+      parse [("JPG", "JPEG"), ("Heic", "heic")] `shouldBe`
+        Just (mapFromList [("jpg", "jpeg"), ("heic", "heic")])
+    it "accepts an empty map" $
+      parse [] `shouldBe` Just mempty
+    forM_ ["ps", "EPS", "pdf", "svg", "mvg", "msl", "text", "url"] $ \decoder ->
+      it ("rejects the unsafe decoder " ++ show decoder) $
+        parse [("jpg", decoder)] `shouldBe` Nothing
+    forM_ ["", "jpeg:", "jpeg:/etc/passwd", "@x", "jp eg", "jpeg\n"] $ \decoder ->
+      it ("rejects the invalid decoder " ++ show decoder) $
+        parse [("jpg", decoder)] `shouldBe` Nothing
+    forM_ ["", ".jpg", "a/b", "j:pg"] $ \ext ->
+      it ("rejects the invalid extension " ++ show ext) $
+        parse [(ext, "jpeg")] `shouldBe` Nothing
+    it "rejects extensions duplicated when ignoring case" $
+      parse [("jpg", "jpeg"), ("JPG", "png")] `shouldBe` Nothing
   describe "tests Regex data type" $ do
     prop "rejects invalid regexes" $ forAll (elements ['?', '+', '*']) $
       isNothing . mkRegex . Text.pack . (: [])

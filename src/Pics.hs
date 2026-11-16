@@ -139,6 +139,7 @@ module Pics ( PicDir(..)
             , maybeUpdateStandaloneRange
             , findBestSize
             , viewableAsIs
+            , imageDecoder
             , newRepo
             , forceBuildThumbCaches
             , runScanAction
@@ -1715,7 +1716,7 @@ scaledCacheNeedsBuild config origPath mtime size =
 -- as 'Left'.
 imageNeedsRender :: Config -> Image -> Int -> IO (Either ImageError Bool)
 imageNeedsRender config img size = try $ do
-  (origFile, _, _, mtime) <- getViewableVersion config img
+  (origFile, _, _, _, mtime) <- getViewableVersion config img
   scaledCacheNeedsBuild config (fileFullPath origFile) mtime (ImageSize size)
 
 -- | Generate a preview for an image.
@@ -1728,11 +1729,14 @@ imageNeedsRender config img size = try $ do
 -- TODO: fix the issue that range files and their components have identical output.
 -- TODO: improve path manipulation \/ concatenation.
 -- TODO: for images smaller than given source, we generate redundant previews.
--- TODO: stop presuming all images are jpeg.
-loadCachedOrBuild :: Config -> FilePath -> FilePath -> MimeType
-                  -> POSIXTime -> ImageSize
+-- The decoder is passed explicitly to convert, since otherwise
+-- ImageMagick picks it based on the file contents, e.g. running a
+-- PostScript or SVG document named @photo.jpg@ as such. If no decoder
+-- is known for the file (the 'Left' case), the preview can't be built.
+loadCachedOrBuild :: Config -> FilePath -> FilePath -> Either Text String
+                  -> MimeType -> POSIXTime -> ImageSize
                   -> IO (Bool, MimeType, FilePath)
-loadCachedOrBuild config origPath bytesPath mime mtime size = do
+loadCachedOrBuild config origPath bytesPath decoder mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
     Nothing -> return (False, mime, bytesPath)
@@ -1752,9 +1756,11 @@ loadCachedOrBuild config origPath bytesPath mime mtime size = do
                           else ["-resize", geom]
             (parent, _) = splitFileName fpath
             outFile = fmt ++ ":" ++ fpath
+        decoder' <- either (throwIO . ImageError) return decoder
+        let inFile = decoder' ++ ":" ++ bytesPath
         createDirectoryIfMissing True parent
         -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
-        (exitCode, out, err) <- readProcess (proc "convert" (concat [[bytesPath], operators, [outFile]])) `catch`
+        (exitCode, out, err) <- readProcess (proc "convert" (concat [[inFile], operators, [outFile]])) `catch`
                                 (\e -> let e' = sformat shown (e :: SomeException)
                                        in throwIO . ImageError $ e')
         when (exitCode /= ExitSuccess) . throwIO . ImageError . decodeToolOutput $ err `BSL.append` out
@@ -1892,27 +1898,45 @@ extractFirstFrame config path = do
 jpegMimeType :: File -> MimeType
 jpegMimeType = fileMimeType "image/jpeg"
 
+-- | The ImageMagick decoder for a file, based on its extension.
+imageDecoder :: Config -> FilePath -> Either Text String
+imageDecoder config path =
+  let ext = Text.toLower . Text.pack . drop 1 . takeExtension $ path
+  in case lookup ext (cfgImageDecoders config) of
+       Just decoder -> Right (Text.unpack decoder)
+       Nothing -> Left $ sformat ("No image decoder configured for extension '" % stext %
+                                  "' (see the imagedecoders setting)") ext
+
+-- | The ImageMagick decoder for images extracted by Corydalis.
+--
+-- Both embedded previews and movie frames are extracted as JPEGs.
+extractedDecoder :: Either Text String
+extractedDecoder = Right "jpeg"
+
 -- | Returns a viewable version of an image.
 --
 -- For a processed file, return it directly; for a raw file, extract
--- the embedded image, if any; etc.
-getViewableVersion :: Config -> Image -> IO (File, FilePath, MimeType, POSIXTime)
+-- the embedded image, if any; etc. Also returns the ImageMagick
+-- decoder to use for the viewable file.
+getViewableVersion :: Config -> Image
+                   -> IO (File, FilePath, Either Text String, MimeType, POSIXTime)
 getViewableVersion config img
   | j:_ <- imgJpegPath img =
-      return (j, fileFullPath j, jpegMimeType j, fileLastTouch j)
+      return (j, fileFullPath j, fileDecoder j, jpegMimeType j, fileLastTouch j)
   | Just j <- imgRawPath img,
     True <- flagsSoftMaster (imgFlags img) =
-      return (j, fileFullPath j, jpegMimeType j, fileLastTouch j)
+      return (j, fileFullPath j, fileDecoder j, jpegMimeType j, fileLastTouch j)
   | Just r <- imgRawPath img = do
       -- TODO: there should be some tests to check which version is returned.
       viewable <- if fileName r `viewableAsIs` config
-                  then return $ Right (jpegMimeType r, fileFullPath r)
-                  else bestEmbedded config (fileFullPath r)
+                  then return $ Right (fileDecoder r, jpegMimeType r, fileFullPath r)
+                  else fmap (\(mime, path) -> (extractedDecoder, mime, path)) <$>
+                         bestEmbedded config (fileFullPath r)
       case viewable of
         Left msg -> throwIO $ ImageError msg
-        Right (mime, path) -> do
+        Right (decoder, mime, path) -> do
           mtime <- filePathLastTouch path
-          return (r, path, mime, mtime)
+          return (r, path, decoder, mime, mtime)
   | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
       embedded <- bestEmbedded config (fileFullPath m)
       case embedded of
@@ -1922,11 +1946,12 @@ getViewableVersion config img
             Left msg' -> throwIO $ ImageError msg'
             Right (mime, path) -> do
               mtime <- filePathLastTouch path
-              return (m, path, mime, mtime)
+              return (m, path, extractedDecoder, mime, mtime)
         Right (mime, path) -> do
           mtime <- filePathLastTouch path
-          return (m, path, mime, mtime)
+          return (m, path, extractedDecoder, mime, mtime)
   | otherwise = throwIO ImageNotViewable
+  where fileDecoder = imageDecoder config . fileFullPath
 
 -- | Return the path (on the filesystem) to a specific size rendering of an image.
 --
@@ -1942,10 +1967,10 @@ getViewableVersion config img
 -- TODO: handle and meaningfully return errors.
 imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Bool, MimeType, FilePath))
 imageAtRes config img size = try $ do
-  (origFile, path, mime, mtime) <- getViewableVersion config img
+  (origFile, path, decoder, mime, mtime) <- getViewableVersion config img
   case size of
     Nothing -> return (False, mime, path)
-    Just s  -> loadCachedOrBuild config (fileFullPath origFile) path mime mtime s
+    Just s  -> loadCachedOrBuild config (fileFullPath origFile) path decoder mime mtime s
 
 imgProblems :: Image -> Set ShortText
 imgProblems =

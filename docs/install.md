@@ -141,6 +141,19 @@ already existed) the user. It can also list and delete users.
 When first run, the tool will automatically create (or update, on
 upgrade) the required database tables.
 
+### Image decoders
+
+Previews are built by ImageMagick, using the decoder configured for
+each file extension in the `imagedecoders` setting (see the sample
+configuration for the default list). The decoder is always passed
+explicitly, since otherwise ImageMagick would guess it from the file
+contents, and someone able to add files to the picture directories
+could make it run e.g. a PostScript document named `photo.jpg`.
+
+Files whose extension has no configured decoder get no previews; if you
+add an extension to `jpegexts` or `viewableimages` that is not in the
+default list, also add it to `imagedecoders`.
+
 ## Running corydalis
 
 Once the configuration is updated, simply run the application:

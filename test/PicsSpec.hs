@@ -23,13 +23,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module PicsSpec (spec) where
 
 import           Data.Default
+import           Data.Either      (isLeft)
 import qualified Data.Map         as Map
 import qualified Data.Set         as Set
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
-import           System.Directory (createDirectoryIfMissing)
+import           System.Directory (createDirectoryIfMissing, doesFileExist)
 import           System.Exit      (ExitCode (..))
-import           System.Process.Typed (proc)
+import           System.Process.Typed (proc, readProcess)
 
 import           AtomTypes
 import           Exif
@@ -106,6 +107,48 @@ insertJpeg ctx jpeg = do
 autoSizeList :: Ctx -> [Int]
 autoSizeList = Set.toList . cfgAutoImageSizes . ctxConfig
 
+-- | A small, valid SVG image.
+--
+-- It is harmless, and would be converted successfully if decoded as an
+-- SVG; real attacks would instead reference other files.
+svgDocument :: ByteString
+svgDocument =
+  "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\">\n\
+  \<rect x=\"0\" y=\"0\" width=\"10\" height=\"10\" fill=\"red\"/>\n\
+  \</svg>\n"
+
+-- | A small, harmless PostScript program.
+--
+-- As for the SVG, it would be converted successfully if decoded as such.
+postScriptDocument :: ByteString
+postScriptDocument =
+  "%!PS-Adobe-3.0\n\
+  \/Times-Roman findfont 20 scalefont setfont\n\
+  \10 10 moveto (harmless) show\n\
+  \showpage\n"
+
+-- | Writes a real JPEG image, using ImageMagick.
+writeRealJpeg :: FilePath -> IO ()
+writeRealJpeg path = do
+  (code, _, err) <- readProcess (proc "convert" ["-size", "8x8", "xc:white", "jpeg:" ++ path])
+  unless (code == ExitSuccess) $
+    expectationFailure ("Failed to create test JPEG: " ++ show err)
+
+-- | Builds the thumbnail of a file, returning the result.
+buildThumbnail :: Config -> FilePath -> Either Text String
+               -> IO (Either ImageError (Bool, MimeType, FilePath))
+buildThumbnail config path decoder =
+  try $ loadCachedOrBuild config path path decoder "image/jpeg" 0
+          (ImageSize (cfgThumbnailSize config))
+
+-- | Checks that building the thumbnail failed without creating it.
+shouldFailToBuild :: Config -> FilePath
+                  -> Either ImageError (Bool, MimeType, FilePath) -> IO ()
+shouldFailToBuild config path result = do
+  result `shouldSatisfy` isLeft
+  doesFileExist (scaledImagePath config path (cfgThumbnailSize config))
+    `shouldReturn` False
+
 -- | A file for which exiftool reported the given MIME type.
 fileWithMimeType :: Maybe Text -> File
 fileWithMimeType mime =
@@ -147,6 +190,48 @@ spec = parallel $ do
         fileMimeType "image/jpeg" (fileWithMimeType (Just mime)) `shouldBe` "image/jpeg"
     it "uses the default without a reported type" $ \_ ->
       fileMimeType "video/mp4" (fileWithMimeType Nothing) `shouldBe` "video/mp4"
+  describe "image decoders" $ withConfig $ do
+    forM_ [ ("a.jpg", "jpeg"), ("a.JPG", "jpeg"), ("dir/a.Jpeg", "jpeg")
+          , ("a.heic", "heic"), ("a.tif", "tiff"), ("a.png", "png")] $ \(path, decoder) ->
+      it ("finds the decoder for " ++ show path) $ \config ->
+        imageDecoder config path `shouldBe` Right decoder
+    forM_ ["a.svg", "a.ps", "a.nef", "a", "a.jpg.svg"] $ \path ->
+      it ("has no decoder for " ++ show path) $ \config ->
+        imageDecoder config path `shouldSatisfy` isLeft
+    it "uses the configured decoders" $ \config -> do
+      let config' = config { cfgImageDecoders = mapFromList [("dng", "dng")] }
+      imageDecoder config' "a.DNG" `shouldBe` Right "dng"
+      imageDecoder config' "a.jpg" `shouldSatisfy` isLeft
+    it "names the extension when no decoder is found" $ \config ->
+      imageDecoder config "a.xyz" `shouldBeLeftWithMessage` "'xyz'"
+  describe "building previews" $ withConfig $ do
+    it "builds the thumbnail of a JPEG" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "photo.JPG"
+      writeRealJpeg path
+      result <- buildThumbnail config path (imageDecoder config path)
+      case result of
+        Left e -> expectationFailure ("Failed to build thumbnail: " ++ show e)
+        Right (built, mime, thumb) -> do
+          built `shouldBe` True
+          mime `shouldBe` "image/png"
+          doesFileExist thumb `shouldReturn` True
+    forM_ [("SVG", svgDocument), ("PostScript", postScriptDocument)] $ \(kind, contents) ->
+      it ("does not decode a " ++ kind ++ " document named as a JPEG") $ \config -> do
+        requireConvert
+        let path = cfgCacheDir config </> "photo.jpg"
+        writeFile path contents
+        buildThumbnail config path (imageDecoder config path) >>=
+          shouldFailToBuild config path
+    it "does not run convert without a decoder" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "photo.jpg"
+      writeRealJpeg path
+      result <- buildThumbnail config path (Left "no decoder")
+      shouldFailToBuild config path result
+      case result of
+        Left (ImageError msg) -> msg `shouldBe` "no decoder"
+        _                     -> expectationFailure ("Unexpected result: " ++ show result)
   describe "external tools" $ do
     it "returns an error if a tool cannot be run" $ \_ -> do
       result <- readToolProcess (proc "corydalis-no-such-tool" [])

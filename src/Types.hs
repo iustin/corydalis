@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE RecordWildCards            #-}
 
 module Types ( Config(..)
+             , defaultImageDecoders
+             , parseImageDecoders
              , Regex
              , reRegex
              , reString
@@ -87,6 +89,7 @@ import           Control.Concurrent.STM
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
+import           Data.Char                  (isAlphaNum, isAscii)
 import           Data.Default               (Default, def)
 import           Data.Functor.Contravariant (contramap)
 import qualified Data.Set                   as Set
@@ -179,9 +182,59 @@ data Config = Config
     , cfgPeoplePrefix    :: Text
     , cfgIgnorePrefix    :: Text
     , cfgViewableImages  :: [Text]        -- ^ Images directly viewable in browser.
+    , cfgImageDecoders   :: Map Text Text -- ^ ImageMagick decoder for each
+                                          -- (lower-case) extension.
     } deriving (Eq, Show, Generic)
 
 instance Store Config
+
+-- | Default ImageMagick decoders, by (lower-case) file extension.
+defaultImageDecoders :: Map Text Text
+defaultImageDecoders = mapFromList
+  [ ("jpg",  "jpeg")
+  , ("jpeg", "jpeg")
+  , ("heic", "heic")
+  , ("heif", "heic")
+  , ("tif",  "tiff")
+  , ("tiff", "tiff")
+  , ("png",  "png")
+  , ("webp", "webp")
+  ]
+
+-- | ImageMagick decoders that must not be used for pictures.
+--
+-- These interpret their input as a program or document, and can read
+-- other files, run external tools, or access the network. This is only
+-- a guard against configuration mistakes: the decoder names are also
+-- restricted to plain names, and the ImageMagick policy is what
+-- enforces the allowed set.
+unsafeImageDecoders :: Set Text
+unsafeImageDecoders = setFromList
+  [ "ai", "epdf", "epi", "eps", "eps2", "eps3", "epsf", "epsi", "ept"
+  , "ept2", "ept3", "pdf", "pdfa", "ps", "ps2", "ps3", "xps", "pcl"
+  , "svg", "svgz", "msvg", "rsvg", "mvg", "msl", "text", "txt", "html"
+  , "shtml", "url", "http", "https", "ftp", "file", "ephemeral"
+  , "inline", "label", "caption", "pango", "show", "win", "x", "vid"
+  ]
+
+-- | Parses and validates the extension to decoder map.
+--
+-- Extensions and decoders are case-insensitive, and stored lower-case.
+parseImageDecoders :: MonadFail m => Map Text Text -> m (Map Text Text)
+parseImageDecoders decoders = do
+  let lowered = mapFromList . map (bimap Text.toLower Text.toLower) $
+                  mapToList decoders
+      plainName t = not (Text.null t) && Text.all (\c -> isAscii c && isAlphaNum c) t
+  when (length lowered /= length decoders) $
+    fail "Duplicate extensions (ignoring case) in imagedecoders"
+  ClassyPrelude.forM_ (mapToList lowered) $ \(ext, decoder) -> do
+    unless (plainName ext) $
+      fail $ "Invalid extension in imagedecoders: " <> show ext
+    unless (plainName decoder) $
+      fail $ "Invalid decoder for extension " <> show ext <> ": " <> show decoder
+    when (decoder `member` unsafeImageDecoders) $
+      fail $ "Unsafe decoder for extension " <> show ext <> ": " <> show decoder
+  return lowered
 
 instance FromJSON Config where
   parseJSON = withObject "Config" $ \v ->
@@ -199,6 +252,7 @@ instance FromJSON Config where
         allmediaexts = Set.unions <$> sequenceA [rawextsset, jpegexts, sidecarexts, movieexts]
         viewableimages = v .: "viewableimages"
         viewableimageslist = map (Text.pack . ('.':)) <$> viewableimages
+        imagedecoders = v .:? "imagedecoders" .!= defaultImageDecoders >>= parseImageDecoders
     in
     Config <$>
          v .: "sourcedirs"      <*>
@@ -223,7 +277,8 @@ instance FromJSON Config where
          v .: "copyregex"       <*>
          v .: "peopleprefix"    <*>
          v .: "ignoreprefix"    <*>
-         viewableimageslist
+         viewableimageslist     <*>
+         imagedecoders
 
 data ImageStatus = ImageOrphaned
                  | ImageStandalone

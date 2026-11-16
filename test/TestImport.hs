@@ -228,6 +228,16 @@ requireExifTool =
     maybe (expectationFailure "exiftool is required for running the tests")
           (const (return ()))
 
+-- | Fails the test if ImageMagick's convert is not installed.
+--
+-- As for exiftool, previews cannot be built without it, so the tests
+-- for building them are not skipped.
+requireConvert :: IO ()
+requireConvert =
+  findExecutable "convert" >>=
+    maybe (expectationFailure "ImageMagick (convert) is required for running the tests")
+          (const (return ()))
+
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in
 -- Foundation.hs
