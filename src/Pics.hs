@@ -160,7 +160,7 @@ module Pics ( PicDir(..)
 import           Control.Applicative
 import           Control.DeepSeq
 import qualified Data.ByteString.Lazy    as BSL (append, isPrefixOf, length,
-                                                pack, writeFile)
+                                                null, pack, writeFile)
 import qualified Data.Foldable
 import           Data.LruCache           (LruCache)
 import qualified Data.LruCache           as LRU
@@ -1870,12 +1870,20 @@ decodeToolOutput = TextL.toStrict . Text.decodeUtf8With lenientDecode
 --
 -- Returns the image if the extraction succeeded, and the image is a
 -- JPEG large enough to be a real image. Exiftool already checks this
--- for most, but not all, embedded images it knows about.
+-- for most, but not all, embedded images it knows about. Note that
+-- exiftool succeeds, without any output, if the image doesn't have
+-- the requested embedded image.
 checkEmbeddedImage :: String -> ExitCode -> LByteString -> LByteString
                    -> Either Text LByteString
 checkEmbeddedImage tag exitCode out err
-  | exitCode /= ExitSuccess || BSL.length out < minImageSize =
-      Left $ decodeToolOutput err
+  | exitCode /= ExitSuccess =
+      Left $ sformat ("Failed to extract the embedded image " % string % " (" %
+                      shown % "): " % stext) tag exitCode (decodeToolOutput err)
+  | BSL.null out =
+      Left $ sformat ("No embedded image " % string % " found") tag
+  | BSL.length out < minImageSize =
+      Left $ sformat ("The embedded image " % string % " is too small (" % int %
+                      " bytes)") tag (BSL.length out)
   | not (jpegMagic `BSL.isPrefixOf` out) =
       Left $ sformat ("The embedded image " % string % " is not a JPEG") tag
   | otherwise = Right out

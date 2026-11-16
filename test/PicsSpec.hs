@@ -332,10 +332,15 @@ spec = parallel $ do
         `shouldBeLeftWithMessage` "PreviewImage is not a JPEG"
     it "refuses too small images" $ \_ ->
       checkEmbeddedImage "PreviewImage" ExitSuccess jpegMagic ""
-        `shouldSatisfy` isLeft
-    it "returns the error of a failed extraction" $ \_ ->
-      checkEmbeddedImage "PreviewImage" (ExitFailure 1) (jpegMagic <> largeEnough) "failed"
-        `shouldBe` Left "failed"
+        `shouldBeLeftWithMessage` "PreviewImage is too small (3 bytes)"
+    it "reports a missing embedded image" $ \_ ->
+      checkEmbeddedImage "PreviewImage" ExitSuccess "" ""
+        `shouldBeLeftWithMessage` "No embedded image PreviewImage found"
+    it "returns the error of a failed extraction" $ \_ -> do
+      let result = checkEmbeddedImage "PreviewImage" (ExitFailure 1)
+                     (jpegMagic <> largeEnough) "tool error"
+      result `shouldBeLeftWithMessage` "PreviewImage"
+      result `shouldBeLeftWithMessage` "tool error"
     it "extracts an embedded JPEG image" $
       withConfig' $ \config -> do
         requireExifTool
@@ -360,7 +365,7 @@ spec = parallel $ do
         writePreviewJpeg preview
         writeFileWithPreview preview path
         result <- extractEmbedded config path 0 "JpgFromRaw"
-        result `shouldSatisfy` isLeft
+        result `shouldBeLeftWithMessage` "No embedded image JpgFromRaw found"
     forM_ [(False, "reuses an up to date", 0), (True, "rebuilds an outdated", farFutureTime)] $
       \(rebuilt, what, mtime) ->
         it (what ++ " embedded image") $
