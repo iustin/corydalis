@@ -81,6 +81,7 @@ spec = parallel $ withApp $ do
       deleteWithType "application/json"
       statusIs 200
       bodyContains "Image was not flagged!"
+      bodyContains "\"kind\":\"warning\""
   describe "checks CSRF protection" $ do
     forM_ ["PUT", "DELETE"] $ \method -> do
       it ("rejects a " ++ show method ++ " without a token") $ do

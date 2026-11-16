@@ -100,8 +100,10 @@ flagHtml folder iname msg kind = do
   setUltDestReferer
   redirectUltDest $ ImageR folder iname
 
-flagJson :: Text -> Handler Value
-flagJson msg = return $ object ["text" .= msg]
+-- | The JSON reply, with the message and its kind (one of the message
+-- types, e.g. 'msgSuccess').
+flagJson :: Text -> Text -> Handler Value
+flagJson msg kind = return $ object ["text" .= msg, "kind" .= kind]
 
 flagHandler
   :: (ShortText -> ImageName -> Handler Bool)
@@ -114,7 +116,7 @@ flagHandler action msggen folder iname = do
   let msg  = msggen r
       kind = if r then msgSuccess else msgWarning
   selectRep $ do
-    provideRep $ flagJson msg
+    provideRep $ flagJson msg kind
     provideRep $ flagHtml folder iname msg kind
 
 putImageFlagR :: ShortText -> ImageName -> Handler TypedContent
