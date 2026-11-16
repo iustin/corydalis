@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -29,6 +30,7 @@ import qualified Data.Map         as Map
 import qualified Data.Set         as Set
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
+import           Data.Time.Clock.POSIX (POSIXTime)
 import           System.Directory (createDirectoryIfMissing, doesFileExist)
 import           System.Exit      (ExitCode (..))
 import           System.Process.Typed (proc, readProcess)
@@ -37,6 +39,12 @@ import           AtomTypes
 import           Exif
 import           Pics
 import           TestImport
+
+-- | A modification time far in the future (in 2096), newer than any test
+-- file, for cache files to always be outdated. After that year, the
+-- tests using it will fail and it will need to be updated.
+farFutureTime :: POSIXTime
+farFutureTime = 4000000000
 
 parentSym :: SymbolizedItem
 parentSym = mkSym "/pics/folder"
@@ -336,7 +344,7 @@ spec = parallel $ do
             path = cfgCacheDir config </> "photo.mie"
         writePreviewJpeg preview
         writeFileWithPreview preview path
-        result <- extractEmbedded config path "PreviewImage"
+        result <- extractEmbedded config path 0 "PreviewImage"
         case result of
           Left msg -> expectationFailure ("Failed to extract the preview: " ++ show msg)
           Right (mime, extracted) -> do
@@ -351,20 +359,51 @@ spec = parallel $ do
             path = cfgCacheDir config </> "photo.mie"
         writePreviewJpeg preview
         writeFileWithPreview preview path
-        result <- extractEmbedded config path "JpgFromRaw"
+        result <- extractEmbedded config path 0 "JpgFromRaw"
         result `shouldSatisfy` isLeft
-  describe "movie frames" $ withConfig $
+    forM_ [(False, "reuses an up to date", 0), (True, "rebuilds an outdated", farFutureTime)] $
+      \(rebuilt, what, mtime) ->
+        it (what ++ " embedded image") $
+          withConfig' $ \config -> do
+            requireExifTool
+            requireConvert
+            let preview = cfgCacheDir config </> "preview.jpg"
+                path = cfgCacheDir config </> "photo.mie"
+            writePreviewJpeg preview
+            writeFileWithPreview preview path
+            expected <- readFile preview
+            extractEmbedded config path 0 "PreviewImage" >>= \case
+              Left msg -> expectationFailure ("Failed to extract the preview: " ++ show msg)
+              Right (_, extracted) -> do
+                writeFile extracted ("old" :: ByteString)
+                _ <- extractEmbedded config path mtime "PreviewImage"
+                readFile extracted `shouldReturn`
+                  (if rebuilt then expected else "old")
+  describe "movie frames" $ withConfig $ do
     it "extracts the first frame as a JPEG" $ \config -> do
       requireFfmpeg
       let path = cfgCacheDir config </> "movie.mp4"
       writeMovie path
-      result <- extractFirstFrame config path
+      result <- extractFirstFrame config path 0
       case result of
         Left msg -> expectationFailure ("Failed to extract the frame: " ++ show msg)
         Right (mime, frame) -> do
           mime `shouldBe` "image/jpeg"
           contents <- readFile frame
           jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
+    forM_ [(False, "reuses an up to date", 0), (True, "rebuilds an outdated", farFutureTime)] $
+      \(rebuilt, what, mtime) ->
+        it (what ++ " frame") $ \config -> do
+          requireFfmpeg
+          let path = cfgCacheDir config </> "movie.mp4"
+          writeMovie path
+          extractFirstFrame config path 0 >>= \case
+            Left msg -> expectationFailure ("Failed to extract the frame: " ++ show msg)
+            Right (_, frame) -> do
+              writeFile frame ("old" :: ByteString)
+              _ <- extractFirstFrame config path mtime
+              contents <- readFile frame
+              jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` rebuilt
   describe "external tools" $ do
     it "returns an error if a tool cannot be run" $ \_ -> do
       result <- readToolProcess (proc "corydalis-no-such-tool" [])

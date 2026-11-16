@@ -133,6 +133,11 @@ not all; otherwise, a non-JPEG preview was saved and used, failing to
 build the scaled-down versions, and preventing the use of the next
 embedded preview, if any.
 
+Previews extracted from RAW files and movies (the embedded preview, or
+the first frame of the movie) were cached forever, so after editing or
+replacing such a file, the old preview kept being shown. They are now
+extracted again if the file changed since.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

@@ -1883,9 +1883,12 @@ checkEmbeddedImage tag exitCode out err
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extracted image is required to be a JPEG, otherwise it is not
--- saved, and an error is returned.
-extractEmbedded :: Config -> FilePath -> String -> IO (Either Text (MimeType, FilePath))
-extractEmbedded config path tag = do
+-- saved, and an error is returned. A previously extracted image is
+-- reused, unless it is older than the given modification time of the
+-- source file.
+extractEmbedded :: Config -> FilePath -> POSIXTime -> String
+                -> IO (Either Text (MimeType, FilePath))
+extractEmbedded config path mtime tag = do
   let outputPath = embeddedImagePath config path
       args = [
         "-b",
@@ -1894,8 +1897,8 @@ extractEmbedded config path tag = do
         ]
       mime = "image/jpeg"
       goodRet = Right (mime, outputPath)
-  gotThumbnail <- fileExist outputPath
-  if not gotThumbnail
+  needsBuild <- cacheFileNeedsBuild outputPath mtime
+  if needsBuild
     then do
       -- TODO: write directly to temp file via setStdOut +
       -- useHandleOpen + ..., then rename atomically if successful.
@@ -1914,16 +1917,15 @@ extractEmbedded config path tag = do
               BSL.writeFile outputPath image
               return goodRet
     else
-      -- TODO: mtime-based regen.
       return goodRet
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> FilePath -> IO (Either Text (MimeType, FilePath))
-bestEmbedded config path =
+bestEmbedded :: Config -> FilePath -> POSIXTime -> IO (Either Text (MimeType, FilePath))
+bestEmbedded config path mtime =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
         go c p (x:xs) = do
-          r <- extractEmbedded c p x
+          r <- extractEmbedded c p mtime x
           case r of
             Left _ -> case xs of
               [] -> return r
@@ -1936,8 +1938,12 @@ viewableAsIs (TS.toText -> path) (cfgViewableImages -> exts)  =
   any (`Text.isSuffixOf` path) exts
 
 -- | Extracts and saves the first frame from a movie, as a JPEG.
-extractFirstFrame :: Config -> FilePath -> IO (Either Text (MimeType, FilePath))
-extractFirstFrame config path = do
+--
+-- As for embedded images, a previously extracted frame is reused,
+-- unless it is older than the given modification time of the movie.
+extractFirstFrame :: Config -> FilePath -> POSIXTime
+                  -> IO (Either Text (MimeType, FilePath))
+extractFirstFrame config path mtime = do
   let outputPath = embeddedImagePath config path
       args = [
         "-nostdin",
@@ -1955,8 +1961,8 @@ extractFirstFrame config path = do
         ]
       mime = "image/jpeg"
       goodRet = Right (mime, outputPath)
-  gotFirstFrame <- fileExist outputPath
-  if not gotFirstFrame
+  needsBuild <- cacheFileNeedsBuild outputPath mtime
+  if needsBuild
     then do
       ensureParent outputPath
       let pconfig =
@@ -2012,17 +2018,17 @@ getViewableVersion config img
       viewable <- if fileName r `viewableAsIs` config
                   then return $ Right (fileDecoder r, jpegMimeType r, fileFullPath r)
                   else fmap (\(mime, path) -> (extractedDecoder, mime, path)) <$>
-                         bestEmbedded config (fileFullPath r)
+                         bestEmbedded config (fileFullPath r) (fileLastTouch r)
       case viewable of
         Left msg -> throwIO $ ImageError msg
         Right (decoder, mime, path) -> do
           mtime <- filePathLastTouch path
           return (r, path, decoder, mime, mtime)
   | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
-      embedded <- bestEmbedded config (fileFullPath m)
+      embedded <- bestEmbedded config (fileFullPath m) (fileLastTouch m)
       case embedded of
         Left _ -> do
-          firstFrame <- extractFirstFrame config (fileFullPath m)
+          firstFrame <- extractFirstFrame config (fileFullPath m) (fileLastTouch m)
           case firstFrame of
             Left msg' -> throwIO $ ImageError msg'
             Right (mime, path) -> do
