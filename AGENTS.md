@@ -14,8 +14,9 @@ toolchain for each; do not mix them.
 
 Stack is the build tool. After Haskell changes:
 
-- Run tests with `make test`; `exiftool` must be installed, as some tests
-  run it (they fail, rather than being skipped, if it is missing)
+- Run tests with `make test`; `exiftool`, ImageMagick (`convert`) and
+  `ffmpeg` must be installed, as some tests run them (they fail, rather
+  than being skipped, if they are missing)
 - Obtain coverage with `make coverage`
 - Lint with `make lint`
 

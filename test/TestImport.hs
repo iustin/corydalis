@@ -238,6 +238,16 @@ requireConvert =
     maybe (expectationFailure "ImageMagick (convert) is required for running the tests")
           (const (return ()))
 
+-- | Fails the test if ffmpeg is not installed.
+--
+-- Corydalis works without it, but the tests for extracting movie frames
+-- need it, and are not skipped.
+requireFfmpeg :: IO ()
+requireFfmpeg =
+  findExecutable "ffmpeg" >>=
+    maybe (expectationFailure "ffmpeg is required for running the tests")
+          (const (return ()))
+
 -- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
 -- being set in test-settings.yaml, which enables dummy authentication in
 -- Foundation.hs

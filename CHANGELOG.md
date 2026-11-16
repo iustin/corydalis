@@ -258,6 +258,11 @@ The Node.js version used for development is now pinned in a
 `.node-version` file (currently Node 24), which CI uses as well; Node 20,
 as shipped by Debian stable, is no longer sufficient.
 
+Movie frames extracted with `ffmpeg` (for movies without an embedded
+preview) are now explicitly encoded as JPEG, instead of relying on the
+default of `ffmpeg`, which happened to be JPEG. The tests now need
+ImageMagick and `ffmpeg`, besides `exiftool`.
+
 ### Dependencies
 
 The dependencies have been updated as follows:

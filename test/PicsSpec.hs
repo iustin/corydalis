@@ -164,6 +164,16 @@ writeFileWithPreview preview path = do
   unless (code == ExitSuccess) $
     expectationFailure ("Failed to create test file with preview: " ++ show err)
 
+-- | Writes a short movie, using ffmpeg.
+writeMovie :: FilePath -> IO ()
+writeMovie path = do
+  (code, _, err) <- readProcess (proc "ffmpeg" ["-nostdin", "-loglevel", "error",
+                                                "-f", "lavfi",
+                                                "-i", "testsrc=duration=1:size=64x64:rate=1",
+                                                "-c:v", "mpeg4", path])
+  unless (code == ExitSuccess) $
+    expectationFailure ("Failed to create test movie: " ++ show err)
+
 -- | Builds the thumbnail of a file, returning the result.
 buildThumbnail :: Config -> FilePath -> Either Text String
                -> IO (Either ImageError (Bool, MimeType, FilePath))
@@ -343,6 +353,18 @@ spec = parallel $ do
         writeFileWithPreview preview path
         result <- extractEmbedded config path "JpgFromRaw"
         result `shouldSatisfy` isLeft
+  describe "movie frames" $ withConfig $
+    it "extracts the first frame as a JPEG" $ \config -> do
+      requireFfmpeg
+      let path = cfgCacheDir config </> "movie.mp4"
+      writeMovie path
+      result <- extractFirstFrame config path
+      case result of
+        Left msg -> expectationFailure ("Failed to extract the frame: " ++ show msg)
+        Right (mime, frame) -> do
+          mime `shouldBe` "image/jpeg"
+          contents <- readFile frame
+          jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
   describe "external tools" $ do
     it "returns an error if a tool cannot be run" $ \_ -> do
       result <- readToolProcess (proc "corydalis-no-such-tool" [])

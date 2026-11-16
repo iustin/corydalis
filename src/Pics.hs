@@ -112,6 +112,7 @@ module Pics ( PicDir(..)
             , jpegMagic
             , checkEmbeddedImage
             , extractEmbedded
+            , extractFirstFrame
             , mkImage
             , buildTimeSort
             , buildGroupExif
@@ -1934,7 +1935,7 @@ viewableAsIs :: ShortText -> Config -> Bool
 viewableAsIs (TS.toText -> path) (cfgViewableImages -> exts)  =
   any (`Text.isSuffixOf` path) exts
 
--- | Extracts and saves the first frame from a movie.
+-- | Extracts and saves the first frame from a movie, as a JPEG.
 extractFirstFrame :: Config -> FilePath -> IO (Either Text (MimeType, FilePath))
 extractFirstFrame config path = do
   let outputPath = embeddedImagePath config path
@@ -1946,9 +1947,12 @@ extractFirstFrame config path = do
         "-r", "1",
         "-frames", "1",
         "-f", "image2",
+        -- The output file has no extension, so ffmpeg would use
+        -- the default codec of the muxer, which happens to be
+        -- mjpeg; set it explicitly instead.
+        "-c:v", "mjpeg",
         outputPath
         ]
-      -- FIXME: Extracted frames ('image2') are assumed jpeg.
       mime = "image/jpeg"
       goodRet = Right (mime, outputPath)
   gotFirstFrame <- fileExist outputPath
