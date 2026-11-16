@@ -42,7 +42,7 @@ export const TOAST_CONTAINER_ID = 'toast-container';
 export type ToastFactory = (
   element: Element,
   options: Partial<Toast.Options>,
-) => Pick<Toast, 'show'>;
+) => Pick<Toast, 'show' | 'dispose'>;
 
 /**
  * Parses a notification kind (e.g. from a server reply), defaulting to
@@ -135,7 +135,32 @@ export function showToast(
 
   // The layout always has a container; fall back to the body just in case.
   (doc.getElementById(TOAST_CONTAINER_ID) ?? doc.body).append(toast);
-  // Don't accumulate hidden notifications in the page.
-  toast.addEventListener('hidden.bs.toast', () => toast.remove());
-  factory(toast, toastOptions(kind)).show();
+  const instance = factory(toast, toastOptions(kind));
+  removeWhenHidden(toast, instance);
+  instance.show();
+}
+
+/** The parts of a toast element used by removeWhenHidden. */
+export type RemovableElement = Pick<EventTarget, 'addEventListener'> & {
+  remove(): void;
+};
+
+/**
+ * Removes a notification once it's hidden (by its timer or the close
+ * button), so that hidden notifications don't accumulate in the page.
+ * Bootstrap only hides the element, and keeps the Toast instance in its
+ * own registry until it's disposed of.
+ */
+export function removeWhenHidden(
+  element: RemovableElement,
+  instance: Pick<Toast, 'dispose'>,
+): void {
+  element.addEventListener(
+    'hidden.bs.toast',
+    () => {
+      instance.dispose();
+      element.remove();
+    },
+    { once: true },
+  );
 }

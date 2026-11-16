@@ -23,6 +23,7 @@ import {
   TOAST_STYLES,
   type ToastKind,
   parseToastKind,
+  removeWhenHidden,
   toastClasses,
   toastOptions,
 } from './toast.ts';
@@ -77,5 +78,33 @@ describe('TOAST_STYLES', () => {
       [...TOAST_STYLES[kind].classes].sort().join(' '),
     );
     assert.equal(new Set(looks).size, KINDS.length);
+  });
+});
+
+/** A toast element and its Bootstrap instance, recording the calls. */
+class FakeToast extends EventTarget {
+  calls: string[] = [];
+  remove(): void {
+    this.calls.push('remove');
+  }
+  dispose(): void {
+    this.calls.push('dispose');
+  }
+}
+
+describe('removeWhenHidden', () => {
+  it('keeps the notification until hidden', () => {
+    const toast = new FakeToast();
+    removeWhenHidden(toast, toast);
+    toast.dispatchEvent(new Event('shown.bs.toast'));
+    assert.deepEqual(toast.calls, []);
+  });
+
+  it('disposes of the instance, then removes the element, once', () => {
+    const toast = new FakeToast();
+    removeWhenHidden(toast, toast);
+    toast.dispatchEvent(new Event('hidden.bs.toast'));
+    toast.dispatchEvent(new Event('hidden.bs.toast'));
+    assert.deepEqual(toast.calls, ['dispose', 'remove']);
   });
 });
