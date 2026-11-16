@@ -502,9 +502,7 @@ spec = parallel $ do
       it "treats an older cache file as needing a rebuild" $ \config -> do
         let path = cfgCacheDir config </> "stale"
         touchFile path
-        -- Note: this is about year 2096. After that, the test
-        -- will fail and will need to be updated.
-        cacheFileNeedsBuild path 4000000000 `shouldReturn` True
+        cacheFileNeedsBuild path farFutureTime `shouldReturn` True
       it "treats a newer cache file as up to date" $ \config -> do
         let path = cfgCacheDir config </> "fresh"
         touchFile path
