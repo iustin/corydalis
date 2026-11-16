@@ -153,6 +153,16 @@ server), was also shown to anonymous visitors, on the login page and the
 status icon in the navigation bar no longer shows the repository state
 (e.g. a failed scan) to anonymous visitors.
 
+Security: the session key (`config/client_session_key.aes`), which
+encrypts and authenticates the session cookies, and the database, which
+holds the password hashes, were created with the default permissions,
+i.e. usually readable by all users on the machine; with the session key,
+they could create session cookies and log in as any user. At startup,
+the `config` directory and the database directory are now restricted to
+their owner, if needed; if this isn't possible (e.g. if owned by another
+user), a warning is logged instead. See the installation documentation
+on replacing the key, if other users could have read it.
+
 Security: logging in with a password took much longer for existing users
 than for unknown ones, since the (deliberately slow) password check was
 only done for the former, so the response time showed whether a user

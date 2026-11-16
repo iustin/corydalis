@@ -69,7 +69,11 @@ This step will generate three binaries:
 Create a few needed directories:
 
     cd /path/to/target
-    mkdir config db
+    mkdir -m 0700 config db
+
+These hold private files, so they should be accessible only to the user
+running the application (see [private directories](#private-directories)
+below).
 
 At runtime, the application depends on ImageMagick, exiftool and
 ffmpeg, so make sure to install them before you run the application,
@@ -209,3 +213,33 @@ The application needs a session key for the client session cookies. If
 the file `config/client_session_key.aes` does not exist, it will be
 automatically created; however, deleting it and restarting the binary
 will invalidate any existing sessions.
+
+### Private directories
+
+Some files must not be readable by other users on the machine: the
+session key, since anyone who can read it can log in as any user; the
+database, which holds the password hashes; and the TLS key, if
+installed in `config`. Rather than relying on the permissions of each of
+these files (which are created with the default ones), the `config`
+directory and the directory holding the database (normally `db`) should
+be accessible only to their owner, i.e. have mode 0700.
+
+At startup, `corydalis` (and `db-util`, for the database directory)
+checks this, and if a directory is accessible to other users:
+
+- if it is owned by the user running the application, its permissions
+  are restricted, with a warning;
+- otherwise, or if restricting them fails (e.g. on a read-only file
+  system), only a warning is logged, and you should check the
+  permissions yourself; for example, a `config` directory owned by root
+  and readable by the application's group is fine, as long as only the
+  application's user is in that group.
+
+Since the directory is restricted, the database should be in its own
+directory, not in the current directory (which is not changed), and the
+Unix socket and the cache directory should not be in these directories.
+
+If the directories were accessible to other users before, e.g. with
+older versions, and other users could have read the session key, delete
+it and restart the application, to create a new key; similarly, consider
+changing the passwords.

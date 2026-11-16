@@ -163,6 +163,7 @@ library:
     - Stats
     - Types
     - Utils.Parsing
+    - Utils.Permissions
     - Utils.Yaml
   other-modules:
     - Compat.Orphans

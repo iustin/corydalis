@@ -32,6 +32,8 @@ import           Import                  hiding (getLine, hFlush, hGetEcho,
                                           hSetEcho, putStr, putStrLn)
 import           Options.Applicative
 import           System.IO               (hFlush, hGetEcho, hSetEcho)
+import           Utils.Permissions       (databaseDirectory, privateDirMessage,
+                                          protectPrivateDir)
 import           Yesod.Auth.HashDB
 
 data Options = Options
@@ -116,5 +118,10 @@ main = do
     -- Get the settings from all relevant sources
     settings <- loadYamlSettings [optSettingsFile opts] [] useEnv
     let conn = sqlDatabase $ appDatabaseConf settings
+
+    -- Restrict the database directory, as the main application does,
+    -- since this might create the database.
+    forM_ (databaseDirectory conn) $ \dir ->
+      protectPrivateDir dir >>= mapM_ (hPutStrLn stderr) . privateDirMessage dir
 
     runStderrLoggingT . runSqlite conn . app . optCommand $ opts

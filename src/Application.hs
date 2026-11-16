@@ -106,6 +106,10 @@ import           Handler.Search
 import           Handler.Settings
 import           Handler.Status
 import           Handler.View
+import           System.FilePath                           (takeDirectory)
+import           Utils.Permissions                         (databaseDirectory,
+                                                            privateDirMessage,
+                                                            protectPrivateDir)
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -133,6 +137,14 @@ makeFoundation appSettings = do
     -- Initialise the application context, first creating the custom app logger.
     let logfn level str = when (level >= appLogLevel appSettings) $ loggerPutStr appLogger $ str <> "\n"
         config = appConfig appSettings
+
+    -- Restrict the directories holding private files, before anything
+    -- creates them: the session key (created by the session backend) and
+    -- the database (created below).
+    forM_ (takeDirectory clientSessionKeyFile :
+           maybeToList (databaseDirectory . sqlDatabase $ appDatabaseConf appSettings)) $
+      \dir -> protectPrivateDir dir >>=
+        mapM_ (logfn LevelWarn . toLogStr) . privateDirMessage dir
 
     -- Refuse to start if a configured ImageMagick policy isn't in use,
     -- as previews would then be built without it.
