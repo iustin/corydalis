@@ -62,13 +62,22 @@ export type ToastStyle = {
  *   lightCloseButton: false,
  */
 export const TOAST_STYLES: Readonly<Record<ToastKind, ToastStyle>> = {
-  success: { classes: ['text-bg-success', 'border-0'], lightCloseButton: true },
-  info: { classes: ['text-bg-info', 'border-0'], lightCloseButton: false },
-  warning: {
-    classes: ['text-bg-warning', 'border-0'],
+  success: {
+    classes: ['bg-success-subtle', 'text-success-emphasis', 'border-0'],
+    lightCloseButton: true,
+  },
+  info: {
+    classes: ['bg-info-subtle', 'text-info-emphasis', 'border-0'],
     lightCloseButton: false,
   },
-  danger: { classes: ['text-bg-danger', 'border-0'], lightCloseButton: true },
+  warning: {
+    classes: ['bg-secondary-subtle', 'text-secondary-emphasis', 'border-0'],
+    lightCloseButton: false,
+  },
+  danger: {
+    classes: ['bg-danger-subtle', 'text-danger-emphasis', 'border-0'],
+    lightCloseButton: true,
+  },
 };
 
 /** Returns the CSS classes of a notification. */
