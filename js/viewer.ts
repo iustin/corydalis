@@ -19,7 +19,8 @@ import $ from 'jquery';
 import screenfull from 'screenfull';
 import 'bootstrap';
 import { Modal } from 'bootstrap';
-import { isCsrfRejection, setupCsrf } from './csrf';
+import { setupCsrf } from './csrf';
+import { flagFailureMessage, sendFlag } from './flag';
 import { playFailureMessage } from './media';
 
 setupCsrf($);
@@ -1193,21 +1194,12 @@ $(function () {
   }
 
   function flagImage(flag: boolean) {
-    $.ajax({
-      url: cory.info.current.flag,
-      type: flag ? 'PUT' : 'DELETE',
-      dataType: 'json',
-    })
+    sendFlag($, cory.info.current.flag, flag)
       .done(function (json) {
         writeMessage(json.text, 2000);
       })
       .fail(function (xhr, status, details) {
-        writeMessage(
-          isCsrfRejection(xhr.status)
-            ? 'Could not flag the image: this page is out of date, ' +
-                'please reload it and try again.'
-            : 'Error flagging image: ' + status + ', details: ' + details,
-        );
+        writeMessage(flagFailureMessage(xhr.status, status, details));
       });
   }
 
