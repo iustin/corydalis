@@ -124,6 +124,12 @@ stale, for example after the session expired and you logged in again in
 another tab, flagging an image in the viewer will ask you to reload the
 page.
 
+Security hardening: POST requests can no longer be turned into PUT or
+DELETE requests via a `_method` form field. Since plain HTML forms can
+only send GET and POST, this ensures that other web sites cannot reach the
+flagging endpoints with forms, even independently of the CSRF protection.
+Scripts flagging images must now send real PUT/DELETE requests.
+
 Security hardening: all responses now include a `Content-Security-Policy`
 header. It only allows scripts loaded from Corydalis' own static files, so
 that a bug allowing HTML injection cannot be used to run code, and it

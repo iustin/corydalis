@@ -37,8 +37,9 @@ deleteWithType kind = do
     addRequestHeader (hAccept, kind)
     addCsrfHeader token
 
--- | Sends what a browser does for the image flag form: a POST with the
--- fields in document order, the method being in the first one.
+-- | Sends what a browser would for a form trying to override the method:
+-- a POST with the method in the first field (as methodOverridePost
+-- required), followed by the CSRF token.
 postForm :: ByteString -> Maybe Text -> YesodExample App ()
 postForm method token = request $ do
   setMethod "POST"
@@ -86,20 +87,21 @@ spec = parallel $ withApp $ do
         loginAndCheckFlagged
         performMethod method $ ImageFlagR "a" "b"
         statusIs 403
+  -- Plain (e.g. cross-site) forms can only send GET and POST, so the
+  -- flag handlers must not be reachable via a method override.
+  describe "checks that forms cannot override the method" $
+    forM_ ["PUT", "DELETE"] $ \method -> do
+      it ("rejects a form overriding the method to " ++ show method ++
+          " with a token") $ do
+        loginAndCheckFlagged
+        pageCsrfToken >>= postForm method . Just
+        statusIs 405
       it ("rejects a form overriding the method to " ++ show method ++
           " without a token") $ do
         loginAndCheckFlagged
         postForm method Nothing
         statusIs 403
-    it "accepts a form overriding the method to PUT with a token" $ do
-      loginAndCheckFlagged
-      pageCsrfToken >>= postForm "PUT" . Just
-      statusIs 404
-    it "accepts a form overriding the method to DELETE with a token" $ do
-      loginAndCheckFlagged
-      pageCsrfToken >>= postForm "DELETE" . Just
-      followRedirectOK
-      bodyContains "Image was not flagged!"
+  describe "checks CSRF protection, JSON requests" $ do
     -- The viewer relies on these two, to tell the user to reload the page
     -- only when the token is the problem.
     it "rejects a JSON request with a stale token as forbidden" $ do

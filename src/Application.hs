@@ -73,7 +73,6 @@ import           Network.Wai.Handler.WarpTLS               (OnInsecure (..),
                                                             onInsecure, runTLS,
                                                             tlsSettings)
 import           Network.Wai.Middleware.AddHeaders         (addHeaders)
-import           Network.Wai.Middleware.MethodOverridePost
 import           Network.Wai.Middleware.RequestLogger      (Destination (Callback, Logger),
                                                             IPAddrSource (..),
                                                             OutputFormat (..),
@@ -179,7 +178,7 @@ appMiddlewares =
   addHeaders [ ("Content-Security-Policy", contentSecurityPolicy)
              , ("X-Content-Type-Options", "nosniff")
              ] .
-  defaultMiddlewaresNoLogging . methodOverridePost
+  defaultMiddlewaresNoLogging
 
 -- | The Content-Security-Policy sent with all responses.
 --
