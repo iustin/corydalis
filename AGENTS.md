@@ -59,3 +59,11 @@ for structure of older changelog entries).
 ## General
 
 Add tests for any new code, regardless of language.
+
+Every source file (Haskell under `src/`, `test/` and `app/`, TypeScript
+under `js/`, including tests and small entry points) starts with the AGPL
+copyright header, with `Copyright (C) 2013 Iustin Pop` as in all existing
+files: the year is the project's start, not the file's creation. Copy it
+from an existing file of the same language (e.g. `src/Pics.hs` or
+`js/viewer.ts`), and keep it when rewriting a file. `test/CopyrightSpec.hs`
+checks this.
