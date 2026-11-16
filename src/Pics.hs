@@ -85,6 +85,7 @@ module Pics ( PicDir(..)
             , totalStatsCount
             , loadCachedOrBuild
             , imageAtRes
+            , checkMagickPolicy
             , allImageFiles
             , allViewableImageFiles
             , allRepoFiles
@@ -174,6 +175,7 @@ import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
 import           Debug.Trace.String
 import           System.Directory
+import qualified System.Environment
 import           System.Exit
 import           System.FilePath
 import           System.IO.Error
@@ -1760,11 +1762,60 @@ loadCachedOrBuild config origPath bytesPath decoder mime mtime size = do
         let inFile = decoder' ++ ":" ++ bytesPath
         createDirectoryIfMissing True parent
         -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
-        (exitCode, out, err) <- readProcess (proc "convert" (concat [[inFile], operators, [outFile]])) `catch`
+        pconfig <- convertProcess config (concat [[inFile], operators, [outFile]])
+        (exitCode, out, err) <- readProcess pconfig `catch`
                                 (\e -> let e' = sformat shown (e :: SomeException)
                                        in throwIO . ImageError $ e')
         when (exitCode /= ExitSuccess) . throwIO . ImageError . decodeToolOutput $ err `BSL.append` out
       return (needsGen, sformat ("image/" % string) fmt, fpath)
+
+-- | Builds the process configuration for running ImageMagick's convert.
+--
+-- If a policy directory is configured, ImageMagick is pointed to it via
+-- the MAGICK_CONFIGURE_PATH environment variable.
+convertProcess :: Config -> [String] -> IO (ProcessConfig () () ())
+convertProcess config args = do
+  let pconfig = proc "convert" args
+      var = "MAGICK_CONFIGURE_PATH"
+  case cfgMagickPolicyDir config of
+    Nothing -> return pconfig
+    Just dir -> do
+      env <- System.Environment.getEnvironment
+      return $ setEnv ((var, dir) : filter ((/= var) . fst) env) pconfig
+
+-- | Checks that ImageMagick uses the configured policy.
+--
+-- ImageMagick silently ignores a policy it can't find, so this checks
+-- that the policy file exists, and that ImageMagick lists it among the
+-- policies it loaded. Without a configured policy directory, there is
+-- nothing to check.
+checkMagickPolicy :: Config -> IO (Either Text ())
+checkMagickPolicy config =
+  case cfgMagickPolicyDir config of
+    Nothing -> return $ Right ()
+    Just dir -> do
+      let policyFile = dir </> "policy.xml"
+          failWith = return . Left
+      found <- doesFileExist policyFile
+      if not found
+        then failWith $ sformat ("ImageMagick policy file " % string % " not found") policyFile
+        else do
+          expected <- canonicalizePath policyFile
+          pconfig <- convertProcess config ["-list", "policy"]
+          result <- readToolProcess pconfig
+          case result of
+            Left msg -> failWith msg
+            Right (ExitSuccess, out, _) -> do
+              let loaded = [ Text.unpack (Text.strip path)
+                           | line <- Text.lines (decodeToolOutput out)
+                           , Just path <- [Text.stripPrefix "Path:" (Text.strip line)] ]
+              loaded' <- mapM canonicalizePath loaded
+              return $ if expected `elem` loaded'
+                then Right ()
+                else Left $ sformat ("ImageMagick did not load the policy file " % string) policyFile
+            Right (_, out, err) ->
+              failWith $ "Failed to list the ImageMagick policies: " <>
+                decodeToolOutput (err `BSL.append` out)
 
 -- | Ordered list of tags that represent embedded images.
 previewTags :: [String]

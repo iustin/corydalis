@@ -149,6 +149,21 @@ shouldFailToBuild config path result = do
   doesFileExist (scaledImagePath config path (cfgThumbnailSize config))
     `shouldReturn` False
 
+-- | The coders that the shipped ImageMagick policy allows reading.
+--
+-- This is a simple text scan of the coder rules granting read rights,
+-- which is all the shipped policy uses.
+policyReadableCoders :: IO [Text]
+policyReadableCoders = do
+  policy <- readFileUtf8 "config/magick/policy.xml"
+  return [ coder
+         | line <- lines policy
+         , "domain=\"coder\"" `isInfixOf` line
+         , "rights=\"read" `isInfixOf` line
+         , let coders = takeWhile (/= '}') . drop 1 . dropWhile (/= '{') $ line
+         , coder <- splitElem ',' coders
+         ]
+
 -- | A file for which exiftool reported the given MIME type.
 fileWithMimeType :: Maybe Text -> File
 fileWithMimeType mime =
@@ -232,6 +247,26 @@ spec = parallel $ do
       case result of
         Left (ImageError msg) -> msg `shouldBe` "no decoder"
         _                     -> expectationFailure ("Unexpected result: " ++ show result)
+  describe "ImageMagick policy" $ withConfig $ do
+    it "is used by the test configuration" $ \config ->
+      cfgMagickPolicyDir config `shouldBe` Just "config/magick"
+    it "is loaded by ImageMagick" $ \config -> do
+      requireConvert
+      checkMagickPolicy config `shouldReturn` Right ()
+    it "does not need checking if not configured" $ \config ->
+      checkMagickPolicy config { cfgMagickPolicyDir = Nothing } `shouldReturn` Right ()
+    it "fails the check if the policy file is missing" $ \config -> do
+      let config' = config { cfgMagickPolicyDir = Just (cfgCacheDir config) }
+      checkMagickPolicy config' >>= (`shouldBeLeftWithMessage` "not found")
+    it "allows reading with all the default decoders" $ \_ -> do
+      readable <- map toUpper <$> policyReadableCoders
+      forM_ (setFromList (toList defaultImageDecoders) :: Set Text) $ \decoder ->
+        readable `shouldContain` [toUpper decoder]
+    it "refuses other decoders, even if passed explicitly" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "document.ps"
+      writeFile path postScriptDocument
+      buildThumbnail config path (Right "ps") >>= shouldFailToBuild config path
   describe "external tools" $ do
     it "returns an error if a tool cannot be run" $ \_ -> do
       result <- readToolProcess (proc "corydalis-no-such-tool" [])

@@ -80,9 +80,12 @@ e.g.:
 Without ffmpeg, the application still works, but movies without an
 embedded preview have no preview image.
 
-Install the sample configuration file from the source code:
+Install the sample configuration file and the ImageMagick policy from
+the source code:
 
     cp config/settings.yml.sample /path/to/target/settings.yml
+    mkdir /path/to/target/config/magick
+    cp config/magick/policy.xml /path/to/target/config/magick/
 
 ## Serving over HTTPS
 
@@ -153,6 +156,33 @@ could make it run e.g. a PostScript document named `photo.jpg`.
 Files whose extension has no configured decoder get no previews; if you
 add an extension to `jpegexts` or `viewableimages` that is not in the
 default list, also add it to `imagedecoders`.
+
+### ImageMagick policy
+
+As a second layer of protection, the `magickpolicydir` setting points
+ImageMagick to a restrictive security policy, which allows reading only
+the decoders in the default `imagedecoders` list, writing only JPEG and
+PNG (for the previews), and running no external programs such as
+Ghostscript. The sample configuration uses the policy installed above,
+in `config/magick`.
+
+Corydalis runs ImageMagick with the `MAGICK_CONFIGURE_PATH` environment
+variable set to this directory. ImageMagick also looks there for its
+other configuration files, so keep only `policy.xml` in it. Since
+ImageMagick silently ignores a policy it can't find, Corydalis checks at
+startup that ImageMagick lists the policy file among the ones it
+loaded, and refuses to start otherwise. Without the setting, it starts
+normally, but logs a warning.
+
+The system policy (e.g. `/etc/ImageMagick-7/policy.xml`) still applies.
+ImageMagick evaluates its rules after the Corydalis ones, and the last
+matching rule wins: restrictions in the system policy (for example,
+after a security update) apply to Corydalis too, but so would rules
+there that explicitly allow a decoder.
+
+If you add a decoder to `imagedecoders`, also add it to the policy;
+otherwise, previews for those files fail with an error saying the
+operation is not allowed by the security policy.
 
 ## Running corydalis
 

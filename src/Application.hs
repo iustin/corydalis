@@ -86,7 +86,8 @@ import           System.Log.FastLogger                     (defaultBufSize,
                                                             toLogStr)
 import           Yesod.Core.Types                          (loggerPutStr)
 
-import           Pics                                      (initContext)
+import           Pics                                      (checkMagickPolicy,
+                                                            initContext)
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -131,7 +132,18 @@ makeFoundation appSettings = do
 
     -- Initialise the application context, first creating the custom app logger.
     let logfn level str = when (level >= appLogLevel appSettings) $ loggerPutStr appLogger $ str <> "\n"
-    appContext <- atomically $ initContext (appConfig appSettings) logfn
+        config = appConfig appSettings
+
+    -- Refuse to start if a configured ImageMagick policy isn't in use,
+    -- as previews would then be built without it.
+    case cfgMagickPolicyDir config of
+      Nothing -> logfn LevelWarn
+        "No ImageMagick policy configured (magickpolicydir), see the installation documentation"
+      Just dir -> checkMagickPolicy config >>=
+        either (throwIO . userError . unpack)
+               (const . logfn LevelInfo . toLogStr $ "Using the ImageMagick policy in " <> dir)
+
+    appContext <- atomically $ initContext config logfn
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a
     -- logging function. To get out of this loop, we initially create a

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ImageMagick security policy for Corydalis.
+
+  Point the magickpolicydir setting to the directory holding this file;
+  Corydalis then runs ImageMagick with MAGICK_CONFIGURE_PATH set to it.
+  ImageMagick also looks in that directory for its other configuration
+  files, so keep only this file there.
+
+  The system policy (e.g. /etc/ImageMagick-7/policy.xml) is still
+  applied, and its rules are evaluated after these ones, so it can
+  restrict, but also allow, more.
+
+  Only the decoders in the imagedecoders setting are needed for reading,
+  and only JPEG and PNG for writing the previews. If you add a decoder
+  to imagedecoders, also add it to the read list below.
+-->
+<policymap>
+  <!-- No external programs (e.g. Ghostscript), and no other coders. -->
+  <policy domain="delegate" rights="none" pattern="*"/>
+  <policy domain="coder" rights="none" pattern="*"/>
+  <!-- No reading of file lists via @file names. -->
+  <policy domain="path" rights="none" pattern="@*"/>
+  <!-- These must come after the rules above, as the last matching rule
+       wins; for the same reason, each coder must appear in only one of
+       the lists below. -->
+  <policy domain="coder" rights="read" pattern="{HEIC,TIFF,WEBP}"/>
+  <policy domain="coder" rights="read | write" pattern="{JPEG,PNG}"/>
+</policymap>

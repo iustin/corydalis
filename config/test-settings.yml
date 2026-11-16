@@ -53,3 +53,4 @@ config:
   peopleprefix: "_People"
   locationprefix: "_Regions"
   ignoreprefix: "_"
+  magickpolicydir: "config/magick"

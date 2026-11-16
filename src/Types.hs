@@ -184,6 +184,8 @@ data Config = Config
     , cfgViewableImages  :: [Text]        -- ^ Images directly viewable in browser.
     , cfgImageDecoders   :: Map Text Text -- ^ ImageMagick decoder for each
                                           -- (lower-case) extension.
+    , cfgMagickPolicyDir :: Maybe FilePath -- ^ Directory holding the
+                                           -- ImageMagick policy to use.
     } deriving (Eq, Show, Generic)
 
 instance Store Config
@@ -278,7 +280,8 @@ instance FromJSON Config where
          v .: "peopleprefix"    <*>
          v .: "ignoreprefix"    <*>
          viewableimageslist     <*>
-         imagedecoders
+         imagedecoders          <*>
+         v .:? "magickpolicydir"
 
 data ImageStatus = ImageOrphaned
                  | ImageStandalone

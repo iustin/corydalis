@@ -135,6 +135,11 @@ config:
   #   tiff: tiff
   #   png: png
   #   webp: webp
+  # Directory holding the ImageMagick security policy to use when
+  # building previews (see config/magick/policy.xml in the sources, and
+  # the installation documentation). If set, the application refuses to
+  # start unless ImageMagick actually loads the policy from there.
+  magickpolicydir: "config/magick"
   # Valid directory pattern (groups are ignored):
   dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
   # Regex denoting the name of a picture composed from other
