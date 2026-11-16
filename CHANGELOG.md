@@ -144,6 +144,11 @@ users who flagged the images, i.e. valid login names, and the settings
 page, which shows the server configuration, e.g. the paths of the picture
 folders. These pages now always require logging in.
 
+Security: the repository status shown at the top of all pages, including
+the error message of a failed scan (which can contain e.g. paths on the
+server), was also shown to anonymous visitors, on the login page and the
+"not found" page. It is now only shown to logged in users.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

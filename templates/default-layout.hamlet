@@ -3,27 +3,30 @@ $maybe msg <- mmsg
     <button type="button" .btn-close .py-0 .align-middle data-bs-dismiss="alert" aria-label="Close">
     <span id="corydalis-app-message">
       #{msg}
-$case repoState
-  $of RepoEmpty
-    <div .alert .alert-warning .py-2>
-      Repository is being (re)initialized
-  $of RepoStarting
-    <div .alert .alert-primary .py-2>
-      Preparing to scan the repository.
-  $of RepoScanning {}
-    <div .alert .alert-info .py-2>
-      Repository scanning in progress, #{scanProgress} out of #{scanGoal} items scanned.
-      $maybe sp <- scanPercent
-        <div .progress>
-          <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{sp}" aria-valuemin="0" aria-valuemax="100" style="width: #{sp}%">
-            #{sp}%
-  $of RepoRendering {}
-  $of RepoCleaning {}
-  $of RepoFinished {}
-  $of RepoError txt
-    <div .alert .alert-danger>
-      <h4 .alert-heading>Repository scanning failed
-      Error message: #{txt}
+$# The repository status, and especially the scan errors, can show
+$# details of the server (e.g. paths), so only show it to logged in users.
+$if is_auth
+  $case repoState
+    $of RepoEmpty
+      <div .alert .alert-warning .py-2>
+        Repository is being (re)initialized
+    $of RepoStarting
+      <div .alert .alert-primary .py-2>
+        Preparing to scan the repository.
+    $of RepoScanning {}
+      <div .alert .alert-info .py-2>
+        Repository scanning in progress, #{scanProgress} out of #{scanGoal} items scanned.
+        $maybe sp <- scanPercent
+          <div .progress>
+            <div .progress-bar .progress-bar-striped .bg-info role=progressbar aria-valuenow="#{sp}" aria-valuemin="0" aria-valuemax="100" style="width: #{sp}%">
+              #{sp}%
+    $of RepoRendering {}
+    $of RepoCleaning {}
+    $of RepoFinished {}
+    $of RepoError txt
+      <div .alert .alert-danger>
+        <h4 .alert-heading>Repository scanning failed
+        Error message: #{txt}
 ^{widget}
 
 <br>

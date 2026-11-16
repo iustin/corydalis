@@ -263,6 +263,7 @@ instance Yesod App where
                           Just mmsgKind' -> if mmsgKind' `elem` msgValidTypes
                                               then mmsgKind'
                                               else msgInfo
+        is_auth <- isJust <$> maybeAuthId
         ctx <- getContext
         progress <- liftIO $ getProgress ctx
         let scanProgress = pgTotal progress
@@ -314,7 +315,6 @@ instance Yesod App where
               if isViewer then "" else "d-sm-block"::Text
             parentsIdx = zip3 inflist parents crumbsVisibilityClasses
 
-        is_auth <- isJust <$> maybeAuthId
         mtok <- reqToken <$> getRequest
         withUrlRenderer $(hamletFile "templates/layout-wrapper.hamlet")
 

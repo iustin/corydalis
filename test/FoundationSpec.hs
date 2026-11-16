@@ -32,6 +32,8 @@ import           Text.XML.Cursor       (attribute, fromDocument)
 import           Web.Cookie
 
 import           Handler.Cookies
+import           Pics                  (RepoStatus (..), Repository (..),
+                                        waitForScan)
 import           TestImport
 
 -- | Returns a cookie set by the last response.
@@ -103,6 +105,21 @@ checkViewCookie expected = request $ do
         parseViewMode . decodeUtf8 . setCookieValue $ cookieB
   liftIO $ actual `shouldBe` expected
 
+-- | A scan error showing server details, as e.g. an IO exception would.
+scanError :: Text
+scanError = "/srv/secret-photos/2023: openFile: permission denied"
+
+-- | Sets the repository state to a failed scan.
+--
+-- This first waits for the initial scan, so that it doesn't overwrite
+-- the state.
+setScanError :: YesodExample App ()
+setScanError = do
+  ctx <- appContext <$> getTestYesod
+  liftIO $ do
+    repo <- waitForScan ctx
+    atomically $ writeTVar (ctxRepo ctx) repo { repoStatus = RepoError scanError }
+
 -- | Read-only pages which require authentication even on public sites.
 privatePages :: [Route App]
 privatePages = [FlaggedImagesR, FlaggedImagesListR, SettingsR]
@@ -126,6 +143,23 @@ authenticationSpec = describe "authentication" $ do
   forM_ [HomeR, CurateR, FolderR "a", ViewR "a" "b", AboutR] $ \route ->
     it ("depends on the build for " ++ show route) $
       alwaysRequiresAuthentication route `shouldBe` False
+  withApp $ describe "repository status" $ do
+    it "is shown to logged in users" $ do
+      setScanError
+      login
+      checkRoute HomeR
+      bodyContains "Repository scanning failed"
+      bodyContains (unpack scanError)
+    -- The not found page is rendered for unknown URLs, before checking
+    -- for authentication.
+    forM_ [("the login page", "/auth/login", 200), ("the not found page", "/no-such-page", 404)] $
+      \(name, url, status) ->
+        it ("is not shown to anonymous users on " ++ name) $ do
+          setScanError
+          get (url :: Text)
+          statusIs status
+          bodyNotContains "Repository scanning failed"
+          bodyNotContains (unpack scanError)
   withApp $ forM_ privatePages $ \route ->
     it ("redirects an anonymous request for " ++ show route ++ " to login") $ do
       get route
