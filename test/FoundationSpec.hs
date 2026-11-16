@@ -30,6 +30,9 @@ import           Test.QuickCheck       (Gen, arbitrary, forAll, (==>))
 import           Text.HTML.DOM         (parseLBS)
 import           Text.XML.Cursor       (attribute, fromDocument)
 import           Web.Cookie
+import           Yesod.Auth.HashDB     (defaultStrength, setPassword,
+                                        validatePass)
+import           Yesod.Auth.Util.PasswordStore (passwordStrength)
 
 import           Handler.Cookies
 import           Pics                  (RepoStatus (..), Repository (..),
@@ -124,9 +127,30 @@ setScanError = do
 privatePages :: [Route App]
 privatePages = [FlaggedImagesR, FlaggedImagesListR, SettingsR, StatusR, StatusErrorsR]
 
+-- | Logs in with the password login form.
+passwordLogin :: Text -> Text -> YesodExample App ()
+passwordLogin name passwd = do
+  get $ AuthR LoginR
+  request $ do
+    setMethod "POST"
+    setUrl $ AuthR $ PluginR "hashdb" ["login"]
+    addPostParam "username" name
+    addPostParam "password" passwd
+    addToken_ "form[action$=/hashdb/login] "
+
+-- | Checks that the last password login failed.
+checkLoginFailed :: YesodExample App ()
+checkLoginFailed = do
+  statusIs 303
+  responseLocation >>= liftIO . (`shouldSatisfy` maybe False ("/auth/login" `isSuffixOf`))
+  followRedirectOK
+  bodyContains "Invalid username/password combination"
+  checkRouteIs HomeR 303
+
 spec :: Spec
 spec = do
   isWithinRootSpec
+  passwordLoginSpec
   authenticationSpec
   appSpec
 
@@ -196,6 +220,39 @@ isWithinRootSpec = describe "isWithinRoot" $ do
     forAll anyText $ \r -> forAll anyText $ \u ->
       not (r `isPrefixOf` u) ==> not (isWithinRoot r u)
   where anyText = arbitrary :: Gen Text
+
+passwordLoginSpec :: Spec
+passwordLoginSpec = describe "password login" $ do
+  it "creates a dummy user with a valid password hash, as strong as the default" $ do
+    dummy <- makeDummyLoginUser
+    passwordStrength . encodeUtf8 <$> userPassword dummy `shouldBe` Just defaultStrength
+    validatePass dummy "" `shouldBe` Just False
+    validatePass dummy "password" `shouldBe` Just False
+  it "creates a dummy user with a different password each time" $ do
+    dummy1 <- makeDummyLoginUser
+    dummy2 <- makeDummyLoginUser
+    userPassword dummy1 `shouldNotBe` userPassword dummy2
+  withApp $ do
+    let createUserWithPassword = do
+          user <- setPassword "secret" User { userName = "user", userPassword = Nothing }
+          runDB $ insert_ user
+    it "logs in with the right password" $ do
+      createUserWithPassword
+      passwordLogin "user" "secret"
+      statusIs 303
+      checkRouteIs HomeR 200
+    it "refuses a wrong password" $ do
+      createUserWithPassword
+      passwordLogin "user" "wrong"
+      checkLoginFailed
+    it "refuses an unknown user" $ do
+      createUserWithPassword
+      passwordLogin "unknown" "secret"
+      checkLoginFailed
+    it "refuses a user without a password" $ do
+      _ <- createUser "nopassword"
+      passwordLogin "nopassword" ""
+      checkLoginFailed
 
 appSpec :: Spec
 appSpec = parallel $ withApp $ do

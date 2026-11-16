@@ -153,6 +153,14 @@ server), was also shown to anonymous visitors, on the login page and the
 status icon in the navigation bar no longer shows the repository state
 (e.g. a failed scan) to anonymous visitors.
 
+Security: logging in with a password took much longer for existing users
+than for unknown ones, since the (deliberately slow) password check was
+only done for the former, so the response time showed whether a user
+name exists. Logging in as an unknown user (or a user without a
+password) now checks the password against a dummy one, taking the same
+time. As a side effect, the login no longer accepts JSON requests, only
+the login form, which is all Corydalis uses.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

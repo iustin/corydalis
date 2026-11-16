@@ -144,6 +144,9 @@ makeFoundation appSettings = do
                (const . logfn LevelInfo . toLogStr $ "Using the ImageMagick policy in " <> dir)
 
     appContext <- atomically $ initContext config logfn
+    -- The user to check unknown users' passwords against, at login.
+    appDummyLoginUser <- makeDummyLoginUser
+
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a
     -- logging function. To get out of this loop, we initially create a

@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
@@ -44,6 +45,7 @@ module Foundation
   , clientSessionKeyFile
   , isWithinRoot
   , alwaysRequiresAuthentication
+  , makeDummyLoginUser
   ) where
 
 import           Data.Type.Equality
@@ -56,7 +58,9 @@ import           Text.Jasmine         (minifym)
 import           Yesod.Auth.Dummy
 #endif
 
-import           Yesod.Auth.HashDB    (authHashDBWithForm)
+import           Yesod.Auth.HashDB    (authHashDBWithForm, setPassword,
+                                       validatePass)
+import           Yesod.Auth.Util.PasswordStore (exportSalt, genSaltIO)
 
 import           Yesod.Auth.Message
 import           Yesod.Core.Types     (Logger)
@@ -83,6 +87,7 @@ data App = App
     , appHttpManager :: Manager
     , appLogger      :: Logger
     , appContext     :: Context Repository SearchCache
+    , appDummyLoginUser :: User -- ^ See 'makeDummyLoginUser'.
     }
 
 -- This is where we define all of the routes in our application. For a full
@@ -470,7 +475,7 @@ instance YesodAuth App where
       where ident = credsIdent creds
 
     -- Simple HashDB auth and in test/dev dummy auth.
-    authPlugins _ = authHashDBWithForm loginWidget (Just . UniqueUser):extraAuthPlugins
+    authPlugins _ = authHashDBPlugin:extraAuthPlugins
         -- Enable authDummy login if enabled.
         where extraAuthPlugins =
 #if DEVELOPMENT
@@ -500,6 +505,62 @@ setSameOriginUltDestReferer = do
   -- setUltDestReferer re-reads the same header.
   when (maybe False (isWithinRoot root . decodeUtf8) referer)
     setUltDestReferer
+
+-- | The username and password authentication plugin.
+--
+-- This is the yesod-auth-hashdb plugin, but with a separate login
+-- handler: the plugin checks the password, which is slow by design, only
+-- for existing users, so the response time would show whether a user
+-- exists. Unlike the plugin, this only accepts form data, not JSON.
+--
+-- This was reported upstream as
+-- <https://github.com/paul-rouse/yesod-auth-hashdb/issues/11>; once
+-- fixed there, this can go back to using the plugin as is.
+authHashDBPlugin :: AuthPlugin App
+authHashDBPlugin = plugin { apDispatch = dispatch }
+  where plugin = authHashDBWithForm loginWidget (Just . UniqueUser)
+        dispatch "POST" ["login"] = postHashDBLoginR >>= sendResponse
+        dispatch verb pieces      = apDispatch plugin verb pieces
+
+-- | Handles the login form, as the yesod-auth-hashdb plugin does.
+postHashDBLoginR :: AuthHandler App TypedContent
+postHashDBLoginR = do
+  (mname, mpasswd) <- liftHandler . runInputPost $
+    (,) <$> iopt textField "username" <*> iopt textField "password"
+  case (mname, mpasswd) of
+    (Just name, Just passwd) -> do
+      valid <- liftHandler $ checkUserPassword name passwd
+      if valid
+        then liftHandler . setCredsRedirect $ Creds "hashdb" name []
+        else loginErrorMessageI LoginR InvalidUsernamePass
+    _ -> loginErrorMessageI LoginR InvalidUsernamePass
+
+-- | Checks a user's password, taking the same time for unknown users.
+--
+-- For unknown users, and users without a password, the password is
+-- checked against the dummy user's one (see 'makeDummyLoginUser'), but
+-- the result is ignored.
+checkUserPassword :: Text -> Text -> Handler Bool
+checkUserPassword name passwd = do
+  muser <- runDB . getBy $ UniqueUser name
+  case entityVal <$> muser of
+    Just user | isJust (userPassword user) ->
+      return $ validatePass user passwd == Just True
+    _ -> do
+      dummy <- appDummyLoginUser <$> getYesod
+      -- Force checking the password, as the result isn't used.
+      _ <- evaluate $ validatePass dummy passwd == Just True
+      return False
+
+-- | Creates a user with a random password, which is not kept.
+--
+-- At login, the password of unknown users is checked against this one,
+-- so that it takes the same time as for existing users. Its password
+-- hash has the default strength, as the ones set by @db-util@.
+makeDummyLoginUser :: IO User
+makeDummyLoginUser = do
+  passwd <- decodeUtf8 . exportSalt <$> genSaltIO
+  setPassword passwd User { userName = "", userPassword = Nothing }
 
 loginWidget :: Route App -> Widget
 loginWidget loginRoute = do
