@@ -138,6 +138,12 @@ the first frame of the movie) were cached forever, so after editing or
 replacing such a file, the old preview kept being shown. They are now
 extracted again if the file changed since.
 
+Security: on public sites (built with the `public-site` flag), anonymous
+visitors could see the flagged images pages, which show the names of the
+users who flagged the images, i.e. valid login names, and the settings
+page, which shows the server configuration, e.g. the paths of the picture
+folders. These pages now always require logging in.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

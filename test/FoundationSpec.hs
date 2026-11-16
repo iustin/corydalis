@@ -103,10 +103,34 @@ checkViewCookie expected = request $ do
         parseViewMode . decodeUtf8 . setCookieValue $ cookieB
   liftIO $ actual `shouldBe` expected
 
+-- | Read-only pages which require authentication even on public sites.
+privatePages :: [Route App]
+privatePages = [FlaggedImagesR, FlaggedImagesListR, SettingsR]
+
 spec :: Spec
 spec = do
   isWithinRootSpec
+  authenticationSpec
   appSpec
+
+-- | Checks which pages always require authentication.
+--
+-- The tests are not built as a public site, where all other read-only
+-- pages are public, so this checks the list itself, and that the pages
+-- in it are redirected to the login page.
+authenticationSpec :: Spec
+authenticationSpec = describe "authentication" $ do
+  forM_ privatePages $ \route ->
+    it ("is always required for " ++ show route) $
+      alwaysRequiresAuthentication route `shouldBe` True
+  forM_ [HomeR, CurateR, FolderR "a", ViewR "a" "b", AboutR] $ \route ->
+    it ("depends on the build for " ++ show route) $
+      alwaysRequiresAuthentication route `shouldBe` False
+  withApp $ forM_ privatePages $ \route ->
+    it ("redirects an anonymous request for " ++ show route ++ " to login") $ do
+      get route
+      statusIs 303
+      responseLocation >>= liftIO . (`shouldSatisfy` maybe False ("/auth/login" `isSuffixOf`))
 
 isWithinRootSpec :: Spec
 isWithinRootSpec = describe "isWithinRoot" $ do

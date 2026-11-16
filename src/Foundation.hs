@@ -43,6 +43,7 @@ module Foundation
   , getLastViewMode
   , clientSessionKeyFile
   , isWithinRoot
+  , alwaysRequiresAuthentication
   ) where
 
 import           Data.Type.Equality
@@ -328,6 +329,9 @@ instance Yesod App where
 
     -- Reload route always requires authentication.
     isAuthorized ReloadR _     = isAuthenticated
+    -- As do some read-only pages, even on public sites.
+    isAuthorized route _
+      | alwaysRequiresAuthentication route = isAuthenticated
     -- And any other handlers that get a "write" action.
     isAuthorized _       True  = isAuthenticated
 
@@ -503,6 +507,17 @@ loginWidget loginRoute = do
   loginMsg <- appLoginMessage . appSettings <$> getYesod
   let mtok = reqToken request
   $(whamletFile "templates/login.hamlet")
+
+-- | Read-only routes which require authentication even on public sites.
+--
+-- The flagged images pages show the names of the users who flagged
+-- them, which are also their login names, and the settings page shows
+-- the server's configuration, e.g. the paths of the picture folders.
+alwaysRequiresAuthentication :: Route App -> Bool
+alwaysRequiresAuthentication FlaggedImagesR     = True
+alwaysRequiresAuthentication FlaggedImagesListR = True
+alwaysRequiresAuthentication SettingsR          = True
+alwaysRequiresAuthentication _                  = False
 
 -- | access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult
