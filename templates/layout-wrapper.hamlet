@@ -88,3 +88,7 @@ $doctype 5
 
     <div .container-fluid .flex-grow-1 #main role="main">
         ^{pageBody pc}
+
+    $# Where transient notifications appear, see js/toast.ts.
+    <div .toast-container .position-fixed .bottom-0 .end-0 .p-3 #toast-container>
+

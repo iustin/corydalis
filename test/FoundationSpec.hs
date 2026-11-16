@@ -258,6 +258,12 @@ appSpec = parallel $ withApp $ do
         scripts <- htmlQuery "script"
         let inline = filter (null . attribute "src" . fromDocument . parseLBS) scripts
         liftIO $ inline `shouldBe` []
+  describe "has a container for notifications (see js/toast.ts)" $
+    forM_ htmlPages $ \route ->
+      it ("on " ++ show route) $ do
+        login
+        checkRoute route
+        htmlCount "#toast-container" 1
   describe "checks the security policy" $ do
     forM_ htmlPages $ \route ->
       it ("is sent with " ++ show route) $ do
