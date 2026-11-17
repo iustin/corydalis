@@ -29,10 +29,12 @@ import {
   compareRows,
   groupLabel,
   groupRows,
+  makeFilter,
   matchesFilters,
   parseSortList,
   selectOptions,
   sortKey,
+  type CellMatcher,
   type ColumnSpec,
   type SortKey,
   type SortList,
@@ -84,7 +86,7 @@ export function enhanceTable(table: HTMLTableElement): void {
   const groupTexts = rows.map((r) => [...r.tr.cells].map(cellText));
 
   let sortList: SortList = parseSortList(table.dataset.sortlist, specs);
-  const filters: string[] = specs.map(() => '');
+  const filters: (CellMatcher | null)[] = specs.map(() => null);
 
   // Header buttons, so that sorting works from the keyboard too.
   const buttons = headers.map((th, col) => {
@@ -127,7 +129,7 @@ export function enhanceTable(table: HTMLTableElement): void {
       // Options are created as text, never parsed as HTML.
       for (const { value, label } of opts) select.add(new Option(label, value));
       select.addEventListener('change', () => {
-        filters[col] = select.value;
+        filters[col] = makeFilter(spec, select.value);
         render();
       });
       td.append(select);
@@ -136,11 +138,16 @@ export function enhanceTable(table: HTMLTableElement): void {
       input.type = 'search';
       input.className = 'form-control form-control-sm';
       input.setAttribute('aria-label', `Filter by ${name}`);
+      if (spec.sorter === 'digit' || spec.sorter === 'percent') {
+        input.placeholder = 'e.g. >10';
+        input.title =
+          'Matches text, or compares numbers with =, !=, <, <=, > or >=';
+      }
       let timer: ReturnType<typeof setTimeout> | undefined;
       input.addEventListener('input', () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
-          filters[col] = input.value.trim().toLowerCase();
+          filters[col] = makeFilter(spec, input.value);
           render();
         }, FILTER_DELAY_MS);
       });
@@ -148,12 +155,10 @@ export function enhanceTable(table: HTMLTableElement): void {
     }
   });
 
-  const kinds = specs.map((s) => s.filter);
-
   function render(): void {
     const shown = rows
       .map((row, i) => ({ row, i }))
-      .filter(({ row }) => matchesFilters(row.texts, filters, kinds))
+      .filter(({ row }) => matchesFilters(row.texts, row.keys, filters))
       .sort((a, b) => compareRows(a.row.keys, b.row.keys, sortList));
 
     buttons.forEach((b, col) => {

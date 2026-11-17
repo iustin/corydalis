@@ -29,7 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *   when the table is sorted primarily by that column; columns without
  *   a `group-*` class (or with `group-false`) are not grouped;
  * - `filter-select` for a drop-down filter, `filter-false` for none;
- *   the default is a free-text filter.
+ *   the default is a free-text filter, which on numeric columns also
+ *   accepts comparisons such as `>10` (see makeFilter).
  *
  * Cells can carry a `data-text` attribute, used instead of their text
  * content for sorting, filtering and grouping.
@@ -208,22 +209,102 @@ export function clickSortList(
   return [[col, 0]];
 }
 
+/** A comparison operator of a numeric filter. */
+export type NumericOp = '=' | '!=' | '<' | '<=' | '>' | '>=';
+
+export interface NumericFilter {
+  op: NumericOp;
+  value: number;
+}
+
+/** Operator spellings, as in the numeric search atoms (see the manual). */
+const OPERATORS: Record<string, NumericOp> = {
+  '=': '=',
+  '!=': '!=',
+  '/=': '!=',
+  '≠': '!=',
+  '<': '<',
+  '<=': '<=',
+  '≤': '<=',
+  '>': '>',
+  '>=': '>=',
+  '≥': '>=',
+};
+
+/** An operator, then a number (with optional thousands separators or %). */
+const NUMERIC_FILTER =
+  /^(!=|\/=|<=|>=|[=≠<≤>≥])\s*([+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|[+-]?\.\d+)\s*%?$/;
+
 /**
- * Returns whether a row (given as its per-column texts) passes the
- * filters. Filters are lowercase; an empty filter passes everything.
- * Text filters match substrings, select filters whole values, both
- * case-insensitively.
+ * Parses a numeric filter such as `>10`, `<= 2.5` or `≠0`. Returns null
+ * if the text doesn't start with an operator followed by a number, in
+ * which case it's a plain text filter.
+ */
+export function parseNumericFilter(text: string): NumericFilter | null {
+  const m = NUMERIC_FILTER.exec(text.trim());
+  if (m === null) return null;
+  return { op: OPERATORS[m[1]], value: Number(m[2].replace(/,/g, '')) };
+}
+
+function compareNumber(key: number, { op, value }: NumericFilter): boolean {
+  switch (op) {
+    case '=':
+      return key === value;
+    case '!=':
+      return key !== value;
+    case '<':
+      return key < value;
+    case '<=':
+      return key <= value;
+    case '>':
+      return key > value;
+    case '>=':
+      return key >= value;
+  }
+}
+
+/** Checks one cell, given its (lowercase) text and its sort key. */
+export type CellMatcher = (text: string, key: SortKey) => boolean;
+
+/**
+ * Builds the matcher for a column's filter value, or returns null if the
+ * filter is empty (or the column has none).
+ *
+ * Select filters match whole values. On numeric columns (`sorter-digit`
+ * and `sorter-percent`), a filter starting with a comparison operator
+ * (e.g. `>10`) compares the numbers; cells without a number never match
+ * it, not even `!=`. Anything else, including a bare number, matches as
+ * a substring. All text matches are case-insensitive.
+ */
+export function makeFilter(
+  spec: ColumnSpec,
+  value: string,
+): CellMatcher | null {
+  const f = value.trim().toLowerCase();
+  if (f === '' || spec.filter === 'none') return null;
+  if (spec.filter === 'select') return (text) => text === f;
+  if (spec.sorter === 'digit' || spec.sorter === 'percent') {
+    const numeric = parseNumericFilter(f);
+    if (numeric !== null) {
+      return (_text, key) =>
+        typeof key === 'number' && compareNumber(key, numeric);
+    }
+  }
+  return (text) => text.includes(f);
+}
+
+/**
+ * Returns whether a row, given as its per-column (lowercase) texts and
+ * sort keys, passes the filters (one matcher or null per column).
  */
 export function matchesFilters(
   texts: readonly string[],
-  filters: readonly string[],
-  kinds: readonly FilterKind[],
+  keys: readonly SortKey[],
+  filters: readonly (CellMatcher | null)[],
 ): boolean {
-  return filters.every((f, col) => {
-    if (f === '' || kinds[col] === 'none') return true;
-    const t = (texts[col] ?? '').toLowerCase();
-    return kinds[col] === 'select' ? t === f : t.includes(f);
-  });
+  return filters.every(
+    (f, col) => f === null || f(texts[col] ?? '', keys[col] ?? null),
+  );
 }
 
 const MONTHS = [
