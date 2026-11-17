@@ -33,6 +33,10 @@ secure-sessions: true
 approot:        "_env:APPROOT:http://localhost:3000"
 # Useful when running behind a reverse proxy:
 ip-from-header: "_env:IP_FROM_HEADER:false"
+# How long a login is valid, in hours, regardless of activity; after
+# this, users have to log in again. Independently of this, sessions
+# also expire after two hours without activity. Defaults to a week.
+# session-max-age: 168
 
 # Custom message to show on login page
 #login-msg:      "Hello, *brave* user!"
