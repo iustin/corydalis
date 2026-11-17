@@ -83,21 +83,32 @@ export function columnSpec(classes: Iterable<string>): ColumnSpec {
 }
 
 /**
- * Parses a `data-sortlist` attribute such as `[[2,0],[1,0]]`.
+ * Parses a `data-sortlist` attribute, a JSON list of `[column,
+ * direction]` pairs such as `[[2,0],[1,0]]`.
  *
- * This is deliberately lenient (as tablesorter was): it picks the
- * `[column, direction]` pairs out of the text, so stray brackets don't
- * lose the whole sort order. Pairs naming columns outside `0..columns-1`
- * or unsortable columns are dropped, as are repeated columns.
+ * Invalid JSON, or anything but a list of such pairs, gives no sort
+ * order. Pairs naming columns outside `0..columns-1` or unsortable
+ * columns are dropped, as are repeated columns.
  */
 export function parseSortList(
   attr: string | null | undefined,
   specs: readonly ColumnSpec[],
 ): SortList {
+  if (!attr) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(attr);
+  } catch {
+    return [];
+  }
+  const isPair = (p: unknown): p is [number, Direction] =>
+    Array.isArray(p) &&
+    p.length === 2 &&
+    Number.isInteger(p[0]) &&
+    (p[1] === 0 || p[1] === 1);
+  if (!Array.isArray(parsed) || !parsed.every(isPair)) return [];
   const result: SortList = [];
-  if (!attr) return result;
-  for (const m of attr.matchAll(/\[\s*(\d+)\s*,\s*([01])\s*\]/g)) {
-    const col = Number(m[1]);
+  for (const [col, dir] of parsed) {
     const spec = specs[col];
     if (
       spec === undefined ||
@@ -106,7 +117,7 @@ export function parseSortList(
     ) {
       continue;
     }
-    result.push([col, m[2] === '1' ? 1 : 0]);
+    result.push([col, dir]);
   }
   return result;
 }
