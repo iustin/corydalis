@@ -18,49 +18,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { JSDOM } from 'jsdom';
+
 import {
-  type ElementLike,
   flagActionFor,
   notifyReply,
   parseFlagValue,
   runFlagAction,
+  setupFlagActions,
 } from './flag-actions.ts';
 import { type FlagReply, flagFailureMessage } from './flag.ts';
 
-/** A minimal fake element, with attributes and a parent. */
-class FakeElement implements ElementLike {
-  parent: FakeElement | null = null;
-  attrs: Record<string, string>;
-  // No parameter properties: Node's type stripping doesn't support them.
-  constructor(attrs: Record<string, string> = {}) {
-    this.attrs = attrs;
-  }
-  add(child: FakeElement): FakeElement {
-    child.parent = this;
-    return child;
-  }
-  /** Supports only `[attr]` selectors. */
-  matches(selector: string): boolean {
-    const attr = /^\[([\w-]+)\]$/.exec(selector);
-    return attr !== null && attr[1] in this.attrs;
-  }
-  closest(selector: string): FakeElement | null {
-    if (this.matches(selector)) {
-      return this;
-    }
-    return this.parent?.closest(selector) ?? null;
-  }
-  getAttribute(name: string): string | null {
-    return this.attrs[name] ?? null;
-  }
+/** Returns a document holding the given HTML (in its body). */
+function page(html: string): Document {
+  return new JSDOM(`<body>${html}</body>`).window.document;
 }
 
-/** Builds the widget rendered by the server, returning its parts. */
+/** The flag widget as rendered by the server (see Handler/Widgets.hs). */
+const WIDGET = (url: string) => `
+  <span class="image-flag-actions" data-flag-url="${url}">
+    <button type="button" data-flag="true">Flag</button>
+    <button type="button" data-flag="false">Un-flag</button>
+  </span>`;
+
+/** Builds the widget, returning its parts. */
 function widget(url = '/image/flag/a/b') {
-  const container = new FakeElement({ 'data-flag-url': url });
-  const flagButton = container.add(new FakeElement({ 'data-flag': 'true' }));
-  const unflagButton = container.add(new FakeElement({ 'data-flag': 'false' }));
-  return { container, flagButton, unflagButton };
+  const doc = page(WIDGET(url));
+  const [flagButton, unflagButton] = doc.querySelectorAll('button');
+  return { doc, flagButton, unflagButton };
 }
 
 describe('parseFlagValue', () => {
@@ -89,12 +74,14 @@ describe('flagActionFor', () => {
     });
   });
   it('ignores buttons outside a widget', () => {
-    assert.equal(flagActionFor(new FakeElement({ 'data-flag': 'true' })), null);
+    const doc = page('<button data-flag="true">Flag</button>');
+    assert.equal(flagActionFor(doc.querySelector('button')!), null);
   });
   it('ignores buttons with an invalid flag value', () => {
-    const container = new FakeElement({ 'data-flag-url': '/x' });
-    const button = container.add(new FakeElement({ 'data-flag': 'yes' }));
-    assert.equal(flagActionFor(button), null);
+    const doc = page(
+      '<span data-flag-url="/x"><b data-flag="yes">x</b></span>',
+    );
+    assert.equal(flagActionFor(doc.querySelector('b')!), null);
   });
   it('ignores widgets without a URL', () => {
     assert.equal(flagActionFor(widget('').flagButton), null);
@@ -193,7 +180,9 @@ describe('runFlagAction', () => {
     assert.equal(requests[0].type, 'DELETE');
   });
   it("shows the server's reply with its kind", () => {
-    const { shown } = run({ reply: { text: 'Image flagged', kind: 'success' } });
+    const { shown } = run({
+      reply: { text: 'Image flagged', kind: 'success' },
+    });
     assert.deepEqual(shown, [['Image flagged', 'success']]);
   });
   for (const [httpStatus, status, details] of [
@@ -208,4 +197,66 @@ describe('runFlagAction', () => {
       ]);
     });
   }
+});
+
+describe('setupFlagActions', () => {
+  /** A jQuery whose requests are recorded, and never answered. */
+  function recordingJquery() {
+    const requests: JQuery.AjaxSettings[] = [];
+    const xhr = { done: () => xhr, fail: () => xhr };
+    const jquery = {
+      ajax: (settings: JQuery.AjaxSettings) => {
+        requests.push(settings);
+        return xhr;
+      },
+    } as unknown as Pick<JQueryStatic, 'ajax'>;
+    return { jquery, requests };
+  }
+
+  /** Clicks the element, returning whether the default was prevented. */
+  function click(el: Element): boolean {
+    const view = el.ownerDocument.defaultView!;
+    const event = new view.MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+    });
+    el.dispatchEvent(event);
+    return event.defaultPrevented;
+  }
+
+  it('sends the flag request of the clicked button', () => {
+    const { doc, flagButton, unflagButton } = widget();
+    const { jquery, requests } = recordingJquery();
+    setupFlagActions(jquery, () => {}, doc);
+    assert.equal(click(flagButton), true, 'prevents the default action');
+    click(unflagButton);
+    assert.deepEqual(
+      requests.map((r) => [r.url, r.type]),
+      [
+        ['/image/flag/a/b', 'PUT'],
+        ['/image/flag/a/b', 'DELETE'],
+      ],
+    );
+  });
+
+  it('leaves malformed widgets alone', () => {
+    const { doc, flagButton } = widget('');
+    const { jquery, requests } = recordingJquery();
+    setupFlagActions(jquery, () => {}, doc);
+    assert.equal(click(flagButton), false);
+    assert.deepEqual(requests, []);
+  });
+
+  it('only looks inside the given root', () => {
+    const doc = page(`<div id="a">${WIDGET('/a')}</div>${WIDGET('/b')}`);
+    const { jquery, requests } = recordingJquery();
+    setupFlagActions(jquery, () => {}, doc.getElementById('a')!);
+    for (const button of doc.querySelectorAll('[data-flag="true"]')) {
+      click(button);
+    }
+    assert.deepEqual(
+      requests.map((r) => r.url),
+      ['/a'],
+    );
+  });
 });

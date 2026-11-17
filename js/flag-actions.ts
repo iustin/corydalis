@@ -33,12 +33,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { type FlagReply, flagFailureMessage, sendFlag } from './flag.ts';
 import { type ToastKind, parseToastKind } from './toast.ts';
 
-/** The parts of a DOM element used here, so that tests can fake them. */
-export interface ElementLike {
-  closest(selector: string): ElementLike | null;
-  getAttribute(name: string): string | null;
-}
-
 /** What a click on a flag button should do. */
 export type FlagAction = {
   url: string;
@@ -64,7 +58,7 @@ export function parseFlagValue(value: string | null): boolean | null {
  * Returns the action of a flag button, or null if the button is not
  * part of a (well-formed) flag widget.
  */
-export function flagActionFor(button: ElementLike): FlagAction | null {
+export function flagActionFor(button: Element): FlagAction | null {
   const container = button.closest('[data-flag-url]');
   if (container === null) {
     return null;

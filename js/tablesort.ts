@@ -136,7 +136,9 @@ export function enhanceTable(table: HTMLTableElement): void {
         })),
       );
       // Options are created as text, never parsed as HTML.
-      for (const { value, label } of opts) select.add(option(doc, label, value));
+      for (const { value, label } of opts) {
+        select.add(option(doc, label, value));
+      }
       select.addEventListener('change', () => {
         filters[col] = makeFilter(spec, select.value);
         render();
