@@ -26,7 +26,9 @@ import {
   EMPTY_GROUP,
   groupLabel,
   groupRows,
+  makeFilter,
   matchesFilters,
+  parseNumericFilter,
   parseSortList,
   selectOptions,
   sortKey,
@@ -241,30 +243,120 @@ describe('clickSortList', () => {
   });
 });
 
+describe('parseNumericFilter', () => {
+  it('parses each operator', () => {
+    assert.deepEqual(parseNumericFilter('=5'), { op: '=', value: 5 });
+    assert.deepEqual(parseNumericFilter('!=5'), { op: '!=', value: 5 });
+    assert.deepEqual(parseNumericFilter('<5'), { op: '<', value: 5 });
+    assert.deepEqual(parseNumericFilter('<=5'), { op: '<=', value: 5 });
+    assert.deepEqual(parseNumericFilter('>5'), { op: '>', value: 5 });
+    assert.deepEqual(parseNumericFilter('>=5'), { op: '>=', value: 5 });
+  });
+
+  it('accepts the alternative spellings of the search syntax', () => {
+    assert.deepEqual(parseNumericFilter('/=5'), { op: '!=', value: 5 });
+    assert.deepEqual(parseNumericFilter('≠5'), { op: '!=', value: 5 });
+    assert.deepEqual(parseNumericFilter('≤5'), { op: '<=', value: 5 });
+    assert.deepEqual(parseNumericFilter('≥5'), { op: '>=', value: 5 });
+  });
+
+  it('accepts spaces, signs, decimals, separators and percents', () => {
+    assert.deepEqual(parseNumericFilter(' >= 10 '), { op: '>=', value: 10 });
+    assert.deepEqual(parseNumericFilter('>-2.5'), { op: '>', value: -2.5 });
+    assert.deepEqual(parseNumericFilter('<.5'), { op: '<', value: 0.5 });
+    assert.deepEqual(parseNumericFilter('>1,234'), { op: '>', value: 1234 });
+    assert.deepEqual(parseNumericFilter('<50%'), { op: '<', value: 50 });
+  });
+
+  it('rejects text without an operator, or without a number', () => {
+    assert.equal(parseNumericFilter('12'), null);
+    assert.equal(parseNumericFilter('>'), null);
+    assert.equal(parseNumericFilter('>abc'), null);
+    assert.equal(parseNumericFilter('>1,2'), null);
+    assert.equal(parseNumericFilter('>5 and more'), null);
+    assert.equal(parseNumericFilter('=>5'), null);
+  });
+});
+
+describe('makeFilter', () => {
+  const digit: ColumnSpec = { ...text, sorter: 'digit' };
+  const percent: ColumnSpec = { ...text, sorter: 'percent' };
+  const select: ColumnSpec = { ...text, filter: 'select' };
+  const noFilter: ColumnSpec = { ...text, filter: 'none' };
+  /** Runs the filter for `value` on a cell of the given column. */
+  const matches = (spec: ColumnSpec, value: string, cell: string) => {
+    const f = makeFilter(spec, value);
+    assert.ok(f !== null);
+    return f(cell.toLowerCase(), sortKey(spec.sorter, cell));
+  };
+
+  it('returns no filter for empty values or columns without filters', () => {
+    assert.equal(makeFilter(text, ''), null);
+    assert.equal(makeFilter(text, '   '), null);
+    assert.equal(makeFilter(noFilter, 'x'), null);
+  });
+
+  it('matches text as case-insensitive substrings', () => {
+    assert.ok(matches(text, 'RICH', 'Zurich trip'));
+    assert.ok(!matches(text, 'rome', 'Zurich trip'));
+  });
+
+  it('matches select values whole', () => {
+    assert.ok(matches(select, 'processed', 'processed'));
+    assert.ok(!matches(select, 'process', 'processed'));
+  });
+
+  it('compares numbers on numeric columns', () => {
+    assert.ok(matches(digit, '>10', '120'));
+    assert.ok(!matches(digit, '>10', '9'));
+    assert.ok(matches(digit, '>=1,000', '1,000'));
+    assert.ok(matches(digit, '=0', '0'));
+    assert.ok(matches(digit, '!=0', '3'));
+    assert.ok(matches(percent, '<50%', '45.3%'));
+    assert.ok(!matches(percent, '<50', '50%'));
+  });
+
+  it('never matches cells without a number, even with !=', () => {
+    assert.ok(!matches(digit, '!=0', ''));
+    assert.ok(!matches(digit, '!=0', 'n/a'));
+    assert.ok(!matches(digit, '<10', ''));
+  });
+
+  it('matches a bare number as a substring', () => {
+    assert.ok(matches(digit, '12', '120'));
+    assert.ok(matches(digit, '12', '312'));
+    assert.ok(!matches(digit, '12', '21'));
+  });
+
+  it('falls back to substrings for invalid operator filters', () => {
+    assert.ok(matches(digit, '>abc', 'a >abc b'));
+    assert.ok(!matches(digit, '>abc', '100'));
+  });
+
+  it('treats operators as text on text columns', () => {
+    assert.ok(!matches(text, '>10', '120'));
+    assert.ok(matches(text, '>10', 'size >10'));
+  });
+});
+
 describe('matchesFilters', () => {
-  const kinds = ['text', 'select', 'none'] as const;
+  const t = (f: string) => (cell: string) => cell.includes(f);
   const row = ['zurich trip', 'processed', 'whatever'];
+  const keys = ['zurich trip', 'processed', 'whatever'];
 
   it('passes everything without filters', () => {
-    assert.ok(matchesFilters(row, ['', '', ''], kinds));
-  });
-
-  it('matches text filters as substrings', () => {
-    assert.ok(matchesFilters(row, ['rich', '', ''], kinds));
-    assert.ok(!matchesFilters(row, ['rome', '', ''], kinds));
-  });
-
-  it('matches select filters as whole values', () => {
-    assert.ok(matchesFilters(row, ['', 'processed', ''], kinds));
-    assert.ok(!matchesFilters(row, ['', 'process', ''], kinds));
+    assert.ok(matchesFilters(row, keys, [null, null, null]));
   });
 
   it('requires all filters to match', () => {
-    assert.ok(!matchesFilters(row, ['zurich', 'raw', ''], kinds));
+    assert.ok(matchesFilters(row, keys, [t('zurich'), t('process'), null]));
+    assert.ok(!matchesFilters(row, keys, [t('zurich'), t('raw'), null]));
   });
 
-  it('ignores filters on columns without one', () => {
-    assert.ok(matchesFilters(row, ['', '', 'nothing like it'], kinds));
+  it('passes the cell text and sort key to the filters', () => {
+    const seen: unknown[] = [];
+    matchesFilters(['a'], [42], [(text, key) => (seen.push(text, key), true)]);
+    assert.deepEqual(seen, ['a', 42]);
   });
 });
 

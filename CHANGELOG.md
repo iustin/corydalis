@@ -82,10 +82,13 @@ and so on) no longer use the `tablesorter` plugin, but a small built-in
 module that does what Corydalis used: sorting (shift-click on a header to
 add a secondary sort column), the filter row, and the group headers. They
 load much faster on large lists, and sorting now works from the keyboard,
-as the column headers are buttons. The filters are plain "contains"
-matches: the special filter syntax of `tablesorter` (e.g. `>10` or `a|b`)
-is no longer supported. Group headers are no longer collapsible (this
-was already disabled).
+as the column headers are buttons. The filters are "contains" matches,
+except that on numeric columns (e.g. image counts) a filter starting with
+a comparison operator compares the numbers: `>10`, `<=5`, `!=0`, with the
+same operators as the numeric search atoms (`=`, `!=`, `<`, `<=`, `>`,
+`>=`, plus their alternative spellings). The rest of the filter syntax
+of `tablesorter` (e.g. `a|b` or ranges) is no longer supported. Group
+headers are no longer collapsible (this was already disabled).
 
 ### Fixed bugs
 
