@@ -38,7 +38,7 @@ import {
   type ColumnSpec,
   type SortKey,
   type SortList,
-} from './tablesort-logic';
+} from './tablesort-logic.ts';
 
 /** Delay before applying a text filter while the user is typing. */
 const FILTER_DELAY_MS = 150;
@@ -59,6 +59,14 @@ function visibleText(cell: HTMLTableCellElement | undefined): string {
   return (cell?.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
+/** Creates a drop-down option; the label is set as text, not HTML. */
+function option(doc: Document, label: string, value: string) {
+  const opt = doc.createElement('option');
+  opt.value = value;
+  opt.textContent = label;
+  return opt;
+}
+
 const SORT_ICONS = {
   none: 'fa-solid fa-sort',
   ascending: 'fa-solid fa-sort-up',
@@ -70,6 +78,7 @@ export function enhanceTable(table: HTMLTableElement): void {
   const head = table.tHead;
   const body = table.tBodies[0];
   if (head === null || body === undefined || head.rows.length === 0) return;
+  const doc = table.ownerDocument;
 
   const headers = [...head.rows[0].cells];
   const specs: ColumnSpec[] = headers.map((th) => columnSpec(th.classList));
@@ -91,11 +100,11 @@ export function enhanceTable(table: HTMLTableElement): void {
   // Header buttons, so that sorting works from the keyboard too.
   const buttons = headers.map((th, col) => {
     if (specs[col].sorter === 'none') return null;
-    const button = document.createElement('button');
+    const button = doc.createElement('button');
     button.type = 'button';
     button.className = 'sort-button';
     button.append(...th.childNodes, ' ');
-    const icon = document.createElement('span');
+    const icon = doc.createElement('span');
     icon.setAttribute('aria-hidden', 'true');
     button.append(icon);
     button.title = 'Sort (shift-click to add as a secondary sort)';
@@ -111,15 +120,15 @@ export function enhanceTable(table: HTMLTableElement): void {
   const filterRow = head.insertRow();
   filterRow.className = 'filter-row';
   specs.forEach((spec, col) => {
-    const td = document.createElement('td');
+    const td = doc.createElement('td');
     filterRow.append(td);
     if (spec.filter === 'none') return;
     const name = visibleText(headers[col]);
     if (spec.filter === 'select') {
-      const select = document.createElement('select');
+      const select = doc.createElement('select');
       select.className = 'form-select form-select-sm';
       select.setAttribute('aria-label', `Filter by ${name}`);
-      select.add(new Option('', ''));
+      select.add(option(doc, '', ''));
       const opts = selectOptions(
         rows.map((r, i) => ({
           value: r.texts[col],
@@ -127,14 +136,14 @@ export function enhanceTable(table: HTMLTableElement): void {
         })),
       );
       // Options are created as text, never parsed as HTML.
-      for (const { value, label } of opts) select.add(new Option(label, value));
+      for (const { value, label } of opts) select.add(option(doc, label, value));
       select.addEventListener('change', () => {
         filters[col] = makeFilter(spec, select.value);
         render();
       });
       td.append(select);
     } else {
-      const input = document.createElement('input');
+      const input = doc.createElement('input');
       input.type = 'search';
       input.className = 'form-control form-control-sm';
       input.setAttribute('aria-label', `Filter by ${name}`);
@@ -174,7 +183,7 @@ export function enhanceTable(table: HTMLTableElement): void {
       b.th.setAttribute('aria-sort', state);
     });
 
-    const frag = document.createDocumentFragment();
+    const frag = doc.createDocumentFragment();
     const primary = sortList[0]?.[0];
     const grouper = primary === undefined ? 'none' : specs[primary].grouper;
     if (primary === undefined || grouper === 'none') {
@@ -184,12 +193,12 @@ export function enhanceTable(table: HTMLTableElement): void {
         groupLabel(grouper, groupTexts[i][primary]),
       );
       for (const group of groups) {
-        const tr = document.createElement('tr');
+        const tr = doc.createElement('tr');
         tr.className = 'group-header';
-        const th = document.createElement('th');
+        const th = doc.createElement('th');
         th.colSpan = specs.length;
         th.scope = 'rowgroup';
-        const count = document.createElement('span');
+        const count = doc.createElement('span');
         count.className = 'group-count';
         count.textContent = `(${group.rows.length})`;
         th.append(group.label, ' ', count);
@@ -205,13 +214,13 @@ export function enhanceTable(table: HTMLTableElement): void {
 }
 
 /** Enhances all sortable tables on the page, once the DOM is ready. */
-export function setupSortableTables(): void {
+export function setupSortableTables(doc: Document = document): void {
   const run = () =>
-    document
+    doc
       .querySelectorAll<HTMLTableElement>('table.sortable')
       .forEach(enhanceTable);
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once: true });
+  if (doc.readyState === 'loading') {
+    doc.addEventListener('DOMContentLoaded', run, { once: true });
   } else {
     run();
   }
