@@ -100,6 +100,11 @@ checks against the policy as such, while the policy only allows `JPEG`
 `jpeg`, and served with the standard `image/jpeg` content type instead
 of `image/jpg`.
 
+Moreover, a failed preview build could leave an empty file in the cache,
+which was then served (as an empty image) instead of being rebuilt.
+Previews are now written to a temporary file, and moved into the cache
+only once complete; empty files already in the cache are rebuilt.
+
 On the status page, finished work (scan, rendering and cache cleaning)
 is shown with a green border again, as intended: a typo in the style
 name meant it had no border.

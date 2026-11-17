@@ -31,8 +31,10 @@ import qualified Data.Set         as Set
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
 import           Data.Time.Clock.POSIX (POSIXTime)
-import           System.Directory (createDirectoryIfMissing, doesFileExist)
+import           System.Directory (createDirectoryIfMissing, doesFileExist,
+                                   listDirectory)
 import           System.Exit      (ExitCode (..))
+import           System.FilePath  (takeDirectory)
 import           System.Posix.Files (createNamedPipe, createSymbolicLink,
                                      ownerReadMode, ownerWriteMode,
                                      unionFileModes)
@@ -219,6 +221,12 @@ previewPath config path =
     Nothing  -> expectationFailure "expected a cached size for 1920" >> return ""
     Just res -> return $ scaledImagePath config path res
 
+-- | Writes a non-empty file, creating its directory if needed.
+writeNonEmpty :: FilePath -> IO ()
+writeNonEmpty path = do
+  createDirectoryIfMissing True (takeDirectory path)
+  writeFile path ("x" :: ByteString)
+
 -- | The coders that the shipped ImageMagick policy allows reading.
 --
 -- This is a simple text scan of the coder rules granting read rights,
@@ -348,6 +356,25 @@ spec = parallel $ do
         Left e  -> expectationFailure ("Building the preview failed: " ++ show e)
       contents <- readFile expected
       jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
+    it "leaves no preview behind if writing it is refused" $ \config -> do
+      requireConvert
+      -- A policy that allows reading JPEG files, but not writing them.
+      let policyDir = cfgCacheDir config </> "read-only-policy"
+          config' = config { cfgMagickPolicyDir = Just policyDir }
+          path = cfgCacheDir config </> "photo.jpg"
+      createDirectoryIfMissing True policyDir
+      writeFile (policyDir </> "policy.xml")
+        ("<policymap>\n\
+         \  <policy domain=\"coder\" rights=\"none\" pattern=\"*\"/>\n\
+         \  <policy domain=\"coder\" rights=\"read\" pattern=\"{JPEG,JPG}\"/>\n\
+         \</policymap>\n" :: ByteString)
+      writePreviewJpeg path
+      result <- buildPreview config' path
+      result `shouldSatisfy` isLeft
+      expected <- previewPath config path
+      doesFileExist expected `shouldReturn` False
+      -- Nor any temporary file.
+      listDirectory (takeDirectory expected) `shouldReturn` []
   describe "embedded images" $ do
     let largeEnough = BSL.replicate 1024 0
     it "starts all JPEG images with the JPEG magic" $
@@ -556,8 +583,13 @@ spec = parallel $ do
         cacheFileNeedsBuild path farFutureTime `shouldReturn` True
       it "treats a newer cache file as up to date" $ \config -> do
         let path = cfgCacheDir config </> "fresh"
-        touchFile path
+        writeNonEmpty path
         cacheFileNeedsBuild path 0 `shouldReturn` False
+      it "treats an empty cache file as needing a rebuild" $ \config -> do
+        -- E.g. as left behind by a failed conversion in older versions.
+        let path = cfgCacheDir config </> "empty"
+        touchFile path
+        cacheFileNeedsBuild path 0 `shouldReturn` True
       it "does not need a scaled cache when no configured size applies" $ \config ->
         -- Note: this works as long as size 1 is not in the test image sizes.
         scaledCacheNeedsBuild config "x.jpg" 0 (ImageSize 1) `shouldReturn` False
@@ -573,8 +605,35 @@ spec = parallel $ do
         case findBestSize size (cfgAllImageSizes config) of
           Nothing -> expectationFailure "expected a cached size for 1920"
           Just res -> do
-            touchFile (scaledImagePath config orig res)
+            writeNonEmpty (scaledImagePath config orig res)
             scaledCacheNeedsBuild config orig 0 size `shouldReturn` False
+    describe "writeViaTempFile" $ do
+      let target config = cfgCacheDir config </> "sub" </> "file"
+          entries = listDirectory . takeDirectory
+      it "creates the file, and its directory" $ \config -> do
+        writeViaTempFile (target config) $ \tmp ->
+          writeFile tmp ("contents" :: ByteString)
+        readFile (target config) `shouldReturn` ("contents" :: ByteString)
+        entries (target config) `shouldReturn` ["file"]
+      it "writes to another file, in the same directory" $ \config -> do
+        writeViaTempFile (target config) $ \tmp -> do
+          takeDirectory tmp `shouldBe` takeDirectory (target config)
+          tmp `shouldNotBe` target config
+          doesFileExist (target config) `shouldReturn` False
+          writeFile tmp ("x" :: ByteString)
+      it "replaces an existing file" $ \config -> do
+        writeNonEmpty (target config)
+        writeViaTempFile (target config) $ \tmp ->
+          writeFile tmp ("new" :: ByteString)
+        readFile (target config) `shouldReturn` ("new" :: ByteString)
+      it "leaves nothing behind on failure, and rethrows" $ \config -> do
+        let failing tmp = do
+              writeFile tmp ("partial" :: ByteString)
+              throwIO (ImageError "conversion failed")
+        writeViaTempFile (target config) failing
+          `shouldThrow` (\case ImageError msg -> msg == "conversion failed"
+                               _ -> False)
+        entries (target config) `shouldReturn` []
   withConfig $ do
     describe "NFData" $ do
       it "forces image movie and untracked files" $ \config -> do
@@ -1046,7 +1105,7 @@ spec = parallel $ do
           [] -> expectationFailure "expected auto image sizes"
           (freshSize:staleSizes) -> do
             (repo, _) <- insertJpeg ctx jpeg
-            touchFile (scaledImagePath config orig freshSize)
+            writeNonEmpty (scaledImagePath config orig freshSize)
             pg <- forceBuildThumbCaches ctx repo
             pgNoop pg `shouldBe` 1
             pgGoal pg `shouldBe` length staleSizes
@@ -1059,7 +1118,7 @@ spec = parallel $ do
             orig = fileFullPath jpeg
             sizes = autoSizeList ctx
         (repo, _) <- insertJpeg ctx jpeg
-        mapM_ (touchFile . scaledImagePath config orig) sizes
+        mapM_ (writeNonEmpty . scaledImagePath config orig) sizes
         pg <- forceBuildThumbCaches ctx repo
         pgNoop pg `shouldBe` length sizes
         pgGoal pg `shouldBe` 0
