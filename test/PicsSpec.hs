@@ -202,6 +202,23 @@ shouldFailToBuild config path result = do
   doesFileExist (scaledImagePath config path (cfgThumbnailSize config))
     `shouldReturn` False
 
+-- | A preview size that is not a thumbnail (so the preview is a JPEG).
+previewSize :: ImageSize
+previewSize = ImageSize 1920
+
+-- | Builds a (non-thumbnail) preview of a JPEG file, returning the result.
+buildPreview :: Config -> FilePath
+             -> IO (Either ImageError (Bool, MimeType, FilePath))
+buildPreview config path =
+  try $ loadCachedOrBuild config path path (Right "jpeg") "image/jpeg" 0 previewSize
+
+-- | The path of the preview built by 'buildPreview'.
+previewPath :: Config -> FilePath -> IO FilePath
+previewPath config path =
+  case findBestSize previewSize (cfgAllImageSizes config) of
+    Nothing  -> expectationFailure "expected a cached size for 1920" >> return ""
+    Just res -> return $ scaledImagePath config path res
+
 -- | The coders that the shipped ImageMagick policy allows reading.
 --
 -- This is a simple text scan of the coder rules granting read rights,
@@ -320,6 +337,17 @@ spec = parallel $ do
       let path = cfgCacheDir config </> "document.ps"
       writeFile path postScriptDocument
       buildThumbnail config path (Right "ps") >>= shouldFailToBuild config path
+    it "allows writing JPEG previews" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "photo.jpg"
+      writePreviewJpeg path
+      result <- buildPreview config path
+      expected <- previewPath config path
+      case result of
+        Right r -> r `shouldBe` (True, "image/jpeg", expected)
+        Left e  -> expectationFailure ("Building the preview failed: " ++ show e)
+      contents <- readFile expected
+      jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
   describe "embedded images" $ do
     let largeEnough = BSL.replicate 1024 0
     it "starts all JPEG images with the JPEG magic" $
