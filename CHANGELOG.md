@@ -319,6 +319,13 @@ Two new, optional, configuration keys control how previews are built:
 Since the configuration is part of the repository cache, the first start
 after upgrading rescans the repository.
 
+The author of a flagged image is no longer a foreign key to the users
+table, which the database migration (done automatically at the first
+start after upgrading) removes. The key wasn't needed, as flags of
+unknown authors are shown as such, but it prevented removing users who
+had flagged images, and it prevented any change to the users table,
+since the migration rebuilds the table, which the key doesn't allow.
+
 ### Internal changes
 
 The remaining (trivial) corydalis JS code has been converted to

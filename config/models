@@ -1,11 +1,18 @@
+-- Persistent migrates the tables in the order they are defined here, so
+-- tables referring to others (e.g. to users) come first: an older
+-- database might still have a foreign key, which must be dropped (by
+-- rebuilding the referring table) before the referred table is rebuilt.
+FlaggedImage
+    folder ShortText
+    name ImageName
+    -- The author is not a foreign key: there is no need for one (flags
+    -- of unknown authors are shown as such), and with one, persistent
+    -- can't migrate the user table, as it rebuilds it.
+    authorId UserId noreference
+    UniqueFlaggedImage folder name
+
 User
     name Text
     password Text Maybe
     UniqueUser name
     deriving Typeable
-
-FlaggedImage
-    folder ShortText
-    name ImageName
-    authorId UserId
-    UniqueFlaggedImage folder name
