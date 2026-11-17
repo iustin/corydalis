@@ -61,6 +61,17 @@ spec :: Spec
 spec = parallel $ withApp $ do
   it "loads the flagged image page and checks it looks right"
     loginAndCheckFlagged
+  it "shows flags of removed users" $ do
+    -- Logging in creates a user, so it's done first, to not reuse the
+    -- id of the removed one.
+    login
+    Entity uid _ <- createUser "bar"
+    runDB $ do
+      insert_ $ FlaggedImage "a" "b" uid
+      delete uid
+    checkRoute FlaggedImagesR
+    bodyContains "1 flagged images"
+    bodyContains "Unknown author"
   it "checks that flagging a non-existing image fails" $ do
     loginAndCheckFlagged
     performWithToken "PUT" $ ImageFlagR "a" "b"
