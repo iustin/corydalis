@@ -307,6 +307,7 @@ createUser ident =
     runDB $ insertEntity User
         { userName = ident
         , userPassword = Nothing
+        , userDeleted = False
         }
 
 login :: YesodExample App ()

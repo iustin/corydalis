@@ -144,6 +144,9 @@ like htpasswd. The `db-util` tool can add users:
 
 This will prompt for the password and then add (or update, if the user
 already existed) the user. It can also list and delete users.
+Deleted users are kept in the database, marked as such (so that their
+ids, which sessions refer to, are never given to new users), and can't
+log in; adding a deleted user again restores it.
 
 When first run, the tool will automatically create (or update, on
 upgrade) the required database tables.

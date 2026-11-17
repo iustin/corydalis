@@ -215,6 +215,17 @@ password) now checks the password against a dummy one, taking the same
 time. As a side effect, the login no longer accepts JSON requests, only
 the login form, which is all Corydalis uses.
 
+Security: deleting a user (with `db-util`) didn't end the user's
+sessions, which kept working until they expired, and since the sessions
+only hold the id of the user, and SQLite can reuse the id of the last
+user once it's deleted, the next user added could get the same id, and
+these sessions would then be logged in as the new user. Deleted users
+are now kept in the database, marked as deleted, so their ids are never
+reused; they can't log in, and their sessions are no longer valid.
+Adding a deleted user again restores it, with the same id. The database
+migration adding the mark is done automatically at the first start
+after upgrading.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

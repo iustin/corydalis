@@ -81,9 +81,11 @@ upsertUser username = do
       l <- getLine
       putChar '\n'
       return l
-  let u = User username Nothing
+  let u = User username Nothing False
   withpw <- liftIO $ setPassword password u
-  _ <- upsertBy (UniqueUser username) withpw [UserPassword =. userPassword withpw]
+  -- Adding a deleted user restores it, with the same id.
+  _ <- upsertBy (UniqueUser username) withpw
+         [UserPassword =. userPassword withpw, UserDeleted =. False]
   return ()
 
 removeUser :: MonadIO m
@@ -92,14 +94,18 @@ removeUser user = do
   userId <- getBy $ UniqueUser user
   case userId of
     Nothing -> liftIO $ hPutStrLn stderr $ concat ["User ", user, " not found. Ignoring."]
-    Just (Entity uId _) -> delete uId
+    -- The user is only marked as deleted, so that its id is never
+    -- reused: the sessions only hold the id, so a new user with the same
+    -- id would otherwise get the deleted user's sessions.
+    Just (Entity uId _) -> update uId [UserDeleted =. True, UserPassword =. Nothing]
   return ()
 
 listUsers :: MonadIO m
           => ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
 listUsers = do
   users <- selectList [] [Asc UserName]
-  liftIO $ mapM_ (\(Entity _ (User name _)) -> putStrLn name
+  liftIO $ mapM_ (\(Entity _ (User name _ deleted)) ->
+                    putStrLn $ if deleted then name <> " (deleted)" else name
                  ) users
 
 app :: MonadIO m
