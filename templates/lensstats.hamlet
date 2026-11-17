@@ -23,7 +23,7 @@
          There are #{length lenses} lenses in the database.
 
      <div .card>
-       <table #lenslist .sortable .table .table-sm data-sortlist="[[2,1], [0,0], [1, 0]]">
+       <table #lenslist .sortable .table .table-sm data-sortlist="[[4,1], [0,0], [3, 0]]">
          <thead>
            <tr>
              <th .sorter-text>Name
