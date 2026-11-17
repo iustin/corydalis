@@ -226,6 +226,13 @@ Adding a deleted user again restores it, with the same id. The database
 migration adding the mark is done automatically at the first start
 after upgrading.
 
+Security: a session that was used at least every two hours stayed
+logged in indefinitely, even after, for example, the password of the
+user was changed. Logins are now valid for at most a week, configurable
+(in hours) with the new `session-max-age` setting, after which users
+have to log in again. Since sessions from before upgrading don't record
+the login time, everybody has to log in again once after upgrading.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

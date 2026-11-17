@@ -25,6 +25,7 @@ module FoundationSpec (spec) where
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Map              as M
 import           Data.Text.Arbitrary   ()
+import           Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import           Network.Wai.Test      (simpleHeaders)
 import           Test.QuickCheck       (Gen, arbitrary, forAll, (==>))
 import           Text.HTML.DOM         (parseLBS)
@@ -35,6 +36,7 @@ import           Yesod.Auth.HashDB     (defaultStrength, setPassword,
 import           Yesod.Auth.Util.PasswordStore (passwordStrength)
 
 import           Handler.Cookies
+import           Settings              (AppSettings (..))
 import           Pics                  (RepoStatus (..), Repository (..),
                                         waitForScan)
 import           TestImport
@@ -152,6 +154,7 @@ spec = do
   isWithinRootSpec
   passwordLoginSpec
   authenticationSpec
+  loginAgeSpec
   appSpec
 
 -- | Checks which pages always require authentication.
@@ -193,6 +196,41 @@ authenticationSpec = describe "authentication" $ do
       get route
       statusIs 303
       responseLocation >>= liftIO . (`shouldSatisfy` maybe False ("/auth/login" `isSuffixOf`))
+
+loginAgeSpec :: Spec
+loginAgeSpec = describe "login age" $ do
+  describe "isLoginCurrent" $ do
+    let now = posixSecondsToUTCTime 1000000
+        week = 7 * 24 * 3600
+        loggedInAt = Just . tshow . (1000000 -) :: Int -> Maybe Text
+    it "accepts a recent login" $ do
+      isLoginCurrent week now (loggedInAt 0) `shouldBe` True
+      isLoginCurrent week now (loggedInAt 3600) `shouldBe` True
+      isLoginCurrent week now (loggedInAt (7 * 24 * 3600 - 1)) `shouldBe` True
+    it "rejects a login as old as the maximum age, or older" $ do
+      isLoginCurrent week now (loggedInAt (7 * 24 * 3600)) `shouldBe` False
+      isLoginCurrent week now (loggedInAt (8 * 24 * 3600)) `shouldBe` False
+    it "rejects a missing or invalid login time" $ do
+      isLoginCurrent week now Nothing `shouldBe` False
+      isLoginCurrent week now (Just "") `shouldBe` False
+      isLoginCurrent week now (Just "yesterday") `shouldBe` False
+  withApp $ it "keeps a current login" $ do
+    userEntity <- createUser "foo"
+    authenticateAs userEntity
+    checkRoute HomeR
+    checkRoute HomeR
+  -- A zero maximum age expires logins right away.
+  withAppSettings (\settings -> settings { appSessionMaxAge = 0 }) $
+    it "logs out an expired login" $ do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+      checkRouteIs HomeR 303
+      followRedirectOK
+      bodyContains "Your login has expired"
+      -- The message is shown once, and the logout is permanent.
+      checkRouteIs HomeR 303
+      followRedirectOK
+      bodyNotContains "Your login has expired"
 
 isWithinRootSpec :: Spec
 isWithinRootSpec = describe "isWithinRoot" $ do

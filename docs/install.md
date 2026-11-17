@@ -217,6 +217,14 @@ the file `config/client_session_key.aes` does not exist, it will be
 automatically created; however, deleting it and restarting the binary
 will invalidate any existing sessions.
 
+### Session lifetime
+
+Sessions expire after two hours without activity, and, independently of
+activity, logins are valid for at most a week, after which users have to
+log in again; this also bounds how long a session keeps working after,
+for example, changing the password of a user. The maximum age can be
+changed, in hours, with the `session-max-age` setting.
+
 ### Private directories
 
 Some files must not be readable by other users on the machine: the

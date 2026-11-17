@@ -38,6 +38,7 @@ module Settings
 import           ClassyPrelude.Yesod
 import           Data.Aeson                 (withObject, (.!=), (.:?))
 import           Data.Aeson.Types           (Parser, parseFail)
+import           Data.Time                  (NominalDiffTime)
 import           Database.Persist.Sqlite    (SqliteConf)
 import           Language.Haskell.TH.Syntax (Exp, Name, Q)
 import           Network.Wai.Handler.Warp   (HostPreference)
@@ -98,6 +99,9 @@ data AppSettings = AppSettings
     , appIpFromHeader   :: Bool
     -- ^ Get the IP address from the header when logging. Useful when sitting
     -- behind a reverse proxy.
+    , appSessionMaxAge  :: NominalDiffTime
+    -- ^ How long a login is valid, regardless of activity; after this,
+    -- the user has to log in again.
 
     , appLoginMessage   :: Maybe Text
     -- ^ Extra message to show on login page.
@@ -123,6 +127,10 @@ isDevel =
   False
 #endif
 
+-- | The default maximum age of a login session, in hours (a week).
+defaultSessionMaxAge :: Int
+defaultSessionMaxAge = 7 * 24
+
 parseLogLevel :: String -> Parser LogLevel
 parseLogLevel "debug" = return LevelDebug
 parseLogLevel "info"  = return LevelInfo
@@ -144,6 +152,11 @@ instance FromJSON AppSettings where
         appSecureSessions <- o .:  "secure-sessions"
         appStrictTransportSecurity <- o .:? "strict-transport-security" .!= appHttps
         appIpFromHeader   <- o .:  "ip-from-header"
+        sessionMaxAge     <- o .:? "session-max-age" .!= defaultSessionMaxAge
+        when (sessionMaxAge <= 0) $
+          parseFail $ "Invalid session-max-age (must be positive): " ++
+            show sessionMaxAge
+        let appSessionMaxAge = fromIntegral sessionMaxAge * 3600
         appLoginMessage   <- o .:? "login-msg"
         appHomeMessage    <- o .:? "home-msg"
         appRequestLogging <- o .:? "request-logging" .!= defaultRequestLogging

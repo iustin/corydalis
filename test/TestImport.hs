@@ -211,9 +211,13 @@ withUnscannedContext = around withUnscannedContext'
 -- (e.g. 'injectImages'). Tests that need another state set it
 -- explicitly.
 openTempApp :: IO (FilePath, TestApp App)
-openTempApp = do
+openTempApp = openTempAppWith id
+
+-- | Builds and returns a valid app, with changed settings.
+openTempAppWith :: (AppSettings -> AppSettings) -> IO (FilePath, TestApp App)
+openTempAppWith change = do
   tempDir <- setTempDir
-  settings <- loadSettings >>= updateSettings tempDir
+  settings <- change <$> (loadSettings >>= updateSettings tempDir)
   foundation <- makeFoundation settings
   let ctx = appContext foundation
   _ <- scanAll ctx
@@ -231,6 +235,12 @@ withApp' action = bracket openTempApp (cleanupTempDir . fst) (action . snd)
 -- | Spec definition for with app.
 withApp :: SpecWith (TestApp App) -> Spec
 withApp = around withApp'
+
+-- | Spec definition for with app, with changed settings.
+withAppSettings :: (AppSettings -> AppSettings) -> SpecWith (TestApp App)
+                -> Spec
+withAppSettings change =
+  around $ bracket (openTempAppWith change) (cleanupTempDir . fst) . (. snd)
 
 -- Helper test functions
 

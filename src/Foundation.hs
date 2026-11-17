@@ -47,8 +47,13 @@ module Foundation
   , alwaysRequiresAuthentication
   , hasAccessToStoragePaths
   , makeDummyLoginUser
+  , loginTimeKey
+  , isLoginCurrent
   ) where
 
+import           Data.Time            (NominalDiffTime, diffUTCTime)
+import           Data.Time.Clock.POSIX (posixSecondsToUTCTime,
+                                        utcTimeToPOSIXSeconds)
 import           Data.Type.Equality
 import           Database.Persist.Sql (ConnectionPool, runSqlPool)
 import           Import.NoFoundation
@@ -447,6 +452,22 @@ instance YesodAuth App where
       liftHandler setSameOriginUltDestReferer
       defaultLoginHandler
 
+    -- Records the login time, to limit the age of the session (see
+    -- 'checkLoginAge'); otherwise as the default.
+    onLogin = do
+      now <- liftIO getCurrentTime
+      setSession loginTimeKey . tshow $
+        (floor (utcTimeToPOSIXSeconds now) :: Int64)
+      addMessageI "success" NowLoggedIn
+
+    onLogout = deleteSession loginTimeKey
+
+    maybeAuthId = do
+      current <- liftHandler checkLoginAge
+      if current
+        then defaultMaybeAuthId
+        else return Nothing
+
     authenticate :: (MonadHandler m, HandlerSite m ~ App)
                  => Creds App -> m (AuthenticationResult App)
     authenticate creds = liftHandler $ runDB $ do
@@ -480,6 +501,45 @@ instance YesodAuth App where
 #endif
 
     --authHttpManager = getHttpManager
+
+-- | The session key holding the login time, in seconds since the epoch.
+loginTimeKey :: Text
+loginTimeKey = "_LOGIN_TIME"
+
+-- | Whether a login, at the time stored in the session, is still valid.
+--
+-- Sessions without a (valid) login time, e.g. from before the time was
+-- recorded, are not.
+isLoginCurrent :: NominalDiffTime  -- ^ The maximum age of a login.
+               -> UTCTime          -- ^ The current time.
+               -> Maybe Text       -- ^ The login time, as stored.
+               -> Bool
+isLoginCurrent maxAge now stored =
+  case stored >>= readMay of
+    Just secs ->
+      let loginTime = posixSecondsToUTCTime $ fromIntegral (secs :: Int64)
+      in diffUTCTime now loginTime < maxAge
+    Nothing -> False
+
+-- | Checks that the login, if any, is not older than the configured
+-- maximum age, independently of how active the session was.
+--
+-- Logs out (and tells the user) otherwise, returning false.
+checkLoginAge :: Handler Bool
+checkLoginAge = do
+  loggedIn <- isJust <$> lookupSession credsKey
+  if not loggedIn
+    then return True
+    else do
+      maxAge <- appSessionMaxAge . appSettings <$> getYesod
+      now <- liftIO getCurrentTime
+      current <- isLoginCurrent maxAge now <$> lookupSession loginTimeKey
+      unless current $ do
+        deleteSession credsKey
+        deleteSession loginTimeKey
+        setMessage "Your login has expired, please log in again."
+        setSession msgTypeKey msgWarning
+      return current
 
 -- | Whether an URL points within the application root.
 --
