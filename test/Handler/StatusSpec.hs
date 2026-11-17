@@ -24,10 +24,59 @@ module Handler.StatusSpec (spec) where
 
 import           TestImport
 
+import           Data.Default        (def)
+import           Data.Time.LocalTime (ZonedTime, getZonedTime)
+
+import           Pics                (RepoStatus (..), Repository (..))
+
+-- | Sets the state of the repository, as shown by the status page.
+--
+-- The test app has already finished its initial scan (see
+-- 'openTempApp'), so nothing else changes the state afterwards.
+setRepoStatus :: (ZonedTime -> RepoStatus) -> YesodExample App ()
+setRepoStatus mkStatus = do
+  ctx <- appContext <$> getTestYesod
+  liftIO $ do
+    now <- getZonedTime
+    atomically . modifyTVar' (ctxRepo ctx) $ \repo ->
+      repo { repoStatus = mkStatus now }
+
+-- | Finished work, started and ended at the given time.
+done :: ZonedTime -> WorkResults
+done now = WorkResults { wrStart = now, wrEnd = now, wrDone = def }
+
+-- | Checks the status page and its texts.
+checkStatusPage :: [Text] -> YesodExample App ()
+checkStatusPage texts = do
+  login
+  checkRoute StatusR
+  htmlAllContain "h1" "Corydalis"
+  forM_ texts $ bodyContains . unpack
+
 spec :: Spec
-spec = parallel $ withApp $
-  it "loads the empty curate page and checks it looks right" $ do
-    login
-    checkRoute StatusR
-    htmlAllContain "h1" "Corydalis"
-    -- FIXME: add testing of repository status [test]
+spec = parallel $ withApp $ describe "the status page" $ do
+  it "shows a finished scan" $
+    -- The state left by the initial scan.
+    checkStatusPage ["all done", "All work completed."]
+  it "shows a starting scan" $ do
+    setRepoStatus (const RepoStarting)
+    checkStatusPage [ "preparing scan", "Preparing to scan the repository."
+                    , "Scanning has not started yet."
+                    , "Rendering has not started yet."
+                    , "Cleaning has not started yet."
+                    ]
+  it "shows a scan in progress" $ do
+    setRepoStatus $ \now -> RepoScanning (WorkStart now)
+    checkStatusPage [ "scanning filesystem"
+                    , "Rendering has not started yet."
+                    , "Cleaning has not started yet."
+                    ]
+  it "shows rendering in progress" $ do
+    setRepoStatus $ \now -> RepoRendering (done now) (WorkStart now)
+    checkStatusPage ["rendering images", "Cleaning has not started yet."]
+  it "shows cleaning in progress" $ do
+    setRepoStatus $ \now -> RepoCleaning (done now) (done now) (WorkStart now)
+    checkStatusPage ["cleaning the cache"]
+  it "shows a failed scan" $ do
+    setRepoStatus . const $ RepoError "disk on fire"
+    checkStatusPage [ "Repository scanning failed", "disk on fire"]
