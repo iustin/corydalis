@@ -76,18 +76,23 @@ describe('parseSortList', () => {
     ]);
   });
 
-  it('tolerates stray brackets', () => {
-    assert.deepEqual(parseSortList('[[2,0], [1, 0]]]', specs), [
-      [2, 0],
-      [1, 0],
-    ]);
-  });
-
   it('returns no sort for a missing or empty attribute', () => {
     assert.deepEqual(parseSortList(undefined, specs), []);
     assert.deepEqual(parseSortList(null, specs), []);
     assert.deepEqual(parseSortList('', specs), []);
+  });
+
+  it('returns no sort for invalid JSON', () => {
     assert.deepEqual(parseSortList('garbage', specs), []);
+    assert.deepEqual(parseSortList('[[2,0], [1, 0]]]', specs), []);
+  });
+
+  it('returns no sort for JSON that is not a list of pairs', () => {
+    assert.deepEqual(parseSortList('{"a": 1}', specs), []);
+    assert.deepEqual(parseSortList('[[0,0], [1]]', specs), []);
+    assert.deepEqual(parseSortList('[[0,2]]', specs), []);
+    assert.deepEqual(parseSortList('[[0.5,0]]', specs), []);
+    assert.deepEqual(parseSortList('[["0",0]]', specs), []);
   });
 
   it('drops unknown, unsortable and repeated columns', () => {
