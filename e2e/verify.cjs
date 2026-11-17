@@ -15,8 +15,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-// Exercises the sortable tables on a running Corydalis serving the
-// library from setup.sh (many checks depend on it); see README.md.
+// Exercises the sortable tables, flagging, the plot pages and the viewer
+// on a running Corydalis serving the library from setup.sh (many checks
+// depend on it); see README.md.
 //
 // Usage: node e2e/verify.cjs OUTDIR (for screenshots)
 
@@ -269,6 +270,113 @@ const settle = (page) => page.waitForTimeout(250);
       assert.match((await groups(page, '#errorlist'))[0], /^\w+ \(\d+\)$/);
     });
   }
+
+  // --- Flagging from the image page: PUT/DELETE requests with the CSRF
+  // token (js/http.ts), and the server's reply shown as a toast.
+  const FOLDER = '2021-01-01%20Zurich%20trip%200';
+  const flagRequests = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/image/flag/')) {
+      flagRequests.push([r.method(), r.headers()['x-xsrf-token'] ?? null]);
+    }
+  });
+  const lastToast = async () => {
+    const toast = page.locator('.toast-body').last();
+    await toast.waitFor();
+    return (await toast.innerText()).trim();
+  };
+  await page.goto(`${BASE}/folder/${FOLDER}/images/IMG_0001`);
+  await check('flag: the flag button sends a PUT with the CSRF token', async () => {
+    await page.click('[data-flag="true"]');
+    assert.match(await lastToast(), /flagged/i);
+    assert.equal(flagRequests.at(-1)[0], 'PUT');
+    assert.ok(flagRequests.at(-1)[1], 'CSRF token sent');
+  });
+  await check('flag: the image shows up in the flagged images', async () => {
+    await page.goto(BASE + '/curate/flagged-images');
+    await settle(page);
+    assert.match(await page.locator('body').innerText(), /IMG_0001/);
+  });
+  await page.goto(`${BASE}/folder/${FOLDER}/images/IMG_0001`);
+  await check('flag: a stale CSRF token asks to reload the page', async () => {
+    await page.evaluate(() => {
+      document.querySelector('meta[name="csrf-token"]').content = 'stale';
+    });
+    await page.click('[data-flag="false"]');
+    assert.match(await lastToast(), /reload/);
+    assert.equal(flagRequests.at(-1)[0], 'DELETE');
+  });
+  // The 403 above is logged by the browser as a failed resource load.
+  const expected403 = errors.findIndex((e) => /status of 403/.test(e));
+  if (expected403 >= 0) errors.splice(expected403, 1);
+  await page.reload();
+  await check('flag: the un-flag button sends a DELETE', async () => {
+    await page.click('[data-flag="false"]');
+    assert.match(await lastToast(), /flag removed|not flagged/i);
+    assert.equal(flagRequests.at(-1)[0], 'DELETE');
+  });
+
+  // --- Plot pages: the data comes from the URL in the boot element.
+  for (const [url, charts] of [
+    ['/stats/cameras', ['#cameraChart', '#trendsChart']],
+    ['/stats/lenses', ['#lensChart', '#trendsChart']],
+    ['/curate', ['#cameraChart', '#lensChart', '#folderChart', '#yearChart', '#monthChart']],
+  ]) {
+    await page.goto(BASE + url);
+    await check(`${url}: charts drawn`, async () => {
+      for (const chart of charts) {
+        await page.locator(`${chart} .main-svg`).first().waitFor({ timeout: 10000 });
+      }
+    });
+  }
+  for (const [url, link] of [
+    ['/stats/cameras', 'a[href*="/stats/camera/"]'],
+    ['/stats/lenses', 'a[href*="/stats/lens/"]'],
+  ]) {
+    await page.goto(BASE + url);
+    const href = await page.locator(link).first().getAttribute('href');
+    await page.goto(new URL(href, BASE).href);
+    await check(`${href}: trends chart drawn`, async () => {
+      await page.locator('#trendsChart .main-svg').first().waitFor({ timeout: 10000 });
+    });
+  }
+
+  // --- The viewer: boot data, navigation (image info requests), the
+  // navigation bar, flagging and random images.
+  const navText = () => page.locator('#navtext3').innerText();
+  const message = async () => (await page.locator('#messageBox').innerText()).trim();
+  await page.goto(`${BASE}/view/${FOLDER}/IMG_0002`);
+  await settle(page);
+  await page.screenshot({ path: path.join(out, 'viewer.png') });
+  await check('viewer: boots, sized to the page', async () => {
+    assert.equal(await navText(), 'IMG_0002');
+    const size = await page.$eval('#imageCanvas', (c) => [c.width, c.height]);
+    assert.ok(size[0] > 100 && size[1] > 100, `canvas size ${size}`);
+    assert.equal(await page.$eval('footer', (f) => f.style.display), 'none');
+  });
+  await check('viewer: next image updates the URL and the navigation bar', async () => {
+    await page.click('#imageNext');
+    await page.waitForURL(/IMG_0003/);
+    await page.waitForFunction(
+      () => document.getElementById('navtext3').textContent === 'IMG_0003',
+    );
+    assert.match(await page.getAttribute('#navlink3', 'href'), /IMG_0003/);
+  });
+  await check('viewer: flag and un-flag via the keyboard', async () => {
+    await page.keyboard.press('x');
+    await page.waitForFunction(() => /flagged/i.test(document.getElementById('messageBox').textContent));
+    assert.equal(flagRequests.at(-1)[0], 'PUT');
+    assert.ok(flagRequests.at(-1)[1], 'CSRF token sent');
+    await page.keyboard.press('n');
+    await page.waitForTimeout(500);
+    assert.equal(flagRequests.at(-1)[0], 'DELETE');
+    assert.ok((await message()).length > 0);
+  });
+  await check('viewer: random image', async () => {
+    const before = page.url();
+    await page.click('#imageRand');
+    await page.waitForURL((u) => u.href !== before && u.pathname.startsWith('/view/'), { timeout: 10000 });
+  });
 
   console.log('console errors:', errors.length ? errors : 'none');
   if (errors.length) failures++;

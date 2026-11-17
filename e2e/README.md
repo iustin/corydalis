@@ -29,8 +29,10 @@ and doesn't need a server or a browser.
   groups, filter controls) to a JSON report, plus screenshots; useful to
   compare before/after a change;
 - `verify.cjs`: exercises the tables (sorting, shift-click, keyboard,
-  groups, text/select/numeric filters, `aria-sort`), and fails on any
-  browser console error;
+  groups, text/select/numeric filters, `aria-sort`), flagging (including
+  the CSRF token, and a stale one), the plot pages and the viewer
+  (navigation, flagging, random images), and fails on any browser
+  console error;
 - `shots.cjs`: takes screenshots of the tables, in a few states.
 
 ## Requirements
