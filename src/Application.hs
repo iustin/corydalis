@@ -149,7 +149,8 @@ makeFoundation appSettings = do
         mapM_ (logfn LevelWarn . toLogStr) . privateDirMessage dir
 
     -- Refuse to start if the private files are within the picture
-    -- directories, where they would be listed, and possibly served.
+    -- directories, where they would be listed, and possibly served, or
+    -- within the cache directory, where they could be deleted.
     checkPrivateDirsOutsideStorage config
       (takeDirectory clientSessionKeyFile :
        maybeToList (databaseFileDirectory . sqlDatabase $ appDatabaseConf appSettings))
