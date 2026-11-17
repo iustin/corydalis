@@ -1811,7 +1811,10 @@ loadCachedOrBuild config origPath bytesPath decoder mime mtime size = do
       let geom = show res' ++ "x" ++ show res' ++ ">"
           fpath = scaledImagePath config origPath res'
           isThumb = res' <= cfgThumbnailSize config
-          fmt = if isThumb then "png" else "jpg"
+          -- The canonical coder names, as the ImageMagick policy lists
+          -- them: ImageMagick 6 checks the name as given, so e.g. "jpg"
+          -- would be refused by a policy allowing only "JPEG".
+          fmt = if isThumb then "png" else "jpeg"
       -- Note: this calls getFileStatus not getSymbolicLinkStatus
       -- since this is a file, not a directory, so symlinks to
       -- somewhere else are OK-ish; we do not recurse into the target

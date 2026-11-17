@@ -92,6 +92,14 @@ headers are no longer collapsible (this was already disabled).
 
 ### Fixed bugs
 
+With ImageMagick 6 (as shipped by Debian and Ubuntu), the ImageMagick
+policy added in this release (see below) made all the (non-thumbnail)
+image previews fail: they were written as `jpg`, which ImageMagick 6
+checks against the policy as such, while the policy only allows `JPEG`
+(ImageMagick 7 resolves the alias first). Previews are now written as
+`jpeg`, and served with the standard `image/jpeg` content type instead
+of `image/jpg`.
+
 On the status page, finished work (scan, rendering and cache cleaning)
 is shown with a green border again, as intended: a typo in the style
 name meant it had no border.
