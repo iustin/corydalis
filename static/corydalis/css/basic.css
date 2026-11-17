@@ -328,8 +328,9 @@ table.sortable th[aria-sort="none"] .sort-button .fa-sort {
     color: var(--bs-secondary-color);
 }
 
+/* Keep the filter boxes clear of the header row's bottom border. */
 table.sortable tr.filter-row td {
-    padding-top: 0;
+    padding-top: 0.25rem;
 }
 
 table.sortable tr.group-header th {
