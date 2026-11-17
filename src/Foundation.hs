@@ -452,13 +452,16 @@ instance YesodAuth App where
     authenticate creds = liftHandler $ runDB $ do
       x <- getBy $ UniqueUser ident
       case x of
-        Just (Entity uid _) -> return $ Authenticated uid
+        Just (Entity uid user)
+          | userDeleted user -> return $ UserError InvalidUsernamePass
+          | otherwise        -> return $ Authenticated uid
         Nothing ->
 #if DEVELOPMENT
           case credsPlugin creds of
             "dummy"  -> Authenticated <$> insert User
                         { userName = ident
                         , userPassword = Nothing
+                        , userDeleted = False
                         }
             _ -> return $ UserError InvalidUsernamePass
 #else
@@ -529,14 +532,14 @@ postHashDBLoginR = do
 
 -- | Checks a user's password, taking the same time for unknown users.
 --
--- For unknown users, and users without a password, the password is
--- checked against the dummy user's one (see 'makeDummyLoginUser'), but
--- the result is ignored.
+-- For unknown and deleted users, and users without a password, the
+-- password is checked against the dummy user's one (see
+-- 'makeDummyLoginUser'), but the result is ignored.
 checkUserPassword :: Text -> Text -> Handler Bool
 checkUserPassword name passwd = do
   muser <- runDB . getBy $ UniqueUser name
   case entityVal <$> muser of
-    Just user | isJust (userPassword user) ->
+    Just user | not (userDeleted user), isJust (userPassword user) ->
       return $ validatePass user passwd == Just True
     _ -> do
       dummy <- appDummyLoginUser <$> getYesod
@@ -552,7 +555,8 @@ checkUserPassword name passwd = do
 makeDummyLoginUser :: IO User
 makeDummyLoginUser = do
   passwd <- decodeUtf8 . exportSalt <$> genSaltIO
-  setPassword passwd User { userName = "", userPassword = Nothing }
+  setPassword passwd User { userName = "", userPassword = Nothing
+                          , userDeleted = False }
 
 loginWidget :: Route App -> Widget
 loginWidget loginRoute = do
@@ -615,7 +619,14 @@ repoStatusIcon RepoCleaning {}  = "fa-solid fa-check"
 repoStatusIcon RepoFinished {}  = "fa-solid fa-check-double"
 repoStatusIcon RepoError {}     = "fa-solid fa-triangle-exclamation"
 
-instance YesodAuthPersist App
+instance YesodAuthPersist App where
+  -- Deleted users don't exist as far as authentication is concerned, so
+  -- their sessions are not valid (see 'defaultMaybeAuthId').
+  getAuthEntity uid = liftHandler . runDB $ do
+    muser <- get uid
+    return $ case muser of
+      Just user | not (userDeleted user) -> Just user
+      _                                  -> Nothing
 
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.

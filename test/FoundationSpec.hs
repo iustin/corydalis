@@ -234,7 +234,8 @@ passwordLoginSpec = describe "password login" $ do
     userPassword dummy1 `shouldNotBe` userPassword dummy2
   withApp $ do
     let createUserWithPassword = do
-          user <- setPassword "secret" User { userName = "user", userPassword = Nothing }
+          user <- setPassword "secret" User { userName = "user", userPassword = Nothing
+                                            , userDeleted = False }
           runDB $ insert_ user
     it "logs in with the right password" $ do
       createUserWithPassword
@@ -253,6 +254,11 @@ passwordLoginSpec = describe "password login" $ do
       _ <- createUser "nopassword"
       passwordLogin "nopassword" ""
       checkLoginFailed
+    it "refuses a deleted user" $ do
+      createUserWithPassword
+      runDB $ updateWhere [UserName ==. "user"] [UserDeleted =. True]
+      passwordLogin "user" "secret"
+      checkLoginFailed
 
 appSpec :: Spec
 appSpec = parallel $ withApp $ do
@@ -267,6 +273,20 @@ appSpec = parallel $ withApp $ do
     forM_ [CurateR, LensStatsR] $ \route -> do
       checkRoute route
       checkViewCookie Nothing
+  describe "checks deleted users" $ do
+    it "logs out a user deleted after logging in" $ do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+      checkRoute HomeR
+      runDB $ update (entityKey userEntity) [UserDeleted =. True]
+      checkRouteIs HomeR 303
+    it "doesn't give a deleted user's session to a new user" $ do
+      userEntity <- createUser "foo"
+      authenticateAs userEntity
+      runDB $ update (entityKey userEntity) [UserDeleted =. True]
+      newUser <- createUser "bar"
+      liftIO $ entityKey newUser `shouldNotBe` entityKey userEntity
+      checkRouteIs HomeR 303
   describe "checks the security cookie attributes" $ do
     it "sets the session cookie as SameSite=Lax" $ do
       get $ AuthR LoginR

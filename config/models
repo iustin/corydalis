@@ -14,5 +14,9 @@ FlaggedImage
 User
     name Text
     password Text Maybe
+    -- Deleted users are kept, so that their ids are never reused (a new
+    -- user would otherwise get the sessions of a deleted one); they can't
+    -- log in, and their sessions are not valid.
+    deleted Bool default=0
     UniqueUser name
     deriving Typeable
