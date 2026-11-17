@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections     #-}
 
 module Utils.StorageSpec (spec) where
 
@@ -40,6 +41,11 @@ createFile :: FilePath -> IO ()
 createFile path = do
   createDirectoryIfMissing True (takeDirectory path)
   writeFile path ("" :: ByteString)
+
+-- | A directory outside the configured (picture and cache) ones: the
+-- temporary directory holding them.
+outsideDir :: Config -> FilePath
+outsideDir = takeDirectory . cfgCacheDir
 
 -- | The (only) source directory.
 rawDir :: Config -> FilePath
@@ -127,29 +133,44 @@ spec = do
       isCanonicalStoragePath config' (rawLink </> "a.nef") `shouldReturn` True
 
   describe "privateDirsInStorage" $ do
+    let pictures = map (PictureDir,)
     it "accepts separate directories" $
-      privateDirsInStorage ["/pics/raw", "/pics/jpeg"] ["/srv/corydalis/config"]
+      privateDirsInStorage
+        ((CacheDir, "/var/cache/corydalis") : pictures ["/pics/raw", "/pics/jpeg"])
+        ["/srv/corydalis/config"]
         `shouldBe` []
-    it "finds private directories within picture directories" $
-      privateDirsInStorage ["/pics/raw", "/srv"]
-        ["/srv/corydalis/config", "/var/lib/db"]
-        `shouldBe` [("/srv/corydalis/config", "/srv")]
-    it "finds private directories equal to picture directories" $
-      privateDirsInStorage ["/pics"] ["/pics"] `shouldBe` [("/pics", "/pics")]
-    it "accepts picture directories within private directories" $
-      privateDirsInStorage ["/srv/corydalis/pictures"] ["/srv/corydalis"]
+    it "finds private directories within unsafe directories" $
+      privateDirsInStorage
+        ((CacheDir, "/var/cache") : pictures ["/pics/raw", "/srv"])
+        ["/srv/corydalis/config", "/var/lib/db", "/var/cache/db"]
+        `shouldBe` [ ("/srv/corydalis/config", (PictureDir, "/srv"))
+                   , ("/var/cache/db", (CacheDir, "/var/cache"))
+                   ]
+    it "finds private directories equal to unsafe directories" $
+      privateDirsInStorage (pictures ["/pics"]) ["/pics"]
+        `shouldBe` [("/pics", (PictureDir, "/pics"))]
+    it "accepts unsafe directories within private directories" $
+      privateDirsInStorage
+        ((CacheDir, "/srv/corydalis/cache") : pictures ["/srv/corydalis/pictures"])
+        ["/srv/corydalis"]
         `shouldBe` []
 
   describe "checkPrivateDirsOutsideStorage" $ withConfig $ do
-    it "accepts private directories outside the picture directories" $ \config ->
-      checkPrivateDirsOutsideStorage config [cfgCacheDir config </> "config"]
+    it "accepts private directories outside the unsafe directories" $ \config ->
+      checkPrivateDirsOutsideStorage config [outsideDir config </> "config"]
         `shouldReturn` Right ()
     it "refuses private directories within the picture directories" $ \config -> do
       let private = rawDir config </> "2020" </> "config"
       result <- checkPrivateDirsOutsideStorage config [private]
       result `shouldSatisfy` either (pack private `isInfixOf`) (const False)
+      result `shouldSatisfy` either ("could be shown" `isInfixOf`) (const False)
+    it "refuses private directories within the cache directory" $ \config -> do
+      let private = cfgCacheDir config </> "db"
+      result <- checkPrivateDirsOutsideStorage config [private]
+      result `shouldSatisfy` either (pack private `isInfixOf`) (const False)
+      result `shouldSatisfy` either ("can be deleted" `isInfixOf`) (const False)
     it "resolves symbolic links and relative paths" $ \config -> do
-      let private = cfgCacheDir config </> "private"
+      let private = outsideDir config </> "private"
       createDirectoryIfMissing True (rawDir config </> "config")
       createSymbolicLink (rawDir config </> "config") private
       result <- checkPrivateDirsOutsideStorage config [private </> "x" </> ".."]

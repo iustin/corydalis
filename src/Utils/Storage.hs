@@ -28,6 +28,7 @@ module Utils.Storage ( StorageKind(..)
                      , isCanonicalStoragePath
                      , storageKindName
                      , relativeStoragePath
+                     , UnsafeDir(..)
                      , privateDirsInStorage
                      , checkPrivateDirsOutsideStorage
                      ) where
@@ -114,38 +115,51 @@ isCanonicalStoragePath config fpath =
         return $ pathComponents cpath == pathComponents (cdir </> rel)
       return $ fromRight False result
 
+-- | A directory which must not hold private files, and why.
+data UnsafeDir = PictureDir  -- ^ Its files are listed, and possibly shown.
+               | CacheDir    -- ^ Its files can be deleted.
+               deriving (Eq, Show)
+
 -- | Finds the private directories which are, or are within, one of
--- the picture directories.
+-- the unsafe directories.
 --
--- Returns the pairs of private and picture directories. The paths
--- should be canonical.
-privateDirsInStorage :: [FilePath]  -- ^ The picture directories.
-                     -> [FilePath]  -- ^ The private directories.
-                     -> [(FilePath, FilePath)]
-privateDirsInStorage pictureDirs privateDirs =
-  [ (private, pictures)
+-- Returns the private directories, with the unsafe directories holding
+-- them. The paths should be canonical.
+privateDirsInStorage :: [(UnsafeDir, FilePath)]  -- ^ The unsafe directories.
+                     -> [FilePath]               -- ^ The private directories.
+                     -> [(FilePath, (UnsafeDir, FilePath))]
+privateDirsInStorage unsafeDirs privateDirs =
+  [ (private, unsafe)
   | private <- privateDirs
-  , pictures <- pictureDirs
-  , isWithinDir pictures private
+  , unsafe@(_, dir) <- unsafeDirs
+  , isWithinDir dir private
   ]
 
 -- | Checks that the private directories (holding e.g. the session key,
 -- or the database) are not within the configured picture directories,
--- where their files could be listed (and possibly served).
+-- where their files could be listed (and possibly served), nor within
+-- the cache directory, where they could be deleted, by the cache
+-- cleanup or by someone clearing the cache.
 --
 -- Returns an error message otherwise. The directories are compared
 -- after resolving them, so symbolic links, or relative paths, don't
 -- hide an overlap.
 checkPrivateDirsOutsideStorage :: Config -> [FilePath] -> IO (Either Text ())
 checkPrivateDirsOutsideStorage config privateDirs = do
-  pictureDirs <- mapM canonicalizePath $
-                   cfgSourceDirs config ++ cfgOutputDirs config
+  unsafeDirs <- mapM (traverse canonicalizePath) $
+                  map (PictureDir,) (cfgSourceDirs config ++ cfgOutputDirs config)
+                  ++ [(CacheDir, cfgCacheDir config)]
   privateDirs' <- mapM canonicalizePath privateDirs
-  return $ case privateDirsInStorage pictureDirs privateDirs' of
+  return $ case privateDirsInStorage unsafeDirs privateDirs' of
     [] -> Right ()
-    overlaps -> Left . intercalate "; " $
-      map (uncurry $
-             sformat ("The directory " % string % " holds private files, but \
-                      \is within the picture directory " % string %
-                      ", so these files could be shown"))
-          overlaps
+    overlaps -> Left . intercalate "; " $ map describe overlaps
+  where
+    describe (private, (kind, dir)) =
+      sformat ("The directory " % string % " holds private files, but is \
+               \within the " % stext % " " % string % ", " % stext)
+        private (kindName kind) dir (consequence kind)
+    kindName PictureDir = "picture directory"
+    kindName CacheDir   = "cache directory"
+    consequence PictureDir = "so these files could be shown"
+    consequence CacheDir   =
+      "whose contents can be deleted (by Corydalis, or when clearing the cache)"

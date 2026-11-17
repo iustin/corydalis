@@ -205,7 +205,8 @@ Security: the application now refuses to start if the `config`
 directory (holding the session key) or the directory holding the
 database is within one of the configured source or output directories,
 since their files would then be scanned, and possibly shown, like
-pictures.
+pictures, or within the cache directory, where the cache cleanup could
+delete them (as would clearing the cache).
 
 Security: logging in with a password took much longer for existing users
 than for unknown ones, since the (deliberately slow) password check was

@@ -253,8 +253,10 @@ Unix socket and the cache directory should not be in these directories.
 These directories (the `config` directory, and the directory holding the
 database, even if it is the current directory) must also not be within
 the configured source or output directories, where their files would be
-scanned, and possibly shown, like pictures. If one of them is, the
-application refuses to start. The directories are compared after
+scanned, and possibly shown, like pictures, nor within the cache
+directory, whose files are deleted by the cache cleanup if they don't
+belong to a picture, and which one would expect to be able to clear
+safely. If one of them is, the application refuses to start. The directories are compared after
 resolving symbolic links, so a link to such a directory doesn't avoid
 the check.
 
