@@ -36,6 +36,8 @@ import           System.Exit      (ExitCode (..))
 import           System.Posix.Files (createNamedPipe, createSymbolicLink,
                                      ownerReadMode, ownerWriteMode,
                                      unionFileModes)
+import           Control.Monad.Logger (LogLevel (..))
+import           System.Log.FastLogger (fromLogStr)
 import           System.Process.Typed (proc, readProcess)
 
 import           AtomTypes
@@ -100,7 +102,7 @@ outputDir ctx =
 jpegFile :: Ctx -> File
 jpegFile ctx =
   (simpleFile "a.jpg")
-    { fileParent = mkSym (pack $ cfgCacheDir $ ctxConfig ctx)
+    { fileParent = mkSym (pack $ outputDir ctx)
     }
 
 insertJpeg :: Ctx -> File -> IO (Repository, Image)
@@ -1035,6 +1037,59 @@ spec = parallel $ do
         pgGoal pg `shouldBe` 0
         pgDone pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
+    describe "ensureStorageFile" $ do
+      let isChangedError (ImageError msg) =
+            "changed since the last scan" `isInfixOf` msg
+          isChangedError _ = False
+      it "accepts a file within the picture folders" $ \ctx -> do
+        let jpeg = jpegFile ctx
+        writeFile (fileFullPath jpeg) ("" :: ByteString)
+        ensureStorageFile (\_ _ -> return ()) (ctxConfig ctx) jpeg
+      it "rejects, and logs, a file replaced by a symbolic link" $ \ctx -> do
+        let jpeg = jpegFile ctx
+            path = fileFullPath jpeg
+            secret = cfgCacheDir (ctxConfig ctx) </> "secret.txt"
+        writeFile secret ("" :: ByteString)
+        createSymbolicLink secret path
+        logs <- newIORef []
+        let logfn level msg = modifyIORef logs ((level, fromLogStr msg) :)
+        ensureStorageFile logfn (ctxConfig ctx) jpeg
+          `shouldThrow` isChangedError
+        logged <- readIORef logs
+        case logged of
+          [(level, msg)] -> do
+            level `shouldBe` LevelWarn
+            msg `shouldSatisfy` (encodeUtf8 (pack path) `isInfixOf`)
+            msg `shouldSatisfy` ("has changed since the last scan" `isInfixOf`)
+          _ -> expectationFailure $ "Expected one log message, got: " ++
+                 show logged
+    describe "movieToServe" $ do
+      let noLog _ _ = return ()
+          movieFile ctx = (simpleFile "a.mp4")
+            { fileParent = mkSym (pack $ outputDir ctx) }
+          withMovies ctx movs =
+            (mkImage (ctxConfig ctx) "a" "folder" Nothing Nothing
+               [jpegFile ctx] Nothing [] [] Nothing MediaImage def)
+              { imgMovs = movs }
+      it "returns the movie file" $ \ctx -> do
+        let movie = movieFile ctx
+        writeFile (fileFullPath movie) ("" :: ByteString)
+        result <- movieToServe noLog (ctxConfig ctx) (withMovies ctx [movie])
+        either (Left . show) Right result `shouldBe` Right movie
+      it "rejects images without movies" $ \ctx -> do
+        result <- movieToServe noLog (ctxConfig ctx) (withMovies ctx [])
+        case result of
+          Left ImageNotViewable -> return ()
+          _ -> expectationFailure $ "Unexpected result: " ++ show result
+      it "rejects a movie replaced by a symbolic link" $ \ctx -> do
+        let movie = movieFile ctx
+            secret = cfgCacheDir (ctxConfig ctx) </> "secret.txt"
+        writeFile secret ("" :: ByteString)
+        createSymbolicLink secret (fileFullPath movie)
+        result <- movieToServe noLog (ctxConfig ctx) (withMovies ctx [movie])
+        case result of
+          Left (ImageError _) -> return ()
+          _ -> expectationFailure $ "Unexpected result: " ++ show result
     describe "getDirContents" $ do
       it "lists files and dirs and skips blacklisted names" $ \ctx -> do
         let config = ctxConfig ctx

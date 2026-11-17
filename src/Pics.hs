@@ -86,6 +86,8 @@ module Pics ( PicDir(..)
             , loadCachedOrBuild
             , imageAtRes
             , bestMovie
+            , ensureStorageFile
+            , movieToServe
             , checkMagickPolicy
             , allImageFiles
             , allViewableImageFiles
@@ -199,6 +201,7 @@ import           Cache
 import           Compat.Orphans          ()
 import           Exif
 import           Import.NoFoundation     hiding (fileName, fileSize)
+import           Utils.Storage           (isCanonicalStoragePath)
 import           Stats                   (CameraInfo (..), DateRange,
                                           Occurrence (..), Trends,
                                           mergeMinMaxPair, ocFromSize)
@@ -1589,7 +1592,7 @@ forceBuildThumbCaches ctx repo = do
                          (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
       classifySize (pend, n, es) i size = do
         checkRepoOwnership ctx repo
-        res <- imageNeedsRender config i size
+        res <- imageNeedsRender (ctxLogger ctx) config i size
         return $ case res of
           Left err ->
             (pend, n, ProgressError (imageForError i size) (Text.pack $ show err):es)
@@ -1608,7 +1611,7 @@ forceBuildThumbCaches ctx repo = do
   -- pooledMapConcurrentlyN_ 8 ...
   mapM_ (\(i, size) -> do
             checkRepoOwnership ctx repo
-            res <- imageAtRes config i . Just . ImageSize $ size
+            res <- imageAtRes (ctxLogger ctx) config i . Just . ImageSize $ size
             let modifier = case res of
                   Left   err      -> incErrors (imageForError i size) (Text.pack $ show err)
                   Right (_, _, _) -> incDone
@@ -1778,9 +1781,9 @@ scaledCacheNeedsBuild config origPath mtime size =
 -- embedded previews for RAW/movies), then delegates to
 -- 'scaledCacheNeedsBuild'. Failures from that resolution are returned
 -- as 'Left'.
-imageNeedsRender :: Config -> Image -> Int -> IO (Either ImageError Bool)
-imageNeedsRender config img size = try $ do
-  (origFile, _, _, _, mtime) <- getViewableVersion config img
+imageNeedsRender :: LogFn -> Config -> Image -> Int -> IO (Either ImageError Bool)
+imageNeedsRender logfn config img size = try $ do
+  (origFile, _, _, _, mtime) <- getViewableVersion logfn config img
   scaledCacheNeedsBuild config (fileFullPath origFile) mtime (ImageSize size)
 
 -- | Generate a preview for an image.
@@ -2072,20 +2075,43 @@ bestMovie img =
     m:_ -> Just m
     _   -> imgMasterMov img
 
+-- | Ensures that a file can be read, i.e. it's still within the
+-- configured picture directories, without symbolic links.
+--
+-- The scan skips symbolic links, but a file could have been replaced
+-- by one (or one of its parent directories) since then.
+--
+-- The error shown to users is generic, since a rescan fixes it (the
+-- file is then either used normally, or skipped and listed as a scan
+-- error); the exact reason is logged.
+ensureStorageFile :: LogFn -> Config -> File -> IO ()
+ensureStorageFile logfn config f = do
+  let path = fileFullPath f
+  ok <- isCanonicalStoragePath config path
+  unless ok $ do
+    logfn LevelWarn $ "File " <> toLogStr path <> " has changed since " <>
+      "the last scan: it is no longer within the picture folders, or its " <>
+      "path now contains a symbolic link"
+    throwIO $ ImageError
+      "The file has changed since the last scan; a rescan will update it."
+
 -- | Returns a viewable version of an image.
 --
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc. Also returns the ImageMagick
 -- decoder to use for the viewable file.
-getViewableVersion :: Config -> Image
+getViewableVersion :: LogFn -> Config -> Image
                    -> IO (File, FilePath, Either Text String, MimeType, POSIXTime)
-getViewableVersion config img
-  | j:_ <- imgJpegPath img =
+getViewableVersion logfn config img
+  | j:_ <- imgJpegPath img = do
+      ensureStorageFile logfn config j
       return (j, fileFullPath j, fileDecoder j, jpegMimeType j, fileLastTouch j)
   | Just j <- imgRawPath img,
-    True <- flagsSoftMaster (imgFlags img) =
+    True <- flagsSoftMaster (imgFlags img) = do
+      ensureStorageFile logfn config j
       return (j, fileFullPath j, fileDecoder j, jpegMimeType j, fileLastTouch j)
   | Just r <- imgRawPath img = do
+      ensureStorageFile logfn config r
       -- TODO: there should be some tests to check which version is returned.
       viewable <- if fileName r `viewableAsIs` config
                   then return $ Right (fileDecoder r, jpegMimeType r, fileFullPath r)
@@ -2097,6 +2123,7 @@ getViewableVersion config img
           mtime <- filePathLastTouch path
           return (r, path, decoder, mime, mtime)
   | Just m <- bestMovie img = do
+      ensureStorageFile logfn config m
       embedded <- bestEmbedded config (fileFullPath m) (fileLastTouch m)
       case embedded of
         Left _ -> do
@@ -2124,12 +2151,20 @@ getViewableVersion config img
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Bool, MimeType, FilePath))
-imageAtRes config img size = try $ do
-  (origFile, path, decoder, mime, mtime) <- getViewableVersion config img
+imageAtRes :: LogFn -> Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Bool, MimeType, FilePath))
+imageAtRes logfn config img size = try $ do
+  (origFile, path, decoder, mime, mtime) <- getViewableVersion logfn config img
   case size of
     Nothing -> return (False, mime, path)
     Just s  -> loadCachedOrBuild config (fileFullPath origFile) path decoder mime mtime s
+
+-- | Returns the movie file to serve for an image, after checking that
+-- it can be read (see 'ensureStorageFile').
+movieToServe :: LogFn -> Config -> Image -> IO (Either ImageError File)
+movieToServe logfn config img = try $
+  case bestMovie img of
+    Just f  -> f <$ ensureStorageFile logfn config f
+    Nothing -> throwIO ImageNotViewable
 
 imgProblems :: Image -> Set ShortText
 imgProblems =

@@ -164,6 +164,7 @@ library:
     - Types
     - Utils.Parsing
     - Utils.Permissions
+    - Utils.Storage
     - Utils.Yaml
   other-modules:
     - Compat.Orphans

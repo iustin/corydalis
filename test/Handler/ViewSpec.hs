@@ -31,7 +31,9 @@ import qualified Data.ByteString                as BS
 import qualified Data.Text.Short                as TS
 import           Network.HTTP.Types.Header      (HeaderName)
 import           Network.Wai.Test               (simpleBody, simpleHeaders)
-import           System.Directory               (createDirectoryIfMissing)
+import           System.Directory               (createDirectoryIfMissing,
+                                                 removeFile)
+import           System.Posix.Files             (createSymbolicLink)
 
 import           Text.Blaze.Svg.Renderer.String
 
@@ -71,17 +73,35 @@ minimalTiff = BS.pack
 untrustedFolder :: ShortText
 untrustedFolder = "2020-01-01-untrusted"
 
+-- | The directory of the folder holding the untrusted files.
+untrustedDir :: Ctx -> FilePath
+untrustedDir ctx =
+  -- Folders are two levels below the base directory; the name of the
+  -- intermediate level is not used.
+  fromMaybe (error "No output directory")
+    (headMay (cfgOutputDirs (ctxConfig ctx))) </> "2020" </>
+    TS.toString untrustedFolder
+
+-- | Replaces the given untrusted files with symbolic links to a file
+-- outside the picture folders, as if done after the scan.
+replaceWithSymlinks :: [FilePath] -> YesodExample App ()
+replaceWithSymlinks names = do
+  ctx <- appContext <$> getTestYesod
+  let dir = untrustedDir ctx
+      secret = cfgCacheDir (ctxConfig ctx) </> "secret.txt"
+  liftIO $ do
+    BS.writeFile secret "top secret"
+    forM_ names $ \name -> do
+      removeFile (dir </> name)
+      createSymbolicLink secret (dir </> name)
+
 -- | Creates a folder with files whose contents don't match their names,
 -- as a malicious user might, and rescans the repository.
 addUntrustedFolder :: YesodExample App ()
 addUntrustedFolder = do
   liftIO requireExifTool
   ctx <- appContext <$> getTestYesod
-  -- Folders are two levels below the base directory; the name of the
-  -- intermediate level is not used.
-  let dir = fromMaybe (error "No output directory")
-              (headMay (cfgOutputDirs (ctxConfig ctx))) </> "2020" </>
-              TS.toString untrustedFolder
+  let dir = untrustedDir ctx
   liftIO $ do
     -- Wait for the initial scan, so that it doesn't miss the new folder.
     _ <- waitForScan ctx
@@ -198,6 +218,19 @@ spec = parallel $ do
         checkRawContents "image/tiff"
         withResponse $ \response ->
           liftIO $ simpleBody response `shouldBe` fromStrict minimalTiff
+      it "does not serve files replaced by symbolic links after the scan" $ do
+        addUntrustedFolder
+        replaceWithSymlinks ["photo.jpg", "clip.mp4", "scan.tif"]
+        login
+        forM_ [ImageBytesR untrustedFolder "scan",
+               ImageBytesR untrustedFolder "photo",
+               MovieBytesR untrustedFolder "clip"] $ \route -> do
+          get route
+          statusIs 200
+          bodyContains "<svg"
+          -- The message is wrapped in the image, so only check its start.
+          bodyContains "Error: The file has changed since"
+          bodyNotContains "top secret"
       it "sandboxes error responses too" $ do
         login
         get $ ImageBytesR "foo" "bar"
