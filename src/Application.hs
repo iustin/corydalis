@@ -108,8 +108,10 @@ import           Handler.Status
 import           Handler.View
 import           System.FilePath                           (takeDirectory)
 import           Utils.Permissions                         (databaseDirectory,
+                                                            databaseFileDirectory,
                                                             privateDirMessage,
                                                             protectPrivateDir)
+import           Utils.Storage                             (checkPrivateDirsOutsideStorage)
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -145,6 +147,13 @@ makeFoundation appSettings = do
            maybeToList (databaseDirectory . sqlDatabase $ appDatabaseConf appSettings)) $
       \dir -> protectPrivateDir dir >>=
         mapM_ (logfn LevelWarn . toLogStr) . privateDirMessage dir
+
+    -- Refuse to start if the private files are within the picture
+    -- directories, where they would be listed, and possibly served.
+    checkPrivateDirsOutsideStorage config
+      (takeDirectory clientSessionKeyFile :
+       maybeToList (databaseFileDirectory . sqlDatabase $ appDatabaseConf appSettings))
+      >>= either (throwIO . userError . unpack) return
 
     -- Refuse to start if a configured ImageMagick policy isn't in use,
     -- as previews would then be built without it.

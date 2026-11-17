@@ -102,3 +102,10 @@ spec = do
       databaseDirectory "file:db/corydalis.sqlite3?mode=ro" `shouldBe` Nothing
     it "ignores the current directory" $
       databaseDirectory "corydalis.sqlite3" `shouldBe` Nothing
+  describe "databaseFileDirectory" $ do
+    it "returns the directory of database files" $ do
+      databaseFileDirectory "db/corydalis.sqlite3" `shouldBe` Just "db"
+      databaseFileDirectory "corydalis.sqlite3" `shouldBe` Just "."
+    it "ignores in-memory databases and URIs" $ do
+      databaseFileDirectory ":memory:" `shouldBe` Nothing
+      databaseFileDirectory "file:db/corydalis.sqlite3?mode=ro" `shouldBe` Nothing
