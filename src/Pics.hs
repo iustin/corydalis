@@ -179,7 +179,7 @@ import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
 import           Data.Time.LocalTime
 import           Debug.Trace.String
-import           System.Directory
+import           System.Directory        hiding (isSymbolicLink)
 import qualified System.Environment
 import           System.Exit
 import           System.FilePath
@@ -1006,31 +1006,69 @@ folderClassFromStats stats@Stats {..} =
        _ -> error $ "Wrong computation in folderClass: stats=" ++ show stats
                     ++ ", conditions=" ++ show conditions
 
-getDirContents' :: Bool -> Config -> FilePath -> IO ([FilePath], [InodeInfo])
+-- | The reason a directory entry is skipped, if it is neither a
+-- directory nor a regular file.
+--
+-- Symbolic links are not followed, as they could point outside the
+-- configured directories, and e.g. make any file readable by the
+-- application available for download; other special files (pipes,
+-- sockets, devices) are not pictures, and reading them could block.
+skipReason :: FileStatus -> Maybe Text
+skipReason stat
+  | isSymbolicLink stat = Just "symbolic link, not followed"
+  | isDirectory stat || isRegularFile stat = Nothing
+  | otherwise = Just "not a regular file or directory, ignored"
+
+-- | Lists a directory, returning the sub-directories, the regular
+-- files, and the skipped entries (see 'skipReason') with the reason.
+getDirContents' :: Bool -> Config -> FilePath
+                -> IO ([FilePath], [InodeInfo], [(FilePath, Text)])
 getDirContents' filtered config root = do
   contents <- getDirectoryContents root
   let blkdirs = if filtered
                 then blacklistedDirs config
                 else neverRecurseDirs
       allowed_names = filter (`notElem` blkdirs) contents
-  paths <-
-    foldM (\acc path -> do
+  (paths, skipped) <-
+    foldM (\(acc, skip) path -> do
              stat <- getSymbolicLinkStatus $ root </> path
-             let !ii = InodeInfo { inodeName  = path
-                                 , inodeDirs  = []
-                                 , inodeIsDir = isDirectory stat
-                                 , inodeMTime = modificationTimeHiRes stat
-                                 , inodeCTime = statusChangeTimeHiRes stat
-                                 , inodeSize  = System.Posix.Files.fileSize stat
-                                 }
-             ii' <- evaluate $!! ii
-             return $! ii':acc
-       ) [] allowed_names
+             case skipReason stat of
+               Just reason -> return (acc, (path, reason):skip)
+               Nothing -> do
+                 let !ii = InodeInfo { inodeName  = path
+                                     , inodeDirs  = []
+                                     , inodeIsDir = isDirectory stat
+                                     , inodeMTime = modificationTimeHiRes stat
+                                     , inodeCTime = statusChangeTimeHiRes stat
+                                     , inodeSize  = System.Posix.Files.fileSize stat
+                                     }
+                 ii' <- evaluate $!! ii
+                 return (ii':acc, skip)
+       ) ([], []) allowed_names
   let (dirs, files) = partition inodeIsDir paths
-  return $!! (map inodeName dirs, files)
+  return $!! (map inodeName dirs, files, skipped)
 
-getDirContents :: Config -> FilePath -> IO ([FilePath], [InodeInfo])
+getDirContents :: Config -> FilePath
+               -> IO ([FilePath], [InodeInfo], [(FilePath, Text)])
 getDirContents = getDirContents' True
+
+-- | Records the entries skipped while scanning as scan errors.
+reportSkipped :: Ctx
+              -> FilePath            -- ^ The directory holding the entries.
+              -> [(FilePath, Text)]  -- ^ The skipped entries and reasons.
+              -> IO ()
+reportSkipped _ _ [] = return ()
+reportSkipped ctx root skipped = do
+  let errs = skippedErrors root skipped
+  mapM_ (\(ProgressError item reason) ->
+           ctxLogger ctx LevelWarn $ "Skipping " <> toLogStr item <>
+             ": " <> toLogStr reason) errs
+  atomically $ modifyTVar' (ctxScanProgress ctx) (incProgress errs 0 0)
+
+-- | Converts skipped entries to scan errors.
+skippedErrors :: FilePath -> [(FilePath, Text)] -> [ProgressError]
+skippedErrors root =
+  map (\(path, reason) -> ProgressError (Text.pack $ root </> path) reason)
 
 -- | Scans one of the directories defined in the configuration.
 scanBaseDir :: Ctx
@@ -1038,7 +1076,8 @@ scanBaseDir :: Ctx
             -> Bool
             -> IO [PicDir]
 scanBaseDir ctx root isSource = do
-  (dirs, _) <- getDirContents (ctxConfig ctx) root
+  (dirs, _, skipped) <- getDirContents (ctxConfig ctx) root
+  reportSkipped ctx root skipped
   concat <$> mapConcurrently (\p -> scanSubDir ctx (root </> p) isSource) dirs
 
 -- | Scans a directory one level below a base dir. The actual
@@ -1050,39 +1089,51 @@ scanSubDir :: Ctx
            -> IO [PicDir]
 scanSubDir ctx path isSource = do
   let config = ctxConfig ctx
-  (dirpaths, _) <- getDirContents config path
+  (dirpaths, _, skipped) <- getDirContents config path
+  reportSkipped ctx path skipped
   let allpaths' = filter (isOKDir config) dirpaths
   mapM (\s -> loadFolder ctx s (path </> s) isSource) allpaths'
 
 -- | Recursively count number of items (images) under a directory.
+--
+-- The skipped entries are counted at all levels, as they are reported
+-- as scan errors.
 countDir :: Config -> Int -> String -> IO Int
 countDir config level path = do
-  (dirpaths, iinfo) <- getDirContents config path
+  (dirpaths, iinfo, skipped) <- getDirContents config path
   -- TODO: This level thinig is ugly; the two-level hierarchy is rigid
   -- and thus needs hardcoding here and there. Urgh!
   let allpaths = if level == 2
                  then filter (isOKDir config) dirpaths
                  else dirpaths
   subdirs <- mapConcurrently (\p -> countDir config (level+1) (path </> p)) allpaths
-  let total = sum subdirs + if level > 2 then length iinfo else 0
+  let total = sum subdirs + length skipped +
+              if level > 2 then length iinfo else 0
   return $!! total
 
 -- | Recursively count number of all files and directories under a directory.
+--
+-- This is used for the cache directory, where skipped entries are
+-- counted (and handled) as files.
 countDirRaw :: Config -> String -> IO Int
 countDirRaw config path = do
-  (dirpaths, iinfo) <- getDirContents' False config path
+  (dirpaths, iinfo, skipped) <- getDirContents' False config path
   subdirs <- mapConcurrently (\p -> countDirRaw config (path </> p)) dirpaths
-  let total = sum subdirs + length iinfo
+  let total = sum subdirs + length iinfo + length skipped
   return $!! total
 
 -- | Run action on all files under a given directory.
+--
+-- The skipped entries (e.g. symbolic links) are passed to the action
+-- as well, like files.
 allPathFiles :: Config -> FilePath -> (FilePath -> IO ()) -> FilePath -> IO ()
 allPathFiles config root handler (makeRel -> subdir) = do
   let buildsub p = if subdir == "." then p else subdir </> p
-  (dirpaths, iinfo) <- getDirContents' False config (root </> subdir)
+  (dirpaths, iinfo, skipped) <- getDirContents' False config (root </> subdir)
   -- execute the action on all files in the current (subdir) directory.
   -- TODO: handle dirs vs just leaf? ignore dirs?
-  mapM_ (\ii -> handler (subdir </> inodeName ii)) iinfo
+  mapM_ (\name -> handler (subdir </> name)) $
+    map inodeName iinfo ++ map fst skipped
   -- recurse into subdirectories.
   mapM_ (allPathFiles config root handler . buildsub) dirpaths
 
@@ -1091,17 +1142,21 @@ addDirToRepo config dir =
   Map.insertWith (mergeFolders config) (pdName dir) dir
 
 -- | Builds the filepath and filestatus pairs recursively for all
--- entries beneats a directory.
+-- entries beneats a directory, and returns the skipped entries (with
+-- the path relative to the directory) separately.
 recursiveScanPath :: Config
                   -> FilePath
                   -> [FilePath]
-                  -> IO [InodeInfo]
+                  -> IO ([InodeInfo], [(FilePath, Text)])
 recursiveScanPath config root stack = do
-  (!dirs, !files) <- getDirContents config root
+  (!dirs, !files, !skipped) <- getDirContents config root
   let with_prefix = map (\ii -> ii { inodeDirs = stack }) files
+      relpath p = System.FilePath.joinPath . reverse $ p:stack
+      skipped' = map (first relpath) skipped
   subdirs <- mapM (\p -> recursiveScanPath config (root </> p)
                            (p:stack)) dirs
-  return $ with_prefix ++ concat subdirs
+  return (with_prefix ++ concatMap fst subdirs,
+          skipped' ++ concatMap snd subdirs)
 
 -- | Strict application of the 'Just' constructor. This is useful as
 -- the Maybe type is not strict in its contained value.
@@ -1278,7 +1333,8 @@ loadFolder ctx name path isSource = do
       scanProgress = ctxScanProgress ctx
       logfn = ctxLogger ctx
   logfn LevelDebug $ "loadFolder scan " <> toLogStr path
-  contents <- recursiveScanPath config path []
+  (contents, skipped) <- recursiveScanPath config path []
+  reportSkipped ctx path skipped
   logfn LevelDebug $ "loadFolder scanned " <> toLogStr path <> " (" <>
     toLogStr (show (length contents)) <> " inodes)"
   let known = filter (isKnownMediaInode config) contents

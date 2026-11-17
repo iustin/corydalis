@@ -33,6 +33,9 @@ import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
 import           Data.Time.Clock.POSIX (POSIXTime)
 import           System.Directory (createDirectoryIfMissing, doesFileExist)
 import           System.Exit      (ExitCode (..))
+import           System.Posix.Files (createNamedPipe, createSymbolicLink,
+                                     ownerReadMode, ownerWriteMode,
+                                     unionFileModes)
 import           System.Process.Typed (proc, readProcess)
 
 import           AtomTypes
@@ -1027,21 +1030,50 @@ spec = parallel $ do
         createDirectoryIfMissing True (tmp </> "keep")
         touchFile (tmp </> "file.nef")
         touchFile (tmp </> ".thumbnails" </> "x")
-        (dirs, files) <- getDirContents config tmp
+        (dirs, files, skipped) <- getDirContents config tmp
         dirs `shouldMatchList` ["keep"]
         map inodeName files `shouldMatchList` ["file.nef"]
         dirs `shouldNotContain` [".", "..", ".thumbnails"]
+        skipped `shouldBe` []
+      it "skips symbolic links and special files" $ \ctx -> do
+        let config = ctxConfig ctx
+            tmp = cfgCacheDir config </> "listing"
+        createDirectoryIfMissing True (tmp </> "dir")
+        touchFile (tmp </> "file.nef")
+        createSymbolicLink (tmp </> "file.nef") (tmp </> "link.jpg")
+        createSymbolicLink (tmp </> "dir") (tmp </> "linkdir")
+        createSymbolicLink "/nonexistent" (tmp </> "dangling.jpg")
+        createNamedPipe (tmp </> "pipe.jpg") $
+          ownerReadMode `unionFileModes` ownerWriteMode
+        (dirs, files, skipped) <- getDirContents config tmp
+        dirs `shouldMatchList` ["dir"]
+        map inodeName files `shouldMatchList` ["file.nef"]
+        skipped `shouldMatchList`
+          [ ("link.jpg", "symbolic link, not followed")
+          , ("linkdir", "symbolic link, not followed")
+          , ("dangling.jpg", "symbolic link, not followed")
+          , ("pipe.jpg", "not a regular file or directory, ignored")
+          ]
     describe "recursiveScanPath" $ do
       it "records reverse directory stacks for nested files" $ \ctx -> do
         let config = ctxConfig ctx
             tmp = cfgCacheDir config </> "tree"
         touchFile (tmp </> "a.nef")
         touchFile (tmp </> "sub" </> "b.nef")
-        contents <- recursiveScanPath config tmp []
+        (contents, skipped) <- recursiveScanPath config tmp []
+        skipped `shouldBe` []
         let byName = Map.fromList [(inodeName ii, ii) | ii <- contents]
         inodeDirs (byName Map.! "a.nef") `shouldBe` []
         inodeDirs (byName Map.! "b.nef") `shouldBe` ["sub"]
         inodeFullName (byName Map.! "b.nef") `shouldBe` "sub/b.nef"
+      it "returns nested skipped entries with their relative path" $ \ctx -> do
+        let config = ctxConfig ctx
+            tmp = cfgCacheDir config </> "tree"
+        touchFile (tmp </> "sub" </> "b.nef")
+        createSymbolicLink "/etc/passwd" (tmp </> "sub" </> "c.jpg")
+        (contents, skipped) <- recursiveScanPath config tmp []
+        map inodeFullName contents `shouldBe` ["sub/b.nef"]
+        skipped `shouldBe` [("sub/c.jpg", "symbolic link, not followed")]
     describe "loadFolder" $ do
       it "classifies dummy files by extension" $ \ctx -> do
         let folder = sourceDir ctx </> "2024-01-01-trip"
@@ -1069,6 +1101,20 @@ spec = parallel $ do
           }
         Map.notMember "corydalis" (pdImages pic) `shouldBe` True
         map fileName (pdUntracked pic) `shouldBe` ["corydalis.yaml"]
+      it "ignores symbolic links and reports them as scan errors" $ \ctx -> do
+        let folder = sourceDir ctx </> "2024-04-04-links"
+        touchFile (folder </> "a.nef")
+        createDirectoryIfMissing True (folder </> "sub")
+        createSymbolicLink "/etc/passwd" (folder </> "key.jpg")
+        createSymbolicLink "/etc/passwd" (folder </> "sub" </> "x.mp4")
+        pic <- loadFolder ctx "2024-04-04-links" folder True
+        Map.keys (pdImages pic) `shouldBe` ["a"]
+        pdUntracked pic `shouldBe` []
+        errs <- map (peItem &&& peError) . pgErrors <$> getProgress ctx
+        errs `shouldMatchList`
+          [ (pack $ folder </> "key.jpg", "symbolic link, not followed")
+          , (pack $ folder </> "sub" </> "x.mp4", "symbolic link, not followed")
+          ]
       it "attaches sidecars as orphaned when alone" $ \ctx -> do
         let folder = sourceDir ctx </> "2024-03-03-xmp"
         touchFile (folder </> "solo.xmp")
@@ -1081,6 +1127,16 @@ spec = parallel $ do
         touchFile (level1 </> "not-a-date" </> "a.nef")
         dirs <- scanSubDir ctx level1 True
         map pdName dirs `shouldMatchList` ["2024-01-01-trip"]
+      it "reports symbolic links to folders as scan errors" $ \ctx -> do
+        let level1 = sourceDir ctx </> "level1"
+        touchFile (level1 </> "2024-01-01-trip" </> "a.nef")
+        createSymbolicLink (level1 </> "2024-01-01-trip")
+          (level1 </> "2024-01-02-link")
+        dirs <- scanSubDir ctx level1 True
+        map pdName dirs `shouldMatchList` ["2024-01-01-trip"]
+        errs <- map (peItem &&& peError) . pgErrors <$> getProgress ctx
+        errs `shouldBe`
+          [(pack $ level1 </> "2024-01-02-link", "symbolic link, not followed")]
     describe "scanBaseDir" $ do
       it "merges source raw and output jpeg of the same image" $ \ctx -> do
         let config = ctxConfig ctx
