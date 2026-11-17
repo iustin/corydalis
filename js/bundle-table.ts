@@ -16,13 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 // PageTable bundle
-import $ from 'jquery';
 import 'bootstrap';
-import { setupCsrf } from './csrf';
 import { setupFlagActions } from './flag-actions';
 import { notify } from './notify';
 import { setupSortableTables } from './tablesort';
 
-setupCsrf($);
-setupFlagActions($, notify);
+setupFlagActions(notify);
 setupSortableTables();

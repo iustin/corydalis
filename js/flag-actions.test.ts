@@ -25,9 +25,11 @@ import {
   notifyReply,
   parseFlagValue,
   runFlagAction,
+  type SendFlag,
   setupFlagActions,
 } from './flag-actions.ts';
 import { type FlagReply, flagFailureMessage } from './flag.ts';
+import { RequestError } from './http.ts';
 
 /** Returns a document holding the given HTML (in its body). */
 function page(html: string): Document {
@@ -117,100 +119,68 @@ describe('notifyReply', () => {
 describe('runFlagAction', () => {
   type Outcome =
     | { reply: FlagReply }
-    | { httpStatus: number; status: string; details: string };
+    | { httpStatus: number; status: 'error'; details: string };
 
   /**
-   * Runs a flag action against a fake jQuery whose request has the given
-   * outcome, returning the requests sent and the notifications shown.
+   * Runs a flag action, with a request that has the given outcome,
+   * returning the requests sent and the notifications shown.
    */
-  function run(outcome: Outcome, flag = true) {
-    const requests: JQuery.AjaxSettings[] = [];
+  async function run(outcome: Outcome, flag = true) {
+    const requests: [string, boolean][] = [];
     const shown: [string, string][] = [];
-    // The input: a fake of the request object (jqXHR) that jQuery returns,
-    // standing in for the server's answer. It mirrors almost 1:1 what
-    // jQuery does in a real run, where done() and fail() register
-    // callbacks, and jQuery later calls the matching one when the answer
-    // arrives. The fake knows the outcome up front, so it calls the
-    // matching callback immediately (synchronously), and decides which
-    // path runFlagAction takes.
-    const xhr = {
-      done(callback: (reply: FlagReply) => void) {
-        if ('reply' in outcome) {
-          callback(outcome.reply);
-        }
-        return xhr;
-      },
-      fail(
-        callback: (
-          xhr: { status: number },
-          status: string,
-          details: string,
-        ) => void,
-      ) {
-        if (!('reply' in outcome)) {
-          callback(
-            { status: outcome.httpStatus },
-            outcome.status,
-            outcome.details,
+    const send: SendFlag = (url, flag) => {
+      requests.push([url, flag]);
+      return 'reply' in outcome
+        ? Promise.resolve(outcome.reply)
+        : Promise.reject(
+            new RequestError(
+              outcome.httpStatus,
+              outcome.status,
+              outcome.details,
+            ),
           );
-        }
-        return xhr;
-      },
     };
-    // The outputs: the fake jQuery and the notifier below record what
-    // runFlagAction calls, i.e. the request sent (in `requests`) and the
-    // notifications shown (in `shown`), for the tests to check.
-    const jquery = {
-      ajax: (settings: JQuery.AjaxSettings) => {
-        requests.push(settings);
-        return xhr;
-      },
-    } as unknown as Pick<JQueryStatic, 'ajax'>;
-    runFlagAction(jquery, (text, kind) => shown.push([text, kind]), {
-      url: '/image/flag/a/b',
-      flag,
-    });
+    await runFlagAction(
+      (text, kind) => shown.push([text, kind]),
+      { url: '/image/flag/a/b', flag },
+      send,
+    );
     return { requests, shown };
   }
 
-  it('sends the request of the action', () => {
-    const { requests } = run({ reply: { text: 'x' } }, false);
-    assert.equal(requests.length, 1);
-    assert.equal(requests[0].url, '/image/flag/a/b');
-    assert.equal(requests[0].type, 'DELETE');
+  it('sends the request of the action', async () => {
+    const { requests } = await run({ reply: { text: 'x' } }, false);
+    assert.deepEqual(requests, [['/image/flag/a/b', false]]);
   });
-  it("shows the server's reply with its kind", () => {
-    const { shown } = run({
+  it("shows the server's reply with its kind", async () => {
+    const { shown } = await run({
       reply: { text: 'Image flagged', kind: 'success' },
     });
     assert.deepEqual(shown, [['Image flagged', 'success']]);
   });
-  for (const [httpStatus, status, details] of [
-    [403, 'error', 'Forbidden'],
-    [404, 'error', 'Not Found'],
-    [0, 'timeout', ''],
+  for (const [httpStatus, details] of [
+    [403, 'Forbidden'],
+    [404, 'Not Found'],
+    [0, 'Failed to fetch'],
   ] as const) {
-    it(`shows a failure (${httpStatus}, ${status}) as an error`, () => {
-      const { shown } = run({ httpStatus, status, details });
+    it(`shows a failure (${httpStatus}) as an error`, async () => {
+      const { shown } = await run({ httpStatus, status: 'error', details });
       assert.deepEqual(shown, [
-        [flagFailureMessage(httpStatus, status, details), 'danger'],
+        [flagFailureMessage(httpStatus, 'error', details), 'danger'],
       ]);
     });
   }
 });
 
 describe('setupFlagActions', () => {
-  /** A jQuery whose requests are recorded, and never answered. */
-  function recordingJquery() {
-    const requests: JQuery.AjaxSettings[] = [];
-    const xhr = { done: () => xhr, fail: () => xhr };
-    const jquery = {
-      ajax: (settings: JQuery.AjaxSettings) => {
-        requests.push(settings);
-        return xhr;
-      },
-    } as unknown as Pick<JQueryStatic, 'ajax'>;
-    return { jquery, requests };
+  /** A flag sender whose requests are recorded, and never answered. */
+  function recordingSender() {
+    const requests: [string, boolean][] = [];
+    const send: SendFlag = (url, flag) => {
+      requests.push([url, flag]);
+      return new Promise(() => {});
+    };
+    return { send, requests };
   }
 
   /** Clicks the element, returning whether the default was prevented. */
@@ -226,37 +196,31 @@ describe('setupFlagActions', () => {
 
   it('sends the flag request of the clicked button', () => {
     const { doc, flagButton, unflagButton } = widget();
-    const { jquery, requests } = recordingJquery();
-    setupFlagActions(jquery, () => {}, doc);
+    const { send, requests } = recordingSender();
+    setupFlagActions(() => {}, doc, send);
     assert.equal(click(flagButton), true, 'prevents the default action');
     click(unflagButton);
-    assert.deepEqual(
-      requests.map((r) => [r.url, r.type]),
-      [
-        ['/image/flag/a/b', 'PUT'],
-        ['/image/flag/a/b', 'DELETE'],
-      ],
-    );
+    assert.deepEqual(requests, [
+      ['/image/flag/a/b', true],
+      ['/image/flag/a/b', false],
+    ]);
   });
 
   it('leaves malformed widgets alone', () => {
     const { doc, flagButton } = widget('');
-    const { jquery, requests } = recordingJquery();
-    setupFlagActions(jquery, () => {}, doc);
+    const { send, requests } = recordingSender();
+    setupFlagActions(() => {}, doc, send);
     assert.equal(click(flagButton), false);
     assert.deepEqual(requests, []);
   });
 
   it('only looks inside the given root', () => {
     const doc = page(`<div id="a">${WIDGET('/a')}</div>${WIDGET('/b')}`);
-    const { jquery, requests } = recordingJquery();
-    setupFlagActions(jquery, () => {}, doc.getElementById('a')!);
+    const { send, requests } = recordingSender();
+    setupFlagActions(() => {}, doc.getElementById('a')!, send);
     for (const button of doc.querySelectorAll('[data-flag="true"]')) {
       click(button);
     }
-    assert.deepEqual(
-      requests.map((r) => r.url),
-      ['/a'],
-    );
+    assert.deepEqual(requests, [['/a', true]]);
   });
 });

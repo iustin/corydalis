@@ -28,6 +28,21 @@
           }
         ]
       }
+    ],
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "fetch",
+        "message": "Use js/http.ts, which sends the CSRF token on state-changing requests."
+      }
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["js/http.ts"],
+      "rules": {
+        "no-restricted-globals": "off"
+      }
+    }
+  ]
 }

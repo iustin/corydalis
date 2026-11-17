@@ -20,12 +20,7 @@ import { describe, it } from 'node:test';
 
 import { JSDOM } from 'jsdom';
 
-import {
-  CSRF_HEADER,
-  csrfTokenFromPage,
-  isCsrfRejection,
-  setupCsrf,
-} from './csrf.ts';
+import { csrfTokenFromPage, isCsrfRejection, needsCsrfToken } from './csrf.ts';
 
 /** A document whose head holds the given meta tags (name to content). */
 function page(metas: Record<string, string>): Document {
@@ -60,47 +55,31 @@ describe('isCsrfRejection', () => {
   }
 });
 
-describe('setupCsrf', () => {
-  /** Installs the prefilter with the given token source, and returns it. */
-  function installPrefilter(getToken) {
-    let prefilter;
-    setupCsrf(
-      {
-        ajaxPrefilter: (fn) => {
-          prefilter = fn;
-        },
-      },
-      getToken,
-    );
-    return prefilter;
-  }
+describe('needsCsrfToken', () => {
+  const PAGE = 'https://cory.example/folder/a';
 
-  /** Runs a request through the prefilter, returning its headers. */
-  function headersFor(options, token: string | null = 'abc123') {
-    const prefilter = installPrefilter(() => token);
-    const headers = {};
-    prefilter(options, options, {
-      setRequestHeader: (name, value) => {
-        headers[name] = value;
-      },
-    });
-    return headers;
-  }
-
-  for (const type of ['PUT', 'DELETE', 'POST', 'put']) {
-    it(`sends the token on ${type}`, () => {
-      assert.deepEqual(headersFor({ type }), { [CSRF_HEADER]: 'abc123' });
+  for (const method of ['PUT', 'DELETE', 'POST', 'put']) {
+    it(`requires the token on ${method}`, () => {
+      assert.equal(needsCsrfToken(method, '/image/flag/a/b', PAGE), true);
     });
   }
-  for (const type of ['GET', 'HEAD', 'OPTIONS', 'TRACE', 'get', undefined]) {
-    it(`does not send the token on ${type}`, () => {
-      assert.deepEqual(headersFor({ type }), {});
+  for (const method of ['GET', 'HEAD', 'OPTIONS', 'TRACE', 'get']) {
+    it(`does not require the token on ${method}`, () => {
+      assert.equal(needsCsrfToken(method, '/x', PAGE), false);
     });
   }
-  it('does not send the token to other origins', () => {
-    assert.deepEqual(headersFor({ type: 'PUT', crossDomain: true }), {});
+  it('accepts absolute and relative URLs on the same origin', () => {
+    assert.equal(needsCsrfToken('PUT', 'https://cory.example/x', PAGE), true);
+    assert.equal(needsCsrfToken('PUT', 'x', PAGE), true);
   });
-  it('sends no header if there is no token', () => {
-    assert.deepEqual(headersFor({ type: 'PUT' }, null), {});
+  it('never sends the token to other origins', () => {
+    for (const url of [
+      'https://other.example/x',
+      'http://cory.example/x',
+      'https://cory.example:8443/x',
+      '//other.example/x',
+    ]) {
+      assert.equal(needsCsrfToken('PUT', url, PAGE), false, url);
+    }
   });
 });
