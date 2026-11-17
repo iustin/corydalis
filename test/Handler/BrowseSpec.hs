@@ -25,7 +25,6 @@ module Handler.BrowseSpec (spec) where
 import           TestImport
 
 import           Indexer
-import           Pics       (launchScanFileSystem, waitForScan)
 
 spec :: Spec
 spec = parallel $ withApp $ do
@@ -47,9 +46,6 @@ spec = parallel $ withApp $ do
       htmlCount ".page-load-status" 0
     it "shows the image grid with page load status messages" $ do
       ctx <- appContext <$> getTestYesod
-      -- Finish scanning first, so that the scan won't drop the injected image.
-      _ <- liftIO $ launchScanFileSystem ctx
-      _ <- liftIO $ waitForScan ctx
       injectImages [simpleRawImage (ctxConfig ctx)]
       login
       checkRoute $ BrowseImagesR 0

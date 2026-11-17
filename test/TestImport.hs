@@ -44,8 +44,9 @@ import           Pics                           (Ctx, File (..), Image (..),
                                                  computeImagesStats,
                                                  computeRepoStats, initContext,
                                                  launchScanFileSystem, mkImage,
-                                                 repoGlobalExif,
-                                                 startupRepository, waitForScan)
+                                                 RepoStatus (..), repoGlobalExif,
+                                                 scanAll, startupRepository,
+                                                 waitForScan)
 import           Test.Hspec                     as X
 import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
 import           Test.Hspec.QuickCheck          as X
@@ -200,11 +201,25 @@ withUnscannedContext = around withUnscannedContext'
 -- App spec definitions.
 
 -- | Builds and returns a valid app.
+--
+-- The initial scan of the (empty) repository is run to completion first:
+-- the app otherwise starts it on the first request that needs the
+-- repository, and doesn't wait for it, so the pages would show the
+-- repository in whatever state the scan reached (starting, scanning,
+-- finished), and the scan could overwrite changes made by the tests
+-- (e.g. 'injectImages'). Tests that need another state set it
+-- explicitly.
 openTempApp :: IO (FilePath, TestApp App)
 openTempApp = do
   tempDir <- setTempDir
   settings <- loadSettings >>= updateSettings tempDir
   foundation <- makeFoundation settings
+  let ctx = appContext foundation
+  _ <- scanAll ctx
+  repo <- waitForScan ctx
+  case repoStatus repo of
+    RepoFinished {} -> return ()
+    status          -> E.throwIO . userError $ "The initial scan failed: " ++ show status
   logWare <- liftIO $ makeLogWare foundation
   return (tempDir, (foundation, logWare . appMiddlewares))
 
