@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { JSDOM } from 'jsdom';
+
 import {
   CSRF_HEADER,
   csrfTokenFromPage,
@@ -25,26 +27,25 @@ import {
   setupCsrf,
 } from './csrf.ts';
 
-/** A minimal stand-in for a document, holding the given meta tags. */
-function fakePage(metas) {
-  return {
-    querySelector: (selector) => {
-      const match = /^meta\[name="([^"]+)"\]$/.exec(selector);
-      return match && match[1] in metas ? { content: metas[match[1]] } : null;
-    },
-  };
+/** A document whose head holds the given meta tags (name to content). */
+function page(metas: Record<string, string>): Document {
+  const doc = new JSDOM().window.document;
+  for (const [name, content] of Object.entries(metas)) {
+    const meta = doc.createElement('meta');
+    meta.name = name;
+    meta.content = content;
+    doc.head.append(meta);
+  }
+  return doc;
 }
 
 describe('csrfTokenFromPage', () => {
   it('reads the token from the meta tag', () => {
-    assert.equal(
-      csrfTokenFromPage(fakePage({ 'csrf-token': 'abc123' })),
-      'abc123',
-    );
+    assert.equal(csrfTokenFromPage(page({ 'csrf-token': 'abc123' })), 'abc123');
   });
   it('returns null if there is no meta tag', () => {
-    assert.equal(csrfTokenFromPage(fakePage({})), null);
-    assert.equal(csrfTokenFromPage(fakePage({ other: 'abc123' })), null);
+    assert.equal(csrfTokenFromPage(page({})), null);
+    assert.equal(csrfTokenFromPage(page({ other: 'abc123' })), null);
   });
 });
 

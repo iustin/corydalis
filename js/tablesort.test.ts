@@ -106,7 +106,7 @@ function typeFilter(
 ) {
   const input = filterInput(table, col);
   input.value = value;
-  input.dispatchEvent(new (input.ownerDocument.defaultView!.Event)('input'));
+  input.dispatchEvent(new input.ownerDocument.defaultView!.Event('input'));
   t.mock.timers.tick(1000);
 }
 
@@ -172,7 +172,7 @@ describe('enhanceTable', () => {
     const table = enhanced();
     const input = filterInput(table, 4);
     input.value = 'JAP';
-    input.dispatchEvent(new (input.ownerDocument.defaultView!.Event)('input'));
+    input.dispatchEvent(new input.ownerDocument.defaultView!.Event('input'));
     assert.equal(names(table).length, 4, 'not applied right away');
     t.mock.timers.tick(1000);
     assert.deepEqual(names(table), ['f-b', 'f-c']);
@@ -213,7 +213,9 @@ describe('enhanceTable', () => {
 
   it('builds select filters from data-text, labelled by the cell text', () => {
     const table = enhanced();
-    const select = table.querySelector<HTMLSelectElement>('tr.filter-row select')!;
+    const select = table.querySelector<HTMLSelectElement>(
+      'tr.filter-row select',
+    )!;
     const options = [...select.querySelectorAll('option')].map((o) => [
       o.value,
       o.textContent,
@@ -224,7 +226,7 @@ describe('enhanceTable', () => {
       ['raw', 'Raw only'],
     ]);
     select.value = 'raw';
-    select.dispatchEvent(new (select.ownerDocument.defaultView!.Event)('change'));
+    select.dispatchEvent(new select.ownerDocument.defaultView!.Event('change'));
     assert.deepEqual(names(table), ['f-b', 'f-d']);
   });
 
