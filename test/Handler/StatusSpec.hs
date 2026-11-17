@@ -45,38 +45,40 @@ setRepoStatus mkStatus = do
 done :: ZonedTime -> WorkResults
 done now = WorkResults { wrStart = now, wrEnd = now, wrDone = def }
 
--- | Checks the status page and its texts.
-checkStatusPage :: [Text] -> YesodExample App ()
-checkStatusPage texts = do
+-- | Checks the status page: its texts, and how many of the three work
+-- cards (scan, render, clean) are shown as successfully finished.
+checkStatusPage :: [Text] -> Int -> YesodExample App ()
+checkStatusPage texts finished = do
   login
   checkRoute StatusR
   htmlAllContain "h1" "Corydalis"
   forM_ texts $ bodyContains . unpack
+  htmlCount ".card.border-success" finished
 
 spec :: Spec
 spec = parallel $ withApp $ describe "the status page" $ do
   it "shows a finished scan" $
     -- The state left by the initial scan.
-    checkStatusPage ["all done", "All work completed."]
+    checkStatusPage ["all done", "All work completed."] 3
   it "shows a starting scan" $ do
     setRepoStatus (const RepoStarting)
     checkStatusPage [ "preparing scan", "Preparing to scan the repository."
                     , "Scanning has not started yet."
                     , "Rendering has not started yet."
                     , "Cleaning has not started yet."
-                    ]
+                    ] 0
   it "shows a scan in progress" $ do
     setRepoStatus $ \now -> RepoScanning (WorkStart now)
     checkStatusPage [ "scanning filesystem"
                     , "Rendering has not started yet."
                     , "Cleaning has not started yet."
-                    ]
+                    ] 0
   it "shows rendering in progress" $ do
     setRepoStatus $ \now -> RepoRendering (done now) (WorkStart now)
-    checkStatusPage ["rendering images", "Cleaning has not started yet."]
+    checkStatusPage ["rendering images", "Cleaning has not started yet."] 1
   it "shows cleaning in progress" $ do
     setRepoStatus $ \now -> RepoCleaning (done now) (done now) (WorkStart now)
-    checkStatusPage ["cleaning the cache"]
+    checkStatusPage ["cleaning the cache"] 2
   it "shows a failed scan" $ do
     setRepoStatus . const $ RepoError "disk on fire"
-    checkStatusPage [ "Repository scanning failed", "disk on fire"]
+    checkStatusPage [ "Repository scanning failed", "disk on fire"] 0

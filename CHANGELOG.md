@@ -92,6 +92,10 @@ headers are no longer collapsible (this was already disabled).
 
 ### Fixed bugs
 
+On the status page, finished work (scan, rendering and cache cleaning)
+is shown with a green border again, as intended: a typo in the style
+name meant it had no border.
+
 If `ffmpeg` was not installed, a single movie without an embedded preview
 made the whole repository scan fail with an error status: on a rescan, the
 repository kept the contents of the previous scan, missing any changes
