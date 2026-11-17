@@ -79,6 +79,22 @@ spec = do
       storageLocation config' "/pics/raw/2020/a.nef" `shouldBe`
         Just (StorageSource, "/pics", "raw/2020/a.nef")
 
+  describe "relativeStoragePath" $ withConfig $ do
+    it "shows the kind and the relative path" $ \config -> do
+      let config' = withDirs ["/raw", "/raw2"] ["/jpeg"] config
+      relativeStoragePath config' "/raw/2020/trip" `shouldBe` "source: 2020/trip"
+      relativeStoragePath config' "/raw2/2020/trip/a.nef" `shouldBe`
+        "source: 2020/trip/a.nef"
+      relativeStoragePath config' "/jpeg/2020/trip/a.jpg" `shouldBe`
+        "output: 2020/trip/a.jpg"
+    it "doesn't show which directory of a kind holds the path" $ \config -> do
+      let config' = withDirs ["/raw", "/raw2"] ["/jpeg"] config
+      relativeStoragePath config' "/raw/2020/trip/a.nef" `shouldBe`
+        relativeStoragePath config' "/raw2/2020/trip/a.nef"
+    it "shows only the file name of other paths" $ \config -> do
+      let config' = withDirs ["/raw"] ["/jpeg"] config
+      relativeStoragePath config' "/srv/other/a.jpg" `shouldBe` "a.jpg"
+
   describe "isCanonicalStoragePath" $ withConfig $ do
     it "accepts a regular file" $ \config -> do
       let path = rawDir config </> "2020" </> "trip" </> "a.nef"

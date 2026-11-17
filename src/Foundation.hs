@@ -45,6 +45,7 @@ module Foundation
   , clientSessionKeyFile
   , isWithinRoot
   , alwaysRequiresAuthentication
+  , hasAccessToStoragePaths
   , makeDummyLoginUser
   ) where
 
@@ -574,6 +575,15 @@ alwaysRequiresAuthentication SettingsR          = True
 alwaysRequiresAuthentication StatusR            = True
 alwaysRequiresAuthentication StatusErrorsR      = True
 alwaysRequiresAuthentication _                  = False
+
+-- | Whether the user can see where the pictures are stored on the
+-- server, i.e. the paths of the configured picture directories, and so
+-- the full paths of folders and files.
+--
+-- Currently, all logged in users can; others only see the paths
+-- relative to the configured directories.
+hasAccessToStoragePaths :: Handler Bool
+hasAccessToStoragePaths = isJust <$> maybeAuthId
 
 -- | access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult

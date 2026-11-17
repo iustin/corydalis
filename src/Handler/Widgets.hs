@@ -44,7 +44,8 @@ import           Pics
 import           Stats               (DateRange)
 
 showFile :: Pics.File -> Widget
-showFile f =
+showFile f = do
+  showPath <- handlerToWidget getStoragePathRenderer
   $(widgetFile "showfile")
 
 folderCover :: Int -> Bool -> UrlParams -> Atom -> PicDir -> Widget

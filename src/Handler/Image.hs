@@ -45,6 +45,8 @@ getImageR folder iname = do
   dir <- getFolder folder
   img <- getFolderImage dir iname
   params <- getParams
+  -- The record holds the full paths of the files.
+  showRecord <- hasAccessToStoragePaths
   let images = pdTimeSort dir
       tkey = imageTimeKey img
       flags = if flagsSoftMaster (imgFlags img)

@@ -29,6 +29,7 @@ import           Import
 import           Indexer
 import           Pics
 import           Utils.Parsing         (parseDecimal)
+import           Utils.Storage         (relativeStoragePath)
 
 import           Data.Aeson.Key        (fromText)
 import qualified Data.Map              as Map
@@ -233,6 +234,16 @@ lookupImage :: Repository -> ShortText -> ImageName -> Maybe Image
 lookupImage (repoDirs -> pics) folder image = do
   dir <- Map.lookup folder pics
   Map.lookup image (pdImages dir)
+
+-- | Returns the function showing storage paths to the current user:
+-- the full paths, if they have access to them (see
+-- 'hasAccessToStoragePaths'), or otherwise relative ones (see
+-- 'relativeStoragePath').
+getStoragePathRenderer :: Handler (FilePath -> Text)
+getStoragePathRenderer = do
+  access <- hasAccessToStoragePaths
+  config <- getConfig
+  return $ if access then pack else relativeStoragePath config
 
 -- | Quotes content such that copy-paste is easier if within a span.
 quoteMarkup :: (ToMarkup a) => a -> Markup

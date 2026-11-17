@@ -22,10 +22,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.FolderSpec (spec) where
 
+import           Handler.Utils (getStoragePathRenderer)
 import           TestImport
 
 spec :: Spec
-spec = parallel $ withApp $
+spec = parallel $ withApp $ do
   it "loads a folder page and checks it looks right" $ do
     login
     checkNotFound $ FolderR "foo"
+  it "shows the full storage paths to logged in users" $ do
+    dir <- addScannedFolder "2020-01-01-trip" ["a.jpg"]
+    login
+    get $ FolderR "2020-01-01-trip"
+    statusIs 200
+    bodyContains dir
+  it "shows relative storage paths to anonymous users" $ do
+    dir <- addScannedFolder "2020-01-01-trip" ["a.jpg"]
+    access <- runHandler hasAccessToStoragePaths
+    liftIO $ access `shouldBe` False
+    showPath <- runHandler getStoragePathRenderer
+    liftIO $ showPath dir `shouldBe` "output: 2020/2020-01-01-trip"

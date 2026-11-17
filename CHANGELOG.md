@@ -163,6 +163,14 @@ folders. Similarly, the status pages show the errors of the repository
 scan, which can also contain such paths. These pages now always require
 logging in.
 
+Security: on public sites, the folder and image pages showed anonymous
+visitors the full paths of the folders and files on the server, which
+reveal the configured picture directories, the same information that
+the settings page only shows after logging in. Anonymous visitors now
+see the paths relative to the configured directories, prefixed by the
+kind of directory (for example, `output: 2020/2020-01-01 Trip`), and the
+raw image record at the bottom of the image page is not shown to them.
+
 Security: the repository status shown at the top of all pages, including
 the error message of a failed scan (which can contain e.g. paths on the
 server), was also shown to anonymous visitors, on the login page and the
