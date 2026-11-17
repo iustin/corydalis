@@ -15,9 +15,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-// PageBasic bundle
+// PageBasic bundle: most pages, including those with sortable tables.
 import 'bootstrap';
 import { setupFlagActions } from './flag-actions';
 import { notify } from './notify';
+import { setupSortableTables } from './tablesort';
 
 setupFlagActions(notify);
+setupSortableTables();

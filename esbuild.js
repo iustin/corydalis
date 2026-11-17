@@ -33,7 +33,6 @@ async function runBuild() {
     entryPoints: [
       'js/bundle-plot.ts',
       'js/bundle-basic.ts',
-      'js/bundle-table.ts',
       'js/imagegrid.ts',
       'js/viewer.ts',
     ],

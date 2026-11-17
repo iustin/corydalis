@@ -375,6 +375,14 @@ depends on the `typescript` package, which unblocks moving to TypeScript
 runs type-aware rules and type-checks the code, which found the movie
 playback and full screen bugs listed above.
 
+The frontend no longer uses jQuery: its remaining uses (requests to the
+server, and some DOM manipulation in the viewer) were small, and are now
+done with the standard browser APIs (`fetch` and the DOM). Requests go
+through a small helper, which adds the CSRF token to state-changing
+requests; the linter forbids using `fetch` directly elsewhere. This
+halves the size of most JavaScript bundles. Since the sortable tables
+are now small, their bundle has been merged into the basic one.
+
 The Node.js version used for development is now pinned in a
 `.node-version` file (currently Node 24), which CI uses as well; Node 20,
 as shipped by Debian stable, is no longer sufficient.
@@ -401,6 +409,8 @@ The dependencies have been updated as follows:
 - The `tablesorter` jQuery plugin has been removed, replaced by a small
   built-in module (see above). It was unmaintained and incompatible with
   jQuery 4, which it was blocking.
+- jQuery has been removed (see above), instead of being updated to
+  version 4.
 
 ## v2025.21.0 - "Zooming for all"
 

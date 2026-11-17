@@ -140,8 +140,7 @@ sessionTimeout = 120
 
 data PageStyle
   = PageBasic  -- ^ Only the most basic CSS/JS. Well, with masonry since
-               -- Bootstrap 5. Sigh.
-  | PageTable  -- ^ A page with sortable tables.
+               -- Bootstrap 5. Sigh. Also sortable tables, which are small.
   | PageView   -- ^ A page with our viewer.
   | PagePlot   -- ^ A page with plotly and tableviewer.
   | PageGrid   -- ^ A page with infinitescroll.
@@ -156,15 +155,12 @@ pageCSSResources PageBasic =
      , corydalis_css_basic_css
      ])
 
--- The table styles are part of basic.css.
-pageCSSResources PageTable = pageCSSResources PageBasic
 pageCSSResources PageView  = pageCSSResources PageBasic
 pageCSSResources PagePlot  = pageCSSResources PageBasic
 pageCSSResources PageGrid  = pageCSSResources PageBasic
 
 pageJSResources :: PageStyle -> StaticRoute
 pageJSResources PageBasic = corydalis_js_bundle_basic_js
-pageJSResources PageTable = corydalis_js_bundle_table_js
 pageJSResources PageView  = corydalis_js_viewer_js
 pageJSResources PagePlot  = corydalis_js_bundle_plot_js
 pageJSResources PageGrid  = corydalis_js_imagegrid_js
@@ -178,8 +174,8 @@ routeStyle CameraStatsR           = PagePlot
 routeStyle CurateR                = PagePlot
 routeStyle FaviconR               = PageBasic
 routeStyle FlaggedImagesListR     = PageBasic
-routeStyle FlaggedImagesR         = PageTable
-routeStyle FolderR{}              = PageTable
+routeStyle FlaggedImagesR         = PageBasic
+routeStyle FolderR{}              = PageBasic
 routeStyle HomeR                  = PageBasic
 routeStyle ImageBytesR{}          = PageBasic
 routeStyle ImageFlagR{}           = PageBasic
@@ -187,9 +183,9 @@ routeStyle ImageInfoR{}           = PageBasic
 routeStyle ImageR{}               = PageBasic
 routeStyle LensInfoR{}            = PagePlot
 routeStyle LensStatsR             = PagePlot
-routeStyle ListFoldersR           = PageTable
-routeStyle ListImagesR            = PageTable
-routeStyle ListItemsR{}           = PageTable
+routeStyle ListFoldersR           = PageBasic
+routeStyle ListImagesR            = PageBasic
+routeStyle ListItemsR{}           = PageBasic
 routeStyle MovieBytesR{}          = PageBasic
 routeStyle QuickSearchR           = PageBasic
 routeStyle RandomImageInfoR       = PageBasic
@@ -201,7 +197,7 @@ routeStyle SearchR                = PageBasic
 routeStyle SettingsR              = PageBasic
 routeStyle StaticR{}              = PageBasic
 routeStyle StatusR                = PageBasic
-routeStyle StatusErrorsR          = PageTable
+routeStyle StatusErrorsR          = PageBasic
 routeStyle ViewR{}                = PageView
 routeStyle SearchViewR            = PageBasic
 
