@@ -85,6 +85,7 @@ module Pics ( PicDir(..)
             , totalStatsCount
             , loadCachedOrBuild
             , imageAtRes
+            , bestMovie
             , checkMagickPolicy
             , allImageFiles
             , allViewableImageFiles
@@ -2064,6 +2065,13 @@ imageDecoder config path =
 extractedDecoder :: Either Text String
 extractedDecoder = Right "jpeg"
 
+-- | Select best movie for an image.
+bestMovie :: Image -> Maybe File
+bestMovie img =
+  case imgMovs img of
+    m:_ -> Just m
+    _   -> imgMasterMov img
+
 -- | Returns a viewable version of an image.
 --
 -- For a processed file, return it directly; for a raw file, extract
@@ -2088,7 +2096,7 @@ getViewableVersion config img
         Right (decoder, mime, path) -> do
           mtime <- filePathLastTouch path
           return (r, path, decoder, mime, mtime)
-  | m:_ <- imgMovs img ++ maybeToList (imgMasterMov img) = do
+  | Just m <- bestMovie img = do
       embedded <- bestEmbedded config (fileFullPath m) (fileLastTouch m)
       case embedded of
         Left _ -> do

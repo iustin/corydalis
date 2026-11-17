@@ -412,6 +412,19 @@ spec = parallel $ do
               _ <- extractFirstFrame config path mtime
               contents <- readFile frame
               jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` rebuilt
+  describe "bestMovie" $ withConfig $ do
+    let movie = simpleFile "a.mp4"
+        master = simpleFile "a.mov"
+        withMovies config movs mmaster =
+          (mkImage config "a" "folder" Nothing Nothing [simpleFile "a.jpg"]
+             Nothing [] [] Nothing MediaImage def)
+            { imgMovs = movs, imgMasterMov = mmaster }
+    it "prefers the processed movies" $ \config ->
+      bestMovie (withMovies config [movie] (Just master)) `shouldBe` Just movie
+    it "falls back to the master movie" $ \config ->
+      bestMovie (withMovies config [] (Just master)) `shouldBe` Just master
+    it "returns nothing for images without movies" $ \config ->
+      bestMovie (withMovies config [] Nothing) `shouldBe` Nothing
   describe "external tools" $ do
     it "returns an error if a tool cannot be run" $ \_ -> do
       result <- readToolProcess (proc "corydalis-no-such-tool" [])
