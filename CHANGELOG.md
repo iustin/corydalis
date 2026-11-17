@@ -180,6 +180,17 @@ their owner, if needed; if this isn't possible (e.g. if owned by another
 user), a warning is logged instead. See the installation documentation
 on replacing the key, if other users could have read it.
 
+Security: the repository scan followed symbolic links to files, which
+were then shown and served like any other picture, so anyone who could
+add a symbolic link to a picture folder (named, for example, `key.jpg`)
+could download any file the application can read, e.g. the session key.
+Symbolic links, and other special files (pipes, sockets and devices),
+are now skipped at all levels of the picture folders, and listed as
+errors on the status page. This includes symbolic links to directories,
+which were already ignored, but silently; if you use such links to keep
+pictures elsewhere, add their targets to the configured source or output
+directories instead.
+
 Security: logging in with a password took much longer for existing users
 than for unknown ones, since the (deliberately slow) password check was
 only done for the former, so the response time showed whether a user

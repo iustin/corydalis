@@ -398,6 +398,14 @@ organised in subdirectories, the only difference is that the same
 structure must exist in all instances of a directory, and the relative
 path will be displayed in the interface.
 
+Symbolic links below the configured directories are not followed, and
+neither are other special files (pipes, sockets or devices) used: they
+are skipped and listed as errors on the status page. This applies at
+all levels, including year and folder directories; to keep pictures on
+another disk, add that disk's directory to the configured source or
+output directories instead. The configured directories themselves can
+be symbolic links.
+
 ## Workflows
 
 Note that no matter which of the workflows below you use, you will
