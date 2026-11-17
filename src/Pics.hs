@@ -153,6 +153,7 @@ module Pics ( PicDir(..)
             , runScanAction
             , scaledImagePath
             , cacheFileNeedsBuild
+            , writeViaTempFile
             , scaledCacheNeedsBuild
             , splitPathExt
             , isKnownMediaInode
@@ -184,6 +185,7 @@ import           Data.Time.LocalTime
 import           Debug.Trace.String
 import           System.Directory        hiding (isSymbolicLink)
 import qualified System.Environment
+import qualified System.IO
 import           System.Exit
 import           System.FilePath
 import           System.IO.Error
@@ -1754,13 +1756,18 @@ scaledImagePath :: Config -> FilePath -> Int -> String
 scaledImagePath config path res =
   cachedBasename config path (show res)
 
--- | Whether a cache file is missing or older than the source mtime.
+-- | Whether a cache file is missing, empty, or older than the source mtime.
+--
+-- An empty file is never a valid image; such files were left behind by
+-- failed conversions before they were written via a temporary file (see
+-- 'loadCachedOrBuild'), so they are rebuilt.
 cacheFileNeedsBuild :: FilePath -> POSIXTime -> IO Bool
 cacheFileNeedsBuild fpath mtime = do
   stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
   return $ case stat of
     Left _   -> True
-    Right st -> modificationTimeHiRes st < mtime
+    Right st -> modificationTimeHiRes st < mtime ||
+                System.Posix.Files.fileSize st == 0
 
 -- | Whether a scaled preview for this request size needs generating.
 --
@@ -1824,18 +1831,39 @@ loadCachedOrBuild config origPath bytesPath decoder mime mtime size = do
         let operators = if isThumb
                           then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
                           else ["-resize", geom]
-            (parent, _) = splitFileName fpath
-            outFile = fmt ++ ":" ++ fpath
         decoder' <- either (throwIO . ImageError) return decoder
         let inFile = decoder' ++ ":" ++ bytesPath
-        createDirectoryIfMissing True parent
-        -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
-        pconfig <- convertProcess config (concat [[inFile], operators, [outFile]])
-        (exitCode, out, err) <- readProcess pconfig `catch`
-                                (\e -> let e' = sformat shown (e :: SomeException)
-                                       in throwIO . ImageError $ e')
-        when (exitCode /= ExitSuccess) . throwIO . ImageError . decodeToolOutput $ err `BSL.append` out
+        -- convert can leave an empty or partial output file behind when
+        -- it fails, which would then be served as the preview, so it
+        -- writes to a temporary file, moved in place only on success.
+        writeViaTempFile fpath $ \tmpPath -> do
+          -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
+          pconfig <- convertProcess config (concat [[inFile], operators, [fmt ++ ":" ++ tmpPath]])
+          (exitCode, out, err) <- readProcess pconfig `catch`
+                                  (\e -> let e' = sformat shown (e :: SomeException)
+                                         in throwIO . ImageError $ e')
+          when (exitCode /= ExitSuccess) . throwIO . ImageError . decodeToolOutput $ err `BSL.append` out
       return (needsGen, sformat ("image/" % string) fmt, fpath)
+
+-- | Creates a file by writing it to a temporary file in the same
+-- directory (creating the directory if needed), then renaming it to its
+-- final name, so that the file only appears once fully written.
+--
+-- If the writing action fails, the temporary file is removed, and the
+-- exception is rethrown. The file gets the default permissions (subject
+-- to the umask), as a newly created file would; if it replaces an
+-- existing file, it does not keep that file's permissions (the cache
+-- files are all created by this code, so they have the default ones).
+writeViaTempFile :: FilePath -> (FilePath -> IO ()) -> IO ()
+writeViaTempFile path write = do
+  let (dir, name) = splitFileName path
+  createDirectoryIfMissing True dir
+  bracketOnError
+    (do (tmpPath, h) <- System.IO.openTempFileWithDefaultPermissions dir (name ++ ".tmp")
+        System.IO.hClose h
+        return tmpPath)
+    (void . tryIO . removeFile)
+    (\tmpPath -> write tmpPath >> renameFile tmpPath path)
 
 -- | Builds the process configuration for running ImageMagick's convert.
 --
