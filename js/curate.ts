@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import * as Plotly from 'plotly.js-cartesian-dist';
-import $ from 'jquery';
 import 'bootstrap';
+import { loadBootJSON } from './boot';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
@@ -116,13 +116,5 @@ function onDataReceived(series: any) {
 }
 
 export function initCurate(): void {
-  const bootdiv = $('#boot');
-  const curateurl = bootdiv.data('curate-url');
-
-  $.ajax({
-    url: curateurl,
-    type: 'GET',
-    dataType: 'json',
-    success: onDataReceived,
-  });
+  void loadBootJSON('curate-url', onDataReceived);
 }

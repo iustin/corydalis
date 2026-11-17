@@ -19,11 +19,8 @@ import $ from 'jquery';
 import screenfull from 'screenfull';
 import 'bootstrap';
 import { Modal } from 'bootstrap';
-import { setupCsrf } from './csrf';
-import { flagFailureMessage, sendFlag } from './flag';
+import { flagErrorMessage, sendFlag } from './flag';
 import { playFailureMessage } from './media';
-
-setupCsrf($);
 
 // The Haskell types.
 
@@ -1192,13 +1189,10 @@ $(function () {
   }
 
   function flagImage(flag: boolean) {
-    sendFlag($, cory.info.current.flag, flag)
-      .done(function (json) {
-        writeMessage(json.text, 2000);
-      })
-      .fail(function (xhr, status, details) {
-        writeMessage(flagFailureMessage(xhr.status, status, details));
-      });
+    sendFlag(cory.info.current.flag, flag).then(
+      (json) => writeMessage(json.text, 2000),
+      (err: unknown) => writeMessage(flagErrorMessage(err)),
+    );
   }
 
   function setupTouchAndGestureHandlers() {

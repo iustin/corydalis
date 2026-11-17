@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // The click handlers must be attached here: the content security policy
 // forbids inline handlers (onclick attributes) in the HTML.
 
-import { type FlagReply, flagFailureMessage, sendFlag } from './flag.ts';
+import { type FlagReply, flagErrorMessage, sendFlag } from './flag.ts';
 import { type ToastKind, parseToastKind } from './toast.ts';
 
 /** What a click on a flag button should do. */
@@ -41,6 +41,9 @@ export type FlagAction = {
 
 /** Shows a notification, see js/notify.ts. */
 export type Notify = (text: string, kind: ToastKind) => void;
+
+/** Sends a flag request, see sendFlag; replaceable in the tests. */
+export type SendFlag = (url: string, flag: boolean) => Promise<FlagReply>;
 
 /** Parses the value of a button's `data-flag` attribute. */
 export function parseFlagValue(value: string | null): boolean | null {
@@ -78,18 +81,17 @@ export function notifyReply(notify: Notify, reply: FlagReply): void {
 
 /**
  * Sends the request of a flag action, and shows its result: the server's
- * reply, or the failure as an error.
+ * reply, or the failure as an error. Never fails.
  */
 export function runFlagAction(
-  jquery: Pick<JQueryStatic, 'ajax'>,
   notify: Notify,
   action: FlagAction,
-): void {
-  sendFlag(jquery, action.url, action.flag)
-    .done((reply) => notifyReply(notify, reply))
-    .fail((xhr, status, details) =>
-      notify(flagFailureMessage(xhr.status, status, details), 'danger'),
-    );
+  send: SendFlag = sendFlag,
+): Promise<void> {
+  return send(action.url, action.flag).then(
+    (reply) => notifyReply(notify, reply),
+    (err: unknown) => notify(flagErrorMessage(err), 'danger'),
+  );
 }
 
 /**
@@ -99,9 +101,9 @@ export function runFlagAction(
  * are loaded) only run after that.
  */
 export function setupFlagActions(
-  jquery: Pick<JQueryStatic, 'ajax'>,
   notify: Notify,
   root: ParentNode = document,
+  send: SendFlag = sendFlag,
 ): void {
   for (const button of root.querySelectorAll('[data-flag-url] [data-flag]')) {
     const action = flagActionFor(button);
@@ -110,7 +112,7 @@ export function setupFlagActions(
     }
     button.addEventListener('click', (event) => {
       event.preventDefault();
-      runFlagAction(jquery, notify, action);
+      void runFlagAction(notify, action, send);
     });
   }
 }

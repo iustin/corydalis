@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // With the extension, as the unit tests run this file directly in Node.
 import { isCsrfRejection } from './csrf.ts';
+import { type RequestEnv, RequestError, requestJSON } from './http.ts';
 
 /**
  * The reply of the server to a flag request: a message, and its kind (e.g.
@@ -27,21 +28,20 @@ import { isCsrfRejection } from './csrf.ts';
 export type FlagReply = { text: string; kind?: string };
 
 /**
- * Sends a request to flag (or un-flag) an image, using the image's flag URL.
+ * Sends a request to flag (or un-flag) an image, using the image's flag URL,
+ * and returns the server's reply.
  *
  * The request asks for JSON, so that the server replies with a message
  * instead of redirecting to the image page.
+ *
+ * @throws RequestError if the request fails, see requestJSON
  */
 export function sendFlag(
-  jquery: Pick<JQueryStatic, 'ajax'>,
   url: string,
   flag: boolean,
-): JQuery.jqXHR<FlagReply> {
-  return jquery.ajax({
-    url,
-    type: flag ? 'PUT' : 'DELETE',
-    dataType: 'json',
-  });
+  env: RequestEnv = {},
+): Promise<FlagReply> {
+  return requestJSON<FlagReply>(flag ? 'PUT' : 'DELETE', url, env);
 }
 
 /** Returns the message to show the user when a flag request failed. */
@@ -54,4 +54,11 @@ export function flagFailureMessage(
     ? 'Could not flag the image: this page is out of date, ' +
         'please reload it and try again.'
     : 'Error flagging image: ' + status + ', details: ' + details;
+}
+
+/** Returns the message to show the user for a failed flag request. */
+export function flagErrorMessage(err: unknown): string {
+  return err instanceof RequestError
+    ? flagFailureMessage(err.status, err.kind, err.message)
+    : flagFailureMessage(0, 'error', String(err));
 }

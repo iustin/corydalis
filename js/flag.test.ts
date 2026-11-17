@@ -18,38 +18,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { flagFailureMessage, sendFlag } from './flag.ts';
+import { flagErrorMessage, flagFailureMessage, sendFlag } from './flag.ts';
+import { RequestError } from './http.ts';
 
 describe('sendFlag', () => {
-  /** Runs sendFlag with a fake jQuery, returning the request options. */
-  function requestFor(flag: boolean) {
-    let options;
-    sendFlag(
-      {
-        ajax: (opts) => {
-          options = opts;
-          return null as unknown as JQuery.jqXHR;
-        },
-      } as Pick<JQueryStatic, 'ajax'>,
-      '/image/flag/a/b',
-      flag,
-    );
-    return options;
+  /** Runs sendFlag with a fake fetch, returning the method and URL sent. */
+  async function requestFor(flag: boolean) {
+    const sent: [string | undefined, string][] = [];
+    const fetch = (url: string, init?: RequestInit) => {
+      sent.push([init?.method, url]);
+      return Promise.resolve(new Response('{"text": "done"}'));
+    };
+    const reply = await sendFlag('/image/flag/a/b', flag, {
+      fetch: fetch as unknown as typeof globalThis.fetch,
+      pageUrl: 'https://cory.example/',
+      csrfToken: () => 't',
+    });
+    assert.deepEqual(reply, { text: 'done' });
+    return sent;
   }
 
-  it('flags with a PUT request', () => {
-    assert.deepEqual(requestFor(true), {
-      url: '/image/flag/a/b',
-      type: 'PUT',
-      dataType: 'json',
-    });
+  it('flags with a PUT request', async () => {
+    assert.deepEqual(await requestFor(true), [['PUT', '/image/flag/a/b']]);
   });
-  it('un-flags with a DELETE request', () => {
-    assert.deepEqual(requestFor(false), {
-      url: '/image/flag/a/b',
-      type: 'DELETE',
-      dataType: 'json',
-    });
+  it('un-flags with a DELETE request', async () => {
+    assert.deepEqual(await requestFor(false), [['DELETE', '/image/flag/a/b']]);
   });
 });
 
@@ -61,6 +54,29 @@ describe('flagFailureMessage', () => {
     assert.equal(
       flagFailureMessage(404, 'error', 'Not Found'),
       'Error flagging image: error, details: Not Found',
+    );
+  });
+});
+
+describe('flagErrorMessage', () => {
+  it('uses the details of failed requests', () => {
+    assert.equal(
+      flagErrorMessage(new RequestError(404, 'error', 'Not Found')),
+      flagFailureMessage(404, 'error', 'Not Found'),
+    );
+    assert.match(
+      flagErrorMessage(new RequestError(403, 'error', 'Forbidden')),
+      /reload/,
+    );
+    assert.equal(
+      flagErrorMessage(new RequestError(200, 'parsererror', 'bad JSON')),
+      'Error flagging image: parsererror, details: bad JSON',
+    );
+  });
+  it('reports other errors too', () => {
+    assert.equal(
+      flagErrorMessage(new Error('oops')),
+      'Error flagging image: error, details: Error: oops',
     );
   });
 });

@@ -41,19 +41,21 @@ export function isCsrfRejection(status: number): boolean {
   return status === 403;
 }
 
-/** Makes jQuery send the token on all same-origin, state-changing requests. */
-export function setupCsrf(
-  jquery: Pick<JQueryStatic, 'ajaxPrefilter'>,
-  getToken: () => string | null = () => csrfTokenFromPage(),
-) {
-  jquery.ajaxPrefilter((options, _originalOptions, xhr) => {
-    const method = (options.type ?? 'GET').toUpperCase();
-    if (options.crossDomain || SAFE_METHODS.includes(method)) {
-      return;
-    }
-    const token = getToken();
-    if (token !== null) {
-      xhr.setRequestHeader(CSRF_HEADER, token);
-    }
-  });
+/**
+ * Whether a request needs the CSRF token: only state-changing requests do,
+ * and the token must never be sent to another origin.
+ *
+ * @param method the HTTP method of the request
+ * @param url the URL of the request, possibly relative to the page
+ * @param pageUrl the URL of the page (its base URL)
+ */
+export function needsCsrfToken(
+  method: string,
+  url: string,
+  pageUrl: string,
+): boolean {
+  if (SAFE_METHODS.includes(method.toUpperCase())) {
+    return false;
+  }
+  return new URL(url, pageUrl).origin === new URL(pageUrl).origin;
 }
