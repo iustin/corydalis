@@ -189,7 +189,9 @@ are now skipped at all levels of the picture folders, and listed as
 errors on the status page. This includes symbolic links to directories,
 which were already ignored, but silently; if you use such links to keep
 pictures elsewhere, add their targets to the configured source or output
-directories instead.
+directories instead. Additionally, before reading or serving a file, it
+is checked again that no part of its path below the configured
+directories has been replaced by a symbolic link since the scan.
 
 Security: logging in with a password took much longer for existing users
 than for unknown ones, since the (deliberately slow) password check was

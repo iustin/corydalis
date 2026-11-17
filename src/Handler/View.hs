@@ -261,7 +261,8 @@ getImageBytesR folder iname = do
   config <- getConfig
   img <- getImage folder iname
   res <- getResParam
-  imgbytes <- liftIO $ imageAtRes config img res
+  logfn <- ctxLogger <$> getContext
+  imgbytes <- liftIO $ imageAtRes logfn config img res
   case imgbytes of
     Left ImageNotViewable ->
       sendResponse imageNotViewable
@@ -278,11 +279,14 @@ getMovieBytesR :: ShortText -> ImageName -> Handler ()
 getMovieBytesR folder iname = do
   sandboxRawContents
   img <- getImage folder iname
-  case bestMovie img of
-    Just f -> sendFile
-                (Text.encodeUtf8 $ fileMimeType "video/mp4" f)
-                (fileFullPath f)
-    _      -> sendResponse imageNotViewable
+  config <- getConfig
+  logfn <- ctxLogger <$> getContext
+  movie <- liftIO $ movieToServe logfn config img
+  case movie of
+    Left (ImageError err) -> sendResponse $ imageError err
+    Left ImageNotViewable -> sendResponse imageNotViewable
+    Right f -> sendFile (Text.encodeUtf8 $ fileMimeType "video/mp4" f)
+                        (fileFullPath f)
 
 -- | Builds the complete view information for a given image.
 --
