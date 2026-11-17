@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Utils.StorageSpec (spec) where
 
+import           Data.Either        (isLeft)
 import           System.Directory   (createDirectoryIfMissing)
 import           System.FilePath    (takeDirectory)
 import           System.Posix.Files (createSymbolicLink)
@@ -108,3 +109,32 @@ spec = do
       createFile (rawDir config </> "a.nef")
       createSymbolicLink (rawDir config) rawLink
       isCanonicalStoragePath config' (rawLink </> "a.nef") `shouldReturn` True
+
+  describe "privateDirsInStorage" $ do
+    it "accepts separate directories" $
+      privateDirsInStorage ["/pics/raw", "/pics/jpeg"] ["/srv/corydalis/config"]
+        `shouldBe` []
+    it "finds private directories within picture directories" $
+      privateDirsInStorage ["/pics/raw", "/srv"]
+        ["/srv/corydalis/config", "/var/lib/db"]
+        `shouldBe` [("/srv/corydalis/config", "/srv")]
+    it "finds private directories equal to picture directories" $
+      privateDirsInStorage ["/pics"] ["/pics"] `shouldBe` [("/pics", "/pics")]
+    it "accepts picture directories within private directories" $
+      privateDirsInStorage ["/srv/corydalis/pictures"] ["/srv/corydalis"]
+        `shouldBe` []
+
+  describe "checkPrivateDirsOutsideStorage" $ withConfig $ do
+    it "accepts private directories outside the picture directories" $ \config ->
+      checkPrivateDirsOutsideStorage config [cfgCacheDir config </> "config"]
+        `shouldReturn` Right ()
+    it "refuses private directories within the picture directories" $ \config -> do
+      let private = rawDir config </> "2020" </> "config"
+      result <- checkPrivateDirsOutsideStorage config [private]
+      result `shouldSatisfy` either (pack private `isInfixOf`) (const False)
+    it "resolves symbolic links and relative paths" $ \config -> do
+      let private = cfgCacheDir config </> "private"
+      createDirectoryIfMissing True (rawDir config </> "config")
+      createSymbolicLink (rawDir config </> "config") private
+      result <- checkPrivateDirsOutsideStorage config [private </> "x" </> ".."]
+      result `shouldSatisfy` isLeft

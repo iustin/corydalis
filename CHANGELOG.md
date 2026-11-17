@@ -193,6 +193,12 @@ directories instead. Additionally, before reading or serving a file, it
 is checked again that no part of its path below the configured
 directories has been replaced by a symbolic link since the scan.
 
+Security: the application now refuses to start if the `config`
+directory (holding the session key) or the directory holding the
+database is within one of the configured source or output directories,
+since their files would then be scanned, and possibly shown, like
+pictures.
+
 Security: logging in with a password took much longer for existing users
 than for unknown ones, since the (deliberately slow) password check was
 only done for the former, so the response time showed whether a user

@@ -33,6 +33,7 @@ module Utils.Permissions ( PrivateDirStatus(..)
                          , protectPrivateDirWith
                          , privateDirMessage
                          , databaseDirectory
+                         , databaseFileDirectory
                          ) where
 
 import           Data.Bits           ((.&.), (.|.))
@@ -114,8 +115,16 @@ privateDirMessage dir (PrivateDirAccessible reason) = Just $
 -- ignored, as is the current directory: it holds other files too, so
 -- the database should be in its own directory.
 databaseDirectory :: Text -> Maybe FilePath
-databaseDirectory db
+databaseDirectory db = case databaseFileDirectory db of
+  Just "." -> Nothing
+  dir      -> dir
+
+-- | The directory holding the database file, including the current
+-- directory, if the database is a file.
+--
+-- In-memory databases, and URIs (which can hold arbitrary options), are
+-- ignored.
+databaseFileDirectory :: Text -> Maybe FilePath
+databaseFileDirectory db
   | db == ":memory:" || "file:" `isPrefixOf` db = Nothing
-  | otherwise = case takeDirectory (unpack db) of
-                  "."  -> Nothing
-                  dir  -> Just dir
+  | otherwise = Just . takeDirectory $ unpack db

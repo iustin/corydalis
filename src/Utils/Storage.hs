@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
 
 -- | Locating paths within the configured picture directories.
@@ -25,6 +26,8 @@ module Utils.Storage ( StorageKind(..)
                      , isWithinDir
                      , storageLocation
                      , isCanonicalStoragePath
+                     , privateDirsInStorage
+                     , checkPrivateDirsOutsideStorage
                      ) where
 
 import           Data.Either         (fromRight)
@@ -91,3 +94,39 @@ isCanonicalStoragePath config fpath =
         cpath <- canonicalizePath fpath
         return $ pathComponents cpath == pathComponents (cdir </> rel)
       return $ fromRight False result
+
+-- | Finds the private directories which are, or are within, one of
+-- the picture directories.
+--
+-- Returns the pairs of private and picture directories. The paths
+-- should be canonical.
+privateDirsInStorage :: [FilePath]  -- ^ The picture directories.
+                     -> [FilePath]  -- ^ The private directories.
+                     -> [(FilePath, FilePath)]
+privateDirsInStorage pictureDirs privateDirs =
+  [ (private, pictures)
+  | private <- privateDirs
+  , pictures <- pictureDirs
+  , isWithinDir pictures private
+  ]
+
+-- | Checks that the private directories (holding e.g. the session key,
+-- or the database) are not within the configured picture directories,
+-- where their files could be listed (and possibly served).
+--
+-- Returns an error message otherwise. The directories are compared
+-- after resolving them, so symbolic links, or relative paths, don't
+-- hide an overlap.
+checkPrivateDirsOutsideStorage :: Config -> [FilePath] -> IO (Either Text ())
+checkPrivateDirsOutsideStorage config privateDirs = do
+  pictureDirs <- mapM canonicalizePath $
+                   cfgSourceDirs config ++ cfgOutputDirs config
+  privateDirs' <- mapM canonicalizePath privateDirs
+  return $ case privateDirsInStorage pictureDirs privateDirs' of
+    [] -> Right ()
+    overlaps -> Left . intercalate "; " $
+      map (uncurry $
+             sformat ("The directory " % string % " holds private files, but \
+                      \is within the picture directory " % string %
+                      ", so these files could be shown"))
+          overlaps
