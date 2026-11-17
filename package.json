@@ -13,7 +13,7 @@
     "@types/node": "^24.19.2",
     "@types/plotly.js": "^3.0.0",
     "@types/tablesorter": "^2.31.8",
-    "bootstrap": "^5.3.3",
+    "bootstrap": "^5.3.9",
     "clang-format": "^1.8.0",
     "esbuild": "^0.28.1",
     "imagesloaded": "^5.0.0",
