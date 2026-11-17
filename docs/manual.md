@@ -63,6 +63,32 @@ use "whitespace" keys such as left/right arrows, space, tab, etc.
 If you want to understand more how Corydalis looks at pictures, read
 on.
 
+### Tables
+
+The tabular views (folder and image lists, camera and lens statistics,
+etc.) can be sorted and filtered in the browser:
+
+- click a column header to sort by that column, and click it again to
+  reverse the order; shift-click adds the column as a secondary sort, or
+  reverses it if it's already one. The headers are buttons, so this
+  works from the keyboard too (tab to a header, then enter or space);
+- when the table is sorted (first) by some columns, e.g. a folder's
+  first picture date, or the image list's folder, the rows are grouped by
+  that column (by month, for dates), with the number of rows in each
+  group;
+- the boxes below the headers filter the rows; the filters of all
+  columns apply at once. Text filters match anywhere in the cell,
+  ignoring case, and some columns (e.g. the image status) have a
+  drop-down with their values instead.
+
+On numeric columns (e.g. image counts), a filter starting with a
+comparison operator compares the numbers: `>10`, `<=5`, `!=0`, etc. The
+operators are the same as for the numeric search atoms (see the [full
+search API](#full-search-api)): `=`, `!=` (or `/=` and `≠`), `<`, `<=`
+(or `≤`), `>`, `>=` (or `≥`). Cells without a number never match a
+comparison, not even `!=`. A number without an operator matches as text,
+anywhere in the cell: `12` matches 12, 120 and 312.
+
 ### Image metadata
 
 Corydalis will use the image metadata (EXIF, IPTC, XMP, etc.) in order
