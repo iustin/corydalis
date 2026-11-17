@@ -48,9 +48,9 @@ extra-source-files:
   - git-version
 
 dependencies:
-  # Due to a bug in GHC 8.0.1, we block its usage
-  # See: https://ghc.haskell.org/trac/ghc/ticket/12130
-  - base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
+  # The base version of the GHC in the Stack snapshot (see stack.yaml);
+  # update it when the snapshot moves to a new GHC major version.
+  - base >=4.20 && <5
 
   - classy-prelude-yesod
   - aeson
