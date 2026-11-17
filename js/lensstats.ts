@@ -19,10 +19,6 @@ import * as Plotly from 'plotly.js-cartesian-dist';
 import $ from 'jquery';
 import 'bootstrap';
 
-// Tablesorter and related files
-import 'tablesorter';
-import { setupTablesorter } from './tablesorter-config';
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
   const lensLayout = {
@@ -97,8 +93,6 @@ function onDataReceived(series: any) {
 export function initLensStats(): void {
   const bootdiv = $('#boot');
   const lensstatsurl = bootdiv.data('lensstats-url');
-
-  setupTablesorter();
 
   $.ajax({
     url: lensstatsurl,

@@ -77,6 +77,16 @@ buttons (zoom vs. search, the folder list vs. the image list), and a few
 homepage and status icons. The "random image" button on the homepage now
 uses the same icon as the one in the viewer.
 
+The sortable tables (folder and image lists, camera and lens statistics,
+and so on) no longer use the `tablesorter` plugin, but a small built-in
+module that does what Corydalis used: sorting (shift-click on a header to
+add a secondary sort column), the filter row, and the group headers. They
+load much faster on large lists, and sorting now works from the keyboard,
+as the column headers are buttons. The filters are plain "contains"
+matches: the special filter syntax of `tablesorter` (e.g. `>10` or `a|b`)
+is no longer supported. Group headers are no longer collapsible (this
+was already disabled).
+
 ### Fixed bugs
 
 If `ffmpeg` was not installed, a single movie without an embedded preview
@@ -309,6 +319,9 @@ The dependencies have been updated as follows:
 - TypeScript (used only for type-checking, since `esbuild` does the
   bundling) has been updated to version 7, the native Go port, which
   type-checks the code about three times faster.
+- The `tablesorter` jQuery plugin has been removed, replaced by a small
+  built-in module (see above). It was unmaintained and incompatible with
+  jQuery 4, which it was blocking.
 
 ## v2025.21.0 - "Zooming for all"
 

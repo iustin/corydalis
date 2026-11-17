@@ -15,12 +15,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import $ from 'jquery';
 import 'bootstrap';
-import 'tablesorter';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { setupTablesorter } from './tablesorter-config';
+import { setupSortableTables } from './tablesort';
 
 // Import page initializers
 import { initCameraStats } from './camerastats';
@@ -57,3 +53,5 @@ if (document.readyState === 'loading') {
   // Document already loaded, run the function
   runInitializers();
 }
+
+setupSortableTables();

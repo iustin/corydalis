@@ -22,7 +22,7 @@ $if not $ null flagged'
   <div .row .my-1>
     <div .col-12>
       <div .card>
-        <table #imagelist .tablesorter .table .table-sm .vmiddle>
+        <table #imagelist .sortable .table .table-sm .vmiddle>
            <thead>
              <tr>
                <th .group-text>Author
