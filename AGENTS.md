@@ -20,6 +20,12 @@ Stack is the build tool. After Haskell changes:
 - Obtain coverage with `make coverage`
 - Lint with `make lint`
 
+When bumping the Stack resolver (`stack.yaml`) to an LTS with a new GHC
+major version, also raise the `base` lower bound in `package.yaml` to the
+`base` version of that GHC (`stack exec -- ghc-pkg field base version`):
+only the snapshot is built and tested, so the bound should not claim
+support for older compilers.
+
 Add tests for any new Haskell code. Specs live under `test/` and are
 discovered by hspec (`test/Spec.hs`). Mirror the module path (e.g.
 `src/Pics.hs` → `test/PicsSpec.hs`).
