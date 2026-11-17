@@ -1,9 +1,9 @@
-        <table #imagelist .tablesorter .table .table-sm .vmiddle data-sortlist="#{sortColumnsEnc}">
+        <table #imagelist .sortable .table .table-sm .vmiddle data-sortlist="#{sortColumnsEnc}">
               <col style="width: #{thumbsize}px;">
               <thead>
-                $# No .filter-select on columns showing file names or EXIF
-                $# data: tablesorter builds the select options as HTML from
-                $# the cell texts, so these would allow markup injection.
+                $# See js/tablesort-logic.ts for the column classes. The
+                $# .filter-select options are built as text, not HTML, so
+                $# they are safe on columns with file names or EXIF data.
                 <tr>
                   <th .parser-false .sorter-false .filter-false>Icon
                   $if showParent

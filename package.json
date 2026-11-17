@@ -12,7 +12,6 @@
     "@types/masonry-layout": "^4.2.7",
     "@types/node": "^24.19.2",
     "@types/plotly.js": "^3.0.15",
-    "@types/tablesorter": "^2.31.8",
     "bootstrap": "^5.3.9",
     "clang-format": "^1.8.0",
     "esbuild": "^0.28.1",
@@ -25,7 +24,6 @@
     "plotly.js-cartesian-dist": "^4.0.0",
     "prettier": "3.6.2",
     "screenfull": "6.0.2",
-    "tablesorter": "^2.31.3",
     "typescript": "^7.0.2"
   },
   "scripts": {

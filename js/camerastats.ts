@@ -19,10 +19,6 @@ import * as Plotly from 'plotly.js-cartesian-dist';
 import $ from 'jquery';
 import 'bootstrap';
 
-// Tablesorter and related files
-import 'tablesorter';
-import { setupTablesorter } from './tablesorter-config';
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
   const cameraLayout = {
@@ -97,8 +93,6 @@ function onDataReceived(series: any) {
 export function initCameraStats(): void {
   const bootdiv = $('#boot');
   const camerastatsurl = bootdiv.data('camerastats-url');
-
-  setupTablesorter();
 
   $.ajax({
     url: camerastatsurl,

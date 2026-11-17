@@ -306,3 +306,37 @@ td.keyHeader {
         /* Slide to the right */
     }
 }
+
+/* Sortable tables (js/tablesort.ts). */
+
+table.sortable .sort-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    cursor: pointer;
+}
+
+table.sortable .sort-button:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+table.sortable th[aria-sort="none"] .sort-button .fa-sort {
+    color: var(--bs-secondary-color);
+}
+
+table.sortable tr.filter-row td {
+    padding-top: 0;
+}
+
+table.sortable tr.group-header th {
+    background-color: var(--bs-tertiary-bg);
+}
+
+table.sortable tr.group-header .group-count {
+    color: var(--bs-secondary-color);
+    font-weight: normal;
+}

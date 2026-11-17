@@ -35,8 +35,6 @@ async function runBuild() {
       'js/bundle-basic.ts',
       'js/bundle-table.ts',
       'js/imagegrid.ts',
-      'js/tablesorter-config.ts',
-      'js/tablesorter-uitheme-simple.ts',
       'js/viewer.ts',
     ],
     bundle: true,

@@ -135,7 +135,7 @@ sessionTimeout = 120
 data PageStyle
   = PageBasic  -- ^ Only the most basic CSS/JS. Well, with masonry since
                -- Bootstrap 5. Sigh.
-  | PageTable  -- ^ A page with tablesorter.
+  | PageTable  -- ^ A page with sortable tables.
   | PageView   -- ^ A page with our viewer.
   | PagePlot   -- ^ A page with plotly and tableviewer.
   | PageGrid   -- ^ A page with infinitescroll.
@@ -150,20 +150,11 @@ pageCSSResources PageBasic =
      , corydalis_css_basic_css
      ])
 
-pageCSSResources PageTable =
-  $(combineStylesheets 'StaticR
-     [ bootstrap_css_bootstrap_css
-     , tablesorter_css_theme_bootstrap_css
-     , tablesorter_css_widget_grouping_min_css
-     , font_awesome_css_fontawesome_css
-     , font_awesome_css_regular_css
-     , font_awesome_css_solid_css
-     , corydalis_css_basic_css
-     ])
-
-pageCSSResources PageView = pageCSSResources PageBasic
-pageCSSResources PagePlot = pageCSSResources PageTable
-pageCSSResources PageGrid = pageCSSResources PageBasic
+-- The table styles are part of basic.css.
+pageCSSResources PageTable = pageCSSResources PageBasic
+pageCSSResources PageView  = pageCSSResources PageBasic
+pageCSSResources PagePlot  = pageCSSResources PageBasic
+pageCSSResources PageGrid  = pageCSSResources PageBasic
 
 pageJSResources :: PageStyle -> StaticRoute
 pageJSResources PageBasic = corydalis_js_bundle_basic_js
