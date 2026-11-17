@@ -39,6 +39,7 @@ import           Model                          as X
 import           Pics                           (Ctx, File (..), Image (..),
                                                  InodeInfo (..), MediaType (..),
                                                  PicDir (..), RepoDirs,
+                                                 RepoStatus (..),
                                                  Repository (..), addDirToRepo,
                                                  buildGroupExif, buildTimeSort,
                                                  computeImagesStats,
@@ -411,6 +412,29 @@ createTestPicDir name =
          , pdStats = def
          , pdEvent = Nothing
          }
+
+-- | Creates a folder with (empty) files in the first output directory,
+-- and rescans the repository. Returns the directory of the folder.
+addScannedFolder :: ShortText -> [FilePath] -> YesodExample App FilePath
+addScannedFolder name files = do
+  liftIO requireExifTool
+  ctx <- appContext <$> getTestYesod
+  -- Folders are two levels below the base directory; the name of the
+  -- intermediate level is not used.
+  let dir = fromMaybe (error "No output directory")
+              (headMay (cfgOutputDirs (ctxConfig ctx))) </> "2020" </>
+              TS.toString name
+  liftIO $ do
+    -- Wait for the initial scan, so that it doesn't miss the new folder.
+    _ <- waitForScan ctx
+    createDirectoryIfMissing True dir
+    mapM_ (\f -> writeFile (dir </> f) ("" :: ByteString)) files
+    _ <- launchScanFileSystem ctx
+    repo <- waitForScan ctx
+    case repoStatus repo of
+      RepoError err -> expectationFailure $ "The scan failed: " ++ unpack err
+      _             -> return ()
+  return dir
 
 -- | Inject images into the repository through the context
 injectImages :: [Image] -> YesodExample App ()

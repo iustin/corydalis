@@ -26,6 +26,8 @@ module Utils.Storage ( StorageKind(..)
                      , isWithinDir
                      , storageLocation
                      , isCanonicalStoragePath
+                     , storageKindName
+                     , relativeStoragePath
                      , privateDirsInStorage
                      , checkPrivateDirsOutsideStorage
                      ) where
@@ -33,7 +35,7 @@ module Utils.Storage ( StorageKind(..)
 import           Data.Either         (fromRight)
 import           System.Directory    (canonicalizePath)
 import           System.FilePath     (makeRelative, normalise,
-                                      splitDirectories)
+                                      splitDirectories, takeFileName)
 
 import           Import.NoFoundation
 
@@ -41,6 +43,23 @@ import           Import.NoFoundation
 data StorageKind = StorageSource  -- ^ A source (e.g. raw) directory.
                  | StorageOutput  -- ^ An output (processed) directory.
                  deriving (Eq, Show)
+
+-- | A short name of the kind of a picture directory, for display.
+storageKindName :: StorageKind -> Text
+storageKindName StorageSource = "source"
+storageKindName StorageOutput = "output"
+
+-- | Shows a path without the location of the configured directories:
+-- the path relative to its configured directory, prefixed by its kind
+-- (but not by which directory, if there are several of that kind).
+--
+-- Paths outside the configured directories are shown as just their
+-- file name.
+relativeStoragePath :: Config -> FilePath -> Text
+relativeStoragePath config fpath =
+  case storageLocation config fpath of
+    Just (kind, _, rel) -> storageKindName kind <> ": " <> pack rel
+    Nothing             -> pack $ takeFileName fpath
 
 -- | Whether a path is a directory, or is below it.
 --

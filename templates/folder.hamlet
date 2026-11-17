@@ -13,7 +13,7 @@
             This folder is backed by the single directory:
             <ul>
               <li>
-                <span .monolight>#{quoteMarkup $ pdMainPath dir}
+                <span .monolight>#{quoteMarkup $ showPath $ TS.toString $ pdMainPath dir}
           $of _
             This folder is backed up by the following directories:
             <ul>
@@ -25,7 +25,7 @@
     <div .card>
       <div .card-header>Event information
       <div .card-body>
-        ^{showFolderEvent event}
+        ^{showFolderEvent showPath event}
 
   <div .col-12 .col-md-3 .mb-4>
     <div .card>

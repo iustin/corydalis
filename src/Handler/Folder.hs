@@ -50,10 +50,10 @@ eventKindInfo GetawayEvent{}       = ("Getaway", TGetaway)
 eventKindInfo GrandVacationEvent{} = ("Grand vacation", TGrandVacation)
 eventKindInfo WorkTripEvent{}      = ("Work trip", TWorkTrip)
 
-showFolderEvent :: Maybe Event -> Widget
-showFolderEvent Nothing =
+showFolderEvent :: (FilePath -> Text) -> Maybe Event -> Widget
+showFolderEvent _ Nothing =
   [whamlet|This folder is not associated with an event.|]
-showFolderEvent (Just ev) = do
+showFolderEvent showPath (Just ev) = do
   let (kindLabel, kindSymbol) = eventKindInfo ev
       kindIcon = atomIcon kindSymbol
       eventNameText = TS.toText (eventName ev)
@@ -81,7 +81,7 @@ showFolderEvent (Just ev) = do
       $of EventExplicit mPath
         $maybe path <- mPath
           <div .text-muted>This event was explicitly defined in #
-            <span .monolight>#{quoteMarkup path}
+            <span .monolight>#{quoteMarkup $ showPath path}
             .
         $nothing
           <div .text-muted>This event was explicitly defined, but the source is unknown.
@@ -92,7 +92,8 @@ getFolderR name = do
   config <- getConfig
   (pics, dir) <- getPicsAndFolder name
   params <- getParams
-  let allpaths = pdMainPath dir:pdSecPaths dir
+  showPath <- getStoragePathRenderer
+  let allpaths = map (showPath . TS.toString) $ pdMainPath dir:pdSecPaths dir
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     let stats = computeFolderStats dir

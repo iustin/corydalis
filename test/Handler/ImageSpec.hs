@@ -25,7 +25,14 @@ module Handler.ImageSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = parallel $ withApp $
+spec = parallel $ withApp $ do
   it "loads an image page and checks it looks right" $ do
     login
     checkNotFound $ ImageR "foo" "bar"
+  it "shows the full paths and the record to logged in users" $ do
+    dir <- addScannedFolder "2020-01-01-trip" ["a.jpg"]
+    login
+    get $ ImageR "2020-01-01-trip" "a"
+    statusIs 200
+    bodyContains $ dir </> "a.jpg"
+    bodyContains "imgName"
