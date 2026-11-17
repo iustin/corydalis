@@ -84,7 +84,7 @@ repoStatusToScanStyle RepoStarting     = "border-warning"
 repoStatusToScanStyle RepoScanning {}  = "border-info"
 repoStatusToScanStyle RepoRendering {} = "border-success"
 repoStatusToScanStyle RepoCleaning {}  = "border-success"
-repoStatusToScanStyle RepoFinished {}  = "border-succces"
+repoStatusToScanStyle RepoFinished {}  = "border-success"
 repoStatusToScanStyle RepoError {}     = "border-danger text-danger"
 
 repoStatusToRenderStyle :: RepoStatus -> Text
@@ -93,7 +93,7 @@ repoStatusToRenderStyle RepoStarting     = "border-warning"
 repoStatusToRenderStyle RepoScanning {}  = "border-warning"
 repoStatusToRenderStyle RepoRendering {} = "border-info"
 repoStatusToRenderStyle RepoCleaning {}  = "border-success"
-repoStatusToRenderStyle RepoFinished {}  = "border-succces"
+repoStatusToRenderStyle RepoFinished {}  = "border-success"
 repoStatusToRenderStyle RepoError {}     = "border-danger text-danger"
 
 repoStatusToCleanStyle :: RepoStatus -> Text
@@ -102,7 +102,7 @@ repoStatusToCleanStyle RepoStarting     = "border-warning"
 repoStatusToCleanStyle RepoScanning {}  = "border-warning"
 repoStatusToCleanStyle RepoRendering {} = "border-warning"
 repoStatusToCleanStyle RepoCleaning {}  = "border-info"
-repoStatusToCleanStyle RepoFinished {}  = "border-succces"
+repoStatusToCleanStyle RepoFinished {}  = "border-success"
 repoStatusToCleanStyle RepoError {}     = "border-danger text-danger"
 
 repoInProgress :: ZonedTime -> Text -> WorkStart -> Widget
