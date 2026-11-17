@@ -15,11 +15,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-import $ from 'jquery';
 import screenfull from 'screenfull';
 import 'bootstrap';
 import { Modal } from 'bootstrap';
+import { bootData, bootJSON } from './boot';
 import { flagErrorMessage, sendFlag } from './flag';
+import { getJSON } from './http';
 import { playFailureMessage } from './media';
 
 // The Haskell types.
@@ -346,10 +347,18 @@ function downloadFile(url: string, fileName: string) {
   document.body.removeChild(a);
 }
 
-$(function () {
-  const bootdiv = $('#boot');
-  const bootinfo = bootdiv.data('view-info');
-  const debug = bootdiv.data('debug');
+/** Runs the function once the document is parsed. */
+function whenReady(fn: () => void) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fn, { once: true });
+  } else {
+    fn();
+  }
+}
+
+whenReady(function () {
+  const bootinfo = bootJSON<ViewInfo>('view-info');
+  const debug = bootJSON<boolean>('debug') ?? false;
   const LOG = debug ? console.log.bind(console) : function () {};
   const LOG_GROUP = debug ? console.group.bind(console) : function () {};
   const LOG_GROUP_END = debug ? console.groupEnd.bind(console) : function () {};
@@ -360,21 +369,40 @@ $(function () {
   const ZOOM_FACTOR = 1.1;
 
   LOG('bootinfo ', bootinfo);
+  if (bootinfo == null) {
+    window.alert(
+      'Cannot initialise the application (no image info), aborting!',
+    );
+    return;
+  }
 
   const cory = new Cory(bootinfo);
 
-  const divMain = $('#main');
-  const navMenu = $('#nav');
+  // The elements of the page; checked for existence below.
+  const divMain = document.getElementById('main') as HTMLElement;
+  const navMenu = document.getElementById('nav') as HTMLElement;
 
-  const canvas = <HTMLCanvasElement>$('#imageCanvas')[0];
-  const context = canvas.getContext('2d');
-  const msgBox = $('#messageBox');
-  const persistBox = $('#persistBox');
-  const moviePlaySpan = $('#moviePlay>span')[0];
-  const seekBar = <HTMLInputElement>$('#seekBar')[0];
-  const fullScreenIcon = $('#imageFull>span');
+  const canvas = document.getElementById('imageCanvas') as HTMLCanvasElement;
+  const context = canvas?.getContext('2d');
+  const msgBox = document.getElementById('messageBox') as HTMLElement;
+  const persistBox = document.getElementById('persistBox') as HTMLElement;
+  const moviePlaySpan = document.querySelector(
+    '#moviePlay>span',
+  ) as HTMLElement;
+  const seekBar = document.getElementById('seekBar') as HTMLInputElement;
+  const fullScreenIcon = document.querySelector(
+    '#imageFull>span',
+  ) as HTMLElement;
 
   const helpDiv = relocateHelpDiv();
+
+  /** Images that have finished loading, see setImageReady. */
+  const readyImages = new WeakSet<HTMLImageElement>();
+
+  /** Attaches a click handler to an element, if it exists. */
+  function onClick(id: string, handler: () => void) {
+    document.getElementById(id)?.addEventListener('click', handler);
+  }
 
   // Virtual (not-in-DOM) canvas that is used to for pre-rendering
   // images. The alternative would be to use putImageData() instead,
@@ -390,6 +418,11 @@ $(function () {
   const waitingBar = document.getElementById('waiting-bar');
 
   if (
+    divMain == null ||
+    navMenu == null ||
+    msgBox == null ||
+    persistBox == null ||
+    fullScreenIcon == null ||
     canvas == null ||
     context == null ||
     offCanvas == null ||
@@ -616,11 +649,9 @@ $(function () {
 
   function updateInfo(url: string) {
     LOG('Requesting info from ', url);
-    $.ajax({
-      url: url,
-      type: 'GET',
-      dataType: 'json',
-    }).done(onInfoReceived);
+    getJSON<ViewInfo>(url).then(onInfoReceived, (err: unknown) => {
+      console.error('Failed to get the image info:', err);
+    });
   }
 
   function redrawImage(centreAt?: Dimensions) {
@@ -738,8 +769,9 @@ $(function () {
       return true;
     }
     // Read the computed (display) dimensions...
-    const width = $(context.canvas).width();
-    const height = $(context.canvas).height();
+    const rect = context.canvas.getBoundingClientRect();
+    const width = rect.width || null;
+    const height = rect.height || null;
     if (width == null || height == null) {
       // Unlikely, but...
       LOG(
@@ -809,11 +841,15 @@ $(function () {
   }
 
   function setImageReady(img: HTMLImageElement, done: boolean) {
-    $(img).data('done', done);
+    if (done) {
+      readyImages.add(img);
+    } else {
+      readyImages.delete(img);
+    }
   }
 
   function isImageReady(img: HTMLImageElement) {
-    return $(img).data('done');
+    return readyImages.has(img);
   }
 
   function handleOffscreenImageLoad(img: HTMLImageElement, kind: string) {
@@ -873,21 +909,21 @@ $(function () {
   function enterFakeFullScreen() {
     LOG('entering fake full screen');
     cory.state.fullscreen = true;
-    navMenu.addClass('nav-hidden');
-    divMain.addClass('fake-fullscreen');
+    navMenu.classList.add('nav-hidden');
+    divMain.classList.add('fake-fullscreen');
     resizeCanvasAndRedraw();
   }
 
   function leaveFakeFullScreen() {
     LOG('exiting fake full screen');
     cory.state.fullscreen = false;
-    navMenu.removeClass('nav-hidden');
-    divMain.removeClass('fake-fullscreen');
+    navMenu.classList.remove('nav-hidden');
+    divMain.classList.remove('fake-fullscreen');
     resizeCanvasAndRedraw();
   }
 
   function enterFullScreen() {
-    const div = divMain[0];
+    const div = divMain;
     if (screenfull.isEnabled) {
       LOG('entering full screen via screenfull');
       // The browser can still refuse (e.g. due to a permissions policy, or
@@ -920,11 +956,11 @@ $(function () {
    */
   function updateFullScreenIcon() {
     if (cory.state.fullscreen) {
-      fullScreenIcon.removeClass('fa-maximize');
-      fullScreenIcon.addClass('fa-minimize');
+      fullScreenIcon.classList.remove('fa-maximize');
+      fullScreenIcon.classList.add('fa-minimize');
     } else {
-      fullScreenIcon.removeClass('fa-minimize');
-      fullScreenIcon.addClass('fa-maximize');
+      fullScreenIcon.classList.remove('fa-minimize');
+      fullScreenIcon.classList.add('fa-maximize');
     }
   }
 
@@ -956,13 +992,13 @@ $(function () {
     if (cory.state.msgTimeId > 0) {
       window.clearTimeout(cory.state.msgTimeId);
     }
-    msgBox.css('visibility', 'hidden');
+    msgBox.style.visibility = 'hidden';
   }
 
   function writeMessage(message: string, timeout?: number) {
     clearMessageAndTimeout();
-    msgBox.text(message);
-    msgBox.css('visibility', 'visible');
+    msgBox.textContent = message;
+    msgBox.style.visibility = 'visible';
     if (timeout == null) {
       timeout = 2000;
     }
@@ -974,7 +1010,7 @@ $(function () {
     }
   }
   function writePersistent(message: string) {
-    persistBox.text(message);
+    persistBox.textContent = message;
   }
 
   function maybeWriteIsMovie(info: ImageInfo) {
@@ -986,12 +1022,16 @@ $(function () {
   }
 
   function updateNavbar(topinfo: ViewInfo) {
-    $('#navlink1').attr('href', topinfo.yearurl);
-    $('#navtext1').text(topinfo.year);
-    $('#navlink2').attr('href', topinfo.folderurl);
-    $('#navtext2').text(topinfo.folder);
-    $('#navlink3').attr('href', topinfo.imageurl);
-    $('#navtext3').text(topinfo.image);
+    const setLink = (n: number, href: string, text: string) => {
+      document.getElementById(`navlink${n}`)?.setAttribute('href', href);
+      const textElement = document.getElementById(`navtext${n}`);
+      if (textElement != null) {
+        textElement.textContent = text;
+      }
+    };
+    setLink(1, topinfo.yearurl, topinfo.year);
+    setLink(2, topinfo.folderurl, topinfo.folder);
+    setLink(3, topinfo.imageurl, topinfo.image);
   }
 
   /**
@@ -1037,13 +1077,13 @@ $(function () {
 
   function gotoRandomImage() {
     showWaitingState(true);
-    $.ajax({
-      url: bootdiv.data('random-url'),
-      type: 'GET',
-      dataType: 'json',
-    }).done(function (json) {
-      switchToImage(json.current);
-    });
+    getJSON<ViewInfo>(bootData('random-url') ?? '').then(
+      (json) => switchToImage(json.current),
+      (err: unknown) => {
+        showWaitingState(false);
+        writeMessage(`Failed to get a random image: ${String(err)}`);
+      },
+    );
   }
 
   function gotoFolder() {
@@ -1745,45 +1785,49 @@ $(function () {
   // the window.
   function mainToFixed() {
     // Hide footer.
-    $('footer').css('display', 'none');
+    const footer = document.querySelector('footer');
+    if (footer != null) {
+      footer.style.display = 'none';
+    }
     // For viewer app, we want the divmain to be fixed-viewport, and not
     // grow, as it is for normal "text" pages.
-    divMain.css({ overflow: 'hidden', position: 'relative' });
+    divMain.style.overflow = 'hidden';
+    divMain.style.position = 'relative';
     // Also remove container-fluid, as here we want as much display space
     // as possible.
-    divMain.removeClass('container-fluid');
-    $('#imageFull').on('click', function () {
+    divMain.classList.remove('container-fluid');
+    onClick('imageFull', function () {
       toggleFullScreen();
     });
-    $('#imageRand').on('click', function () {
+    onClick('imageRand', function () {
       gotoRandomImage();
     });
-    $('#goImageInfo').on('click', triggerGoToImageInfo);
-    $('#downloadImage').on('click', triggerImageDownload);
-    $('#goParent').on('click', gotoFolder);
-    $('#goBrowse').on('click', triggerBrowseMode);
-    $('#goList').on('click', triggerListMode);
-    $('#goFolderList').on('click', triggerFolderListMode);
-    $('#imageZoom').on('click', () => {
+    onClick('goImageInfo', triggerGoToImageInfo);
+    onClick('downloadImage', triggerImageDownload);
+    onClick('goParent', gotoFolder);
+    onClick('goBrowse', triggerBrowseMode);
+    onClick('goList', triggerListMode);
+    onClick('goFolderList', triggerFolderListMode);
+    onClick('imageZoom', () => {
       // If the zoom button is clicked, we don't want to toggle around the
       // zoom button's location, so explicitly override to centre.
       toggleZoomFit(cory.convertToCss(new Dimensions(0, 0)));
     });
-    $('#imagePrev').on('click', function () {
+    onClick('imagePrev', function () {
       advanceImage(false);
     });
-    $('#imageNext').on('click', function () {
+    onClick('imageNext', function () {
       advanceImage(true);
     });
-    $('#folderPrev').on('click', function () {
+    onClick('folderPrev', function () {
       advanceFolder(false);
     });
-    $('#folderNext').on('click', function () {
+    onClick('folderNext', function () {
       advanceFolder(true);
     });
 
     // movie-specific controls
-    $('#moviePlay').on('click', function () {
+    onClick('moviePlay', function () {
       launchMovie();
     });
 
