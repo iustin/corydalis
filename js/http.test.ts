@@ -38,7 +38,7 @@ function fakeFetch(answer: () => Response | Error) {
       ? Promise.reject(result)
       : Promise.resolve(result);
   };
-  return { fetch: fetch as unknown as typeof globalThis.fetch, sent };
+  return { fetch: fetch as typeof globalThis.fetch, sent };
 }
 
 const json = (body: unknown, status = 200) =>

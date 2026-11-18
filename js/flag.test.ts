@@ -30,7 +30,7 @@ describe('sendFlag', () => {
       return Promise.resolve(new Response('{"text": "done"}'));
     };
     const reply = await sendFlag('/image/flag/a/b', flag, {
-      fetch: fetch as unknown as typeof globalThis.fetch,
+      fetch: fetch as typeof globalThis.fetch,
       pageUrl: 'https://cory.example/',
       csrfToken: () => 't',
     });

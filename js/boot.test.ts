@@ -34,7 +34,7 @@ function fakeFetch(answer: () => Promise<Response>) {
     urls.push(url);
     return answer();
   };
-  return { fetch: fetch as unknown as typeof globalThis.fetch, urls };
+  return { fetch: fetch as typeof globalThis.fetch, urls };
 }
 
 /** Silences console.error, returning its mock (to read its calls). */
