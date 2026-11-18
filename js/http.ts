@@ -107,3 +107,35 @@ export async function requestJSON<T>(
 export function getJSON<T>(url: string, env: RequestEnv = {}): Promise<T> {
   return requestJSON<T>('GET', url, env);
 }
+
+/**
+ * Whether a failed request was rejected for lack of a valid session:
+ * the user logged out, or the session expired. The server replies with
+ * 401 to JSON requests in that case, instead of redirecting to the
+ * login page as it does for pages.
+ */
+export function isSessionExpired(status: number): boolean {
+  return status === 401;
+}
+
+/** The message for a request rejected by isSessionExpired. */
+export const SESSION_EXPIRED_MESSAGE =
+  'Your session has expired: reload the page to log in again.';
+
+/**
+ * Returns the message to show the user for a failed request, given what
+ * the request was for (e.g. "get a random image").
+ */
+export function requestFailureMessage(what: string, err: unknown): string {
+  if (!(err instanceof RequestError)) {
+    return `Could not ${what}: ${String(err)}`;
+  }
+  if (isSessionExpired(err.status)) {
+    return SESSION_EXPIRED_MESSAGE;
+  }
+  // Without a status, the request didn't reach the server (or got no
+  // answer), and the message says why.
+  const reason =
+    err.status === 0 ? err.message : `${err.status} ${err.message}`.trim();
+  return `Could not ${what}: ${reason}`;
+}

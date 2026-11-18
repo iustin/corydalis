@@ -20,7 +20,7 @@ import 'bootstrap';
 import { Modal } from 'bootstrap';
 import { bootData, bootJSON } from './boot';
 import { flagErrorMessage, sendFlag } from './flag';
-import { getJSON } from './http';
+import { getJSON, requestFailureMessage } from './http';
 import { playFailureMessage } from './media';
 
 // The Haskell types.
@@ -650,7 +650,11 @@ whenReady(function () {
   function updateInfo(url: string) {
     LOG('Requesting info from ', url);
     getJSON<ViewInfo>(url).then(onInfoReceived, (err: unknown) => {
+      // Without the image info, the viewer can't move on to other
+      // images, so say so (and why), instead of looking busy.
       console.error('Failed to get the image info:', err);
+      showWaitingState(false);
+      showError(requestFailureMessage('get the image information', err));
     });
   }
 
@@ -1009,6 +1013,11 @@ whenReady(function () {
       }, timeout);
     }
   }
+  /** Shows an error, until the next message replaces it. */
+  function showError(message: string) {
+    writeMessage(message, 0);
+  }
+
   function writePersistent(message: string) {
     persistBox.textContent = message;
   }
@@ -1081,7 +1090,7 @@ whenReady(function () {
       (json) => switchToImage(json.current),
       (err: unknown) => {
         showWaitingState(false);
-        writeMessage(`Failed to get a random image: ${String(err)}`);
+        showError(requestFailureMessage('get a random image', err));
       },
     );
   }
@@ -1231,7 +1240,7 @@ whenReady(function () {
   function flagImage(flag: boolean) {
     sendFlag(cory.info.current.flag, flag).then(
       (json) => writeMessage(json.text, 2000),
-      (err: unknown) => writeMessage(flagErrorMessage(err)),
+      (err: unknown) => showError(flagErrorMessage(err)),
     );
   }
 

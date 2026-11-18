@@ -19,7 +19,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // With the extension, as the unit tests run this file directly in Node.
 import { isCsrfRejection } from './csrf.ts';
-import { type RequestEnv, RequestError, requestJSON } from './http.ts';
+import {
+  type RequestEnv,
+  RequestError,
+  SESSION_EXPIRED_MESSAGE,
+  isSessionExpired,
+  requestJSON,
+} from './http.ts';
 
 /**
  * The reply of the server to a flag request: a message, and its kind (e.g.
@@ -50,6 +56,9 @@ export function flagFailureMessage(
   status: string,
   details: string,
 ): string {
+  if (isSessionExpired(httpStatus)) {
+    return SESSION_EXPIRED_MESSAGE;
+  }
   return isCsrfRejection(httpStatus)
     ? 'Could not flag the image: this page is out of date, ' +
         'please reload it and try again.'
