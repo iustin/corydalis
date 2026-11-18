@@ -995,6 +995,7 @@ whenReady(function () {
   function clearMessageAndTimeout() {
     if (cory.state.msgTimeId > 0) {
       window.clearTimeout(cory.state.msgTimeId);
+      cory.state.msgTimeId = 0;
     }
     msgBox.style.visibility = 'hidden';
   }
