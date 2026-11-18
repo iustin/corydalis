@@ -116,7 +116,10 @@ jobs:
         with:
           target: stack:test
           excludes: Main
-          out: coverage/hs/codecov.json
+          # lcov, as for TypeScript (and make coverage-hs), so that both
+          # languages are measured the same way: lines and branches.
+          format: lcov
+          out: coverage/hs/lcov.info
 
       # One upload per language, so that Codecov shows them separately
       # (see the flags in codecov.yml).
@@ -124,7 +127,7 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/hs/codecov.json
+          files: ./coverage/hs/lcov.info
           flags: haskell
           disable_search: true
 
