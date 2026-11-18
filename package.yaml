@@ -162,6 +162,7 @@ library:
     - Settings.StaticFiles
     - Stats
     - Types
+    - Users
     - Utils.Parsing
     - Utils.Permissions
     - Utils.Storage

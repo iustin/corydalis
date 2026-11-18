@@ -254,6 +254,17 @@ user was changed. Logins are now valid for at most a week, configurable
 have to log in again. Since sessions from before upgrading don't record
 the login time, everybody has to log in again once after upgrading.
 
+Security: changing the password of a user didn't end its existing
+sessions, which kept working until they expired (see above); neither
+did restoring a deleted user, whose old sessions came back if they
+hadn't expired yet. Each user now has a session generation, recorded in
+the session at login, and sessions are only valid while it is current:
+changing the password, deleting, or restoring a user (with `db-util`)
+increases it, ending all the user's sessions. The new `db-util logout`
+command does only that, e.g. after losing a device that was logged in.
+The database migration adding the generation is done automatically at
+the first start after upgrading, and doesn't end the existing sessions.
+
 Security: state-changing requests (flagging and un-flagging images, and
 triggering a rescan) had no CSRF protection, so any web site could trigger
 them on behalf of a logged-in user. They, and the login form, now require

@@ -32,6 +32,8 @@ import           Import                  hiding (getLine, hFlush, hGetEcho,
                                           hSetEcho, putStr, putStrLn)
 import           Options.Applicative
 import           System.IO               (hFlush, hGetEcho, hSetEcho)
+import           Users                   (addOrUpdateUser, deleteUser,
+                                          logoutUser)
 import           Utils.Permissions       (databaseDirectory, privateDirMessage,
                                           protectPrivateDir)
 import           Yesod.Auth.HashDB
@@ -43,6 +45,7 @@ data Options = Options
 
 data Command = CmdAdd Text
              | CmdDel Text
+             | CmdLogout Text
              | CmdList
 
 parseAdd :: Parser Command
@@ -51,6 +54,9 @@ parseAdd = CmdAdd <$> argument str (metavar "USERNAME")
 parseDel :: Parser Command
 parseDel = CmdDel <$> argument str (metavar "USERNAME")
 
+parseLogout :: Parser Command
+parseLogout = CmdLogout <$> argument str (metavar "USERNAME")
+
 parseList :: Parser Command
 parseList = pure CmdList
 
@@ -58,6 +64,8 @@ parseCommand :: Parser Command
 parseCommand = subparser $
   command "add" (info parseAdd (progDesc "Add/update a user")) <>
   command "del" (info parseDel (progDesc "Remove a user")) <>
+  command "logout" (info parseLogout
+                    (progDesc "End all the sessions of a user")) <>
   command "list" (info parseList (progDesc "List the users"))
 
 parseOptions :: Parser Options
@@ -81,31 +89,30 @@ upsertUser username = do
       l <- getLine
       putChar '\n'
       return l
-  let u = User username Nothing False
+  let u = User { userName = username, userPassword = Nothing
+               , userDeleted = False, userGeneration = 0 }
   withpw <- liftIO $ setPassword password u
-  -- Adding a deleted user restores it, with the same id.
-  _ <- upsertBy (UniqueUser username) withpw
-         [UserPassword =. userPassword withpw, UserDeleted =. False]
-  return ()
+  -- Adding a deleted user restores it, with the same id; both this and a
+  -- password change end the existing sessions of the user.
+  addOrUpdateUser withpw
 
-removeUser :: MonadIO m
-           => Text -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
-removeUser user = do
-  userId <- getBy $ UniqueUser user
-  case userId of
-    Nothing -> liftIO $ hPutStrLn stderr $ concat ["User ", user, " not found. Ignoring."]
-    -- The user is only marked as deleted, so that its id is never
-    -- reused: the sessions only hold the id, so a new user with the same
-    -- id would otherwise get the deleted user's sessions.
-    Just (Entity uId _) -> update uId [UserDeleted =. True, UserPassword =. Nothing]
-  return ()
+-- | Applies a change to an existing user, warning if it doesn't exist.
+changeUser :: MonadIO m
+           => (Text -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) Bool)
+           -> Text -> ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
+changeUser change user = do
+  found <- change user
+  unless found . liftIO . hPutStrLn stderr $
+    concat ["User ", user, " not found. Ignoring."]
 
 listUsers :: MonadIO m
           => ReaderT SqlBackend (NoLoggingT (ResourceT m)) ()
 listUsers = do
   users <- selectList [] [Asc UserName]
-  liftIO $ mapM_ (\(Entity _ (User name _ deleted)) ->
-                    putStrLn $ if deleted then name <> " (deleted)" else name
+  liftIO $ mapM_ (\(Entity _ user) ->
+                    putStrLn $ if userDeleted user
+                                 then userName user <> " (deleted)"
+                                 else userName user
                  ) users
 
 app :: MonadIO m
@@ -114,7 +121,8 @@ app cmd = do
   runMigration migrateAll
   case cmd of
     CmdAdd u -> upsertUser u
-    CmdDel u -> removeUser u
+    CmdDel u -> changeUser deleteUser u
+    CmdLogout u -> changeUser logoutUser u
     CmdList  -> listUsers
 
 main :: IO ()
