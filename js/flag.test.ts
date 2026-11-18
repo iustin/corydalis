@@ -19,7 +19,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { flagErrorMessage, flagFailureMessage, sendFlag } from './flag.ts';
-import { RequestError } from './http.ts';
+import { RequestError, SESSION_EXPIRED_MESSAGE } from './http.ts';
 
 describe('sendFlag', () => {
   /** Runs sendFlag with a fake fetch, returning the method and URL sent. */
@@ -47,6 +47,12 @@ describe('sendFlag', () => {
 });
 
 describe('flagFailureMessage', () => {
+  it('asks to log in again when the session expired', () => {
+    assert.equal(
+      flagFailureMessage(401, 'error', 'Unauthorized'),
+      SESSION_EXPIRED_MESSAGE,
+    );
+  });
   it('asks to reload the page on a CSRF rejection', () => {
     assert.match(flagFailureMessage(403, 'error', 'Forbidden'), /reload/);
   });

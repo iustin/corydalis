@@ -19,7 +19,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CSRF_HEADER } from './csrf.ts';
-import { RequestError, getJSON, requestJSON } from './http.ts';
+import {
+  RequestError,
+  SESSION_EXPIRED_MESSAGE,
+  getJSON,
+  isSessionExpired,
+  requestFailureMessage,
+  requestJSON,
+} from './http.ts';
 
 const PAGE = 'https://cory.example/folder/a';
 
@@ -137,5 +144,52 @@ describe('requestJSON', () => {
     );
     assert.equal(failure.status, 200);
     assert.equal(failure.kind, 'parsererror');
+  });
+});
+
+describe('isSessionExpired', () => {
+  it('recognises the rejection of a request without a valid session', () => {
+    assert.equal(isSessionExpired(401), true);
+  });
+  for (const status of [0, 200, 403, 404, 500]) {
+    it(`does not treat ${status} as an expired session`, () => {
+      assert.equal(isSessionExpired(status), false);
+    });
+  }
+});
+
+describe('requestFailureMessage', () => {
+  const what = 'get the image information';
+
+  it('asks to log in again when the session expired', () => {
+    const err = new RequestError(401, 'error', 'Unauthorized');
+    assert.equal(requestFailureMessage(what, err), SESSION_EXPIRED_MESSAGE);
+  });
+  it('gives the HTTP status of other failed requests', () => {
+    const err = new RequestError(404, 'error', 'Not Found');
+    assert.equal(
+      requestFailureMessage(what, err),
+      'Could not get the image information: 404 Not Found',
+    );
+  });
+  it('copes with an empty status text', () => {
+    const err = new RequestError(500, 'error', '');
+    assert.equal(
+      requestFailureMessage(what, err),
+      'Could not get the image information: 500',
+    );
+  });
+  it('gives the reason when the server was not reached', () => {
+    const err = new RequestError(0, 'error', 'Failed to fetch');
+    assert.equal(
+      requestFailureMessage(what, err),
+      'Could not get the image information: Failed to fetch',
+    );
+  });
+  it('reports other errors too', () => {
+    assert.equal(
+      requestFailureMessage(what, new TypeError('bad URL')),
+      'Could not get the image information: TypeError: bad URL',
+    );
   });
 });

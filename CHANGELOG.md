@@ -109,6 +109,13 @@ On the status page, finished work (scan, rendering and cache cleaning)
 is shown with a green border again, as intended: a typo in the style
 name meant it had no border.
 
+In the image viewer, failing to load the image information or a random
+image (e.g. because the server is unreachable) was only logged to the
+browser console, so the viewer seemed to hang; such errors are now shown
+in the viewer, and stay until the next message. An expired session (as
+also when flagging an image, here and on the other pages) is reported as
+such, asking to reload the page to log in again.
+
 If `ffmpeg` was not installed, a single movie without an embedded preview
 made the whole repository scan fail with an error status: on a rescan, the
 repository kept the contents of the previous scan, missing any changes
