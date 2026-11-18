@@ -33,6 +33,7 @@ module Application
     , develMain
     , makeFoundation
     , makeLogWare
+    , requestLoggerSettings
     , redactPassword
     , appMiddlewares
     -- * for DevelMain
@@ -79,6 +80,7 @@ import           Network.Wai.Middleware.RequestLogger      (DetailedSettings (..
                                                             Destination (Callback, Logger),
                                                             IPAddrSource (..),
                                                             OutputFormat (..),
+                                                            RequestLoggerSettings,
                                                             defaultDetailedSettings,
                                                             destination,
                                                             mkRequestLogger,
@@ -245,12 +247,21 @@ contentSecurityPolicy = intercalate "; "
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =
+    mkRequestLogger $ requestLoggerSettings
+      (appIpFromHeader settings) (appRequestLogging settings)
+      (Logger $ loggerSet $ appLogger foundation)
+  where settings = appSettings foundation
+
+-- | The settings of the request logger, given whether to take the client
+-- address from the headers, the kind of logging, and where to log.
+requestLoggerSettings :: Bool -> RequestLogging -> Destination
+                      -> RequestLoggerSettings
+requestLoggerSettings ipFromHeader logging logDestination =
     let apacheFormat = Apache
-                        (if appIpFromHeader $ appSettings foundation
+                        (if ipFromHeader
                             then FromFallback
                             else FromSocket)
-        logDestination = Logger $ loggerSet $ appLogger foundation
-        (outputFormat, destination) = case appRequestLogging $ appSettings foundation of
+        (outputFormat, destination) = case logging of
             RequestLoggingDisabled -> (apacheFormat, Callback $ \_ -> return ())
             RequestLoggingApache   -> (apacheFormat, logDestination)
             RequestLoggingDetailed -> (DetailedWithSettings detailed, logDestination)
@@ -259,8 +270,7 @@ makeLogWare foundation =
         -- the parameters, it also doesn't log the raw request bodies.
         detailed = defaultDetailedSettings { mModifyParams = Just redactPassword }
     in
-    mkRequestLogger def
-        { outputFormat = outputFormat
+    def { outputFormat = outputFormat
         , destination = destination
         }
 
