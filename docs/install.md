@@ -273,3 +273,21 @@ If the directories were accessible to other users before, e.g. with
 older versions, and other users could have read the session key, delete
 it and restart the application, to create a new key; similarly, consider
 changing the passwords.
+
+### Picture and cache directories
+
+Only the administrators of the application (or people trusted as much)
+should be able to change the contents of the source, output and cache
+directories while the application runs; reading pictures from shared or
+synchronised folders is fine, as long as the others can't write to
+them.
+
+The scan only accepts regular files (not symbolic links, nor other
+special files), and before reading or serving a file, the application
+checks again that its path doesn't contain a symbolic link. However,
+the file is then opened again by name, by the web server or by the
+external tools; someone who can replace files in these directories at
+the right moment can thus make the application serve (or convert) any
+other file it can read, including the session key. The cache directory,
+whose files are served without further checks, is only written by the
+application, and should be writable only by its user.
