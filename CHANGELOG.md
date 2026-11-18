@@ -175,6 +175,12 @@ the first frame of the movie) were cached forever, so after editing or
 replacing such a file, the old preview kept being shown. They are now
 extracted again if the file changed since.
 
+Security: with the detailed request logging (`request-logging:
+"detailed"`, the default in development builds), the request parameters
+were logged, including the password of each login, in plain text. The
+password is now hidden, and the raw request bodies are no longer logged.
+If you used detailed request logging, consider removing the old logs.
+
 Security: on public sites (built with the `public-site` flag), anonymous
 visitors could see the flagged images pages, which show the names of the
 users who flagged the images, i.e. valid login names, and the settings

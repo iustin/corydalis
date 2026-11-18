@@ -33,6 +33,7 @@ module Application
     , develMain
     , makeFoundation
     , makeLogWare
+    , redactPassword
     , appMiddlewares
     -- * for DevelMain
     , getApplicationRepl
@@ -73,9 +74,12 @@ import           Network.Wai.Handler.WarpTLS               (OnInsecure (..),
                                                             onInsecure, runTLS,
                                                             tlsSettings)
 import           Network.Wai.Middleware.AddHeaders         (addHeaders)
-import           Network.Wai.Middleware.RequestLogger      (Destination (Callback, Logger),
+import           Network.Wai.Parse                          (Param)
+import           Network.Wai.Middleware.RequestLogger      (DetailedSettings (..),
+                                                            Destination (Callback, Logger),
                                                             IPAddrSource (..),
                                                             OutputFormat (..),
+                                                            defaultDetailedSettings,
                                                             destination,
                                                             mkRequestLogger,
                                                             outputFormat)
@@ -249,13 +253,23 @@ makeLogWare foundation =
         (outputFormat, destination) = case appRequestLogging $ appSettings foundation of
             RequestLoggingDisabled -> (apacheFormat, Callback $ \_ -> return ())
             RequestLoggingApache   -> (apacheFormat, logDestination)
-            RequestLoggingDetailed -> (Detailed True, logDestination)
+            RequestLoggingDetailed -> (DetailedWithSettings detailed, logDestination)
+        -- The detailed format logs the request parameters, so the
+        -- passwords (from the login form) are hidden; with a filter for
+        -- the parameters, it also doesn't log the raw request bodies.
+        detailed = defaultDetailedSettings { mModifyParams = Just redactPassword }
     in
     mkRequestLogger def
         { outputFormat = outputFormat
         , destination = destination
         }
 
+
+-- | Hides the value of the password parameter (of the login form).
+redactPassword :: Param -> Maybe Param
+redactPassword (name, value)
+  | name == "password" = Just (name, "(hidden)")
+  | otherwise          = Just (name, value)
 
 -- | Warp settings for the given foundation value.
 warpSettings :: App -> Settings
