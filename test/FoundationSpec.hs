@@ -40,6 +40,8 @@ import           Settings              (AppSettings (..))
 import           Pics                  (RepoStatus (..), Repository (..),
                                         waitForScan)
 import           TestImport
+import           Users                 (addOrUpdateUser, deleteUser,
+                                        logoutUser)
 
 -- | Returns a cookie set by the last response.
 responseCookie :: ByteString -> YesodExample App (Maybe SetCookie)
@@ -155,6 +157,7 @@ spec = do
   passwordLoginSpec
   authenticationSpec
   loginAgeSpec
+  sessionGenerationSpec
   appSpec
 
 -- | Checks which pages always require authentication.
@@ -232,6 +235,54 @@ loginAgeSpec = describe "login age" $ do
       followRedirectOK
       bodyNotContains "Your login has expired"
 
+sessionGenerationSpec :: Spec
+sessionGenerationSpec = describe "session generation" $ do
+  describe "isGenerationCurrent" $ do
+    it "accepts the current generation" $ do
+      isGenerationCurrent 0 (Just "0") `shouldBe` True
+      isGenerationCurrent 3 (Just "3") `shouldBe` True
+    it "rejects another generation" $ do
+      isGenerationCurrent 1 (Just "0") `shouldBe` False
+      isGenerationCurrent 0 (Just "1") `shouldBe` False
+    it "treats a session without a generation as the initial one" $ do
+      isGenerationCurrent 0 Nothing `shouldBe` True
+      isGenerationCurrent 1 Nothing `shouldBe` False
+    it "rejects an invalid generation" $ do
+      isGenerationCurrent 0 (Just "") `shouldBe` False
+      isGenerationCurrent 0 (Just "zero") `shouldBe` False
+  withApp $ do
+    let loggedIn = do
+          userEntity <- createUser "foo"
+          authenticateAs userEntity
+          checkRoute HomeR
+          return userEntity
+    it "keeps the session while the generation is unchanged" $ do
+      _ <- loggedIn
+      checkRoute HomeR
+    it "ends the session when the user is logged out everywhere" $ do
+      _ <- loggedIn
+      found <- runDB $ logoutUser "foo"
+      liftIO $ found `shouldBe` True
+      checkRouteIs HomeR 303
+    it "ends the session when the password is changed" $ do
+      userEntity <- loggedIn
+      runDB $ addOrUpdateUser (entityVal userEntity) { userPassword = Just "new" }
+      checkRouteIs HomeR 303
+    it "doesn't bring back a session of a deleted user once restored" $ do
+      userEntity <- loggedIn
+      _ <- runDB $ deleteUser "foo"
+      checkRouteIs HomeR 303
+      runDB $ addOrUpdateUser (entityVal userEntity)
+      restored <- runDB $ getBy (UniqueUser "foo")
+      liftIO $ entityKey <$> restored `shouldBe` Just (entityKey userEntity)
+      checkRouteIs HomeR 303
+    it "accepts a new login after the generation changed" $ do
+      userEntity <- loggedIn
+      _ <- runDB $ logoutUser "foo"
+      checkRouteIs HomeR 303
+      authenticateAs userEntity
+      checkRoute HomeR
+
 isWithinRootSpec :: Spec
 isWithinRootSpec = describe "isWithinRoot" $ do
   let root = "http://localhost:3000"
@@ -273,7 +324,8 @@ passwordLoginSpec = describe "password login" $ do
   withApp $ do
     let createUserWithPassword = do
           user <- setPassword "secret" User { userName = "user", userPassword = Nothing
-                                            , userDeleted = False }
+                                            , userDeleted = False
+                                            , userGeneration = 0 }
           runDB $ insert_ user
     it "logs in with the right password" $ do
       createUserWithPassword

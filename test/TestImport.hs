@@ -318,6 +318,7 @@ createUser ident =
         { userName = ident
         , userPassword = Nothing
         , userDeleted = False
+        , userGeneration = 0
         }
 
 login :: YesodExample App ()

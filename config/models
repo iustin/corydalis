@@ -18,5 +18,10 @@ User
     -- user would otherwise get the sessions of a deleted one); they can't
     -- log in, and their sessions are not valid.
     deleted Bool default=0
+    -- The session generation: sessions are only valid while the
+    -- generation stored in them at login is the current one, so
+    -- increasing it ends them; db-util does so on a password change,
+    -- a deletion or a restore, and with its logout command.
+    generation Int default=0
     UniqueUser name
     deriving Typeable

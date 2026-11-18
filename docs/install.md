@@ -148,6 +148,13 @@ Deleted users are kept in the database, marked as such (so that their
 ids, which sessions refer to, are never given to new users), and can't
 log in; adding a deleted user again restores it.
 
+Changing the password of a user, or deleting it, ends all its existing
+sessions, on all devices, and so does restoring a deleted user: old
+sessions don't come back. To end the sessions of a user without other
+changes (e.g. after losing a device that was logged in), use:
+
+    ./db-util -c /path/to/target/config logout <USER>
+
 When first run, the tool will automatically create (or update, on
 upgrade) the required database tables.
 
@@ -221,9 +228,11 @@ will invalidate any existing sessions.
 
 Sessions expire after two hours without activity, and, independently of
 activity, logins are valid for at most a week, after which users have to
-log in again; this also bounds how long a session keeps working after,
-for example, changing the password of a user. The maximum age can be
-changed, in hours, with the `session-max-age` setting.
+log in again; this also bounds how long a stolen session can be used, if
+nobody notices. The maximum age can be changed, in hours, with the
+`session-max-age` setting. Sessions also end when the user's password is
+changed, or the user is deleted or logged out with `db-util` (see
+above).
 
 ### Private directories
 

@@ -49,6 +49,7 @@ module Foundation
   , makeDummyLoginUser
   , loginTimeKey
   , isLoginCurrent
+  , isGenerationCurrent
   ) where
 
 import           Data.Time            (NominalDiffTime, diffUTCTime)
@@ -449,14 +450,29 @@ instance YesodAuth App where
       defaultLoginHandler
 
     -- Records the login time, to limit the age of the session (see
-    -- 'checkLoginAge'); otherwise as the default.
+    -- 'checkLoginAge'), and the user's session generation (see
+    -- 'getAuthEntity'); otherwise as the default.
     onLogin = do
       now <- liftIO getCurrentTime
       setSession loginTimeKey . tshow $
         (floor (utcTimeToPOSIXSeconds now) :: Int64)
+      -- The user id is read from the session directly: going through
+      -- maybeAuthId would also check the session generation, which is
+      -- not set yet. Without a user (which shouldn't happen right after
+      -- logging in), no generation is recorded, which only the initial
+      -- generation accepts (see 'isGenerationCurrent').
+      muid <- (>>= fromPathPiece) <$> lookupSession credsKey
+      muser <- case muid of
+        Just uid -> liftHandler . runDB $ get uid
+        Nothing  -> return Nothing
+      case muser of
+        Just user -> setSession loginGenerationKey . tshow $ userGeneration user
+        Nothing   -> return ()
       addMessageI "success" NowLoggedIn
 
-    onLogout = deleteSession loginTimeKey
+    onLogout = do
+      deleteSession loginTimeKey
+      deleteSession loginGenerationKey
 
     maybeAuthId = do
       current <- liftHandler checkLoginAge
@@ -479,6 +495,7 @@ instance YesodAuth App where
                         { userName = ident
                         , userPassword = Nothing
                         , userDeleted = False
+                        , userGeneration = 0
                         }
             _ -> return $ UserError InvalidUsernamePass
 #else
@@ -501,6 +518,23 @@ instance YesodAuth App where
 -- | The session key holding the login time, in seconds since the epoch.
 loginTimeKey :: Text
 loginTimeKey = "_LOGIN_TIME"
+
+-- | The session key holding the user's session generation at login.
+loginGenerationKey :: Text
+loginGenerationKey = "_LOGIN_GEN"
+
+-- | Whether the session generation stored in the session is the user's
+-- current one.
+--
+-- Sessions without a generation, from before it was recorded, are
+-- treated as having the initial one (0), so that the upgrade doesn't
+-- log out everyone; invalid values are not current.
+isGenerationCurrent :: Int        -- ^ The user's current generation.
+                    -> Maybe Text -- ^ The user's generation at login, as
+                                  -- stored in the session.
+                    -> Bool
+isGenerationCurrent current loginGeneration =
+  maybe (Just 0) readMay loginGeneration == Just current
 
 -- | Whether a login, at the time stored in the session, is still valid.
 --
@@ -533,6 +567,7 @@ checkLoginAge = do
       unless current $ do
         deleteSession credsKey
         deleteSession loginTimeKey
+        deleteSession loginGenerationKey
         setMessage "Your login has expired, please log in again."
         setSession msgTypeKey msgWarning
       return current
@@ -612,7 +647,7 @@ makeDummyLoginUser :: IO User
 makeDummyLoginUser = do
   passwd <- decodeUtf8 . exportSalt <$> genSaltIO
   setPassword passwd User { userName = "", userPassword = Nothing
-                          , userDeleted = False }
+                          , userDeleted = False, userGeneration = 0 }
 
 loginWidget :: Route App -> Widget
 loginWidget loginRoute = do
@@ -677,12 +712,17 @@ repoStatusIcon RepoError {}     = "fa-solid fa-triangle-exclamation"
 
 instance YesodAuthPersist App where
   -- Deleted users don't exist as far as authentication is concerned, so
-  -- their sessions are not valid (see 'defaultMaybeAuthId').
-  getAuthEntity uid = liftHandler . runDB $ do
-    muser <- get uid
+  -- their sessions are not valid (see 'defaultMaybeAuthId'); nor are
+  -- sessions from an older generation of the user (see
+  -- 'isGenerationCurrent').
+  getAuthEntity uid = liftHandler $ do
+    loginGeneration <- lookupSession loginGenerationKey
+    muser <- runDB $ get uid
     return $ case muser of
-      Just user | not (userDeleted user) -> Just user
-      _                                  -> Nothing
+      Just user | not (userDeleted user)
+                , isGenerationCurrent (userGeneration user) loginGeneration
+                -> Just user
+      _ -> Nothing
 
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.
