@@ -36,6 +36,7 @@ module Handler.View ( getViewR
 #ifdef TEST
                     , basicSvg
                     , imageError
+                    , imageErrorText
                     , ImageInfo(..)
 #endif
                     ) where
@@ -45,6 +46,7 @@ import qualified Data.Map                      as Map
 import qualified Data.Text                     as Text
 import qualified Data.Text.Encoding            as Text (encodeUtf8)
 import qualified Data.Text.Short               as TS
+import           System.Log.FastLogger         (toLogStr)
 import           Text.Blaze                    (ToMarkup, toMarkup)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Text.Blaze.Svg                as Svg
@@ -242,6 +244,31 @@ imageError :: Text -> TypedContent
 imageError msg =
   TypedContent typeSvg . toContent $ basicSvg ("Error: " <> msg)
 
+-- | The text of an image error, as shown to a user with (or without)
+-- access to storage paths (see 'hasAccessToStoragePaths').
+--
+-- The details come from the external tools or from exceptions, and
+-- can include storage paths (of the picture, or of the cache), so
+-- others only get a generic message.
+imageErrorText :: Bool -> Text -> Text
+imageErrorText True  details = details
+imageErrorText False _       = "The image could not be read or converted."
+
+-- | Responds with an error image for an error building or reading an
+-- image (see 'imageErrorText').
+--
+-- The error is always logged (as a warning, being a problem with the
+-- files rather than with the application), with its details, whoever
+-- requested the image (and whether they see the details), so that log
+-- watchers see it without depending on users reporting it.
+sendImageError :: LogFn -> ShortText -> ImageName -> Text -> Handler a
+sendImageError logfn folder iname details = do
+  liftIO . logfn LevelWarn $
+    "Error for image " <> toLogStr (TS.toText folder) <> "/" <>
+    toLogStr (TS.toText (unImageName iname)) <> ": " <> toLogStr details
+  access <- hasAccessToStoragePaths
+  sendResponse . imageError $ imageErrorText access details
+
 -- | Restricts what browsers can do with raw file contents opened directly.
 --
 -- The contents come from the repository, and might be crafted documents
@@ -267,7 +294,7 @@ getImageBytesR folder iname = do
     Left ImageNotViewable ->
       sendResponse imageNotViewable
     Left (ImageError err) ->
-      sendResponse $ imageError err
+      sendImageError logfn folder iname err
     Right (_, ctype, rpath) ->
       sendFile (Text.encodeUtf8 ctype) rpath
 
@@ -283,7 +310,7 @@ getMovieBytesR folder iname = do
   logfn <- ctxLogger <$> getContext
   movie <- liftIO $ movieToServe logfn config img
   case movie of
-    Left (ImageError err) -> sendResponse $ imageError err
+    Left (ImageError err) -> sendImageError logfn folder iname err
     Left ImageNotViewable -> sendResponse imageNotViewable
     Right f -> sendFile (Text.encodeUtf8 $ fileMimeType "video/mp4" f)
                         (fileFullPath f)

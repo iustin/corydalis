@@ -191,6 +191,14 @@ see the paths relative to the configured directories, prefixed by the
 kind of directory (for example, `output: 2020/2020-01-01 Trip`), and the
 raw image record at the bottom of the image page is not shown to them.
 
+Security: on public sites, when an image or movie preview could not be
+read or built, the error image shown to anonymous visitors contained the
+error output of the external tools (ImageMagick, `exiftool`, `ffmpeg`),
+which names the full paths of the picture and its cache files. Anonymous
+visitors now get a generic message, while logged in users still see the
+details in the error image. In both cases, the error and its details are
+now always logged (previously, most of them weren't logged at all).
+
 Security: the repository status shown at the top of all pages, including
 the error message of a failed scan (which can contain e.g. paths on the
 server), was also shown to anonymous visitors, on the login page and the

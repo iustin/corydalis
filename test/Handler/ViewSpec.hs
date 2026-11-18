@@ -162,6 +162,15 @@ spec = parallel $ do
               }
         toJSON imgInfo `shouldNotBe` Null
 
+  describe "imageErrorText" $ do
+    let details = "convert: unable to open image `/srv/pics/a.jpg'"
+    it "shows the details to users with access to storage paths" $
+      imageErrorText True details `shouldBe` details
+    it "hides the details, and so the paths, from other users" $ do
+      let shown' = imageErrorText False details
+      shown' `shouldNotSatisfy` ("/srv/pics" `isInfixOf`)
+      shown' `shouldNotBe` ""
+
   describe "handler tests" $ withApp $ do
     describe "checks 404 results" $
       forM_ [ ViewR "foo" "bar"
