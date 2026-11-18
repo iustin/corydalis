@@ -1,2 +1,28 @@
 ignore:
   - "test"
+  - "js/*.test.ts"
+
+# Each language's report is uploaded separately by CI (see
+# .github/workflows/ci.yml), with its own flag.
+flags:
+  haskell:
+    paths:
+      - src/
+      - app/
+  typescript:
+    paths:
+      - js/
+
+coverage:
+  status:
+    project:
+      # Keeps the name (and thus the codecov/project check) it always had.
+      default:
+        flags:
+          - haskell
+      # Informational for now, as most of the frontend (e.g. the viewer)
+      # has no tests yet; make it a real check once it does.
+      typescript:
+        flags:
+          - typescript
+        informational: true

@@ -384,6 +384,12 @@ preview) are now explicitly encoded as JPEG, instead of relying on the
 default of `ffmpeg`, which happened to be JPEG. The tests now need
 ImageMagick and `ffmpeg`, besides `exiftool`.
 
+The TypeScript code now has a coverage report too (`npm run coverage`,
+using `c8`), uploaded to Codecov next to the Haskell one, each with its
+own flag. It also lists the modules that no test loads (e.g. the image
+viewer), at 0%, so that the untested parts of the frontend show up
+instead of being left out.
+
 ### Dependencies
 
 The dependencies have been updated as follows:
