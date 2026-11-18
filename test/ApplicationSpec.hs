@@ -39,16 +39,19 @@ import           Application                          (redactPassword,
 import           Settings                             (RequestLogging (..))
 import           TestImport
 
--- | Returns what the request logger logs for a login request.
-logOfLogin :: RequestLogging -> IO ByteString
-logOfLogin logging = do
+-- | Returns what the request logger logs for a login request, coming
+-- through a proxy (as given by a header).
+logOfLogin :: Bool -> RequestLogging -> IO ByteString
+logOfLogin ipFromHeader logging = do
   logged <- newIORef []
   let dest = Callback $ \str -> modifyIORef logged (fromLogStr str:)
-  logware <- mkRequestLogger $ requestLoggerSettings False logging dest
+  logware <- mkRequestLogger $ requestLoggerSettings ipFromHeader logging dest
   let app _ respond = respond $ responseLBS status200 [] "ok"
       req = defaultRequest
               { requestMethod = "POST"
-              , requestHeaders = [("Content-Type", "application/x-www-form-urlencoded")]
+              , requestHeaders = [ ("Content-Type", "application/x-www-form-urlencoded")
+                                 , ("X-Forwarded-For", "192.0.2.7")
+                                 ]
               }
   _ <- runSession (srequest $ SRequest req "username=alice&password=secret")
                   (logware app)
@@ -58,16 +61,21 @@ spec :: Spec
 spec = do
  describe "request logging" $ do
   it "doesn't log the password in the detailed format" $ do
-    logged <- logOfLogin RequestLoggingDetailed
+    logged <- logOfLogin False RequestLoggingDetailed
     logged `shouldSatisfy` ("alice" `isInfixOf`)
     logged `shouldSatisfy` ("(hidden)" `isInfixOf`)
     logged `shouldNotSatisfy` ("secret" `isInfixOf`)
   it "doesn't log the parameters in the Apache format" $ do
-    logged <- logOfLogin RequestLoggingApache
+    logged <- logOfLogin False RequestLoggingApache
     logged `shouldSatisfy` ("POST" `isInfixOf`)
     logged `shouldNotSatisfy` ("secret" `isInfixOf`)
+  it "logs the client address from the headers only if configured" $ do
+    direct <- logOfLogin False RequestLoggingApache
+    direct `shouldNotSatisfy` ("192.0.2.7" `isInfixOf`)
+    proxied <- logOfLogin True RequestLoggingApache
+    proxied `shouldSatisfy` ("192.0.2.7" `isInfixOf`)
   it "logs nothing when disabled" $
-    logOfLogin RequestLoggingDisabled `shouldReturn` ""
+    logOfLogin False RequestLoggingDisabled `shouldReturn` ""
  describe "redactPassword" $ do
   it "hides the password" $
     redactPassword ("password", "secret") `shouldBe` Just ("password", "(hidden)")
