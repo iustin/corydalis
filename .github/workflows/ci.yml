@@ -86,6 +86,9 @@ jobs:
       - name: Lint and test the TypeScript code
         run: npm test
 
+      - name: Measure the TypeScript test coverage
+        run: npm run coverage
+
       - name: Setup GHC for the resolver
         run: stack setup --no-terminal
 
@@ -109,11 +112,25 @@ jobs:
         with:
           target: stack:test
           excludes: Main
+          out: codecov-haskell.json
 
-      - name: Upload coverage report
+      # One upload per language, so that Codecov shows them separately
+      # (see the flags in codecov.yml).
+      - name: Upload the Haskell coverage report
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./codecov-haskell.json
+          flags: haskell
+          disable_search: true
+
+      - name: Upload the TypeScript coverage report
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage-ts/lcov.info
+          flags: typescript
+          disable_search: true
 
       - name: Build documentation
         run: make doc

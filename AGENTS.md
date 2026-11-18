@@ -17,7 +17,8 @@ Stack is the build tool. After Haskell changes:
 - Run tests with `make test`; `exiftool`, ImageMagick (`convert`) and
   `ffmpeg` must be installed, as some tests run them (they fail, rather
   than being skipped, if they are missing)
-- Obtain coverage with `make coverage`
+- Obtain coverage with `make coverage-hs` (`make coverage` covers both
+  codebases)
 - Lint with `make lint`
 
 When bumping the Stack resolver (`stack.yaml`) to an LTS with a new GHC
@@ -45,6 +46,9 @@ npm is the frontend toolchain (`package.json`, `js/tsconfig.json`).
   extensions)
 - Node.js version: as in `.node-version` (also used by CI)
 - Build: `npm run build`
+- Coverage: `npm run coverage` (`c8`, configured in `.c8rc.json`; also
+  lists the modules no test loads, at 0%), with an lcov report in
+  `coverage-ts/`
 
 Add tests for any new TypeScript code as well.
 

@@ -1,0 +1,8 @@
+{
+  "all": true,
+  "src": ["js"],
+  "include": ["js/**/*.ts"],
+  "exclude": ["js/**/*.test.ts"],
+  "reporter": ["text", "lcovonly"],
+  "report-dir": "coverage-ts"
+}

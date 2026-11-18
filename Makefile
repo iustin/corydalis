@@ -108,10 +108,17 @@ clean:
 really-clean: clean
 	rm -rf .stack-*
 
-coverage:
+# Coverage of both codebases: lcov.info for Haskell, coverage-ts/lcov.info
+# for TypeScript.
+coverage: coverage-hs coverage-ts
+
+coverage-hs:
 	stack --work-dir .stack-coverage test --coverage \
 		--flag corydalis:dev --pedantic --keep-going
 	hpc-codecov -b .stack-coverage -o lcov.info -f lcov -x Main stack:all
+
+coverage-ts:
+	npm run coverage
 
 # Fast tests with ghc options from
 # https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
@@ -142,5 +149,5 @@ lint:
 lentil:
 	lentil src static/corydalis templates test
 
-.PHONY: build devel profiling view release doc haddock clean test dist
+.PHONY: build devel profiling view release doc haddock clean test dist coverage coverage-hs coverage-ts
 .INTERMEDIATE: %.ps
