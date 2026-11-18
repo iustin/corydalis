@@ -17,12 +17,18 @@ coverage:
   status:
     # The same checks for both languages, each on its own flag.
     project:
+      # A small threshold, so that tiny changes don't fail the check:
+      # deleting covered code lowers the ratio a bit (e.g. 2 covered lines
+      # out of ~5,600 is 0.02%), and a line or two can still vary between
+      # runs. 0.1% is about 5 Haskell or 3 TypeScript lines.
       haskell:
         flags:
           - haskell
+        threshold: 0.1%
       typescript:
         flags:
           - typescript
+        threshold: 0.1%
     patch:
       haskell:
         flags:
