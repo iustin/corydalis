@@ -15,14 +15,18 @@ flags:
 
 coverage:
   status:
+    # The same checks for both languages, each on its own flag.
     project:
-      # Keeps the name (and thus the codecov/project check) it always had.
-      default:
+      haskell:
         flags:
           - haskell
-      # Informational for now, as most of the frontend (e.g. the viewer)
-      # has no tests yet; make it a real check once it does.
       typescript:
         flags:
           - typescript
-        informational: true
+    patch:
+      haskell:
+        flags:
+          - haskell
+      typescript:
+        flags:
+          - typescript
