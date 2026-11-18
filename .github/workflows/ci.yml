@@ -107,12 +107,16 @@ jobs:
       - name: Run tests
         run: stack test --coverage --flag corydalis:dev
 
+      # hpc-codecov doesn't create the output directory.
+      - name: Create the coverage report directory
+        run: mkdir -p coverage/hs
+
       - name: Generate coverage report
         uses: 8c6794b6/hpc-codecov-action@v4
         with:
           target: stack:test
           excludes: Main
-          out: codecov-haskell.json
+          out: coverage/hs/codecov.json
 
       # One upload per language, so that Codecov shows them separately
       # (see the flags in codecov.yml).
@@ -120,7 +124,7 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./codecov-haskell.json
+          files: ./coverage/hs/codecov.json
           flags: haskell
           disable_search: true
 
@@ -128,7 +132,7 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage-ts/lcov.info
+          files: ./coverage/ts/lcov.info
           flags: typescript
           disable_search: true
 
