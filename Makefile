@@ -108,14 +108,15 @@ clean:
 really-clean: clean
 	rm -rf .stack-*
 
-# Coverage of both codebases: lcov.info for Haskell, coverage-ts/lcov.info
-# for TypeScript.
+# Coverage of both codebases, as lcov reports in coverage/hs/lcov.info
+# (Haskell) and coverage/ts/lcov.info (TypeScript).
 coverage: coverage-hs coverage-ts
 
 coverage-hs:
 	stack --work-dir .stack-coverage test --coverage \
 		--flag corydalis:dev --pedantic --keep-going
-	hpc-codecov -b .stack-coverage -o lcov.info -f lcov -x Main stack:all
+	mkdir -p coverage/hs
+	hpc-codecov -b .stack-coverage -o coverage/hs/lcov.info -f lcov -x Main stack:all
 
 coverage-ts:
 	npm run coverage

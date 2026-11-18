@@ -37,7 +37,7 @@
     "build:dev": "NODE_ENV=development node esbuild.js",
     "test": "oxlint js/ && npm run test:unit",
     "test:unit": "node --test js/*.test.ts",
-    "coverage": "c8 node --test js/*.test.ts"
+    "coverage": "c8 npm run test:unit"
   },
   "repository": "github:iustin/corydalis",
   "author": "Iustin Pop",

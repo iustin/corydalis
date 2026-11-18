@@ -48,7 +48,7 @@ npm is the frontend toolchain (`package.json`, `js/tsconfig.json`).
 - Build: `npm run build`
 - Coverage: `npm run coverage` (`c8`, configured in `.c8rc.json`; also
   lists the modules no test loads, at 0%), with an lcov report in
-  `coverage-ts/`
+  `coverage/ts/` (the Haskell one is in `coverage/hs/`)
 
 Add tests for any new TypeScript code as well.
 
