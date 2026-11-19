@@ -34,6 +34,12 @@ and doesn't need a server or a browser.
   (navigation, flagging, random images), and fails on any browser
   console error;
 - `shots.cjs`: takes screenshots of the tables, in a few states.
+- `plots.cjs`: records the state of every chart on the plot pages
+  (traces, bars and points, legend and axis labels, hover labels, the
+  update menus, the width after resizing), the plotly version the
+  browser received, and any console errors, to a JSON report, plus
+  screenshots; with `--compare`, compares two such reports. Useful
+  before/after a plotly update.
 
 ## Requirements
 
@@ -62,10 +68,27 @@ From the root of the repository:
     node e2e/verify.cjs WORKDIR/verify
     node e2e/shots.cjs WORKDIR/shots
     node e2e/pages.cjs WORKDIR/pages
+    node e2e/plots.cjs WORKDIR/plots
 
 The server scans the library at startup; the scripts wait until the
 folders show up. Set `CORYDALIS_URL` (default `http://localhost:3000`)
 and `CORYDALIS_USER` (default `tester`) to use another server or user.
+
+To compare the plots before and after a change (e.g. a plotly update),
+record them with each version, then compare the reports, and the
+screenshots (e.g. with ImageMagick):
+
+    node e2e/plots.cjs WORKDIR/plots-before
+    # update, rebuild the bundles (npm ci && npm run build)
+    node e2e/plots.cjs WORKDIR/plots-after
+    node e2e/plots.cjs --compare WORKDIR/plots-before WORKDIR/plots-after
+    compare -metric AE WORKDIR/plots-before/curate.png \
+      WORKDIR/plots-after/curate.png null:
+
+The comparison exits with an error if any chart differs, or if either
+run had console errors. Check that the reported plotly versions are the
+expected ones: the browser can only get the new version once the
+bundles are rebuilt.
 
 Note that templates and stylesheets are compiled into the server binary,
 so changes to them need a rebuild (and a restart); the JavaScript bundles
