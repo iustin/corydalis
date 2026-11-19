@@ -833,8 +833,11 @@ whenReady(function () {
   }
 
   function showWaitingState(waiting: boolean) {
-    // FIXME: why does progressBar need '!', but not other variables
-    // that were tested already?!
+    // waitingBar needs '!' since this is a function declaration: these
+    // are hoisted, and could be called before the null checks above, so
+    // TypeScript doesn't apply them here. canvas doesn't, since it's
+    // declared with a type assertion (as HTMLCanvasElement), which
+    // already excludes null.
     if (waiting) {
       canvas.style.cursor = 'wait';
       waitingBar!.style.display = 'block';
