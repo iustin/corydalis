@@ -77,7 +77,6 @@ spec = parallel $ withApp $ do
     performWithToken "PUT" $ ImageFlagR "a" "b"
     statusIs 404
   it "checks that flagging an image results in 1 image flagged" $ do
-    -- TODO: also add json checks when having image
     liftIO $ pendingWith "Needs repository with images"
     loginAndCheckFlagged
     performWithToken "PUT" $ ImageFlagR "a" "b"

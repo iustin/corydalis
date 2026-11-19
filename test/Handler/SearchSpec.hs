@@ -37,8 +37,6 @@ checkRedirAndHeader = do
 
 spec :: Spec
 spec = parallel $ withApp $ do
-  -- TODO: add folders by year
-  -- TODO: add quick search
   describe "SearchYears" $ do
     it "loads the folders no year page and checks it looks right" $ do
       login

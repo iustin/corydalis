@@ -30,4 +30,3 @@ spec = parallel $ withApp $
     login
     checkRoute SettingsR
     htmlAllContain "h1" "Settings"
-    -- FIXME: check the page matches the configuration [test]
