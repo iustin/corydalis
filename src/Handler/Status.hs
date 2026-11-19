@@ -171,7 +171,11 @@ workInProgress now work counter@Progress{..} WorkStart{..} kind =
             ^{progressDetails kind counter}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
-               ETA: #{relTime True remaining}.
+               ETA: #
+               $maybe at <- eta
+                 <abbr title="At #{show at}">#{relTime True remaining}</abbr>.
+               $nothing
+                 #{relTime True remaining}.
             ^{progressThroughput kind counter delta}
             ^{percentsBar kind counter}
                |]
@@ -197,7 +201,12 @@ workInProgress now work counter@Progress{..} WorkStart{..} kind =
         totaltime = elapsed * multiplier
         remaining = totaltime - elapsed
         delta = diffZ now wsStart
-        -- TODO: add actual ETA once upgrading to newer time library [easy] [dependency].
+        -- The estimated end time; none while the estimate is unknown
+        -- (NaN) or infinite, e.g. at the start.
+        eta
+          | isNaN remaining || isInfinite remaining = Nothing
+          | otherwise = Just . utcToZonedTime (zonedTimeZone now)
+                        . addUTCTime (realToFrac remaining) $ zonedTimeToUTC now
 
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> ProgressKind -> Widget
 workResults now WorkResults{..} work item kind =

@@ -76,6 +76,13 @@ spec = parallel $ withApp $ describe "the status page" $ do
   it "shows rendering in progress" $ do
     setRepoStatus $ \now -> RepoRendering (done now) (WorkStart now)
     checkStatusPage ["rendering images", "Cleaning has not started yet."] 1
+    -- With nothing to render, the estimate is known (now).
+    bodyContains "ETA: <abbr title=\"At "
+  it "shows no estimated end time when unknown" $ do
+    -- Nothing scanned yet, so the estimate is unknown.
+    setRepoStatus $ \now -> RepoScanning (WorkStart now)
+    checkStatusPage ["scanning filesystem", "ETA: "] 0
+    bodyNotContains "ETA: <abbr"
   it "shows cleaning in progress" $ do
     setRepoStatus $ \now -> RepoCleaning (done now) (done now) (WorkStart now)
     checkStatusPage ["cleaning the cache"] 2
