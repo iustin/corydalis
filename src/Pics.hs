@@ -128,6 +128,7 @@ module Pics ( PicDir(..)
             , loadImage
             , buildFolderFromInodes
             , loadFolder
+            , folderYamlFile
             , getDirContents
             , recursiveScanPath
             , scanSubDir
@@ -208,7 +209,7 @@ import           Stats                   (CameraInfo (..), DateRange,
                                           Occurrence (..), Trends,
                                           mergeMinMaxPair, ocFromSize)
 import           Utils.Parsing           (parseDecimal)
-import           Utils.Yaml              (loadOptionalYaml)
+import           Utils.Yaml              (loadYaml, maxYamlSize)
 
 type Ctx = Context Repository SearchCache
 
@@ -1328,6 +1329,24 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
             , pdStats = pstats
             , pdEvent = event }
 
+-- | The name of the per-folder YAML file.
+folderYamlName :: FilePath
+folderYamlName = "corydalis.yaml"
+
+-- | The per-folder YAML file to load, if any, among the folder's files
+-- found by the scan: its name, or the reason not to load it.
+--
+-- As the scan only lists regular files (see 'skipReason'), the file is
+-- not loaded if it is a symbolic link or a special file, which are
+-- reported as for pictures; and since it is read whole, it is not
+-- loaded if larger than 'maxYamlSize' (as found by the scan).
+folderYamlFile :: [InodeInfo] -> Maybe (Either Text FilePath)
+folderYamlFile contents = do
+  ii <- find (\i -> null (inodeDirs i) && inodeName i == folderYamlName) contents
+  return $ if toInteger (inodeSize ii) > toInteger maxYamlSize
+             then Left $ "larger than " <> tshow maxYamlSize <> " bytes"
+             else Right (inodeName ii)
+
 -- | Builds a `PicDir` from an entire filesystem subtree.
 loadFolder :: Ctx       -- ^ Scan context.
            -> String    -- ^ Folder name.
@@ -1347,7 +1366,14 @@ loadFolder ctx name path isSource = do
   (readexifs, lcache) <- getExif logfn config path $
                            map inodeFullName known
   logfn LevelDebug $ "loadFolder yaml " <> toLogStr path
-  (_, yamlEvent) <- loadOptionalYaml (path </> "corydalis.yaml")
+  let warnYaml reason = logfn LevelWarn $ "Folder " <> toLogStr path <>
+        ": " <> toLogStr folderYamlName <> " ignored: " <> toLogStr reason
+  yamlEvent <- case folderYamlFile contents of
+    Nothing            -> return Nothing
+    Just (Left reason) -> Nothing <$ warnYaml reason
+    Just (Right fname) ->
+      loadYaml (path </> fname) >>=
+        either (\e -> Nothing <$ warnYaml (pack e :: Text)) (return . Just)
   logfn LevelDebug $ "loadFolder build " <> toLogStr path
   let totalitems = length contents
       noopexifs = max (totalitems - readexifs) 0

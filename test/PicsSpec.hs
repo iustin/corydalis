@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module PicsSpec (spec) where
 
+import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Default
 import           Data.Either      (isLeft)
@@ -45,6 +46,7 @@ import           System.Process.Typed (proc, readProcess)
 import           AtomTypes
 import           Exif
 import           Pics
+import           Utils.Yaml         (maxYamlSize)
 import           TestImport
 
 -- | A modification time far in the future (in 2096), newer than any test
@@ -538,6 +540,22 @@ spec = parallel $ do
         , (EKBirthday, 1)
         , (EKGeneric, 2)
         ]
+  describe "folderYamlFile" $ do
+    let sized size = (mkInode "corydalis.yaml") { inodeSize = size }
+    it "picks the folder's own file" $
+      folderYamlFile [mkInode "a.nef", mkInode "corydalis.yaml"]
+        `shouldBe` Just (Right "corydalis.yaml")
+    it "ignores files of the same name in subdirectories" $
+      folderYamlFile [(mkInode "corydalis.yaml") { inodeDirs = ["sub"] }]
+        `shouldBe` Nothing
+    it "returns nothing without such a file" $
+      folderYamlFile [mkInode "a.nef"] `shouldBe` Nothing
+    it "accepts a file of exactly the limit" $
+      folderYamlFile [sized (fromIntegral maxYamlSize)]
+        `shouldBe` Just (Right "corydalis.yaml")
+    it "refuses a file larger than the limit" $
+      folderYamlFile [sized (fromIntegral maxYamlSize + 1)]
+        `shouldSatisfy` maybe False isLeft
   describe "implicitEventFromDateRange" $ do
     let day d = LocalTime (fromGregorian 2024 6 d) midnight
         range a b = Just (day a, day b)
@@ -1256,6 +1274,33 @@ spec = parallel $ do
           }
         Map.notMember "corydalis" (pdImages pic) `shouldBe` True
         map fileName (pdUntracked pic) `shouldBe` ["corydalis.yaml"]
+      describe "with an unusable corydalis.yaml" $ do
+        let checkIgnored name setup = it name $ \ctx -> do
+              let folder = sourceDir ctx </> "2024-05-05-yaml"
+              touchFile (folder </> "a.nef")
+              setup ctx folder :: IO ()
+              pic <- loadFolder ctx "2024-05-05-yaml" folder True
+              pdEvent pic `shouldBe` Nothing
+            elsewhere ctx = outputDir ctx </> "elsewhere.yaml"
+            yaml = "name: Birthday\nkind: birthday\n" :: ByteString
+        checkIgnored "ignores, and reports, a symbolic link" $ \ctx folder -> do
+          writeFile (elsewhere ctx) yaml
+          createSymbolicLink (elsewhere ctx) (folder </> "corydalis.yaml")
+        it "reports a symbolic link as a scan error" $ \ctx -> do
+          let folder = sourceDir ctx </> "2024-05-05-yaml"
+          touchFile (folder </> "a.nef")
+          writeFile (elsewhere ctx) yaml
+          createSymbolicLink (elsewhere ctx) (folder </> "corydalis.yaml")
+          _ <- loadFolder ctx "2024-05-05-yaml" folder True
+          errs <- map (peItem &&& peError) . pgErrors <$> getProgress ctx
+          errs `shouldBe` [(pack $ folder </> "corydalis.yaml", "symbolic link, not followed")]
+        checkIgnored "ignores a pipe, without blocking" $ \_ folder ->
+          createNamedPipe (folder </> "corydalis.yaml") 0o600
+        checkIgnored "ignores a file larger than the limit" $ \_ folder ->
+          writeFile (folder </> "corydalis.yaml") $
+            yaml <> BS.replicate maxYamlSize 0x20
+        checkIgnored "ignores an invalid file" $ \_ folder ->
+          writeFile (folder </> "corydalis.yaml") ("name: [unclosed\n" :: ByteString)
       it "ignores symbolic links and reports them as scan errors" $ \ctx -> do
         let folder = sourceDir ctx </> "2024-04-04-links"
         touchFile (folder </> "a.nef")
