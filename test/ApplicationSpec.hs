@@ -24,6 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ApplicationSpec (spec) where
 
 import           Network.HTTP.Types                   (status200)
+import           Control.Monad.Logger                 (LogLevel (..), defaultLoc)
+import           Yesod.Default.Config2                (makeYesodLogger)
 import qualified Data.ByteString                      as BS
 import           Network.Wai                          (Request,
                                                        defaultRequest,
@@ -36,9 +38,15 @@ import           Network.Wai.Middleware.RequestLogger (Destination (Callback),
                                                        mkRequestLogger)
 import           Network.Wai.Test                     (SRequest (..),
                                                        runSession, srequest)
-import           System.Log.FastLogger                (fromLogStr)
+import           System.Log.FastLogger                (defaultBufSize,
+                                                       fromLogStr,
+                                                       newFileLoggerSet,
+                                                       rmLoggerSet)
+import           Yesod.Core                           (messageLoggerSource)
+import           Yesod.Core.Types                     (Logger, loggerSet)
 
-import           Application                          (redactPassword,
+import           Application                          (makeLogFn,
+                                                       redactPassword,
                                                        requestLoggerSettings)
 import           Settings                             (RequestLogging (..))
 import           TestImport
@@ -74,6 +82,17 @@ hostileRequest = defaultRequest
   , requestHeaderUserAgent = Just "agent\"\ESC[31m\nforged line"
   }
 
+-- | Runs an action with a logger writing to a file, then returns what
+-- the file contains.
+withFileLogger :: (Logger -> IO ()) -> IO ByteString
+withFileLogger action = withSystemTempDirectory "corydalis-log" $ \dir -> do
+  let path = dir </> "log"
+  logger <- newFileLoggerSet defaultBufSize path >>= makeYesodLogger
+  action logger
+  -- Closing it also flushes it.
+  rmLoggerSet (loggerSet logger)
+  BS.readFile path
+
 spec :: Spec
 spec = do
  describe "request logging" $ do
@@ -106,6 +125,28 @@ spec = do
     logged `shouldSatisfy` ("192.0.2.7 - - [" `BS.isPrefixOf`)
     logged `shouldNotSatisfy` ("forged" `isInfixOf`)
     logged `shouldNotSatisfy` ("10.0.0.1" `isInfixOf`)
+  it "escapes each line of the detailed format" $ do
+    logged <- logOfRequest False RequestLoggingDetailed hostileRequest ""
+    logged `shouldSatisfy` ("/a\\x1b[2J" `isInfixOf`)
+    logged `shouldNotSatisfy` BS.elem 0x1b
+    BS.count 0x0a logged `shouldSatisfy` (> 1)
+ describe "makeLogFn" $ do
+  it "logs escaped messages, one per line" $ do
+    logged <- withFileLogger $ \logger ->
+      makeLogFn LevelInfo logger LevelWarn "file \ESC[2Ja\nb"
+    logged `shouldBe` "file \\x1b[2Ja\\x0ab\n"
+  it "doesn't log messages below the level" $ do
+    logged <- withFileLogger $ \logger ->
+      makeLogFn LevelInfo logger LevelDebug "hidden"
+    logged `shouldBe` ""
+ describe "the Yesod logger" $ withApp $
+  it "escapes the messages" $ do
+    app <- getTestYesod
+    logged <- liftIO . withFileLogger $ \logger ->
+      messageLoggerSource app logger defaultLoc "test" LevelError "x\ESCy\nz"
+    liftIO $ do
+      logged `shouldSatisfy` ("x\\x1by\\x0az" `isInfixOf`)
+      logged `shouldNotSatisfy` BS.elem 0x1b
  describe "redactPassword" $ do
   it "hides the password" $
     redactPassword ("password", "secret") `shouldBe` Just ("password", "(hidden)")
