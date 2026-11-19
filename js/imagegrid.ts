@@ -56,7 +56,14 @@ function initImageGrid(): void {
     outlayer: msnry,
     history: 'replace',
     checkLastPage: '.pagination-next',
-    // TODO: what was this about? Conversion to plain JS uncovered this doesn't exist.
+    // prefill (disabled): when enabled, loads further pages right away
+    // until the content fills the window, instead of only on scrolling.
+    // Without it, if the first page doesn't fill a (very tall) window,
+    // there's nothing to scroll and no further pages load, as the
+    // pagination links are hidden (hideNav). Not seen in practice so
+    // far. The option exists in infinite-scroll (page-load.js), but not
+    // in its type definitions (@types/infinite-scroll), so enabling it
+    // would need a cast, like imagesLoaded above.
     // prefill: true,
     hideNav: '.pagination',
     // Shows the loading, last page and error messages from the template.
