@@ -26,16 +26,23 @@ import           Network.HTTP.Types.Header
 
 import           TestImport
 
-deleteWithType :: ByteString -> YesodExample App ()
-deleteWithType kind = do
-  loginAndCheckFlagged
+-- | Sends a flag request (PUT to flag, DELETE to remove the flag),
+-- accepting the given content type, with the CSRF token of the last
+-- page.
+flagRequest :: ByteString -> ByteString -> Route App -> YesodExample App ()
+flagRequest method kind route = do
   token <- pageCsrfToken
   request $ do
-    setMethod "DELETE"
-    setUrl $ ImageFlagR "a" "b"
+    setMethod method
+    setUrl route
     addRequestHeader (hReferer, "/")
     addRequestHeader (hAccept, kind)
     addCsrfHeader token
+
+deleteWithType :: ByteString -> YesodExample App ()
+deleteWithType kind = do
+  loginAndCheckFlagged
+  flagRequest "DELETE" kind $ ImageFlagR "a" "b"
 
 -- | Sends what a browser would for a form trying to override the method:
 -- a POST with the method in the first field (as methodOverridePost
@@ -76,12 +83,37 @@ spec = parallel $ withApp $ do
     loginAndCheckFlagged
     performWithToken "PUT" $ ImageFlagR "a" "b"
     statusIs 404
-  it "checks that flagging an image results in 1 image flagged" $ do
-    liftIO $ pendingWith "Needs repository with images"
-    loginAndCheckFlagged
-    performWithToken "PUT" $ ImageFlagR "a" "b"
-    followRedirectOK
-    bodyContains "1 flagged images"
+  describe "flagging an existing image" $ do
+    let route = ImageFlagR "2020-01-01-trip" "a"
+    it "flags it, with an HTML reply" $ do
+      _ <- addScannedFolder "2020-01-01-trip" ["a.jpg"]
+      loginAndCheckFlagged
+      flagRequest "PUT" "text/html" route
+      followRedirectOK
+      bodyContains "Image flagged"
+      checkRoute FlaggedImagesR
+      bodyContains "1 flagged images"
+    it "flags it and removes the flag, with JSON replies" $ do
+      _ <- addScannedFolder "2020-01-01-trip" ["a.jpg"]
+      loginAndCheckFlagged
+      flagRequest "PUT" "application/json" route
+      statusIs 200
+      bodyContains "\"text\":\"Image flagged\""
+      bodyContains "\"kind\":\"success\""
+      -- The flagged images page also provides the next CSRF token.
+      checkRoute FlaggedImagesR
+      bodyContains "1 flagged images"
+      flagRequest "PUT" "application/json" route
+      statusIs 200
+      bodyContains "\"text\":\"Image already flagged!\""
+      bodyContains "\"kind\":\"warning\""
+      checkRoute FlaggedImagesR
+      flagRequest "DELETE" "application/json" route
+      statusIs 200
+      bodyContains "\"text\":\"Image flag removed\""
+      bodyContains "\"kind\":\"success\""
+      checkRoute FlaggedImagesR
+      bodyContains "0 flagged images"
   describe "checks that de-flagging a non-existing image does not error out" $ do
     it "checks html" $ do
       deleteWithType "text/html"
