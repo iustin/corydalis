@@ -10,8 +10,6 @@ Some specific missing tests:
 
 - the settings page: check that it shows the configuration;
 - search: folders by year, and the quick search;
-- flagged images: the JSON responses, once the test repository has
-  images.
 
 ## EXIF handling
 
