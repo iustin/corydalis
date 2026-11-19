@@ -63,6 +63,47 @@ You need up to two terminals, depending on which code you edit:
   will simply update the `static/corydalis` directory, which is referred to by
   the server part.
 
+## Static files
+
+The server serves the files in `static/` (in production, from the
+directory set by `static-dir`). There are three kinds of files there:
+
+- our own files, committed: `static/corydalis/css/basic.css` and
+  `static/corydalis/manifest.json`;
+- symbolic links into `node_modules`, committed, for the library files
+  that are served as they are: the Bootstrap and Font Awesome style
+  sheets, and the Font Awesome fonts; they work once `npm install` has
+  run;
+- generated files, not committed: the esbuild bundles in
+  `static/corydalis/js` (`npm run build`), the Font Awesome
+  `regular.css` and `solid.css` (`build/patch-font-awesome`, run by
+  `make bootstrap`), the combined style sheets in `static/combined`
+  (written by the Haskell build) and `static/tmp` (written at runtime).
+
+When compiling `Settings/StaticFiles.hs`, `staticFiles` creates a route
+name for each file (e.g. `corydalis_js_viewer_js` for
+`static/corydalis/js/viewer.js`), which the code and templates use; the
+style sheets refer to the fonts by their `/static/` path instead.
+
+JavaScript libraries are imported by our TypeScript code and bundled by
+esbuild, so they need no link in `static/`. Add a link only for a file
+that the server sends as it is, and remove it (and its uses) when the
+library is no longer needed, or gets bundled instead. `make
+check-static` (also run by `make release` and CI) fails if a file in
+`static/` is not used, or if a link is broken.
+
+Note that the route names include a hash of each file's contents, as
+the `etag` parameter of the URLs, so that browsers can cache the files
+for long. This hash is computed when `Settings/StaticFiles.hs` is
+compiled, but GHC doesn't know that the module depends on the static
+files: after changing only them (e.g. the JavaScript bundles), neither
+`stack build` nor touching the module recompiles it (GHC compares the
+contents of the sources), and the URLs keep the old hash, so browsers
+may keep using their cached copies. `make release`, which starts from a
+clean build, is not affected; for other builds, change the module or
+build from scratch. The server also needs a restart, as it reads the
+files' hashes when it starts.
+
 ## Making a binary build/release
 
 There are two targets for binaries:

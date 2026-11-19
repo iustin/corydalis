@@ -52,6 +52,17 @@ npm is the frontend toolchain (`package.json`, `js/tsconfig.json`).
 
 Add tests for any new TypeScript code as well.
 
+## Static files
+
+The server serves the files in `static/` (see "Static files" in
+`docs/devel.md`). JavaScript libraries are imported by the TypeScript
+code and bundled by esbuild: don't add links for them in `static/`. A
+link into `node_modules` there is only for a file that the server sends
+as it is, and must be removed, with its uses, when the library is
+dropped or gets bundled. `make check-static` (run by CI and `make
+release`, after `make bootstrap`) fails on unused files and broken
+links.
+
 ## Documentation
 
 User documentation lives in `docs/`. If a change is user-visible, remind the

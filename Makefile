@@ -60,6 +60,12 @@ bootstrap:
 	@echo One-shot converting typescript to JS...
 	npm run build
 
+# Checks that the files in static/ are all used, and no link is broken
+# (see "Static files" in docs/devel.md); needs a 'make bootstrap' first.
+.PHONY: check-static
+check-static:
+	bash build/check-static
+
 # Continuous typescript compilation
 .PHONY: ts-watch
 ts-watch:
@@ -72,7 +78,7 @@ dist:
 	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG)
 
 # An entire clean build and install of production binaries in dist/.
-release: clean lint doc regen-git-version bootstrap
+release: clean lint doc regen-git-version bootstrap check-static
 	rm -rf .stack-release
 	stack --work-dir .stack-release build --pedantic $(RELEASE_FLAG) $(FLAGS)
 	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG) $(FLAGS)
