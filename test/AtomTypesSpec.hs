@@ -68,6 +68,10 @@ spec = parallel $ do
       showOrdinal (13 :: Int) `shouldBe` "13th"
       showOrdinal (21 :: Int) `shouldBe` "21st"
       showOrdinal (31 :: Int) `shouldBe` "31st"
+      showOrdinal (0 :: Int) `shouldBe` "0th"
+      showOrdinal (101 :: Int) `shouldBe` "101st"
+      showOrdinal (111 :: Int) `shouldBe` "111th"
+      showOrdinal (112 :: Int) `shouldBe` "112th"
 
     it "does not suffix negative numbers" $
       showOrdinal (-1 :: Int) `shouldBe` "-1"
