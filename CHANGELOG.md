@@ -97,6 +97,13 @@ and a month as 30, so e.g. a full year is shown as "1 year" rather than
 
 ### Fixed bugs
 
+The static files directory still had links to libraries that are now
+bundled, or no longer used: the files were served, although unused, and
+the link to jQuery, dropped earlier, was broken, which made the
+installation step copying the directory (`cp -aL static`) fail. These
+links are removed, and a new check (`make check-static`, also run by
+`make release`) catches unused static files and broken links.
+
 With ImageMagick 6 (as shipped by Debian and Ubuntu), the ImageMagick
 policy added in this release (see below) made all the (non-thumbnail)
 image previews fail: they were written as `jpg`, which ImageMagick 6

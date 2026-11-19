@@ -83,6 +83,9 @@ jobs:
       - name: Bootstrap npm/typescript code
         run: make bootstrap
 
+      - name: Check the static files
+        run: make check-static
+
       - name: Lint and test the TypeScript code
         run: npm test
 
