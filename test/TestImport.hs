@@ -28,7 +28,7 @@ module TestImport
     ) where
 
 import           Application                    (appMiddlewares, makeFoundation,
-                                                 makeLogWare)
+                                                 makeLogFn, makeLogWare)
 import           ClassyPrelude                  as X hiding (Handler, delete,
                                                       deleteBy)
 import           Database.Persist               as X hiding (get)
@@ -54,7 +54,8 @@ import           Test.Hspec.QuickCheck          as X
 import           Types                          as X
 import           Yesod.Auth                     as X
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
-import           Yesod.Default.Config2          (loadYamlSettings, useEnv)
+import           Yesod.Default.Config2          (loadYamlSettings,
+                                                 makeYesodLogger, useEnv)
 import           Yesod.Test                     as X
 
 import qualified Control.Exception              as E
@@ -74,7 +75,10 @@ import           System.Directory               (createDirectory,
                                                  removeDirectoryRecursive)
 import           System.FilePath                (takeDirectory)
 import           System.IO.Temp
-import           System.Log.FastLogger          (fromLogStr)
+import           System.Log.FastLogger          (defaultBufSize,
+                                                 newStdoutLoggerSet,
+                                                 rmLoggerSet)
+import           Yesod.Core.Types               (loggerSet)
 import           Text.HTML.DOM                  (parseLBS)
 import           Text.XML.Cursor                (attribute, fromDocument)
 
@@ -161,14 +165,21 @@ withConfig = around withConfig'
 
 -- Context spec definitions.
 
+-- | Runs an action with the application's log function (see
+-- 'makeLogFn'), logging to standard output, as the application does.
+withTestLogFn :: AppSettings -> (LogFn -> IO a) -> IO a
+withTestLogFn settings action =
+  bracket (newStdoutLoggerSet defaultBufSize >>= makeYesodLogger)
+          -- Removing the logger set also flushes it.
+          (rmLoggerSet . loggerSet)
+          (action . makeLogFn (appLogLevel settings))
+
 -- | Builds and returns a valid context.
-openTempContext :: AppSettings -> IO (FilePath, Ctx)
-openTempContext settings = do
+openTempContext :: AppSettings -> LogFn -> IO (FilePath, Ctx)
+openTempContext settings logfn = do
   tempDir <- setTempDir
   config <- updateConfig tempDir settings
-  -- FIXME: use a proper logger? replace with one from yesod?
-  let logger level msg = when (level >= appLogLevel settings) $ BS8.putStrLn . fromLogStr $ msg
-  ctx <- atomically $ initContext config logger
+  ctx <- atomically $ initContext config logfn
   launchScanFileSystem ctx
   _ <- waitForScan ctx
   return (tempDir, ctx)
@@ -177,24 +188,25 @@ openTempContext settings = do
 withContext' :: (Ctx -> IO ()) -> IO ()
 withContext' action = do
   settings <- loadSettings
-  bracket (openTempContext settings) (cleanupTempDir . fst) (action . snd)
+  withTestLogFn settings $ \logfn ->
+    bracket (openTempContext settings logfn) (cleanupTempDir . fst) (action . snd)
 
 -- | Spec definition for with context.
 withContext :: SpecWith Ctx -> Spec
 withContext = around withContext'
 
-openUnscannedContext :: AppSettings -> IO (FilePath, Ctx)
-openUnscannedContext settings = do
+openUnscannedContext :: AppSettings -> LogFn -> IO (FilePath, Ctx)
+openUnscannedContext settings logfn = do
   tempDir <- setTempDir
   config <- updateConfig tempDir settings
-  let logger level msg = when (level >= appLogLevel settings) $ BS8.putStrLn . fromLogStr $ msg
-  ctx <- atomically $ initContext config logger
+  ctx <- atomically $ initContext config logfn
   return (tempDir, ctx)
 
 withUnscannedContext' :: (Ctx -> IO ()) -> IO ()
 withUnscannedContext' action = do
   settings <- loadSettings
-  bracket (openUnscannedContext settings) (cleanupTempDir . fst) (action . snd)
+  withTestLogFn settings $ \logfn ->
+    bracket (openUnscannedContext settings logfn) (cleanupTempDir . fst) (action . snd)
 
 withUnscannedContext :: SpecWith Ctx -> Spec
 withUnscannedContext = around withUnscannedContext'
