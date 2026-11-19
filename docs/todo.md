@@ -1,5 +1,11 @@
 # Random notes and TODOs
 
+## Next release
+
+- Review the user documentation (`docs/`, e.g. the manual and the
+  installation instructions) against the user-visible changes in the
+  change log's vNext section.
+
 ## Unit tests
 
 The coverage over the entire codebase is quite low. Most of the
@@ -10,6 +16,9 @@ Some specific missing tests:
 
 - the settings page: check that it shows the configuration;
 - search: folders by year, and the quick search;
+- the viewer (`js/viewer.ts`), which no test loads: make it testable
+  (e.g. split out the logic, as for the tables), and test the
+  fullscreen fallback.
 
 ## EXIF handling
 
@@ -36,6 +45,7 @@ Some specific missing tests:
   it relative to the canvas size.
 - image information (`exif` widget): show the serial numbers, link the
   camera and lens to their pages, and show the capture time earlier.
+- the "Loading…" indicator flickers when changing images.
 
 ## Statistics
 
@@ -95,9 +105,41 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 - for consistency, should try to find a landscape-oriented image first
 - and with a person, if possible
 
+## Build and static files
+
+- Bundle the CSS (Bootstrap, Font Awesome and ours) with esbuild too,
+  including the fonts it refers to; this removes the remaining links in
+  `static/`, `build/patch-font-awesome`, `combineStylesheets'` and
+  `static/combined`, and simplifies `build/check-static`. (Making the
+  CSS and fonts smaller is not worth it, next to the images.)
+- Stale URL hashes of static files (see "Static files" in
+  [devel](devel.md)): generate a stamp file with a hash of the names and
+  contents of all the files in `static/` (outside `static/`, not
+  committed; written by `npm run build` and `make bootstrap`), and make
+  `Settings/StaticFiles.hs` depend on it (`addDependentFile`), failing
+  with a clear message if it's missing. Needed with or without
+  embedding.
+- Embed the static files in the binary (`Yesod.EmbeddedStatic`): a
+  single binary to deploy, with the files' hashes and contents always
+  matching it, and precompressed. Best after the two items above; then
+  drop the `static-dir` setting and the copying of the files in
+  `make release` and the installation instructions.
+
 ## Dependencies status
 
+- wai-logger 2.5.1 (which escapes the Apache request log fields) is an
+  extra-dep in `stack.yaml`; drop it once the Stackage LTS has it.
+
 ## Bugs
+
+### Cache cleanup
+
+The cache cleanup (`examineCacheFile`) can delete the cache files of an
+existing image, if another image's path starts with this one's,
+followed by a character sorting before `-` (e.g. `a.nef` and
+`a.nef copy.jpg`); see the comment there. The files are rebuilt when
+needed, so this only costs work. Checking the image path without the
+cache suffix for exact membership would fix it.
 
 ### Handling of copies
 
