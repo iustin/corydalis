@@ -949,8 +949,6 @@ folderSearchFunction a@(Year y) =
   \p -> evalNum y (pdYear p) ||
         imagesMatchAtom a (pdImages p)
 
--- TODO: ^ add event year to year search?
-
 folderSearchFunction a@(Season _) =
   imagesMatchAtom a . pdImages
 
@@ -1021,7 +1019,6 @@ folderSearchFunction (FlashMode m) =
 folderSearchFunction (Megapixels m) =
   numStatsSearch m . gExifMegapixels . pdExif
 
--- TODO: implement the event searches
 folderSearchFunction (Event e) =  evalStr e . fmap eventName . pdEvent
 folderSearchFunction (Indexer.GenericEvent e) = maybe False (\case
   Types.GenericEvent { eventName, eventPeople } ->
@@ -1095,7 +1092,6 @@ imageSearchFunction (Title t) =
 imageSearchFunction (Caption c) =
   evalStr c . maybeDesymbolizeItem' . exifCaption . imgExif
 
--- TODO: implement event year search?
 imageSearchFunction (Year year) =
   evalNum year . imageYear
 
@@ -1160,7 +1156,7 @@ imageSearchFunction (FileName f) =
 imageSearchFunction (Status v) =
   (== v) . imgStatus
 
--- TODO: search based on parent folder status? Or something else?
+-- Not implemented yet, see docs/todo.md.
 imageSearchFunction (FClass _) = const False
 
 imageSearchFunction (Rating r) =
@@ -1181,7 +1177,7 @@ imageSearchFunction (FlashMode m) =
 imageSearchFunction (Megapixels m) =
   evalNum m . exifMegapixels . imgExif
 
--- TODO: implement the event searches
+-- Not implemented yet, see docs/todo.md.
 imageSearchFunction (Event _) = const False
 imageSearchFunction (Indexer.GenericEvent _) = const False
 imageSearchFunction (Birthday _) = const False
@@ -1214,7 +1210,6 @@ imageSearchFunction ConstTrue = const True
 
 -- | Computes whether a given atom can ever find files.
 atomFindsFiles :: Atom -> Bool
--- TODO: should events find images?
 atomFindsFiles (Event _)           = False
 atomFindsFiles (Birthday _)        = False
 atomFindsFiles (Getaway _)         = False
@@ -1308,7 +1303,7 @@ getAtoms TKwdCnt       = gaBuilder (sformat int) (formatZeroOneMore "keyword" "k
 getAtoms TFlashSrc     = gaBuilder showFlash formatFlashSource . flashStats
 getAtoms TFlashMode    = symBuilder . gExifFlashMode . repoExif
 getAtoms TMegapixels   = fancyTextBuilder (sformat (shortest % " MP")) . gExifMegapixels . repoExif
--- TODO: implement atom stats for events
+-- Not implemented yet, see docs/todo.md.
 getAtoms TEvent = const []
 getAtoms TGenericEvent = const []
 getAtoms TBirthday = const []

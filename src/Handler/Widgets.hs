@@ -101,8 +101,6 @@ imageBytesForFolder size img =
 -- | Generates srcset for an image based on all auto-built versions.
 imageSrcSet :: Config -> (Route App -> [(Text, Text)] -> Text) -> ShortText -> ImageName -> Int -> Text
 imageSrcSet config renderer folder image minsize =
-  -- FIXME: this should filter out all sizes greater than actual image
-  -- size; this needs knowing the image size in Image. [performance]
   let allSizes = sortOn Down . filter (>= minsize) . Set.toList . cfgAutoImageSizes $ config
       sizes = map (\size -> sformat (stext % " " % int % "w")
                             (renderer (ImageBytesR folder image) (makeResParam size))
@@ -184,7 +182,6 @@ showExif Exif {..} = do
         (Nothing, Just h)  -> sformat ("width missing, " % int % " high") h
         (Just w, Just h)   -> sformat (int % "×" % int) w h
       megapixels = maybe "unknown" (sformat (f1 % " MP")) exifMegapixels
-  -- TODO: serial field, links to camera/lens?, move capture time earlier.
   $(widgetFile "exif")
 
 showMaybeField :: Text -> Maybe Text -> Widget

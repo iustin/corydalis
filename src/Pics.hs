@@ -671,7 +671,6 @@ type SearchResults = (SearchResultsPics, Map ShortText Image)
 -- | Type of the search cache.
 type SearchCache = LruCache UrlParams SearchResults
 
--- TODO: replace hardcoded cache size with config option.
 emptySearchCache :: SearchCache
 emptySearchCache = LRU.empty 10
 
@@ -1649,8 +1648,6 @@ forceBuildThumbCaches ctx repo = do
     , pgDone = 0
     , pgGoal = length pending + length errs
     }
-  -- TODO: add some concurrency for image cache builds.
-  -- pooledMapConcurrentlyN_ 8 ...
   mapM_ (\(i, size) -> do
             checkRepoOwnership ctx repo
             res <- imageAtRes (ctxLogger ctx) config i . Just . ImageSize $ size
@@ -1840,9 +1837,7 @@ imageNeedsRender logfn config img size = try $ do
 -- is done using imagemagick's convert tool.
 --
 -- TODO: add loging of failures.
--- TODO: fix the issue that range files and their components have identical output.
 -- TODO: improve path manipulation \/ concatenation.
--- TODO: for images smaller than given source, we generate redundant previews.
 -- The decoder is passed explicitly to convert, since otherwise
 -- ImageMagick picks it based on the file contents, e.g. running a
 -- PostScript or SVG document named @photo.jpg@ as such. If no decoder

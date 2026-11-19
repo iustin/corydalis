@@ -1450,7 +1450,6 @@ whenReady(function () {
                 }
               } else {
                 // This is a no movement, or vertical movement swipe.
-                // TODO: what do do with vertical swipes?
                 LOG('Ignored vertical swipe');
               }
             }
@@ -1604,8 +1603,6 @@ whenReady(function () {
     }
     if (e.altKey) {
       handled = true;
-      // TODO: make the modifier a relative size, not absolute. Needs
-      // plugging in to canvas size.
       const modifier = e.shiftKey ? 50 : 25;
       let didPan = false;
       switch (e.key) {

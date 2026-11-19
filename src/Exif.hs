@@ -876,7 +876,6 @@ parseIsoString =
                     Text.unpack t ++ "'"
   case w of
     [i]    -> readInt i
-    -- TODO: record high iso mode.
     [_, i] -> readInt i
     _      -> maybe fmsg readInt $ ", 0, 0" `Text.stripSuffix` t
 
@@ -1034,8 +1033,6 @@ promoteFileExif re se je mm me =
       exifSSpeedDesc'   = fjust  exifSSpeedDesc
       exifSSpeedVal'    = fjust  exifSSpeedVal
       exifShutterCount' = fjust  exifShutterCount
-      -- TODO: both title and caption (and other fields) could differ
-      -- between various versions. How to expose this in viewer?
       exifTitle'        = fjust  exifTitle
       exifCaption'      = fjust  exifCaption
       -- Mime type cannot be promoted, since various component _will_ have various types.
@@ -1228,7 +1225,6 @@ exifToolArgs paths = [
 
 extractExifs :: LogFn -> FilePath -> [FilePath] -> IO BS.ByteString
 extractExifs logfn dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
-  -- TODO: should instead make exiftool write directly to individual raw exifs?
   let args = exifToolArgs paths
       pconfig =
         setStdin closed

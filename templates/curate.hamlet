@@ -24,7 +24,6 @@ $if allpics > 0
             $if orphaned > 0
               <li>#{orphaned} <a href=@?{imageFilter ImageOrphaned}>orphaned sidecar files</a>
             $if movies > 0
-              $# TODO: add movie listing
               <li>#{movies} movies
             $if untracked > 0
               <li>#{untracked} untracked files
