@@ -292,7 +292,7 @@ monthToSeason m
   | m == March || m == April || m == May = Just Spring
   | m == June || m == July || m == August = Just Summer
   | m == September || m == October || m == November = Just Autumn
-  | otherwise = Nothing -- FIXME: is this needed?
+  | otherwise = Nothing -- MonthUnknown has no season.
 
 showEventKind :: EventKindOp -> Text
 showEventKind EKGeneric       = "generic"
