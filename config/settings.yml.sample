@@ -66,6 +66,11 @@ database:
 # In development, they default to the inverse.
 #
 # development: false
+# Request (HTTP) logs: one of "disabled", "apache" or "detailed"; the
+# detailed format is meant for debugging, and writes several lines per
+# request: each line is escaped, but (unlike in the other logs) newlines
+# within the logged text are kept, as they can't be told apart from the
+# format's own (HTTP doesn't allow them in the path and headers, though).
 # request-logging: "apache"
 # should-log-all: false
 # Log level: choose one of debug, info, warning, error. The application will

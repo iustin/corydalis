@@ -163,6 +163,7 @@ library:
     - Stats
     - Types
     - Users
+    - Utils.Logging
     - Utils.Parsing
     - Utils.Permissions
     - Utils.Storage

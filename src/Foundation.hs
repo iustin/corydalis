@@ -82,6 +82,7 @@ import qualified Data.Text.Short      as TS
 import           Handler.Cookies
 import           Indexer
 import           Pics
+import           Utils.Logging        (sanitizeLogStr)
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -370,6 +371,12 @@ instance Yesod App where
             || level >= appLogLevel (appSettings app)
 
     makeLogger = return . appLogger
+
+    -- Escapes the messages (see "Utils.Logging"); otherwise as the
+    -- default.
+    messageLoggerSource app logger loc source level =
+      defaultMessageLoggerSource (shouldLogIO app) logger loc source level
+      . sanitizeLogStr
 
     -- Provide proper Bootstrap styling for default displays, like
     -- error pages.

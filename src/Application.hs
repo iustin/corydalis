@@ -34,6 +34,7 @@ module Application
     , makeFoundation
     , makeLogWare
     , requestLoggerSettings
+    , makeLogFn
     , redactPassword
     , appMiddlewares
     -- * for DevelMain
@@ -77,7 +78,7 @@ import           Network.Wai.Handler.WarpTLS               (OnInsecure (..),
 import           Network.Wai.Middleware.AddHeaders         (addHeaders)
 import           Network.Wai.Parse                          (Param)
 import           Network.Wai.Middleware.RequestLogger      (DetailedSettings (..),
-                                                            Destination (Callback, Logger),
+                                                            Destination (Callback, Handle, Logger),
                                                             IPAddrSource (..),
                                                             OutputFormat (..),
                                                             RequestLoggerSettings,
@@ -87,10 +88,18 @@ import           Network.Wai.Middleware.RequestLogger      (DetailedSettings (..
                                                             outputFormat)
 import           System.Directory                          (doesFileExist,
                                                             removeFile)
-import           System.Log.FastLogger                     (defaultBufSize,
+import qualified Data.ByteString                           as BS
+import           System.Log.FastLogger                     (LogStr,
+                                                            defaultBufSize,
+                                                            flushLogStr,
+                                                            fromLogStr,
                                                             newStdoutLoggerSet,
+                                                            pushLogStr,
                                                             toLogStr)
-import           Yesod.Core.Types                          (loggerPutStr)
+import           Yesod.Core.Types                          (Logger,
+                                                            loggerPutStr)
+import           Utils.Logging                             (sanitizeLogLines,
+                                                            sanitizeLogStr)
 
 import           Pics                                      (checkMagickPolicy,
                                                             initContext)
@@ -143,7 +152,7 @@ makeFoundation appSettings = do
           (appStaticDir appSettings)
 
     -- Initialise the application context, first creating the custom app logger.
-    let logfn level str = when (level >= appLogLevel appSettings) $ loggerPutStr appLogger $ str <> "\n"
+    let logfn = makeLogFn (appLogLevel appSettings) appLogger
         config = appConfig appSettings
 
     -- Restrict the directories holding private files, before anything
@@ -261,10 +270,17 @@ requestLoggerSettings ipFromHeader logging logDestination =
                         (if ipFromHeader
                             then FromFallback
                             else FromSocket)
+        -- wai-logger escapes the fields of the Apache lines taken from
+        -- the request, as Apache httpd does, so these lines are logged as
+        -- they are; escaping them again would escape the backslashes of
+        -- the escapes. The detailed format writes several lines per
+        -- request, which are escaped one by one (see "Utils.Logging").
         (outputFormat, destination) = case logging of
             RequestLoggingDisabled -> (apacheFormat, Callback $ \_ -> return ())
             RequestLoggingApache   -> (apacheFormat, logDestination)
-            RequestLoggingDetailed -> (DetailedWithSettings detailed, logDestination)
+            RequestLoggingDetailed ->
+              (DetailedWithSettings detailed,
+               sanitizedDestination sanitizeLogLines logDestination)
         -- The detailed format logs the request parameters, so the
         -- passwords (from the login form) are hidden; with a filter for
         -- the parameters, it also doesn't log the raw request bodies.
@@ -274,6 +290,25 @@ requestLoggerSettings ipFromHeader logging logDestination =
         , destination = destination
         }
 
+
+-- | A destination for log lines, which escapes them first (with the
+-- given function).
+--
+-- The result is always a callback, which (unlike the other kinds of
+-- destination) the request logger doesn't flush; so for a logger set or
+-- a handle, this flushes them after each line, as the request logger
+-- does for these. A wrapped callback has nothing to flush.
+sanitizedDestination :: (LogStr -> LogStr) -> Destination -> Destination
+sanitizedDestination sanitize dest = Callback $ \str -> case dest of
+  Logger set  -> pushLogStr set (sanitize str) >> flushLogStr set
+  Handle h    -> BS.hPut h (fromLogStr (sanitize str)) >> hFlush h
+  Callback cb -> cb (sanitize str)
+
+-- | The application's own log function: logs messages of at least the
+-- given level, escaped (see "Utils.Logging"), one per line.
+makeLogFn :: LogLevel -> Logger -> LogFn
+makeLogFn minLevel logger level str =
+  when (level >= minLevel) . loggerPutStr logger $ sanitizeLogStr str <> "\n"
 
 -- | Hides the value of the password parameter (of the login form).
 redactPassword :: Param -> Maybe Param

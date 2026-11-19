@@ -198,6 +198,24 @@ read them as they read Apache's logs. The client address taken from the
 in the header. Corydalis now needs wai-logger 2.5.1 or later, which the
 Stack configuration adds to the snapshot.
 
+Security: the logs could contain text from outside the application
+unchanged: file names and the output of the external tools in the
+application logs, and parts of requests (e.g. the path and the headers)
+in the detailed request logs. Newlines in it could make a message look
+like several log lines, e.g. forged ones, and terminal escape sequences
+could act on the terminal of whoever reads the logs. Such characters
+are now escaped, as `\x0a` (or `\u{202e}` for characters above
+U+00FF): control characters (including newlines, tabs and the escape
+character), the Unicode line and paragraph separators, invisible
+formatting characters (including the bidirectional text controls, which
+can make a line display differently from its contents), spaces other
+than the ASCII one, private use and unassigned characters, and the
+backslash itself, so that the escapes are unambiguous. Other characters,
+such as accented letters, are logged as they are. The detailed request
+logs, meant for debugging, keep several lines per request, but each
+line is escaped in the same way. The request logs in the Apache format
+are escaped by wai-logger instead, as described above.
+
 Security: on public sites (built with the `public-site` flag), anonymous
 visitors could see the flagged images pages, which show the names of the
 users who flagged the images, i.e. valid login names, and the settings
