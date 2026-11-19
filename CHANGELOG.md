@@ -229,6 +229,15 @@ directories instead. Additionally, before reading or serving a file, it
 is checked again that no part of its path below the configured
 directories has been replaced by a symbolic link since the scan.
 
+Security: the per-folder `corydalis.yaml` files were still read through
+symbolic links, and from special files: a link to e.g. `/dev/zero` made
+the scan read until it ran out of memory, and one to a YAML file outside
+the picture folders showed its contents (if valid) on the folder page.
+These files are now only read if the scan found them as regular files,
+like pictures (a symbolic link or special file is listed as an error on
+the status page), and of at most 64 KiB; a file that is ignored for its
+size, or can't be read or parsed, is logged as a warning.
+
 Security: the application now refuses to start if the `config`
 directory (holding the session key) or the directory holding the
 database is within one of the configured source or output directories,
