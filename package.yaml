@@ -110,7 +110,7 @@ dependencies:
   - vector
   - wai
   - wai-extra
-  - wai-logger
+  - wai-logger >=2.5.1
   - warp
   - warp-tls
   - yaml

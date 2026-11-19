@@ -181,6 +181,23 @@ were logged, including the password of each login, in plain text. The
 password is now hidden, and the raw request bodies are no longer logged.
 If you used detailed request logging, consider removing the old logs.
 
+Security: the request logs in the Apache format contained the fields
+taken from the request (the client address, if taken from the headers,
+the method, the path, the referrer and the user agent) as they were:
+newlines in them could make a request look like several log lines, e.g.
+forged ones, terminal escape sequences could act on the terminal of
+whoever reads the logs, and quotes could shift the fields seen by log
+parsers. These fields are now escaped by the library formatting these
+lines, wai-logger, since version 2.5.1
+([logger#226](https://github.com/kazu-yamamoto/logger/issues/226)), as
+Apache httpd does: quotes and backslashes with a backslash (`\"`,
+`\\`), whitespace controls in C notation (e.g. `\n`), and other
+non-printable or non-ASCII bytes as `\xhh`, so that log analysis tools
+read them as they read Apache's logs. The client address taken from the
+`X-Forwarded-For` or `X-Real-IP` headers is also only the first address
+in the header. Corydalis now needs wai-logger 2.5.1 or later, which the
+Stack configuration adds to the snapshot.
+
 Security: on public sites (built with the `public-site` flag), anonymous
 visitors could see the flagged images pages, which show the names of the
 users who flagged the images, i.e. valid login names, and the settings

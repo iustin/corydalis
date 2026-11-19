@@ -11,6 +11,13 @@ packages:
       size: 784
   original:
     hackage: lrucaching-0.3.5@sha256:27bf853283f36d4ce3c268842288c11d1b03e35445ba9ad615674f9ecc0ecd2a,2015
+- completed:
+    hackage: wai-logger-2.5.1@sha256:b3de7fabd22920255ba9bb87a9dd4f0ba5b076bb8dac6841a8c4ce46b450433f,1443
+    pantry-tree:
+      sha256: 9a281bdb32bacb12b358b92c41d12d2c846719fc55e921a324ad25a98f1f7496
+      size: 581
+  original:
+    hackage: wai-logger-2.5.1@sha256:b3de7fabd22920255ba9bb87a9dd4f0ba5b076bb8dac6841a8c4ce46b450433f,1443
 snapshots:
 - completed:
     sha256: 3a80466f5d716f7e02425f64d09cf1c55b0da74bfc0828cb91862b91677c4af3
