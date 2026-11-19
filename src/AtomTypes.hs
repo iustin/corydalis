@@ -208,20 +208,12 @@ showMonth :: MonthOp -> Text
 showMonth MonthUnknown = "unknown"
 showMonth s            = sformat shown s
 
--- FIXME: replace with ords when newer formatting library (no longer
--- .0 bug) [dependency].
+-- | Shows a number as an English ordinal (1st, 2nd, …); negative
+-- numbers, which have no ordinal, are shown as they are.
 showOrdinal :: (Integral a) => a -> Text
 showOrdinal n
   | n < 0 = sformat int n
-  | tens > 3 && tens < 21 = sformat int n <> "th"
-  | otherwise =
-      sformat int n <>
-      case n `mod` 10 of
-        1 -> "st"
-        2 -> "nd"
-        3 -> "rd"
-        _ -> "th"
-  where tens = n `mod` 100
+  | otherwise = sformat ords n
 
 -- | Simpler Text to ordinal parsing with error handling.
 --
