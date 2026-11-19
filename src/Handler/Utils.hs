@@ -469,11 +469,15 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
             , "trends"     .= jsont
             ]
 
-formatDate :: Integer -> TL.Text
-formatDate d =
-  let (years, d1) = d `quotRem` 365
-      (months, d2) = d1 `quotRem` 30
-      (weeks, days) = d2 `quotRem` 7
+-- | Formats the length of a period between two days, both included,
+-- in calendar years, months, weeks and days, keeping the two largest
+-- non-zero units (e.g. "1 year and 2 months").
+formatPeriod :: Day -> Day -> TL.Text
+formatPeriod start end =
+  let CalendarDiffDays allMonths allDays =
+        diffGregorianDurationClip (addDays 1 end) start
+      (years, months) = allMonths `quotRem` 12
+      (weeks, days) = allDays `quotRem` 7
       pl :: Integer -> TL.Text
       pl n = if n > 1 then "s" else ""
       fpl :: Integer -> TL.Text -> Maybe TL.Text
