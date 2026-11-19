@@ -112,7 +112,7 @@ Behind a reverse proxy:
   cookies are only sent over HTTPS;
 - set `approot` to the public URL, as seen by the browser;
 - set `ip-from-header: true`, so that the logs show the clients'
-  addresses instead of the proxy's.
+  addresses instead of the proxy's (see below).
 
 The `Strict-Transport-Security` (HSTS) header is controlled by the
 `strict-transport-security` setting, which defaults to the `https` one;
@@ -124,6 +124,45 @@ Corydalis sends its own `Content-Security-Policy` and
 should not add a different `Content-Security-Policy` for Corydalis:
 browsers enforce all the policies they receive, so an additional one can
 break pages.
+
+### Client addresses behind a proxy
+
+With `ip-from-header`, the request logs show as client address the
+first address in the `X-Real-IP` or `X-Forwarded-For` header,
+whichever comes first in the request, and the address of the
+connection (i.e. the proxy's) if neither is present. The setting is
+only used for the logs.
+
+Clients can send these headers too, so the proxy must replace them
+with the address it sees, rather than pass them on or add to them;
+otherwise, clients can choose the address that is logged. For nginx:
+
+    proxy_set_header X-Real-IP       $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+
+`proxy_set_header` replaces the header sent by the client. Set both
+headers, even if your setup normally uses only one: a header that the
+proxy doesn't set is passed on as the client sent it, and can come
+first. Don't use `$proxy_add_x_forwarded_for`, as in many examples: it
+appends the address to the client's `X-Forwarded-For`, whose first
+address, the one logged, is then the client's choice.
+
+For Apache (`mod_proxy` with `mod_headers`, 2.4.10 or later):
+
+    RequestHeader unset X-Forwarded-For
+    RequestHeader set X-Real-IP "expr=%{REMOTE_ADDR}"
+
+By default, `mod_proxy` also appends the address to the client's
+`X-Forwarded-For`, and passes on its `X-Real-IP`; after removing the
+client's header, it adds its own with just the client's address.
+
+If several proxies are chained, only the first one (facing the clients)
+should set these headers; the next ones must pass them on unchanged,
+since for them the connection comes from the previous proxy. A
+log showing the address of a proxy (e.g. `127.0.0.1`) as client usually
+means that `ip-from-header` is not enabled, that a proxy doesn't set the
+headers, or that a later one replaces them; or, with a proxy that
+appends to the client's header, that the client sent that address.
 
 ## Basic configuration
 
