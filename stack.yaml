@@ -40,6 +40,8 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 extra-deps:
   - lrucaching-0.3.5@sha256:27bf853283f36d4ce3c268842288c11d1b03e35445ba9ad615674f9ecc0ecd2a,2015
+  # Escapes the request fields in the Apache logs (logger#226).
+  - wai-logger-2.5.1@sha256:b3de7fabd22920255ba9bb87a9dd4f0ba5b076bb8dac6841a8c4ce46b450433f,1443
 # Override default flag values for local packages and extra-deps
 flags: {}
 

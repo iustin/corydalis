@@ -24,7 +24,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module ApplicationSpec (spec) where
 
 import           Network.HTTP.Types                   (status200)
-import           Network.Wai                          (defaultRequest,
+import qualified Data.ByteString                      as BS
+import           Network.Wai                          (Request,
+                                                       defaultRequest,
+                                                       rawPathInfo,
+                                                       requestHeaderUserAgent,
                                                        requestHeaders,
                                                        requestMethod,
                                                        responseLBS)
@@ -39,23 +43,36 @@ import           Application                          (redactPassword,
 import           Settings                             (RequestLogging (..))
 import           TestImport
 
--- | Returns what the request logger logs for a login request, coming
--- through a proxy (as given by a header).
-logOfLogin :: Bool -> RequestLogging -> IO ByteString
-logOfLogin ipFromHeader logging = do
+-- | Returns what the request logger logs for a request.
+logOfRequest :: Bool -> RequestLogging -> Request -> LByteString
+             -> IO ByteString
+logOfRequest ipFromHeader logging req body = do
   logged <- newIORef []
   let dest = Callback $ \str -> modifyIORef logged (fromLogStr str:)
   logware <- mkRequestLogger $ requestLoggerSettings ipFromHeader logging dest
   let app _ respond = respond $ responseLBS status200 [] "ok"
-      req = defaultRequest
-              { requestMethod = "POST"
-              , requestHeaders = [ ("Content-Type", "application/x-www-form-urlencoded")
-                                 , ("X-Forwarded-For", "192.0.2.7")
-                                 ]
-              }
-  _ <- runSession (srequest $ SRequest req "username=alice&password=secret")
-                  (logware app)
+  _ <- runSession (srequest $ SRequest req body) (logware app)
   concat . reverse <$> readIORef logged
+
+-- | Returns what the request logger logs for a login request, coming
+-- through a proxy (as given by a header).
+logOfLogin :: Bool -> RequestLogging -> IO ByteString
+logOfLogin ipFromHeader logging =
+  logOfRequest ipFromHeader logging req "username=alice&password=secret"
+  where req = defaultRequest
+                { requestMethod = "POST"
+                , requestHeaders = [ ("Content-Type", "application/x-www-form-urlencoded")
+                                   , ("X-Forwarded-For", "192.0.2.7")
+                                   ]
+                }
+
+-- | A request with terminal sequences, newlines and quotes, in its path
+-- and in a header.
+hostileRequest :: Request
+hostileRequest = defaultRequest
+  { rawPathInfo = "/a\ESC[2J"
+  , requestHeaderUserAgent = Just "agent\"\ESC[31m\nforged line"
+  }
 
 spec :: Spec
 spec = do
@@ -76,6 +93,19 @@ spec = do
     proxied `shouldSatisfy` ("192.0.2.7" `isInfixOf`)
   it "logs nothing when disabled" $
     logOfLogin False RequestLoggingDisabled `shouldReturn` ""
+  it "escapes the fields of the Apache lines, as Apache does" $ do
+    logged <- logOfRequest False RequestLoggingApache hostileRequest ""
+    logged `shouldSatisfy` ("/a\\x1b[2J" `isInfixOf`)
+    logged `shouldSatisfy` ("\"agent\\\"\\x1b[31m\\nforged line\"" `isInfixOf`)
+    logged `shouldNotSatisfy` BS.elem 0x1b
+    BS.count 0x0a logged `shouldBe` 1
+  it "logs only the first address of the header" $ do
+    let req = defaultRequest
+                { requestHeaders = [("X-Forwarded-For", " 192.0.2.7 - forged, 10.0.0.1")] }
+    logged <- logOfRequest True RequestLoggingApache req ""
+    logged `shouldSatisfy` ("192.0.2.7 - - [" `BS.isPrefixOf`)
+    logged `shouldNotSatisfy` ("forged" `isInfixOf`)
+    logged `shouldNotSatisfy` ("10.0.0.1" `isInfixOf`)
  describe "redactPassword" $ do
   it "hides the password" $
     redactPassword ("password", "secret") `shouldBe` Just ("password", "(hidden)")
