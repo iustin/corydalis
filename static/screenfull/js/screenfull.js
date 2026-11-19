@@ -1,1 +1,0 @@
-../../../node_modules/screenfull/index.js
