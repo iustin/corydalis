@@ -90,6 +90,11 @@ same operators as the numeric search atoms (`=`, `!=`, `<`, `<=`, `>`,
 of `tablesorter` (e.g. `a|b` or ranges) is no longer supported. Group
 headers are no longer collapsible (this was already disabled).
 
+The usage periods in the camera and lens statistics are now computed in
+calendar years and months, instead of approximating a year as 365 days
+and a month as 30, so e.g. a full year is shown as "1 year" rather than
+"1 year and 1 day" in leap years.
+
 ### Fixed bugs
 
 With ImageMagick 6 (as shipped by Debian and Ubuntu), the ImageMagick
