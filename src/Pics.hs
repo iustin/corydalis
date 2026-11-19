@@ -1427,7 +1427,21 @@ examineCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
                  -> IO ()
 examineCacheFile prefix cleanProgress iset logger path = do
   let fpath = Text.pack $ pathSeparator:path
-      -- FIXME: huh, how does this work? not documented, why LE?
+      -- Cache files are named after their image's absolute path, plus
+      -- "-" and a suffix (see 'cachedBasename'), so the image's path is a
+      -- prefix of the cache file's, and thus sorts before it. The
+      -- largest image path not after the cache file's (lookupLE) is then
+      -- normally that image's, if the image still exists: found is
+      -- whether it is a prefix of the cache file's path.
+      --
+      -- This fails if another image's path starts with this one's,
+      -- followed by a character sorting before '-' (e.g. a space): for
+      -- images "a.nef" and "a.nef copy.jpg", lookupLE finds the latter
+      -- for "a.nef-1024", which isn't its prefix, so a.nef's cache files
+      -- are deleted (and rebuilt when needed). Checking the image path
+      -- without the suffix for membership would be exact; 'found' also
+      -- accepts any image path that's merely a prefix (e.g. "a" for
+      -- "a.nef-1024"), which only keeps orphaned files.
       found = maybe False (`isPrefixOf` fpath) $ Set.lookupLE fpath iset
   modifier <- if found
               then return incNoop
