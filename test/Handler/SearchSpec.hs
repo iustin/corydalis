@@ -74,6 +74,12 @@ spec = parallel $ withApp $ do
         followRedirectOK
         liftIO $ pendingWith "route parsing is broken"
 
+    forM_ [ListFoldersR, ListImagesR, BrowseImagesR 0] $ \route ->
+      it (formatToString ("refuses missing values of folders for route " % shown) route) $ do
+        login
+        get (route, [("no-folder" :: Text, "")])
+        statusIs 400
+
   describe "SearchView" $ do
     it "Reports no images on empty repository" $ do
       login

@@ -217,6 +217,10 @@ spec = parallel $ do
       parseAtom "country" "Spain" `shouldBe` Just (Country (OpEqual "Spain"))
       parseAtom "country" "~Spain" `shouldBe` Just (Country (OpFuzzy (makeFuzzy "Spain")))
       parseAtom "no-country" "" `shouldBe` Just (Country OpMissing)
+    it "refuses missing values for symbols which always have one" $
+      forM_ (filter (`notElem` missingAtomSymbols) [minBound .. maxBound]) $ \s -> do
+        buildMissingAtom s `shouldBe` Nothing
+        parseAtom ("no-" <> symbolName s) "" `shouldBe` Nothing
 
     it "parses numeric atoms" $ do
       parseAtom "year" "2020" `shouldBe` Just (Year (OpEq 2020))
@@ -434,8 +438,9 @@ spec = parallel $ do
       parseAtom "flash-source" "int" `shouldBe` Just (FlashSrc FlashInternal)
 
     it "parses no- atoms for every supported symbol" $
-      forM_ missingAtomSymbols $ \s ->
-        parseAtom ("no-" <> symbolName s) "" `shouldBe` Just (buildMissingAtom s)
+      forM_ missingAtomSymbols $ \s -> do
+        buildMissingAtom s `shouldSatisfy` isJust
+        parseAtom ("no-" <> symbolName s) "" `shouldBe` buildMissingAtom s
 
     it "rejects unknown symbols and invalid values" $ do
       parseAtom "nonesuch" "x" `shouldBe` Nothing

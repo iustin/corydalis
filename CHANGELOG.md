@@ -456,6 +456,10 @@ within `/pics/cache` (only reachable through a symlink in the cache
 directory, which Corydalis doesn't create). The cache directory is now
 resolved too, and the paths compared by whole components.
 
+Searching for a missing value of an attribute that always has one, e.g.
+`no-folder`, `no-filename` or `no-status` in the URL, made the server
+fail with an internal error; it is now rejected as an invalid search.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
