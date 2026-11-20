@@ -203,8 +203,9 @@ Previews are built by ImageMagick, using the decoder configured for
 each file extension in the `imagedecoders` setting (see the sample
 configuration for the default list). The decoder is always passed
 explicitly, since otherwise ImageMagick would guess it from the file
-contents, and someone able to add files to the picture directories
-could make it run e.g. a PostScript document named `photo.jpg`.
+contents, and a malicious file (see [Picture and cache
+directories](#picture-and-cache-directories)) could make it run e.g. a
+PostScript document named `photo.jpg`.
 
 Files whose extension has no configured decoder get no previews; if you
 add an extension to `jpegexts` or `viewableimages` that is not in the
@@ -333,11 +334,14 @@ changing the passwords.
 
 ### Picture and cache directories
 
-Only the administrators of the application (or people trusted as much)
-should be able to change the contents of the source, output and cache
-directories while the application runs; reading pictures from shared or
-synchronised folders is fine, as long as the others can't write to
-them.
+The structure of the picture directories is trusted, but the contents
+of the pictures and movies in them are not.
+
+The structure: only the administrators of the application (or people
+trusted as much) should be able to add, remove or replace files and
+directories in the source, output and cache directories while the
+application runs; reading pictures from shared or synchronised folders
+is fine, as long as the others can't write to them.
 
 The scan only accepts regular files (not symbolic links, nor other
 special files), and before reading or serving a file, the application
@@ -348,3 +352,21 @@ the right moment can thus make the application serve (or convert) any
 other file it can read, including the session key. The cache directory,
 whose files are served without further checks, is only written by the
 application, and should be writable only by its user.
+
+The contents: pictures and movies often come from elsewhere (downloads,
+or files received from others), and a crafted file can try to exploit
+the tools that read it. The application therefore restricts how these
+read the files: ImageMagick only uses the decoder configured for the
+file's extension (see [Image decoders](#image-decoders)) and its
+security policy, ffmpeg only the demuxer configured for the extension
+(see [Movie demuxers](#movie-demuxers)) and only local files, and
+embedded previews are only used if they are JPEG images. This limits
+which parsers read a file, but a bug in one of them, or in exiftool
+(which reads the metadata of every file), can still be exploited: keep
+ImageMagick, ffmpeg and exiftool up to date, and consider restricting
+what the application can do (e.g. with systemd's sandboxing options),
+so that a compromised tool can do little harm.
+
+The folder settings files (`corydalis.yaml`) are checked when scanned
+(they must be small, regular files), and their contents are only used
+as settings.
