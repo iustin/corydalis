@@ -50,11 +50,6 @@ responseCookie name = withResponse $ \response ->
     [ parseSetCookie value
     | (header, value) <- simpleHeaders response, header == "Set-Cookie" ]
 
--- | Returns the redirect target of the last response.
-responseLocation :: YesodExample App (Maybe ByteString)
-responseLocation = withResponse $ \response ->
-  return $ lookup "Location" $ simpleHeaders response
-
 -- | Opens a page with the given referer.
 getWithReferer :: Route App -> ByteString -> YesodExample App ()
 getWithReferer route referer = request $ do

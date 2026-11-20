@@ -460,6 +460,12 @@ Searching for a missing value of an attribute that always has one, e.g.
 `no-folder`, `no-filename` or `no-status` in the URL, made the server
 fail with an internal error; it is now rejected as an invalid search.
 
+After a rescan, or after flagging an image from a form, Corydalis
+redirected to the page in the request's `Referer` header, even if it was
+on another site; now it only returns to pages of the Corydalis site
+itself, as already done after login. These requests need a valid CSRF
+token, so in practice they came from Corydalis' own pages anyway.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

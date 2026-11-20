@@ -44,6 +44,7 @@ module Foundation
   , getLastViewMode
   , clientSessionKeyFile
   , isWithinRoot
+  , setSameOriginUltDestReferer
   , alwaysRequiresAuthentication
   , hasAccessToStoragePaths
   , makeDummyLoginUser

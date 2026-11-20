@@ -35,7 +35,7 @@ flagRequest method kind route = do
   request $ do
     setMethod method
     setUrl route
-    addRequestHeader (hReferer, "/")
+    addRequestHeader (hReferer, "http://localhost:3000/")
     addRequestHeader (hAccept, kind)
     addCsrfHeader token
 
@@ -44,6 +44,19 @@ deleteWithType kind = do
   loginAndCheckFlagged
   flagRequest "DELETE" kind $ ImageFlagR "a" "b"
 
+-- | Flags an image from the HTML form, with the given referring page.
+flagFrom :: ByteString -> YesodExample App ()
+flagFrom referer = do
+  _ <- addScannedFolder "2020-01-01-trip" ["a.jpg"]
+  loginAndCheckFlagged
+  token <- pageCsrfToken
+  request $ do
+    setMethod "PUT"
+    setUrl $ ImageFlagR "2020-01-01-trip" "a"
+    addRequestHeader (hReferer, referer)
+    addRequestHeader (hAccept, "text/html")
+    addCsrfHeader token
+
 -- | Sends what a browser would for a form trying to override the method:
 -- a POST with the method in the first field (as methodOverridePost
 -- required), followed by the CSRF token.
@@ -51,7 +64,7 @@ postForm :: ByteString -> Maybe Text -> YesodExample App ()
 postForm method token = request $ do
   setMethod "POST"
   setUrl $ ImageFlagR "a" "b"
-  addRequestHeader (hReferer, "/")
+  addRequestHeader (hReferer, "http://localhost:3000/")
   addRequestHeader (hAccept, "text/html")
   addRequestHeader (hContentType, "application/x-www-form-urlencoded")
   setRequestBody $ fromStrict $ "_method=" <> method <>
@@ -66,6 +79,15 @@ loginAndCheckFlagged = do
 
 spec :: Spec
 spec = parallel $ withApp $ do
+  describe "returns after flagging to the referring page" $ do
+    it "if it is on this site" $ do
+      flagFrom "http://localhost:3000/curate/flagged-images"
+      responseLocation >>= liftIO .
+        (`shouldBe` Just "http://localhost:3000/curate/flagged-images")
+    it "but not if it is on another site" $ do
+      flagFrom "https://evil.example/curate/flagged-images"
+      responseLocation >>= liftIO .
+        (`shouldBe` Just "http://localhost:3000/folder/2020-01-01-trip/images/a")
   it "loads the flagged image page and checks it looks right"
     loginAndCheckFlagged
   it "shows flags of removed users" $ do

@@ -32,7 +32,7 @@ import           Import
 
 postReloadR :: Handler Html
 postReloadR = do
-  setUltDestReferer
+  setSameOriginUltDestReferer
   reloadPics
   setMessage "Rescan triggered"
   setSession msgTypeKey msgSuccess
