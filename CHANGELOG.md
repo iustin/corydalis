@@ -469,6 +469,11 @@ on another site; now it only returns to pages of the Corydalis site
 itself, as already done after login. These requests need a valid CSRF
 token, so in practice they came from Corydalis' own pages anyway.
 
+Security hardening: all responses now include `Referrer-Policy:
+same-origin`, so that browsers don't send the URLs of Corydalis pages,
+which contain folder and image names and search terms, to other sites
+(e.g. when following a link to the documentation).
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
