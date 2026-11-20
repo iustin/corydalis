@@ -115,6 +115,7 @@ module Pics ( PicDir(..)
             , jpegMagic
             , checkEmbeddedImage
             , extractEmbedded
+            , embeddedArgs
             , extractFirstFrame
             , mkImage
             , buildTimeSort
@@ -2010,6 +2011,14 @@ checkEmbeddedImage tag exitCode out err
       Left $ sformat ("The embedded image " % string % " is not a JPEG") tag
   | otherwise = Right out
 
+-- | The exiftool arguments for extracting the given embedded image.
+--
+-- The path comes after @--@, so that it is never taken as an option,
+-- even if it starts with a dash (the paths we pass are absolute, but
+-- this makes it independent of that, as for the scan).
+embeddedArgs :: String -> FilePath -> [String]
+embeddedArgs tag path = ["-b", "-" ++ tag, "--", path]
+
 -- | Extracts and saves an embedded thumbnail from an image.
 --
 -- The extracted image is required to be a JPEG, otherwise it is not
@@ -2020,11 +2029,7 @@ extractEmbedded :: Config -> FilePath -> POSIXTime -> String
                 -> IO (Either Text (MimeType, FilePath))
 extractEmbedded config path mtime tag = do
   let outputPath = embeddedImagePath config path
-      args = [
-        "-b",
-        "-" ++ tag,
-        path
-        ]
+      args = embeddedArgs tag path
       mime = "image/jpeg"
       goodRet = Right (mime, outputPath)
   needsBuild <- cacheFileNeedsBuild outputPath mtime

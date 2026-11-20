@@ -385,6 +385,9 @@ spec = parallel $ do
       -- Nor any temporary file.
       listDirectory (takeDirectory expected) `shouldReturn` []
   describe "embedded images" $ do
+    it "passes the path to exiftool after the options" $ do
+      embeddedArgs "PreviewImage" "-x.nef" `shouldBe`
+        ["-b", "-PreviewImage", "--", "-x.nef"]
     let largeEnough = BSL.replicate 1024 0
     it "starts all JPEG images with the JPEG magic" $
       withConfig' $ \config -> do
