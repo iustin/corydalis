@@ -28,6 +28,8 @@
                  $maybe val <- repr
                    #{val}
                  $nothing
-                   $with atom' <- buildMissingAtom atom
+                   $maybe atom' <- buildMissingAtom atom
                      <i>#{atomDescription atom'}
+                   $nothing
+                     <i>unknown
                <td .number>#{count}

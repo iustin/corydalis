@@ -414,52 +414,56 @@ parseSymbol "work-trip"      = Just TWorkTrip
 parseSymbol "event-kind"     = Just TEventKind
 parseSymbol _                = Nothing
 
-buildMissingAtom :: Symbol -> Atom
+-- | Builds the atom for a missing value of the given symbol, if any.
+--
+-- Some symbols (e.g. a folder) always have a value, so they have no
+-- such atom, and a search for them (e.g. with @no-folder@) is invalid.
+buildMissingAtom :: Symbol -> Maybe Atom
 buildMissingAtom s =
   case s of
-    TCountry       -> Country   OpMissing
-    TProvince      -> Province  OpMissing
-    TCity          -> City      OpMissing
-    TLocation      -> Location  OpMissing
-    TPerson        -> Person    OpMissing
-    TKeyword       -> Keyword   OpMissing
-    TTitle         -> Title     OpMissing
-    TCaption       -> Caption   OpMissing
-    TYear          -> Year      OpNa
-    TSeason        -> Season    SeasonUnknown
-    TMonth         -> Month     MonthUnknown
-    TDay           -> Day       DayUnknown
-    TCamera        -> Camera    OpMissing
-    TLens          -> Lens      OpMissing
-    TFStop         -> FStop     OpNa
-    TShutterSpeed  -> ShutterSpeed OpNa
-    TIso           -> Iso       OpNa
-    TFocalLength   -> FocalLength OpNa
-    TProblem       -> Problem   OpMissing
-    TType          -> Type      MediaUnknown
-    TRating        -> Rating    OpNa
-    TFlashSrc      -> FlashSrc  FlashUnknown
-    TFlashMode     -> FlashMode OpMissing
-    TMegapixels    -> Megapixels OpNa
-    TEvent         -> Event OpMissing
-    TGenericEvent  -> Indexer.GenericEvent OpMissing
-    TBirthday      -> Birthday OpMissing
-    TGetaway       -> Getaway OpMissing
-    TGrandVacation -> GrandVacation OpMissing
-    TVacation      -> Vacation OpMissing
-    TWorkTrip      -> WorkTrip OpMissing
-    TEventKind     -> EventKind EKNoEvent
-    -- FIXME: these should fail instead (using Maybe).
-    TFolder        -> error "No missing atom for folder"
-    TFileName      -> error "No missing atom for filename"
-    TStatus        -> error "No missing atom for status"
-    TFClass        -> error "No missing atom for folder class"
-    TPplCnt        -> error "No missing atom for people count"
-    TKwdCnt        -> error "No missing atom for keyword count"
+    TCountry       -> Just $ Country   OpMissing
+    TProvince      -> Just $ Province  OpMissing
+    TCity          -> Just $ City      OpMissing
+    TLocation      -> Just $ Location  OpMissing
+    TPerson        -> Just $ Person    OpMissing
+    TKeyword       -> Just $ Keyword   OpMissing
+    TTitle         -> Just $ Title     OpMissing
+    TCaption       -> Just $ Caption   OpMissing
+    TYear          -> Just $ Year      OpNa
+    TSeason        -> Just $ Season    SeasonUnknown
+    TMonth         -> Just $ Month     MonthUnknown
+    TDay           -> Just $ Day       DayUnknown
+    TCamera        -> Just $ Camera    OpMissing
+    TLens          -> Just $ Lens      OpMissing
+    TFStop         -> Just $ FStop     OpNa
+    TShutterSpeed  -> Just $ ShutterSpeed OpNa
+    TIso           -> Just $ Iso       OpNa
+    TFocalLength   -> Just $ FocalLength OpNa
+    TProblem       -> Just $ Problem   OpMissing
+    TType          -> Just $ Type      MediaUnknown
+    TRating        -> Just $ Rating    OpNa
+    TFlashSrc      -> Just $ FlashSrc  FlashUnknown
+    TFlashMode     -> Just $ FlashMode OpMissing
+    TMegapixels    -> Just $ Megapixels OpNa
+    TEvent         -> Just $ Event OpMissing
+    TGenericEvent  -> Just $ Indexer.GenericEvent OpMissing
+    TBirthday      -> Just $ Birthday OpMissing
+    TGetaway       -> Just $ Getaway OpMissing
+    TGrandVacation -> Just $ GrandVacation OpMissing
+    TVacation      -> Just $ Vacation OpMissing
+    TWorkTrip      -> Just $ WorkTrip OpMissing
+    TEventKind     -> Just $ EventKind EKNoEvent
+    -- These always have a value.
+    TFolder        -> Nothing
+    TFileName      -> Nothing
+    TStatus        -> Nothing
+    TFClass        -> Nothing
+    TPplCnt        -> Nothing
+    TKwdCnt        -> Nothing
 
 parseAtom :: Text -> Text -> Maybe Atom
 parseAtom (Text.splitAt 3 -> ("no-", v)) _ =
-  buildMissingAtom <$> parseSymbol v
+  parseSymbol v >>= buildMissingAtom
 
 parseAtom a v = do
   s <- parseSymbol a
