@@ -59,7 +59,7 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 #    This is a demo site for
 #    <a href="https://github.com/iustin/corydalis" target="_blank">Corydalis</a>.
 #    Visit the github page for the source code, or you can
-#    <a href="http://corydalis.readthedocs.io/" target="_blank">read the docs</a>
+#    <a href="https://corydalis.readthedocs.io/" target="_blank">read the docs</a>
 #    online.
 #  </p>
 
