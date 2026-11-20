@@ -82,6 +82,11 @@ responseNoSniff = withResponse $ \response ->
   liftIO $ lookup "X-Content-Type-Options" (simpleHeaders response)
     `shouldBe` Just "nosniff"
 
+-- | Returns the HSTS header of the last response.
+responseHsts :: YesodExample App (Maybe ByteString)
+responseHsts = withResponse $ \response ->
+  return $ lookup "Strict-Transport-Security" (simpleHeaders response)
+
 -- | Checks the important properties of the security policy.
 checkSecurityPolicy :: YesodExample App ()
 checkSecurityPolicy = do
@@ -245,6 +250,16 @@ sessionGenerationSpec = describe "session generation" $ do
     it "rejects an invalid generation" $ do
       isGenerationCurrent 0 (Just "") `shouldBe` False
       isGenerationCurrent 0 (Just "zero") `shouldBe` False
+  describe "checks the HSTS header" $ do
+    withAppSettings (\settings -> settings { appStrictTransportSecurity = True }) $
+      it "lasts a year when enabled" $ do
+        login
+        checkRoute HomeR
+        responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
+    withApp $ it "is not sent when disabled" $ do
+      login
+      checkRoute HomeR
+      responseHsts >>= liftIO . (`shouldBe` Nothing)
   withApp $ do
     let loggedIn = do
           userEntity <- createUser "foo"

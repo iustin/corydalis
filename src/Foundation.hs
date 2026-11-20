@@ -141,6 +141,11 @@ msgValidTypes = Set.fromList [msgSuccess, msgInfo, msgWarning, msgDanger]
 sessionTimeout :: Int
 sessionTimeout = 120
 
+-- | How long browsers remember to only use HTTPS (the HSTS max-age), in
+-- minutes, as 'sslOnlyMiddleware' takes it: a year, the usual value.
+hstsMaxAge :: Int
+hstsMaxAge = 365 * 24 * 60
+
 data PageStyle
   = PageBasic  -- ^ Only the most basic CSS/JS. Well, with masonry since
                -- Bootstrap 5. Sigh. Also sortable tables, which are small.
@@ -253,7 +258,7 @@ instance Yesod App where
               master <- getYesod
               let settings = appSettings master
               (if appStrictTransportSecurity settings
-                 then sslOnlyMiddleware sessionTimeout
+                 then sslOnlyMiddleware hstsMaxAge
                  else id) handler
 
     defaultLayout widget = do
