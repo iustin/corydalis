@@ -41,7 +41,7 @@ import           System.FilePath     (takeDirectory)
 import           System.Posix.Files  (fileMode, fileOwner, getFileStatus,
                                       groupModes, otherModes, ownerModes,
                                       setFileMode)
-import           System.Posix.Types  (FileMode)
+import           System.Posix.Types  (FileMode, UserID)
 import           System.Posix.User   (getEffectiveUserID)
 
 import           Import.NoFoundation
@@ -66,13 +66,14 @@ data PrivateDirStatus
 -- owned by the user running the application, since the others are
 -- presumably set up deliberately by the administrator.
 protectPrivateDir :: FilePath -> IO PrivateDirStatus
-protectPrivateDir = protectPrivateDirWith setFileMode
+protectPrivateDir = protectPrivateDirWith getEffectiveUserID setFileMode
 
--- | Version of 'protectPrivateDir' taking the function to change the
--- mode, for testing.
-protectPrivateDirWith :: (FilePath -> FileMode -> IO ())
+-- | Version of 'protectPrivateDir' taking the functions to get the
+-- effective user ID and change the mode, for testing.
+protectPrivateDirWith :: IO UserID
+                      -> (FilePath -> FileMode -> IO ())
                       -> FilePath -> IO PrivateDirStatus
-protectPrivateDirWith changeMode dir = do
+protectPrivateDirWith getUid changeMode dir = do
   -- Errors other than a missing directory (e.g. permission denied on a
   -- parent directory, or a symbolic link loop) are deliberately not
   -- caught: they would also prevent using the files in the directory,
@@ -84,7 +85,7 @@ protectPrivateDirWith changeMode dir = do
     Right st
       | isPrivate st -> return PrivateDirOK
       | otherwise -> do
-          uid <- getEffectiveUserID
+          uid <- getUid
           if fileOwner st /= uid
             then return $ PrivateDirAccessible
                    "it is not owned by the user running the application"
