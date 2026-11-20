@@ -441,6 +441,12 @@ session cookies without the secure bit. When serving HTTPS directly
 always secure; `secure-sessions` is now optional, and defaults to the
 `https` setting.
 
+When using a Unix socket, Corydalis removed whatever was at the
+configured path at startup, to replace a socket left by a previous run;
+with a mistake in the configuration, this could have been any file
+(e.g. the database). It now only removes a socket, and refuses to start
+if the path holds anything else.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

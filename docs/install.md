@@ -144,6 +144,14 @@ back/forward cache after logout. Responses that already set their own
 `private, max-age=2592000` (private because it carries the session
 cookie). Static assets remain publicly cacheable.
 
+### Unix socket
+
+With `unix-socket` set, Corydalis listens on that Unix socket instead
+of the configured host and port. A socket left by a previous run is
+replaced; if the path holds anything else (e.g. a regular file, by a
+mistake in the configuration), Corydalis refuses to start rather than
+remove it.
+
 ### Client addresses behind a proxy
 
 With `ip-from-header`, the request logs show as client address the

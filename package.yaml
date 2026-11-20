@@ -166,6 +166,7 @@ library:
     - Utils.Logging
     - Utils.Parsing
     - Utils.Permissions
+    - Utils.Socket
     - Utils.Storage
     - Utils.Yaml
   other-modules:

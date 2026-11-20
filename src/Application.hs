@@ -56,14 +56,6 @@ import           Database.Persist.Sqlite                   (createSqlitePool,
                                                             sqlPoolSize)
 import           Import
 import           Language.Haskell.TH.Syntax                (qLocation)
-import           Network.Socket                            (Family (AF_UNIX),
-                                                            SockAddr (SockAddrUnix),
-                                                            SocketOption (ReuseAddr),
-                                                            SocketType (Stream),
-                                                            bind, listen,
-                                                            maxListenQueue,
-                                                            setSocketOption,
-                                                            socket)
 import           Network.Wai                               (Middleware,
                                                             mapResponseHeaders,
                                                             pathInfo)
@@ -91,8 +83,6 @@ import           Network.Wai.Middleware.RequestLogger      (DetailedSettings (..
                                                             destination,
                                                             mkRequestLogger,
                                                             outputFormat)
-import           System.Directory                          (doesFileExist,
-                                                            removeFile)
 import           System.Log.FastLogger                     (LogStr,
                                                             defaultBufSize,
                                                             flushLogStr,
@@ -130,6 +120,7 @@ import           Utils.Permissions                         (databaseDirectory,
                                                             databaseFileDirectory,
                                                             privateDirMessage,
                                                             protectPrivateDir)
+import           Utils.Socket                              (listenUnixSocket)
 import           Utils.Storage                             (checkPrivateDirsOutsideStorage)
 
 -- This line actually creates our YesodDispatch instance. It is the second half
@@ -405,16 +396,7 @@ appMain = do
     -- Check if we should use a Unix socket
     case appUnixSocket settings of
         Just socketPath -> do
-            --putStrLn $ "Starting application on Unix socket: " ++ socketPath
-            -- Create the Unix socket
-            sock <- socket AF_UNIX Stream 0
-            setSocketOption sock ReuseAddr 1
-            -- Remove socket file if it exists
-            doesFileExist socketPath >>= flip when (removeFile socketPath)
-            -- Bind to the socket path
-            bind sock (SockAddrUnix socketPath)
-            -- Start listening
-            listen sock maxListenQueue
+            sock <- listenUnixSocket socketPath
             -- Run the application with the socket
             runSettingsSocket (warpSettings foundation) sock app
 
