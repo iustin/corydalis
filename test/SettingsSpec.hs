@@ -49,6 +49,34 @@ spec :: Spec
 spec = do
   sessionMaxAgeSpec
   secureSessionsSpec
+  unixSocketSpec
+
+unixSocketSpec :: Spec
+unixSocketSpec = describe "unix-socket" $ do
+  let socket = "unix-socket" .= ("/run/corydalis/socket" :: String)
+  it "has no group or mode by default" $ do
+    settings <- loadSettingsWith [object [socket]]
+    appUnixSocketGroup settings `shouldBe` Nothing
+    appUnixSocketMode settings `shouldBe` Nothing
+  it "reads the group and the mode" $ do
+    settings <- loadSettingsWith
+      [object [ socket
+              , "unix-socket-group" .= ("www-data" :: Text)
+              , "unix-socket-mode" .= ("0660" :: Text)
+              ]]
+    appUnixSocketGroup settings `shouldBe` Just "www-data"
+    appUnixSocketMode settings `shouldBe` Just 0o660
+  it "refuses an unquoted mode" $
+    loadSettingsWith [object [socket, "unix-socket-mode" .= (660 :: Int)]]
+      `shouldThrow` anyException
+  it "refuses an invalid mode" $
+    loadSettingsWith [object [socket, "unix-socket-mode" .= ("0999" :: Text)]]
+      `shouldThrow` anyException
+  it "needs a socket for the group and mode" $ do
+    loadSettingsWith [object ["unix-socket-mode" .= ("0660" :: Text)]]
+      `shouldThrow` anyException
+    loadSettingsWith [object ["unix-socket-group" .= ("www-data" :: Text)]]
+      `shouldThrow` anyException
 
 secureSessionsSpec :: Spec
 secureSessionsSpec = describe "secure-sessions" $ do

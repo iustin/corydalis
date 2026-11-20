@@ -42,9 +42,11 @@ import           Data.Time                  (NominalDiffTime)
 import           Database.Persist.Sqlite    (SqliteConf)
 import           Language.Haskell.TH.Syntax (Exp, Name, Q)
 import           Network.Wai.Handler.Warp   (HostPreference)
+import           System.Posix.Types         (FileMode)
 import           Yesod.Default.Util
 
 import           Types
+import           Utils.Socket               (parseSocketMode)
 
 -- | Denotes the type of request logging to be performed.
 data RequestLogging = RequestLoggingDisabled
@@ -75,6 +77,13 @@ data AppSettings = AppSettings
     -- overrides those settings, and also ignores the https setting. The
     -- secure sessions and HSTS settings should be configured as needed.
     -- Useful mainly for reverse proxied deployments.
+    , appUnixSocketGroup :: Maybe Text
+    -- ^ The group to give the Unix socket, e.g. one shared with the
+    -- reverse proxy; the user running Corydalis must be a member of
+    -- it. If not set, the socket gets the process' group.
+    , appUnixSocketMode :: Maybe FileMode
+    -- ^ The permissions of the Unix socket; a proxy needs write
+    -- permission to connect. If not set, they come from the umask.
     , appHost           :: HostPreference
     -- ^ Host/interface the server should bind to.
     , appPort           :: Int
@@ -148,6 +157,12 @@ instance FromJSON AppSettings where
         appDatabaseConf   <- o .:  "database"
         appRoot           <- o .:? "approot"
         appUnixSocket     <- o .:? "unix-socket"
+        appUnixSocketGroup <- o .:? "unix-socket-group"
+        appUnixSocketMode <- o .:? "unix-socket-mode" >>=
+                             traverse parseSocketModeValue
+        when (isNothing appUnixSocket &&
+              (isJust appUnixSocketGroup || isJust appUnixSocketMode)) $
+          parseFail "unix-socket-group and unix-socket-mode need unix-socket"
         appHost           <-  fromString <$> o .: "host"
         appPort           <- o .:  "port"
         appHttps          <- o .:  "https"
@@ -173,6 +188,15 @@ instance FromJSON AppSettings where
         appConfig         <- o .:  "config"
 
         return AppSettings {..}
+
+-- | Parses the Unix socket mode, which must be a (quoted) string: YAML
+-- doesn't agree on how to read unquoted numbers with a leading zero
+-- (as octal, or as decimal).
+parseSocketModeValue :: Value -> Parser FileMode
+parseSocketModeValue (String txt) =
+  either (parseFail . unpack) return $ parseSocketMode txt
+parseSocketModeValue _ =
+  parseFail "unix-socket-mode must be a quoted octal string, e.g. \"0660\""
 
 -- | Settings for 'widgetFile', such as which template languages to support and
 -- default Hamlet settings.
