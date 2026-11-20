@@ -499,6 +499,15 @@ unknown authors are shown as such, but it prevented removing users who
 had flagged images, and it prevented any change to the users table,
 since the migration rebuilds the table, which the key doesn't allow.
 
+Two new, optional, configuration keys control access to the Unix socket
+(`unix-socket`): `unix-socket-group` sets its group, and
+`unix-socket-mode` its permissions (as a quoted octal string, e.g.
+`"0660"`). Connecting to the socket requires write permission on it, so
+a reverse proxy running as another user, as is usual for nginx, could
+only connect with a permissive umask, or by running on a TCP port
+instead; now it can share a dedicated group with Corydalis. See the
+installation documentation for an example.
+
 ### Internal changes
 
 The remaining (trivial) corydalis JS code has been converted to

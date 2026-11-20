@@ -8,6 +8,13 @@ static-dir:     "_env:STATIC_DIR:static"
 # enabled, please configure manually the secure sessions and strict transport
 # security settings.
 # unix-socket:  /var/run/corydalis/socket
+# Group and permissions of the Unix socket, which a reverse proxy
+# running as another user needs to connect (connecting needs write
+# permission); see the installation documentation. Corydalis' user must
+# be a member of the group. The mode must be quoted. By default, the
+# socket gets the process' group, and its permissions from the umask.
+# unix-socket-group: corydalis-socket
+# unix-socket-mode: "0660"
 # Listen address:
 host:           "_env:HOST:*4" # any IPv4 host
 # Listen port:

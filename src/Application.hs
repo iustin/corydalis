@@ -397,6 +397,8 @@ appMain = do
     case appUnixSocket settings of
         Just socketPath -> do
             sock <- listenUnixSocket socketPath
+                      (appUnixSocketGroup settings)
+                      (appUnixSocketMode settings)
             -- Run the application with the socket
             runSettingsSocket (warpSettings foundation) sock app
 

@@ -152,6 +152,42 @@ replaced; if the path holds anything else (e.g. a regular file, by a
 mistake in the configuration), Corydalis refuses to start rather than
 remove it.
 
+Connecting to a Unix socket requires write permission on it. By
+default, the socket belongs to the application's user and primary
+group, and its permissions come from the umask (e.g. `0755` with the
+usual `022`), so only the application's own user can connect. To let a
+proxy running as another user (e.g. `www-data` for nginx) connect, set:
+
+- `unix-socket-group` to a group of which both the proxy's user and the
+  application's user are members; the application's user doesn't need
+  it as primary group;
+- `unix-socket-mode` to permissions giving that group write access,
+  as a quoted octal string (YAML may read an unquoted `0660` as a
+  decimal number, so it is refused).
+
+Both are applied before the socket accepts connections, and Corydalis
+refuses to start if the group doesn't exist, or if its user is not a
+member of it. A dedicated group is preferable to the proxy's own group
+(e.g. `www-data`), which other applications served by it may run as.
+For example, with a `corydalis-socket` group:
+
+    groupadd --system corydalis-socket
+    usermod -a -G corydalis-socket www-data
+
+then, in the settings:
+
+    unix-socket: /run/corydalis/socket
+    unix-socket-group: corydalis-socket
+    unix-socket-mode: "0660"
+
+With systemd, `SupplementaryGroups=corydalis-socket` in the service
+gives it the group, and `RuntimeDirectory=corydalis` creates
+`/run/corydalis` (accessible to others by default, which the proxy
+needs to reach the socket). The proxy must be restarted to get its new
+group. In nginx, use the socket as:
+
+    proxy_pass http://unix:/run/corydalis/socket:;
+
 ### Client addresses behind a proxy
 
 With `ip-from-header`, the request logs show as client address the
