@@ -571,6 +571,12 @@ using systemd's sandboxing to limit what Corydalis and the tools it runs
 can do; and the installation documentation has an example of limiting
 login attempts in nginx.
 
+The ImageMagick policy (`config/magick/policy.xml`) now also sets
+resource limits, as in the Debian and Ubuntu policy: images at most 32K
+pixels wide and high, and limits on the memory and disk used. These
+replace the limits of the system policy, so check them against your
+pictures (e.g. large panoramas), and copy the new policy when upgrading.
+
 ### Internal changes
 
 The remaining (trivial) corydalis JS code has been converted to
