@@ -190,6 +190,24 @@ exiftool, are now written to a temporary file first, so that a failed
 or interrupted extraction doesn't leave a partial preview behind, which
 was then used as is.
 
+Security: dynamic pages, JSON endpoints, served media, and error
+responses did not send a `Cache-Control` header, and the favicon sent
+`Cache-Control: public` alongside the session cookie. Behind a caching
+reverse proxy or CDN (especially on a public site, where the same URLs
+show storage paths, scan errors, raw records, and CSRF tokens to
+logged-in users), a shared cache could serve a logged-in response, or a
+cached favicon's session cookie and CSRF token, to other visitors.
+Responses without their own `Cache-Control` header (other than
+successful static assets) now send `Cache-Control: private, no-cache`,
+which forbids shared caches from storing them and requires browsers to
+revalidate with the server before reuse (served images and movies still
+avoid re-downloading via `304 Not Modified`), while keeping browser
+back/forward navigation working; the trade-off compared to `no-store` is
+that browsers on shared devices may still retain visited pages in cache
+after logout. Responses with their own `Cache-Control` (such as Yesod's
+redirects) keep it, the favicon now sends `private, max-age=2592000`,
+and static assets remain publicly cacheable.
+
 Previews embedded in RAW files and movies are now only used if they are
 actually JPEG images. Exiftool already checks this for most of them, but
 not all; otherwise, a non-JPEG preview was saved and used, failing to

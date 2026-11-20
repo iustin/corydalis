@@ -23,12 +23,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module ApplicationSpec (spec) where
 
-import           Network.HTTP.Types                   (status200)
+import           Network.HTTP.Types                   (ResponseHeaders, Status,
+                                                       status200, status304,
+                                                       status404)
 import           Control.Monad.Logger                 (LogLevel (..), defaultLoc)
 import           Yesod.Default.Config2                (makeYesodLogger)
 import qualified Data.ByteString                      as BS
 import           Network.Wai                          (Request,
-                                                       defaultRequest,
+                                                       defaultRequest, pathInfo,
                                                        rawPathInfo,
                                                        requestHeaderUserAgent,
                                                        requestHeaders,
@@ -37,7 +39,8 @@ import           Network.Wai                          (Request,
 import           Network.Wai.Middleware.RequestLogger (Destination (Callback),
                                                        mkRequestLogger)
 import           Network.Wai.Test                     (SRequest (..),
-                                                       runSession, srequest)
+                                                       runSession,
+                                                       simpleHeaders, srequest)
 import           System.Log.FastLogger                (defaultBufSize,
                                                        fromLogStr,
                                                        newFileLoggerSet,
@@ -45,11 +48,20 @@ import           System.Log.FastLogger                (defaultBufSize,
 import           Yesod.Core                           (messageLoggerSource)
 import           Yesod.Core.Types                     (Logger, loggerSet)
 
-import           Application                          (makeLogFn,
+import           Application                          (defaultCacheControl,
+                                                       makeLogFn,
                                                        redactPassword,
                                                        requestLoggerSettings)
 import           Settings                             (RequestLogging (..))
 import           TestImport
+
+-- | Runs 'defaultCacheControl' over a stub response and returns the headers.
+cacheHeadersFor :: [Text] -> Status -> ResponseHeaders -> IO ResponseHeaders
+cacheHeadersFor path status headers = do
+  let req = defaultRequest { pathInfo = path }
+      app _ respond = respond $ responseLBS status headers "ok"
+  res <- runSession (srequest $ SRequest req "") (defaultCacheControl app)
+  return $ simpleHeaders res
 
 -- | Returns what the request logger logs for a request.
 logOfRequest :: Bool -> RequestLogging -> Request -> LByteString
@@ -153,3 +165,18 @@ spec = do
   it "keeps the other parameters" $ do
     redactPassword ("username", "alice") `shouldBe` Just ("username", "alice")
     redactPassword ("_token", "abc") `shouldBe` Just ("_token", "abc")
+ describe "defaultCacheControl" $ do
+  it "adds Cache-Control: private, no-cache when absent" $ do
+    hdrs <- cacheHeadersFor ["curate"] status200 []
+    lookup "Cache-Control" hdrs `shouldBe` Just "private, no-cache"
+  it "preserves an explicit Cache-Control header" $ do
+    hdrs <- cacheHeadersFor ["favicon.ico"] status200
+              [("Cache-Control", "private, max-age=2592000")]
+    lookup "Cache-Control" hdrs `shouldBe` Just "private, max-age=2592000"
+  it "leaves successful static asset responses alone" $ do
+    forM_ [status200, status304] $ \st -> do
+      hdrs <- cacheHeadersFor ["static", "corydalis", "css", "basic.css"] st []
+      lookup "Cache-Control" hdrs `shouldBe` Nothing
+  it "still sets private, no-cache on static 404 error responses" $ do
+    hdrs <- cacheHeadersFor ["static", "missing"] status404 []
+    lookup "Cache-Control" hdrs `shouldBe` Just "private, no-cache"

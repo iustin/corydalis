@@ -33,7 +33,8 @@ import           Import
 -- runtime dependency, and for efficiency.
 
 getFaviconR :: Handler TypedContent
-getFaviconR = do cacheSeconds $ 60 * 60 * 24 * 30 -- cache for a month
+getFaviconR = do -- Private because Yesod attaches the session cookie to handler responses.
+                 addHeader "Cache-Control" "private, max-age=2592000" -- cache for a month
                  return $ TypedContent "image/x-icon"
                         $ toContent $(embedFile "config/favicon.ico")
 

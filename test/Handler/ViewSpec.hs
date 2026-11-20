@@ -125,6 +125,11 @@ responseHeader name = withResponse $ \response ->
   return [ value | (header, value) <- simpleHeaders response
                  , header == name ]
 
+-- | Checks that the response carries @Cache-Control: private, no-cache@.
+checkPrivateNoCache :: YesodExample App ()
+checkPrivateNoCache =
+  responseHeader "Cache-Control" >>= liftIO . (`shouldBe` ["private, no-cache"])
+
 -- | Checks the type and the security headers of a raw contents response.
 checkRawContents :: ByteString -> YesodExample App ()
 checkRawContents ctype = do
@@ -133,6 +138,7 @@ checkRawContents ctype = do
   responseHeader "X-Content-Type-Options" >>= liftIO . (`shouldBe` ["nosniff"])
   policies <- responseHeader "Content-Security-Policy"
   liftIO $ policies `shouldSatisfy` elem "sandbox"
+  checkPrivateNoCache
 
 spec :: Spec
 spec = parallel $ do
@@ -198,6 +204,7 @@ spec = parallel $ do
           login
           get $ route "test" (ImageName "a")
           statusIs 200
+          checkPrivateNoCache
           bodyContains "Error:"
           bodyContains "<svg"
           bodyContains "Image has no viewable version"
@@ -236,6 +243,7 @@ spec = parallel $ do
                MovieBytesR untrustedFolder "clip"] $ \route -> do
           get route
           statusIs 200
+          checkPrivateNoCache
           bodyContains "<svg"
           -- The message is wrapped in the image, so only check its start.
           bodyContains "Error: The file has changed since"
@@ -244,5 +252,6 @@ spec = parallel $ do
         login
         get $ ImageBytesR "foo" "bar"
         statusIs 404
+        checkPrivateNoCache
         policies <- responseHeader "Content-Security-Policy"
         liftIO $ policies `shouldSatisfy` elem "sandbox"

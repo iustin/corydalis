@@ -37,6 +37,7 @@ module Application
     , makeLogFn
     , redactPassword
     , appMiddlewares
+    , defaultCacheControl
     -- * for DevelMain
     , getApplicationRepl
     , shutdownApp
@@ -47,6 +48,7 @@ module Application
 
 import           Control.Monad.Logger                      (liftLoc,
                                                             runLoggingT)
+import qualified Data.ByteString                           as BS
 import           Database.Persist.Sqlite                   (createSqlitePool,
                                                             runMigrationQuiet,
                                                             runSqlPool,
@@ -62,7 +64,10 @@ import           Network.Socket                            (Family (AF_UNIX),
                                                             maxListenQueue,
                                                             setSocketOption,
                                                             socket)
-import           Network.Wai                               (Middleware)
+import           Network.Wai                               (Middleware,
+                                                            mapResponseHeaders,
+                                                            pathInfo)
+import qualified Network.Wai                               as Wai
 import           Network.Wai.Handler.Warp                  (Settings,
                                                             defaultSettings,
                                                             defaultShouldDisplayException,
@@ -88,7 +93,6 @@ import           Network.Wai.Middleware.RequestLogger      (DetailedSettings (..
                                                             outputFormat)
 import           System.Directory                          (doesFileExist,
                                                             removeFile)
-import qualified Data.ByteString                           as BS
 import           System.Log.FastLogger                     (LogStr,
                                                             defaultBufSize,
                                                             flushLogStr,
@@ -230,7 +234,32 @@ appMiddlewares =
   addHeaders [ ("Content-Security-Policy", contentSecurityPolicy)
              , ("X-Content-Type-Options", "nosniff")
              ] .
+  defaultCacheControl .
   defaultMiddlewaresNoLogging
+
+-- | Ensures that responses without an explicit caching policy are
+-- neither stored by shared caches nor reused without revalidation.
+--
+-- Successful static asset responses (under @/static/@) are left to
+-- yesod-static, and responses that already set their own @Cache-Control@
+-- header (such as 'getFaviconR' and Yesod's redirects) keep it. All
+-- other responses (including dynamic pages, JSON responses, served
+-- images and movies, auth pages, and errors) receive
+-- @Cache-Control: private, no-cache@.
+defaultCacheControl :: Middleware
+defaultCacheControl app req sendResp = app req $ \res ->
+  if isCacheableStatic req res
+    then sendResp res
+    else sendResp $ mapResponseHeaders addCacheControl res
+  where
+    isCacheableStatic r res =
+      case pathInfo r of
+        "static":_ -> let code = statusCode (Wai.responseStatus res)
+                      in (code >= 200 && code < 300) || code == 304
+        _          -> False
+    addCacheControl headers
+      | any ((== hCacheControl) . fst) headers = headers
+      | otherwise = (hCacheControl, "private, no-cache") : headers
 
 -- | The Content-Security-Policy sent with all responses.
 --
