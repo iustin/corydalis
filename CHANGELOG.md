@@ -433,6 +433,14 @@ shows an error message below the images, and also a "Loading more
 images..." message while a page is loading, and "No more images" once the
 end is reached.
 
+Security: the documentation and the sample configuration said that
+`https: true` forces `secure-sessions`, but the two settings were read
+independently, so `https: true` with `secure-sessions: false` sent the
+session cookies without the secure bit. When serving HTTPS directly
+(without a Unix socket, which ignores `https`), the cookies are now
+always secure; `secure-sessions` is now optional, and defaults to the
+`https` setting.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an

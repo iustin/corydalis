@@ -22,18 +22,55 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module SettingsSpec (spec) where
 
-import           Data.Aeson            (Value, object, (.=))
+import           Data.Aeson            (Value (..), encode, object, (.=))
+import qualified Data.ByteString.Lazy  as BSL
 import           Yesod.Default.Config2 (loadYamlSettings, useEnv)
 
 import           Settings              (AppSettings (..))
 import           TestImport
 
--- | Loads the test settings, overriding some values.
+-- | Loads the test settings, overriding some values (a null value
+-- unsets the setting).
+--
+-- The values are written to a file loaded together with the test
+-- settings, as values passed directly to 'loadYamlSettings' are only
+-- defaults for the files. Of the files, the first one wins.
 loadSettingsWith :: [Value] -> IO AppSettings
-loadSettingsWith = flip (loadYamlSettings ["config/test-settings.yml"]) useEnv
+loadSettingsWith values =
+  withSystemTempFile "settings.yml" $ \path h -> do
+    -- JSON is valid YAML.
+    BSL.hPut h . encode $ foldr merge (object []) values
+    hClose h
+    loadYamlSettings [path, "config/test-settings.yml"] [] useEnv
+  where merge (Object a) (Object b) = Object (a <> b)
+        merge a _                   = a
 
 spec :: Spec
-spec = describe "session-max-age" $ do
+spec = do
+  sessionMaxAgeSpec
+  secureSessionsSpec
+
+secureSessionsSpec :: Spec
+secureSessionsSpec = describe "secure-sessions" $ do
+  let load https secure socket =
+        appSecureSessions <$> loadSettingsWith
+          [object [ "https" .= https
+                  , "secure-sessions" .= (secure :: Maybe Bool)
+                  , "unix-socket" .= (socket :: Maybe String)
+                  ]]
+  it "defaults to the https setting" $ do
+    load True Nothing Nothing `shouldReturn` True
+    load False Nothing Nothing `shouldReturn` False
+  it "can be enabled without https, for proxies" $
+    load False (Just True) Nothing `shouldReturn` True
+  it "is forced when serving https directly" $
+    load True (Just False) Nothing `shouldReturn` True
+  it "is not forced on a Unix socket, which ignores https" $ do
+    load True (Just False) (Just "/run/socket") `shouldReturn` False
+    load True Nothing (Just "/run/socket") `shouldReturn` True
+
+sessionMaxAgeSpec :: Spec
+sessionMaxAgeSpec = describe "session-max-age" $ do
   it "defaults to a week" $ do
     settings <- loadSettingsWith []
     appSessionMaxAge settings `shouldBe` 7 * 24 * 3600
