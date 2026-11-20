@@ -125,6 +125,21 @@ should not add a different `Content-Security-Policy` for Corydalis:
 browsers enforce all the policies they receive, so an additional one can
 break pages.
 
+Responses without their own `Cache-Control` header (including dynamic
+pages, JSON responses, served images and movies, authentication pages,
+and errors) also carry `Cache-Control: private, no-cache`. This prevents
+shared caches (such as a reverse proxy or CDN) from storing them and
+requires browsers to revalidate with the server before reusing them
+(served images and movies revalidate via `Last-Modified` / `304 Not
+Modified`), while keeping browser back/forward navigation intact. The
+trade-off compared to `no-store` is that on a shared device, the browser
+may still retain previously visited pages or media on disk or in its
+back/forward cache after logout. Responses that already set their own
+`Cache-Control` header keep it: Yesod's redirects send
+`no-cache, must-revalidate`, and the favicon sends
+`private, max-age=2592000` (private because it carries the session
+cookie). Static assets remain publicly cacheable.
+
 ### Client addresses behind a proxy
 
 With `ip-from-header`, the request logs show as client address the

@@ -517,3 +517,37 @@ appSpec = parallel $ withApp $ do
       get ("/no-such-page" :: Text)
       statusIs 404
       responseNoSniff
+  describe "checks the caching headers" $ do
+    let responseNoCache = withResponse $ \response -> liftIO $
+          lookup "Cache-Control" (simpleHeaders response)
+            `shouldBe` Just "private, no-cache"
+    forM_ htmlPages $ \route ->
+      it ("forbids shared caching on " ++ show route) $ do
+        login
+        checkRoute route
+        responseNoCache
+    it "forbids shared caching for anonymous users" $ do
+      get $ AuthR LoginR
+      statusIs 200
+      responseNoCache
+    it "forbids shared caching on error pages" $ do
+      login
+      get ("/no-such-page" :: Text)
+      statusIs 404
+      responseNoCache
+    it "forbids shared caching on missing static files" $ do
+      login
+      get ("/static/no-such-file" :: Text)
+      statusIs 404
+      responseNoCache
+    it "keeps the favicon browser-cacheable, but not publicly" $ do
+      checkRoute FaviconR
+      withResponse $ \response -> liftIO $ do
+        let hdrs = simpleHeaders response
+        lookup "Cache-Control" hdrs `shouldBe` Just "private, max-age=2592000"
+    it "leaves static files cacheable" $ do
+      get ("/static/corydalis/manifest.json" :: Text)
+      statusIs 200
+      withResponse $ \response -> liftIO $
+        lookup "Cache-Control" (simpleHeaders response)
+          `shouldNotSatisfy` maybe False ("no-cache" `isInfixOf`)
