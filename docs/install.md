@@ -127,7 +127,9 @@ warning at startup.
 The `Strict-Transport-Security` (HSTS) header is controlled by the
 `strict-transport-security` setting, which defaults to the `https` one;
 behind a proxy, it is usually better configured in the proxy, for the
-whole domain.
+whole domain. When enabled, Corydalis sends it with a `max-age` of one
+year, and `includeSubDomains` (which only covers the names under the
+one Corydalis is served on).
 
 Corydalis sends its own `Content-Security-Policy`,
 `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`

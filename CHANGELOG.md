@@ -474,6 +474,11 @@ same-origin`, so that browsers don't send the URLs of Corydalis pages,
 which contain folder and image names and search terms, to other sites
 (e.g. when following a link to the documentation).
 
+The `Strict-Transport-Security` header (when enabled) had a `max-age` of
+only two hours, as the session timeout (in minutes) was used for it; it
+is now one year, the usual value, so browsers keep using HTTPS for the
+site between visits.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
