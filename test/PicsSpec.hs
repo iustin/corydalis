@@ -355,6 +355,20 @@ spec = parallel $ do
     it "is loaded by ImageMagick" $ \config -> do
       requireConvert
       checkMagickPolicy config `shouldReturn` Right ()
+    it "sets the resource limits" $ \config -> do
+      requireConvert
+      pconfig <- convertProcess config ["-list", "resource"]
+      result <- readToolProcess pconfig
+      case result of
+        Right (ExitSuccess, out, _) -> do
+          let limits = decodeToolOutput out
+          forM_ ["Area: 256MP", "Memory: 1GiB", "Map: 2GiB", "Disk: 2GiB"] $ \limit ->
+            limits `shouldSatisfy` (limit `isInfixOf`)
+          -- ImageMagick versions show these as 32KP or 32000P.
+          forM_ ["Width", "Height"] $ \name ->
+            limits `shouldSatisfy` \l -> any (`isInfixOf` l)
+              [name <> ": 32KP", name <> ": 32000P"]
+        _ -> expectationFailure ("Unexpected result: " ++ show result)
     it "does not need checking if not configured" $ \config ->
       checkMagickPolicy config { cfgMagickPolicyDir = Nothing } `shouldReturn` Right ()
     it "fails the check if the policy file is missing" $ \config -> do

@@ -26,4 +26,16 @@
        the lists below. -->
   <policy domain="coder" rights="read" pattern="{HEIC,TIFF,WEBP}"/>
   <policy domain="coder" rights="read | write" pattern="{JPEG,PNG}"/>
+  <!-- Resource limits, as in the Debian/Ubuntu policy: a crafted image
+       can claim huge dimensions, and decoding it would then use as much
+       memory and disk. Unlike the rules above, these replace the limits
+       of the system policy, if any, rather than add to them; adjust them
+       to your system and pictures: e.g. larger panoramas need a larger
+       width (or height), and, past the memory limits, enough disk. -->
+  <policy domain="resource" name="memory" value="1GiB"/>
+  <policy domain="resource" name="map" value="2GiB"/>
+  <policy domain="resource" name="area" value="256MP"/>
+  <policy domain="resource" name="disk" value="2GiB"/>
+  <policy domain="resource" name="width" value="32KP"/>
+  <policy domain="resource" name="height" value="32KP"/>
 </policymap>

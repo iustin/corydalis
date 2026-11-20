@@ -350,6 +350,17 @@ If you add a decoder to `imagedecoders`, also add it to the policy;
 otherwise, previews for those files fail with an error saying the
 operation is not allowed by the security policy.
 
+The policy also limits the resources ImageMagick may use for an image,
+as a crafted image can claim huge dimensions: images at most 32K pixels
+wide and high, 1 GiB of memory, 2 GiB of memory map and of disk, with
+large images (over 256 megapixels) kept on disk. These are the limits of
+the Debian and Ubuntu policy; unlike the rules above, they replace the
+system policy's own limits instead of adding to them. Adjust them to
+your system and pictures: for example, previews of panoramas wider than
+32K pixels need a larger `width`, and, for very large images, enough
+disk. `convert -list resource`, with `MAGICK_CONFIGURE_PATH` set to the
+policy's directory, shows the limits in effect.
+
 ## Running corydalis
 
 Once the configuration is updated, simply run the application:

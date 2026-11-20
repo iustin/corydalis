@@ -112,6 +112,7 @@ module Pics ( PicDir(..)
 #ifdef TEST
             , readToolProcess
             , runTool
+            , convertProcess
             , decodeToolOutput
             , jpegMagic
             , checkEmbeddedImage
