@@ -100,6 +100,16 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
   level, e.g. for `journalctl -p warning`. Only for journald (and maybe
   as an option), since other destinations would show the prefix as is.
 
+## Messages to the user
+
+- The messages shown on the next page (e.g. "Rescan triggered", or the
+  filters skipped by a quick search) are kept in the session, i.e. in
+  the session cookie, until shown: this makes every request carry them,
+  limits their size (the quick search message is capped for this), and
+  they can show on an unrelated page (e.g. in another tab). Rework how
+  the server tells the browser about such conditions, e.g. with a query
+  parameter on the redirect, or in the page itself where possible.
+
 ## Folder cover image
 
 - for consistency, should try to find a landscape-oriented image first
