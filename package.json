@@ -44,8 +44,5 @@
     "url": "https://github.com/iustin/corydalis/issues"
   },
   "homepage": "https://github.com/iustin/corydalis#readme",
-  "type": "module",
-  "allowScripts": {
-    "esbuild": false
-  }
+  "type": "module"
 }
