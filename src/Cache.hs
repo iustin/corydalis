@@ -38,6 +38,7 @@ import           System.IO.Error
 import           System.Posix.Files
 
 import           Import.NoFoundation   hiding (path, tail, toList)
+import           Utils.Storage         (isWithinDir)
 
 -- | Builds a cache file path from an original path and a suffix.
 cachedBasename :: Config   -- ^ Application configuration (cache directory).
@@ -148,8 +149,7 @@ readCacheFile config path fn validate extras = do
     else readContents rpath
 
 -- | Deletes a cache file, given that it lies under the cache directory.
-deleteCacheFile :: FilePath        -- ^ Canonical, absolute path to the cache
-                                   -- directory.
+deleteCacheFile :: FilePath        -- ^ Path to the cache directory.
                 -> FilePath        -- ^ Relative path to the cache file.
                 -> IO (Maybe Text) -- ^ Error details, or Nothing in case of
                                    -- success.
@@ -162,19 +162,23 @@ deleteCacheFile cachedir path = do
 -- | Inner body for 'deleteCacheFile'.
 --
 -- It canonicalises the parent of the target, and checks that it (the parent) is
--- still inside the cache dir. In that case, we can remove the item, since it's
--- either a file under its parent directory, or a symlink to somewhere else
--- (which doesn't matter).
-deleteCacheFile' :: FilePath  -- ^ Canonical, absolute path to the cache
-                              -- directory.
+-- still inside the (canonicalised) cache dir. In that case, we can remove the
+-- item, since it's either a file under its parent directory, or a symlink to
+-- somewhere else (which doesn't matter).
+--
+-- The cache directory is canonicalised too, as configured it can be relative,
+-- have a trailing slash or go through symlinks; and the paths are compared by
+-- whole components, as e.g. @/pics/cache2@ is not within @/pics/cache@.
+deleteCacheFile' :: FilePath  -- ^ Path to the cache directory.
                  -> FilePath  -- ^ Relative path to the cache file.
                  -> IO ()
 deleteCacheFile' cachedir path = do
   let fp = cachedir </> path
       (parent, leaf) = splitFileName fp
+  canonCache <- canonicalizePath cachedir
   canon <- canonicalizePath parent
-  if cachedir `isPrefixOf` canon
+  if canonCache `isWithinDir` canon
     then removeFile fp
     else ioError $ userError ("Cache path '" ++ path ++ "' resolves to file '" ++ leaf ++
                               "' under '" ++ canon ++
-                              "' which does not live under cachedir '" ++ cachedir)
+                              "' which does not live under cachedir '" ++ canonCache)

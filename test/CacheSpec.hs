@@ -26,6 +26,8 @@ module CacheSpec (spec) where
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
 import           System.Directory
+import           System.FilePath    (isRelative, joinPath, makeRelative,
+                                     splitDirectories, takeDirectory)
 import           System.Posix.Files (setFileTimesHiRes)
 
 import           Cache
@@ -141,6 +143,38 @@ spec = parallel $ withConfig $ do
         pathShouldExist passwd
         failDelete config "test/foo/raw/passwd"
         pathShouldExist passwd
+
+      it "refuses a sibling directory starting with the cache's name" $ \config -> do
+        let cache = cfgCacheDir config
+            sibling = cache ++ "2"
+        createDirectory sibling
+        writeFile (sibling </> "x.txt") ("foobar" :: ByteString)
+        createDirectoryLink sibling $ cache </> "c2"
+        failDelete config "c2/x.txt"
+        pathShouldExist $ sibling </> "x.txt"
+
+    describe "accepts other spellings of the cache directory" $ do
+      let deleteVia dir config = do
+            let fp = cfgCacheDir config </> "x.txt"
+            writeFile fp ("foobar" :: ByteString)
+            deleteCacheFile dir "x.txt" `shouldReturn` Nothing
+            pathShouldNotExist fp
+
+      it "with a trailing slash" $ \config ->
+        deleteVia (cfgCacheDir config ++ "/") config
+
+      it "through a symlink" $ \config -> do
+        let cache = cfgCacheDir config
+            cacheLink = takeDirectory cache </> "cache-link"
+        createDirectoryLink cache cacheLink
+        deleteVia cacheLink config
+
+      it "as a relative path" $ \config -> do
+        cwd <- getCurrentDirectory
+        let ups = replicate (length (splitDirectories cwd) - 1) ".."
+            rel = joinPath ups </> makeRelative "/" (cfgCacheDir config)
+        isRelative rel `shouldBe` True
+        deleteVia rel config
 
     describe "correctly reports failures" $ do
       it "reports delete failure for missing file" $ \config -> do

@@ -447,6 +447,15 @@ with a mistake in the configuration, this could have been any file
 (e.g. the database). It now only removes a socket, and refuses to start
 if the path holds anything else.
 
+The cache cleanup failed to delete any obsolete file if the configured
+cache directory was relative, had a trailing slash, or went through a
+symlink, as the check that a file is within the cache directory compared
+the configured path with the resolved path of the file. Moreover, the
+check compared the paths as strings, so e.g. `/pics/cache2` counted as
+within `/pics/cache` (only reachable through a symlink in the cache
+directory, which Corydalis doesn't create). The cache directory is now
+resolved too, and the paths compared by whole components.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
