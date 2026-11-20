@@ -16,10 +16,12 @@ port:           "_env:PORT:3000"
 # work with plain connection on the same port, and furthermore, it
 # will enforce the secure-cookies setting.
 https:          true
-# Whether to require secure sessions. When https is true, this is
-# forced to true. When https is set to false, this is still useful in case
-# of reverse proxying, by ensuring that the cookies have the
-# secure bit set.
+# Whether to require secure sessions, i.e. only send the session
+# cookies over HTTPS. This defaults to the https setting, and when
+# https is true (without a Unix socket), it is forced to true. When
+# https is set to false, this is still useful in case of reverse
+# proxying with HTTPS, by ensuring that the cookies have the secure
+# bit set.
 secure-sessions: true
 # Emit a Strict-Transport-Security header in the response. This
 # defaults to the https parameter; in case of plain http, it can be

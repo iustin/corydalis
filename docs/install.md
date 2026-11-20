@@ -102,14 +102,18 @@ the key in `config/cert.key` in the target directory:
 
     cp cert.pem cert.key /path/to/target/config
 
+The session cookies are then always secure, i.e. only sent over HTTPS,
+whatever the `secure-sessions` setting.
+
 Behind a reverse proxy:
 
 - set `https: false`, and point the proxy either to the configured
   `host` and `port`, or to a Unix socket, configured via `unix-socket`
   (which is more efficient, and ignores the `host`, `port` and `https`
   settings);
-- keep `secure-sessions: true` if the proxy serves HTTPS, so that the
-  cookies are only sent over HTTPS;
+- set `secure-sessions: true` if the proxy serves HTTPS, so that the
+  cookies are only sent over HTTPS (it defaults to the `https` setting,
+  so it has to be set explicitly here);
 - set `approot` to the public URL, as seen by the browser;
 - set `ip-from-header: true`, so that the logs show the clients'
   addresses instead of the proxy's (see below).

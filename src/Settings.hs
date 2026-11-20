@@ -85,9 +85,11 @@ data AppSettings = AppSettings
     -- doesn't much any additional security. For direct access
     -- (without a proxy), this is always recommended.
     , appSecureSessions :: Bool
-    -- ^ Enable secure cookies. When https is set, this is forced to true,
-    -- and when https is unset, this should be enabled when Corydalis is
-    -- reverse-proxied.
+    -- ^ Whether the session cookies are secure (only sent over HTTPS).
+    -- The secure-sessions setting defaults to the https one, and when
+    -- serving HTTPS directly (https set, and no Unix socket), cookies
+    -- are always secure; behind a reverse proxy serving HTTPS, it
+    -- should be enabled.
     , appStrictTransportSecurity :: Bool
     -- ^ Emit a Strict-Transport-Security header in the response. This
     -- defaults to the https parameter; in case of plain http, it can be
@@ -149,7 +151,11 @@ instance FromJSON AppSettings where
         appHost           <-  fromString <$> o .: "host"
         appPort           <- o .:  "port"
         appHttps          <- o .:  "https"
-        appSecureSessions <- o .:  "secure-sessions"
+        secureSessions    <- o .:? "secure-sessions" .!= appHttps
+        -- Serving HTTPS directly (the Unix socket ignores the https
+        -- setting), the cookies must not be sent in clear.
+        let appSecureSessions =
+              secureSessions || (appHttps && isNothing appUnixSocket)
         appStrictTransportSecurity <- o .:? "strict-transport-security" .!= appHttps
         appIpFromHeader   <- o .:  "ip-from-header"
         sessionMaxAge     <- o .:? "session-max-age" .!= defaultSessionMaxAge
