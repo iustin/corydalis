@@ -176,6 +176,20 @@ ImageMagick is now always told which decoder to use, based on the file
 extension (see the new `imagedecoders` setting below), and can
 additionally be restricted by a security policy shipped with Corydalis.
 
+Security: similarly, the first frame of movies without an embedded
+preview was extracted by ffmpeg without saying what format the file is,
+so ffmpeg guessed it from the contents. Some formats make ffmpeg read
+other files: recent ffmpeg versions refuse the known cases of this
+(playlists need their own extension, and concat scripts can only refer
+to files next to them), but e.g. a concat script named `movie.mp4` was
+still read as such. ffmpeg is now always told which demuxer to use,
+based on the file extension (see the new `moviedemuxers` setting below),
+limited to plain container formats, and only allowed to read local
+files. Also, the extracted frames, and the previews extracted with
+exiftool, are now written to a temporary file first, so that a failed
+or interrupted extraction doesn't leave a partial preview behind, which
+was then used as is.
+
 Previews embedded in RAW files and movies are now only used if they are
 actually JPEG images. Exiftool already checks this for most of them, but
 not all; otherwise, a non-JPEG preview was saved and used, failing to
@@ -429,6 +443,13 @@ Two new, optional, configuration keys control how previews are built:
   you have added extensions to `jpegexts` or `viewableimages`, check that
   they are covered. Decoders that run programs or read other files (e.g.
   PostScript, PDF, SVG) are refused.
+- `moviedemuxers` maps movie file extensions (case-insensitively) to the
+  ffmpeg demuxer to use when extracting their first frame. The default
+  covers MP4, M4V, MOV, 3GP, AVI, MKV, WebM, MTS/M2TS and MPEG; movies
+  with other extensions get no extracted frame, so if you have added
+  extensions to `movieexts`, check that they are covered. Only plain
+  container formats (`mov`, `avi`, `matroska`, `mpegts`, `mpeg`, `asf`,
+  `ogg`) are accepted.
 - `magickpolicydir` points to a directory holding the ImageMagick security
   policy to use; a restrictive one is in `config/magick/policy.xml`. When
   set, Corydalis refuses to start unless ImageMagick actually loads that

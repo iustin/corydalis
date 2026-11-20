@@ -144,6 +144,28 @@ config:
   #   tiff: tiff
   #   png: png
   #   webp: webp
+  # ffmpeg demuxer (container format) to use, for each movie extension,
+  # when extracting the first frame of movies without an embedded
+  # preview. As for images, the format is passed explicitly, since
+  # otherwise ffmpeg guesses it from the file contents, and some formats
+  # (e.g. playlists or concat scripts) make it read other files.
+  # Extensions and demuxers are case-insensitive; movies with an
+  # extension not listed here get no extracted frame. Only plain
+  # container formats are accepted: mov (which covers MP4 and 3GP), avi,
+  # matroska (which covers WebM), mpegts, mpeg, asf and ogg. The default
+  # is:
+  # moviedemuxers:
+  #   mp4: mov
+  #   m4v: mov
+  #   mov: mov
+  #   3gp: mov
+  #   avi: avi
+  #   mkv: matroska
+  #   webm: matroska
+  #   mts: mpegts
+  #   m2ts: mpegts
+  #   mpg: mpeg
+  #   mpeg: mpeg
   # Directory holding the ImageMagick security policy to use when
   # building previews (see config/magick/policy.xml in the sources, and
   # the installation documentation). If set, the application refuses to

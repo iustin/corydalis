@@ -27,6 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Types ( Config(..)
              , defaultImageDecoders
              , parseImageDecoders
+             , defaultMovieDemuxers
+             , safeMovieDemuxers
+             , parseMovieDemuxers
              , Regex
              , reRegex
              , reString
@@ -184,6 +187,8 @@ data Config = Config
     , cfgViewableImages  :: [Text]        -- ^ Images directly viewable in browser.
     , cfgImageDecoders   :: Map Text Text -- ^ ImageMagick decoder for each
                                           -- (lower-case) extension.
+    , cfgMovieDemuxers   :: Map Text Text -- ^ ffmpeg demuxer for each
+                                          -- (lower-case) extension.
     , cfgMagickPolicyDir :: Maybe FilePath -- ^ Directory holding the
                                            -- ImageMagick policy to use.
     } deriving (Eq, Show, Generic)
@@ -219,24 +224,71 @@ unsafeImageDecoders = setFromList
   , "inline", "label", "caption", "pango", "show", "win", "x", "vid"
   ]
 
--- | Parses and validates the extension to decoder map.
+-- | Parses and validates a map from file extensions to the decoders
+-- (or demuxers) of an external tool, given the name of the setting, a
+-- description of the values, and whether a value may be used.
 --
--- Extensions and decoders are case-insensitive, and stored lower-case.
-parseImageDecoders :: MonadFail m => Map Text Text -> m (Map Text Text)
-parseImageDecoders decoders = do
+-- Extensions and values are case-insensitive, and stored lower-case.
+-- Both must be plain names (ASCII letters and digits), so that they
+-- can't be read by the tool as anything else (e.g. a file name or an
+-- option).
+parseExtensionMap :: MonadFail m
+                  => String         -- ^ Name of the setting, for errors.
+                  -> String         -- ^ What the values are, for errors.
+                  -> (Text -> Bool) -- ^ Whether a value is allowed.
+                  -> Map Text Text
+                  -> m (Map Text Text)
+parseExtensionMap setting what allowed entries = do
   let lowered = mapFromList . map (bimap Text.toLower Text.toLower) $
-                  mapToList decoders
+                  mapToList entries
       plainName t = not (Text.null t) && Text.all (\c -> isAscii c && isAlphaNum c) t
-  when (length lowered /= length decoders) $
-    fail "Duplicate extensions (ignoring case) in imagedecoders"
-  ClassyPrelude.forM_ (mapToList lowered) $ \(ext, decoder) -> do
+  when (length lowered /= length entries) $
+    fail $ "Duplicate extensions (ignoring case) in " <> setting
+  ClassyPrelude.forM_ (mapToList lowered) $ \(ext, value) -> do
     unless (plainName ext) $
-      fail $ "Invalid extension in imagedecoders: " <> show ext
-    unless (plainName decoder) $
-      fail $ "Invalid decoder for extension " <> show ext <> ": " <> show decoder
-    when (decoder `member` unsafeImageDecoders) $
-      fail $ "Unsafe decoder for extension " <> show ext <> ": " <> show decoder
+      fail $ "Invalid extension in " <> setting <> ": " <> show ext
+    unless (plainName value) $
+      fail $ "Invalid " <> what <> " for extension " <> show ext <> ": " <> show value
+    unless (allowed value) $
+      fail $ "Unsafe " <> what <> " for extension " <> show ext <> ": " <> show value
   return lowered
+
+-- | Parses and validates the extension to ImageMagick decoder map.
+parseImageDecoders :: MonadFail m => Map Text Text -> m (Map Text Text)
+parseImageDecoders =
+  parseExtensionMap "imagedecoders" "decoder" (`notMember` unsafeImageDecoders)
+
+-- | Default ffmpeg demuxers, by (lower-case) file extension.
+defaultMovieDemuxers :: Map Text Text
+defaultMovieDemuxers = mapFromList
+  [ ("mp4",  "mov")
+  , ("m4v",  "mov")
+  , ("mov",  "mov")
+  , ("3gp",  "mov")
+  , ("avi",  "avi")
+  , ("mkv",  "matroska")
+  , ("webm", "matroska")
+  , ("mts",  "mpegts")
+  , ("m2ts", "mpegts")
+  , ("mpg",  "mpeg")
+  , ("mpeg", "mpeg")
+  ]
+
+-- | The ffmpeg demuxers that can be used for movies.
+--
+-- Unlike for ImageMagick, this lists the allowed demuxers, rather than
+-- the unsafe ones: ffmpeg has many demuxers that read other files or
+-- access the network (e.g. hls, concat, image2, lavfi, and the network
+-- formats), and more get added. These are plain container formats,
+-- which only read the given file.
+safeMovieDemuxers :: Set Text
+safeMovieDemuxers = setFromList
+  ["mov", "avi", "matroska", "mpegts", "mpeg", "asf", "ogg"]
+
+-- | Parses and validates the extension to ffmpeg demuxer map.
+parseMovieDemuxers :: MonadFail m => Map Text Text -> m (Map Text Text)
+parseMovieDemuxers =
+  parseExtensionMap "moviedemuxers" "demuxer" (`member` safeMovieDemuxers)
 
 instance FromJSON Config where
   parseJSON = withObject "Config" $ \v ->
@@ -255,6 +307,7 @@ instance FromJSON Config where
         viewableimages = v .: "viewableimages"
         viewableimageslist = map (Text.pack . ('.':)) <$> viewableimages
         imagedecoders = v .:? "imagedecoders" .!= defaultImageDecoders >>= parseImageDecoders
+        moviedemuxers = v .:? "moviedemuxers" .!= defaultMovieDemuxers >>= parseMovieDemuxers
     in
     Config <$>
          v .: "sourcedirs"      <*>
@@ -281,6 +334,7 @@ instance FromJSON Config where
          v .: "ignoreprefix"    <*>
          viewableimageslist     <*>
          imagedecoders          <*>
+         moviedemuxers          <*>
          v .:? "magickpolicydir"
 
 data ImageStatus = ImageOrphaned

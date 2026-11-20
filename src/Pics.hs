@@ -149,6 +149,8 @@ module Pics ( PicDir(..)
             , findBestSize
             , viewableAsIs
             , imageDecoder
+            , movieDemuxer
+            , embeddedImagePath
             , newRepo
             , forceBuildThumbCaches
             , runScanAction
@@ -1965,12 +1967,6 @@ minImageSize = 512
 jpegMagic :: LByteString
 jpegMagic = BSL.pack [0xFF, 0xD8, 0xFF]
 
--- | Ensure parent path for path exists.
-ensureParent :: FilePath -> IO ()
-ensureParent path = do
-  let (dir, _) = splitFileName path
-  createDirectoryIfMissing True dir
-
 -- | Runs an external tool, returning its exit code and output.
 --
 -- Failing to run the tool at all, e.g. because it isn't installed, is
@@ -2034,8 +2030,8 @@ extractEmbedded config path mtime tag = do
   needsBuild <- cacheFileNeedsBuild outputPath mtime
   if needsBuild
     then do
-      -- TODO: write directly to temp file via setStdOut +
-      -- useHandleOpen + ..., then rename atomically if successful.
+      -- TODO: stream exiftool's output to the temporary file, instead
+      -- of reading it in memory first.
       let pconfig =
             setStdin closed
             . setCloseFds True
@@ -2047,8 +2043,10 @@ extractEmbedded config path mtime tag = do
           case checkEmbeddedImage tag exitCode out err of
             Left msg -> return $ Left msg
             Right image -> do
-              ensureParent outputPath
-              BSL.writeFile outputPath image
+              -- Written via a temporary file, so that an interrupted
+              -- write doesn't leave a partial image, which would be
+              -- served as the preview.
+              writeViaTempFile outputPath (`BSL.writeFile` image)
               return goodRet
     else
       return goodRet
@@ -2077,43 +2075,60 @@ viewableAsIs (TS.toText -> path) (cfgViewableImages -> exts)  =
 -- unless it is older than the given modification time of the movie.
 extractFirstFrame :: Config -> FilePath -> POSIXTime
                   -> IO (Either Text (MimeType, FilePath))
-extractFirstFrame config path mtime = do
-  let outputPath = embeddedImagePath config path
-      args = [
-        "-nostdin",
-        "-y",
-        "-i",
-        path,
-        "-r", "1",
-        "-frames", "1",
-        "-f", "image2",
-        -- The output file has no extension, so ffmpeg would use
-        -- the default codec of the muxer, which happens to be
-        -- mjpeg; set it explicitly instead.
-        "-c:v", "mjpeg",
-        outputPath
-        ]
-      mime = "image/jpeg"
-      goodRet = Right (mime, outputPath)
-  needsBuild <- cacheFileNeedsBuild outputPath mtime
-  if needsBuild
-    then do
-      ensureParent outputPath
-      let pconfig =
-            setStdin closed
-            . setCloseFds True
-            $ proc "ffmpeg" args
-      result <- readToolProcess pconfig
-      case result of
-        Left msg -> return $ Left msg
-        Right (exitCode, out, err) ->
-          if exitCode == ExitSuccess
-            then
-              return goodRet
-            else
-              return . Left . decodeToolOutput $ out `BSL.append` err
-    else
-      return goodRet
+extractFirstFrame config path mtime =
+  case movieDemuxer config path of
+    Left msg -> return $ Left msg
+    Right demuxer -> do
+      let outputPath = embeddedImagePath config path
+          -- The demuxer is passed explicitly, since otherwise ffmpeg
+          -- guesses the format from the file contents, and some
+          -- formats (e.g. playlists, or concat scripts) make it read
+          -- other files; it also only reads local files, and the
+          -- "file:" prefix ensures the path is read as a file name,
+          -- even if it contains a colon.
+          args tmpPath = [
+            "-nostdin",
+            "-y",
+            "-protocol_whitelist", "file",
+            "-f", demuxer,
+            "-i", "file:" ++ path,
+            "-r", "1",
+            "-frames", "1",
+            "-f", "image2",
+            -- Use the output name as given, not as a pattern (e.g. if
+            -- it contains '%').
+            "-update", "1",
+            -- The output file has no extension, so ffmpeg would use
+            -- the default codec of the muxer, which happens to be
+            -- mjpeg; set it explicitly instead.
+            "-c:v", "mjpeg",
+            tmpPath
+            ]
+          mime = "image/jpeg"
+          goodRet = Right (mime, outputPath)
+      needsBuild <- cacheFileNeedsBuild outputPath mtime
+      if needsBuild
+        then do
+          -- ffmpeg can leave a partial file behind when it fails (or is
+          -- interrupted), so it writes to a temporary file, moved in
+          -- place only on success.
+          result <- try . writeViaTempFile outputPath $ \tmpPath -> do
+            let pconfig =
+                  setStdin closed
+                  . setCloseFds True
+                  $ proc "ffmpeg" (args tmpPath)
+            ran <- readToolProcess pconfig
+            case ran of
+              Left msg -> throwIO $ ImageError msg
+              Right (exitCode, out, err) ->
+                unless (exitCode == ExitSuccess) .
+                  throwIO . ImageError . decodeToolOutput $ out `BSL.append` err
+          return $ case result of
+            Left (ImageError msg) -> Left msg
+            Left e -> Left $ sformat shown e
+            Right () -> goodRet
+        else
+          return goodRet
 
 -- | Compute a presumed jpeg's mime type.
 jpegMimeType :: File -> MimeType
@@ -2127,6 +2142,15 @@ imageDecoder config path =
        Just decoder -> Right (Text.unpack decoder)
        Nothing -> Left $ sformat ("No image decoder configured for extension '" % stext %
                                   "' (see the imagedecoders setting)") ext
+
+-- | The ffmpeg demuxer for a movie, based on its extension.
+movieDemuxer :: Config -> FilePath -> Either Text String
+movieDemuxer config path =
+  let ext = Text.toLower . Text.pack . drop 1 . takeExtension $ path
+  in case lookup ext (cfgMovieDemuxers config) of
+       Just demuxer -> Right (Text.unpack demuxer)
+       Nothing -> Left $ sformat ("No movie demuxer configured for extension '" % stext %
+                                  "' (see the moviedemuxers setting)") ext
 
 -- | The ImageMagick decoder for images extracted by Corydalis.
 --
