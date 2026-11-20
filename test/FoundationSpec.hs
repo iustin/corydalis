@@ -512,6 +512,19 @@ appSpec = parallel $ withApp $ do
       get ("/no-such-page" :: Text)
       statusIs 404
       responseNoSniff
+  describe "checks the referrer policy" $ do
+    let responseReferrerPolicy = withResponse $ \response ->
+          liftIO $ lookup "Referrer-Policy" (simpleHeaders response)
+            `shouldBe` Just "same-origin"
+    it "is sent with pages" $ do
+      login
+      checkRoute HomeR
+      responseReferrerPolicy
+    it "is sent with error pages" $ do
+      login
+      get ("/no-such-page" :: Text)
+      statusIs 404
+      responseReferrerPolicy
   describe "checks the caching headers" $ do
     let responseNoCache = withResponse $ \response -> liftIO $
           lookup "Cache-Control" (simpleHeaders response)

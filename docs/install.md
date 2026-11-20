@@ -129,11 +129,13 @@ The `Strict-Transport-Security` (HSTS) header is controlled by the
 behind a proxy, it is usually better configured in the proxy, for the
 whole domain.
 
-Corydalis sends its own `Content-Security-Policy` and
-`X-Content-Type-Options: nosniff` headers with all responses. The proxy
-should not add a different `Content-Security-Policy` for Corydalis:
-browsers enforce all the policies they receive, so an additional one can
-break pages.
+Corydalis sends its own `Content-Security-Policy`,
+`X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`
+headers with all responses; the latter keeps browsers from sending the
+URLs of Corydalis pages, which contain folder and image names, to other
+sites. The proxy should not add a different `Content-Security-Policy`
+for Corydalis: browsers enforce all the policies they receive, so an
+additional one can break pages.
 
 Responses without their own `Cache-Control` header (including dynamic
 pages, JSON responses, served images and movies, authentication pages,

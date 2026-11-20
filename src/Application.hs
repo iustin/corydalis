@@ -222,11 +222,15 @@ makeApplication foundation = do
 -- The security headers are added at this level, rather than in the Yesod
 -- middleware, so that they cover all responses, including errors. The
 -- nosniff header prevents browsers from guessing a different type than
--- the one we send, e.g. executing a file as a script.
+-- the one we send, e.g. executing a file as a script. The referrer
+-- policy keeps our URLs (which contain folder and image names, and
+-- search terms) from being sent to other sites, e.g. when following a
+-- link.
 appMiddlewares :: Middleware
 appMiddlewares =
   addHeaders [ ("Content-Security-Policy", contentSecurityPolicy)
              , ("X-Content-Type-Options", "nosniff")
+             , ("Referrer-Policy", "same-origin")
              ] .
   defaultCacheControl .
   defaultMiddlewaresNoLogging
