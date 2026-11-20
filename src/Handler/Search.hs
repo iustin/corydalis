@@ -28,6 +28,7 @@ module Handler.Search ( getQuickSearchR
                       , getSearchFoldersNoYearR
                       , getSearchR
                       , getSearchViewR
+                      , skippedMessage
                       ) where
 
 import qualified Data.Map        as Map
@@ -93,13 +94,25 @@ getQuickSearchR = do
       $(widgetFile "quicksearchfail")
     Just atom' -> do
       unless (null skipped) $ do
-        setMessage . toHtml $
-          "The following filters had no results so they were skipped: " <>
-          ", " `Text.intercalate` map atomDescription skipped <> "."
+        setMessage . toHtml $ skippedMessage skipped
         setSession msgTypeKey msgWarning
       viewMode <- getLastViewMode
       let handler = getBestHandler viewMode (atomFindsFiles atom')
       redirect (handler, atomToParams atom')
+
+-- | The message listing the filters skipped by a quick search.
+--
+-- It lists at most a few of them, as the message is kept in the
+-- session (cookie) until shown, and the cookie's size is limited.
+skippedMessage :: [Atom] -> Text
+skippedMessage skipped =
+  let maxShown = 5
+      (shown', rest) = splitAt maxShown skipped
+      more = if null rest
+               then ""
+               else sformat (" and " % int % " more") (length rest)
+  in "The following filters had no results so they were skipped: " <>
+     ", " `Text.intercalate` map atomDescription shown' <> more <> "."
 
 getSearchFoldersByYearR :: Text -> Handler Html
 getSearchFoldersByYearR year = do
