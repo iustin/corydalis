@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module IndexerSpec (spec) where
 
 import           Data.Default
+import           Data.Either         (isRight)
 import qualified Data.Map            as Map
 import qualified Data.Set            as Set
 import qualified Data.Text           as Text
@@ -919,6 +920,23 @@ spec = parallel $ do
         `shouldBe` True
       Map.member "f" (buildFolderMap (Country (OpEqual "Spain")) repo)
         `shouldBe` False
+
+    it "limits the quick search length" $ do
+      let atMost = Text.replicate maxQuickSearchLength "x"
+      genQuickSearchParams populatedRepo atMost `shouldSatisfy` isRight
+      genQuickSearchParams populatedRepo (atMost <> "x")
+        `shouldBeLeftWithMessage` "too long"
+
+    it "limits the number of quick search words" $ do
+      let manyWords n = Text.unwords [ "w" <> tshow i | i <- [1..n :: Int] ]
+      genQuickSearchParams populatedRepo (manyWords maxQuickSearchWords)
+        `shouldSatisfy` isRight
+      genQuickSearchParams populatedRepo (manyWords (maxQuickSearchWords + 1))
+        `shouldBeLeftWithMessage` "too many words"
+      -- Repeated words count once.
+      genQuickSearchParams populatedRepo
+        (Text.unwords (replicate (maxQuickSearchWords + 1) "spain"))
+        `shouldSatisfy` isRight
 
     it "generates quick search params" $ do
       genQuickSearchParams populatedRepo ""

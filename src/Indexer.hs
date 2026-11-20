@@ -48,6 +48,8 @@ module Indexer ( Symbol(..)
                , buildFolderMap
                , searchImages
                , genQuickSearchParams
+               , maxQuickSearchLength
+               , maxQuickSearchWords
                , atomFindsFiles
                , intToMonth
                , intToWeekDay
@@ -1710,10 +1712,28 @@ getAtomsForQuickSearch word =
     Nothing -> mapMaybe (`quickSearch` word)
                [minBound..maxBound]
 
+-- | The maximum length of a quick search, in characters.
+maxQuickSearchLength :: Int
+maxQuickSearchLength = 200
+
+-- | The maximum number of (distinct) words in a quick search.
+--
+-- Each word is checked against the whole repository, possibly as
+-- several atoms, so the work grows with the number of words.
+maxQuickSearchWords :: Int
+maxQuickSearchWords = 10
+
 -- | Generates a quick search atom.
 genQuickSearchParams :: Repository -> Text ->
                         Either Text ([Atom], Maybe Atom)
 genQuickSearchParams _ "" = Left "Empty search parameter"
+genQuickSearchParams _ search
+  | Text.length search > maxQuickSearchLength =
+      Left $ sformat ("Search too long, at most " % int % " characters are allowed")
+               maxQuickSearchLength
+  | length (nub $ Text.words search) > maxQuickSearchWords =
+      Left $ sformat ("Search with too many words, at most " % int % " are allowed")
+               maxQuickSearchWords
 genQuickSearchParams pics search =
   let swords = nub $ Text.words search
       -- TODO: this way of checking search is too slow, especially for

@@ -95,6 +95,12 @@ calendar years and months, instead of approximating a year as 365 days
 and a month as 30, so e.g. a full year is shown as "1 year" rather than
 "1 year and 1 day" in leap years.
 
+Quick searches are now limited to 200 characters and 10 (distinct)
+words, as each word is checked against the whole repository; longer
+searches are rejected. The message listing the filters skipped by a
+quick search shows at most five of them, as it is kept in the session
+cookie until shown.
+
 ### Fixed bugs
 
 The static files directory still had links to libraries that are now

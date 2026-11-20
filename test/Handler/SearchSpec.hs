@@ -23,8 +23,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.SearchSpec (spec) where
 
 import qualified Data.Map        as Map
+import qualified Data.Text       as Text
 import           Formatting
 import           Handler.Cookies
+import           Handler.Search   (skippedMessage)
+import           Indexer         (Atom (..), StrOp (..))
 import           Pics            (getSearchResults, launchScanFileSystem,
                                   waitForScan)
 import           TestImport
@@ -58,6 +61,20 @@ spec = parallel $ withApp $ do
       login
       get (QuickSearchR, [("q", "")])
       statusIs 400
+    it "rejects a too long search" $ do
+      login
+      get (QuickSearchR, [("q", Text.replicate 201 "x")])
+      statusIs 400
+    it "lists at most five skipped filters" $ do
+      let atoms n = [ Country (OpEqual (fromString ('c' : show i))) | i <- [1..n :: Int] ]
+          five = skippedMessage (atoms 5)
+          seven = skippedMessage (atoms 7)
+      (liftIO :: IO () -> YesodExample App ()) $ do
+        five `shouldSatisfy` ("c5" `isInfixOf`)
+        five `shouldSatisfy` (not . ("more" `isInfixOf`))
+        seven `shouldSatisfy` ("c5" `isInfixOf`)
+        seven `shouldSatisfy` (not . ("c6" `isInfixOf`))
+        seven `shouldSatisfy` ("and 2 more." `isSuffixOf`)
     it "checks for fruitless search" $ do
       login
       get (QuickSearchR, [("q", "1900")])
