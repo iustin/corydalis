@@ -181,6 +181,13 @@ writeFileWithPreview preview path = do
   unless (code == ExitSuccess) $
     expectationFailure ("Failed to create test file with preview: " ++ show err)
 
+-- | Creates a (non-empty) directory where an output file is expected,
+-- so that the file can't be written (moved) there.
+blockOutput :: FilePath -> IO ()
+blockOutput path = do
+  createDirectoryIfMissing True path
+  writeFile (path </> "file") ("" :: ByteString)
+
 -- | Writes a short movie, using ffmpeg.
 writeMovie :: FilePath -> IO ()
 writeMovie path = do
@@ -418,6 +425,18 @@ spec = parallel $ do
             mime `shouldBe` "image/jpeg"
             expected <- readFile preview
             readFile extracted `shouldReturn` asByteString expected
+    it "returns an error if the image can't be written" $
+      withConfig' $ \config -> do
+        requireExifTool
+        requireConvert
+        let preview = cfgCacheDir config </> "preview.jpg"
+            path = cfgCacheDir config </> "blocked" </> "photo.mie"
+        createDirectoryIfMissing True (takeDirectory path)
+        writePreviewJpeg preview
+        writeFileWithPreview preview path
+        blockOutput (embeddedImagePath config path)
+        result <- extractEmbedded config path farFutureTime "PreviewImage"
+        result `shouldSatisfy` isLeft
     it "fails if there is no embedded image" $
       withConfig' $ \config -> do
         requireExifTool
@@ -497,6 +516,14 @@ spec = parallel $ do
       let (outDir, _) = splitFileName (embeddedImagePath config path)
       outputs <- listDirectory outDir
       outputs `shouldSatisfy` all (\f -> not ("broken.mp4-" `isPrefixOf` f))
+    it "returns an error if the frame can't be written" $ \config -> do
+      requireFfmpeg
+      let path = cfgCacheDir config </> "blocked" </> "movie.mp4"
+      createDirectoryIfMissing True (takeDirectory path)
+      writeMovie path
+      blockOutput (embeddedImagePath config path)
+      result <- extractFirstFrame config path farFutureTime
+      result `shouldSatisfy` isLeft
     it "refuses movies without a configured demuxer" $ \config -> do
       let path = cfgCacheDir config </> "movie.xyz"
       writeFile path ("whatever" :: ByteString)

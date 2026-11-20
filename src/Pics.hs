@@ -2046,8 +2046,8 @@ extractEmbedded config path mtime tag = do
               -- Written via a temporary file, so that an interrupted
               -- write doesn't leave a partial image, which would be
               -- served as the preview.
-              writeViaTempFile outputPath (`BSL.writeFile` image)
-              return goodRet
+              written <- tryAny $ writeViaTempFile outputPath (`BSL.writeFile` image)
+              return $ either (Left . sformat shown) (const goodRet) written
     else
       return goodRet
 
@@ -2112,7 +2112,7 @@ extractFirstFrame config path mtime =
           -- ffmpeg can leave a partial file behind when it fails (or is
           -- interrupted), so it writes to a temporary file, moved in
           -- place only on success.
-          result <- try . writeViaTempFile outputPath $ \tmpPath -> do
+          result <- tryAny . writeViaTempFile outputPath $ \tmpPath -> do
             let pconfig =
                   setStdin closed
                   . setCloseFds True
@@ -2124,8 +2124,10 @@ extractFirstFrame config path mtime =
                 unless (exitCode == ExitSuccess) .
                   throwIO . ImageError . decodeToolOutput $ out `BSL.append` err
           return $ case result of
-            Left (ImageError msg) -> Left msg
-            Left e -> Left $ sformat shown e
+            Left e
+              | Just (ImageError msg) <- fromException e -> Left msg
+              -- E.g. the temporary file couldn't be written.
+              | otherwise -> Left $ sformat shown e
             Right () -> goodRet
         else
           return goodRet
