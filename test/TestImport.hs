@@ -68,6 +68,7 @@ import qualified Data.Text                      as Text
 import           Data.Text.Short                (ShortText)
 import qualified Data.Text.Short                as TS
 import           Formatting
+import           Network.Wai.Test               (simpleHeaders)
 import           Settings                       (AppSettings (..))
 import           System.Directory               (createDirectory,
                                                  createDirectoryIfMissing,
@@ -299,6 +300,12 @@ authenticateAs (Entity _ u) = do
         addPostParam "ident" $ userName u
         setUrl $ AuthR $ PluginR "dummy" []
         addCsrfHeader token
+
+-- | Returns the redirect target of the last response, as given (an
+-- absolute URL; 'getLocation' only handles paths).
+responseLocation :: YesodExample App (Maybe ByteString)
+responseLocation = withResponse $ \response ->
+  return $ lookup "Location" $ simpleHeaders response
 
 -- | Returns the CSRF token from the meta tag of the last page, as the
 -- frontend code does.

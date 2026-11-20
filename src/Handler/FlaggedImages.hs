@@ -97,7 +97,7 @@ flagHtml :: ShortText -> ImageName -> Text -> Text -> Handler Html
 flagHtml folder iname msg kind = do
   setMessage $ toHtml msg
   setSession msgTypeKey kind
-  setUltDestReferer
+  setSameOriginUltDestReferer
   redirectUltDest $ ImageR folder iname
 
 -- | The JSON reply, with the message and its kind (one of the message

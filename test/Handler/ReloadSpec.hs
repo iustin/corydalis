@@ -36,6 +36,25 @@ spec = parallel $ withApp $ do
     performWithToken "POST" ReloadR
     followRedirectOK
     htmlAllContain "span#corydalis-app-message" "Rescan triggered"
+  describe "returns to the referring page" $ do
+    let reloadFrom referer = do
+          login
+          checkRoute HomeR
+          token <- pageCsrfToken
+          request $ do
+            setMethod "POST"
+            setUrl ReloadR
+            addRequestHeader ("Referer", referer)
+            addCsrfHeader token
+    it "if it is on this site" $ do
+      reloadFrom "http://localhost:3000/curate"
+      responseLocation >>= liftIO . (`shouldBe` Just "http://localhost:3000/curate")
+    it "but not if it is on another site" $ do
+      reloadFrom "https://evil.example/curate"
+      responseLocation >>= liftIO . (`shouldBe` Just "http://localhost:3000/")
+    it "nor if it only starts with the site's address" $ do
+      reloadFrom "http://localhost:3000.evil.example/curate"
+      responseLocation >>= liftIO . (`shouldBe` Just "http://localhost:3000/")
   it "rejects a request without a CSRF token" $ do
     login
     post ReloadR
