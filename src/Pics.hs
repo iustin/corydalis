@@ -832,6 +832,21 @@ checkRepoOwnership ctx candidate = do
   unless (repoSerial current <= repoSerial candidate) $
     throwString "Repository ownership changed, aborting"
 
+-- | Returns the search results for the given key, from the cache if
+-- present, otherwise the given (lazy) results, cached.
+--
+-- The caller passes the results unevaluated (see 'searchImages'), so
+-- that a cache hit doesn't compute them. On a miss, they are fully
+-- evaluated before being cached, so that the cache only holds evaluated
+-- results: an unevaluated entry would keep the repository it is
+-- computed from alive, and leave the work to whoever reads it next.
+--
+-- This evaluation happens inside the transaction ('stateTVar' forces
+-- the result pair), so a concurrent change of the cache makes the
+-- transaction run again. That is cheap, though: the results are a
+-- value built outside the transaction, so the work already done on them
+-- is kept, and only the cache lookup and insertion are repeated. Two
+-- identical searches at the same time both compute their results.
 getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
 getSearchResults ctx lazy key =
   atomically $ stateTVar (ctxSearchCache ctx) $ \oldCache ->
