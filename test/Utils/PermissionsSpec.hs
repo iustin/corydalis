@@ -24,7 +24,7 @@ module Utils.PermissionsSpec (spec) where
 
 import           Numeric            (showOct)
 import           System.Directory   (createDirectory)
-import           System.Posix.Files (fileMode, getFileStatus,
+import           System.Posix.Files (fileMode, fileOwner, getFileStatus,
                                      intersectFileModes, setFileMode)
 import           System.Posix.Types (FileMode)
 import           System.Posix.User  (getEffectiveUserID)
@@ -68,18 +68,19 @@ spec = do
           permissions dir `shouldReturn` 0o700
     it "doesn't change a private directory, even if it can't" $
       withDirMode 0o700 $ \dir ->
-        protectPrivateDirWith failingChangeMode dir `shouldReturn` PrivateDirOK
+        protectPrivateDirWith getEffectiveUserID failingChangeMode dir
+          `shouldReturn` PrivateDirOK
     it "reports a directory it can't restrict" $
       withDirMode 0o755 $ \dir -> do
-        protectPrivateDirWith failingChangeMode dir >>=
+        protectPrivateDirWith getEffectiveUserID failingChangeMode dir >>=
           (`shouldSatisfy` isAccessibleFor "read-only file system")
         permissions dir `shouldReturn` 0o755
-    it "doesn't restrict a directory owned by another user" $ do
-      -- The root directory is owned by root, and accessible to all.
-      uid <- getEffectiveUserID
-      when (uid == 0) $ pendingWith "Running as root"
-      protectPrivateDir "/" >>= (`shouldSatisfy` isAccessibleFor "not owned")
-      permissions "/" >>= (`shouldNotBe` 0o700)
+    it "doesn't restrict a directory owned by another user" $
+      withDirMode 0o755 $ \dir -> do
+        owner <- fileOwner <$> getFileStatus dir
+        protectPrivateDirWith (return (owner + 1)) setFileMode dir >>=
+          (`shouldSatisfy` isAccessibleFor "not owned")
+        permissions dir `shouldReturn` 0o755
     it "reports a missing directory" $
       withSystemTempDirectory "corydalis-perms" $ \tmp ->
         protectPrivateDir (tmp </> "missing") `shouldReturn` PrivateDirMissing
