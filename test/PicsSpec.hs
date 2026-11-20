@@ -33,9 +33,9 @@ import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
 import           Data.Time.Clock.POSIX (POSIXTime)
 import           System.Directory (createDirectoryIfMissing, doesFileExist,
-                                   listDirectory)
+                                   listDirectory, renameFile)
 import           System.Exit      (ExitCode (..))
-import           System.FilePath  (takeDirectory)
+import           System.FilePath  (splitFileName, takeDirectory)
 import           System.Posix.Files (createNamedPipe, createSymbolicLink,
                                      ownerReadMode, ownerWriteMode,
                                      unionFileModes)
@@ -458,6 +458,50 @@ spec = parallel $ do
           mime `shouldBe` "image/jpeg"
           contents <- readFile frame
           jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
+    it "extracts the first frame of an AVI movie" $ \config -> do
+      requireFfmpeg
+      let path = cfgCacheDir config </> "movie.avi"
+      writeMovie path
+      extractFirstFrame config path 0 >>= \case
+        Left msg -> expectationFailure ("Failed to extract the frame: " ++ show msg)
+        Right (_, frame) -> do
+          contents <- readFile frame
+          jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
+    it "refuses a movie whose format doesn't match its extension" $ \config -> do
+      requireFfmpeg
+      let avi = cfgCacheDir config </> "real.avi"
+          path = cfgCacheDir config </> "fake.mp4"
+      writeMovie avi
+      renameFile avi path
+      result <- extractFirstFrame config path 0
+      result `shouldSatisfy` isLeft
+      doesFileExist (embeddedImagePath config path) `shouldReturn` False
+    it "refuses a concat script named as a movie" $ \config -> do
+      requireFfmpeg
+      -- ffmpeg itself would accept this script (it only refuses
+      -- absolute paths and the like), and read the other movie.
+      let dir = cfgCacheDir config
+          path = dir </> "script.mp4"
+      writeMovie (dir </> "other.mp4")
+      writeFile path ("ffconcat version 1.0\nfile 'other.mp4'\n" :: ByteString)
+      result <- extractFirstFrame config path 0
+      result `shouldSatisfy` isLeft
+      doesFileExist (embeddedImagePath config path) `shouldReturn` False
+    it "leaves no file behind on failure" $ \config -> do
+      requireFfmpeg
+      let dir = cfgCacheDir config </> "sub"
+          path = dir </> "broken.mp4"
+      createDirectoryIfMissing True dir
+      writeFile path ("not a movie" :: ByteString)
+      extractFirstFrame config path 0 >>= (`shouldSatisfy` isLeft)
+      let (outDir, _) = splitFileName (embeddedImagePath config path)
+      outputs <- listDirectory outDir
+      outputs `shouldSatisfy` all (\f -> not ("broken.mp4-" `isPrefixOf` f))
+    it "refuses movies without a configured demuxer" $ \config -> do
+      let path = cfgCacheDir config </> "movie.xyz"
+      writeFile path ("whatever" :: ByteString)
+      result <- extractFirstFrame config path 0
+      result `shouldBeLeftWithMessage` "No movie demuxer configured for extension 'xyz'"
     forM_ [(False, "reuses an up to date", 0), (True, "rebuilds an outdated", farFutureTime)] $
       \(rebuilt, what, mtime) ->
         it (what ++ " frame") $ \config -> do

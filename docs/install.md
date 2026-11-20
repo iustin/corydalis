@@ -210,6 +210,24 @@ Files whose extension has no configured decoder get no previews; if you
 add an extension to `jpegexts` or `viewableimages` that is not in the
 default list, also add it to `imagedecoders`.
 
+### Movie demuxers
+
+For movies without an embedded preview, the preview is the first frame,
+extracted by ffmpeg, using the demuxer (container format) configured for
+each file extension in the `moviedemuxers` setting (see the sample
+configuration for the default list). As for images, the format is always
+passed explicitly, since otherwise ffmpeg would guess it from the file
+contents, and some formats make it read other files (e.g. playlists, or
+concat scripts); ffmpeg is also only allowed to read local files. Only
+plain container formats can be configured: `mov` (which covers MP4 and
+3GP), `avi`, `matroska` (which covers WebM), `mpegts`, `mpeg`, `asf` and
+`ogg`.
+
+Movies whose extension has no configured demuxer, or whose contents
+don't match it (e.g. an AVI file named `movie.mp4`), get no extracted
+frame; if you add an extension to `movieexts` that is not in the default
+list, also add it to `moviedemuxers`.
+
 ### ImageMagick policy
 
 As a second layer of protection, the `magickpolicydir` setting points

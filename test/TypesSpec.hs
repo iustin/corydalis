@@ -78,6 +78,8 @@ spec = parallel $ do
       cfgAllMediaExts c `shouldBe` expected
     it "uses the default image decoders if none are configured" $ \ctx ->
       cfgImageDecoders (ctxConfig ctx) `shouldBe` defaultImageDecoders
+    it "uses the default movie demuxers if none are configured" $ \ctx ->
+      cfgMovieDemuxers (ctxConfig ctx) `shouldBe` defaultMovieDemuxers
   describe "checks image decoders parsing" $ do
     let parse :: [(Text, Text)] -> Maybe (Map Text Text)
         parse = parseImageDecoders . mapFromList
@@ -99,6 +101,29 @@ spec = parallel $ do
         parse [(ext, "jpeg")] `shouldBe` Nothing
     it "rejects extensions duplicated when ignoring case" $
       parse [("jpg", "jpeg"), ("JPG", "png")] `shouldBe` Nothing
+  describe "checks movie demuxers parsing" $ do
+    let parse :: [(Text, Text)] -> Maybe (Map Text Text)
+        parse = parseMovieDemuxers . mapFromList
+    it "accepts the default demuxers" $
+      parseMovieDemuxers defaultMovieDemuxers `shouldBe` Just defaultMovieDemuxers
+    it "only uses safe demuxers by default" $
+      all (`member` safeMovieDemuxers) (toList defaultMovieDemuxers) `shouldBe` True
+    it "lower-cases extensions and demuxers" $
+      parse [("MP4", "MOV"), ("Mkv", "matroska")] `shouldBe`
+        Just (mapFromList [("mp4", "mov"), ("mkv", "matroska")])
+    it "accepts an empty map" $
+      parse [] `shouldBe` Just mempty
+    forM_ ["hls", "concat", "lavfi", "image2", "tty", "sdp", "rtsp", "data"] $ \demuxer ->
+      it ("rejects the demuxer " ++ show demuxer) $
+        parse [("mp4", demuxer)] `shouldBe` Nothing
+    forM_ ["", "mov:", "mov,mp4", "m ov", "mov\n"] $ \demuxer ->
+      it ("rejects the invalid demuxer " ++ show demuxer) $
+        parse [("mp4", demuxer)] `shouldBe` Nothing
+    forM_ ["", ".mp4", "a/b", "m:p4"] $ \ext ->
+      it ("rejects the invalid extension " ++ show ext) $
+        parse [(ext, "mov")] `shouldBe` Nothing
+    it "rejects extensions duplicated when ignoring case" $
+      parse [("mp4", "mov"), ("MP4", "avi")] `shouldBe` Nothing
   describe "tests Regex data type" $ do
     prop "rejects invalid regexes" $ forAll (elements ['?', '+', '*']) $
       isNothing . mkRegex . Text.pack . (: [])
