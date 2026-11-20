@@ -42,7 +42,13 @@ JS:
 - Node.js and npm, in the version given in `.node-version` (also used by
   CI); a version manager such as `fnm` or `nvm` picks it up from there.
   Distribution packages are usually too old.
-- run `npm install` and `make bootstrap` to create initial JS files.
+- run `make bootstrap` to install the npm dependencies (with `npm ci`,
+  i.e. exactly as in `package-lock.json`) and create the initial JS
+  files. The committed `.npmrc` disables the install scripts of the
+  dependencies (e.g. `postinstall`), which would otherwise run arbitrary
+  code at install time; none are needed. If a new dependency does need
+  one, run it explicitly, e.g. with `npm rebuild <package>
+  --ignore-scripts=false`, and document it here.
 
 App config:
 
@@ -72,8 +78,8 @@ directory set by `static-dir`). There are three kinds of files there:
   `static/corydalis/manifest.json`;
 - symbolic links into `node_modules`, committed, for the library files
   that are served as they are: the Bootstrap and Font Awesome style
-  sheets, and the Font Awesome fonts; they work once `npm install` has
-  run;
+  sheets, and the Font Awesome fonts; they work once the npm dependencies
+  are installed (`make bootstrap`);
 - generated files, not committed: the esbuild bundles in
   `static/corydalis/js` (`npm run build`), the Font Awesome
   `regular.css` and `solid.css` (`build/patch-font-awesome`, run by

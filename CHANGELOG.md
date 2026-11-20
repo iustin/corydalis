@@ -587,6 +587,12 @@ own flag. It also lists the modules that no test loads (e.g. the image
 viewer), at 0%, so that the untested parts of the frontend show up
 instead of being left out.
 
+`make bootstrap` now installs the npm dependencies with `npm ci`, i.e.
+exactly the versions in `package-lock.json`, and a committed `.npmrc`
+disables the install scripts of the dependencies (which can run
+arbitrary code at install time; none are needed). The `allowScripts`
+setting in `package.json`, which npm ignores, is removed.
+
 ### Dependencies
 
 The dependencies have been updated as follows:
