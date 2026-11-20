@@ -50,7 +50,7 @@ You will need
 utilities, and to read the [installation guide](docs/install.md). Then
 read the [manual](docs/manual.md) in order to understand what
 Corydalis shows. You can also see the documentation online at
-[readthedocs](http://corydalis.readthedocs.io/).
+[readthedocs](https://corydalis.readthedocs.io/).
 
 ## Bugs/features
 
