@@ -150,6 +150,9 @@ makeFoundation appSettings = do
     let logfn = makeLogFn (appLogLevel appSettings) appLogger
         config = appConfig appSettings
 
+    -- Secure session cookies can't work on a plain HTTP site.
+    mapM_ (logfn LevelWarn . toLogStr) $ insecureApprootWarning appSettings
+
     -- Restrict the directories holding private files, before anything
     -- creates them: the session key (created by the session backend) and
     -- the database (created below).

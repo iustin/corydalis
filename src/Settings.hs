@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Settings
   ( AppSettings(..)
   , RequestLogging(..)
+  , insecureApprootWarning
   , widgetFile
   , combineStylesheets
   , combineScripts
@@ -95,10 +96,10 @@ data AppSettings = AppSettings
     -- (without a proxy), this is always recommended.
     , appSecureSessions :: Bool
     -- ^ Whether the session cookies are secure (only sent over HTTPS).
-    -- The secure-sessions setting defaults to the https one, and when
-    -- serving HTTPS directly (https set, and no Unix socket), cookies
-    -- are always secure; behind a reverse proxy serving HTTPS, it
-    -- should be enabled.
+    -- The secure-sessions setting defaults to true, and when serving
+    -- HTTPS directly (https set, and no Unix socket), cookies are
+    -- always secure; only plain HTTP setups (other than on localhost,
+    -- which browsers treat as secure) need to disable it.
     , appStrictTransportSecurity :: Bool
     -- ^ Emit a Strict-Transport-Security header in the response. This
     -- defaults to the https parameter; in case of plain http, it can be
@@ -166,7 +167,9 @@ instance FromJSON AppSettings where
         appHost           <-  fromString <$> o .: "host"
         appPort           <- o .:  "port"
         appHttps          <- o .:  "https"
-        secureSessions    <- o .:? "secure-sessions" .!= appHttps
+        -- Secure by default: everything but local development should
+        -- be served over HTTPS, if only by a reverse proxy.
+        secureSessions    <- o .:? "secure-sessions" .!= True
         -- Serving HTTPS directly (the Unix socket ignores the https
         -- setting), the cookies must not be sent in clear.
         let appSecureSessions =
@@ -188,6 +191,35 @@ instance FromJSON AppSettings where
         appConfig         <- o .:  "config"
 
         return AppSettings {..}
+
+-- | Returns a warning if the session cookies are secure, but the
+-- configured application root is a plain HTTP URL, other than on
+-- localhost.
+--
+-- Browsers don't keep secure cookies received over plain HTTP (except
+-- from localhost, which they treat as secure), so logging in would
+-- silently fail, going back to the login page.
+insecureApprootWarning :: AppSettings -> Maybe Text
+insecureApprootWarning settings = do
+  guard $ appSecureSessions settings
+  root <- appRoot settings
+  rest <- stripPrefix "http://" (toLower root)
+  guard . not . isLocalHost $ urlHost rest
+  return $ "The approot (" <> root <> ") is a plain HTTP URL, but the " <>
+    "session cookies are secure (secure-sessions), so browsers won't " <>
+    "keep them, and logging in won't work; set secure-sessions to false " <>
+    "if Corydalis is served over plain HTTP"
+  where
+    -- The host part of a URL, without the scheme (an IPv6 address
+    -- keeps its brackets).
+    urlHost :: Text -> Text
+    urlHost rest
+      | "[" `isPrefixOf` rest = takeWhile (/= ']') rest <> "]"
+      | otherwise = takeWhile (\c -> c /= ':' && c /= '/') rest
+    isLocalHost :: Text -> Bool
+    isLocalHost host =
+      host == "localhost" || ".localhost" `isSuffixOf` host ||
+      "127." `isPrefixOf` host || host == "[::1]"
 
 -- | Parses the Unix socket mode, which must be a (quoted) string: YAML
 -- doesn't agree on how to read unquoted numbers with a leading zero

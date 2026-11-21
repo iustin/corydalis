@@ -438,8 +438,11 @@ Security: the documentation and the sample configuration said that
 independently, so `https: true` with `secure-sessions: false` sent the
 session cookies without the secure bit. When serving HTTPS directly
 (without a Unix socket, which ignores `https`), the cookies are now
-always secure; `secure-sessions` is now optional, and defaults to the
-`https` setting.
+always secure. Moreover, `secure-sessions` is now optional, and defaults
+to true, so that the cookies are secure by default, including behind a
+reverse proxy; serving plain HTTP, other than on `localhost`, requires
+`secure-sessions: false`, and Corydalis warns at startup if `approot` is
+a plain `http://` URL while the cookies are secure.
 
 When using a Unix socket, Corydalis removed whatever was at the
 configured path at startup, to replace a socket left by a previous run;
