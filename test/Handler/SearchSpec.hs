@@ -27,7 +27,8 @@ import qualified Data.Text       as Text
 import           Formatting
 import           Handler.Cookies
 import           Handler.Search   (skippedMessage)
-import           Indexer         (Atom (..), StrOp (..))
+import           Indexer         (Atom (..), StrOp (..),
+                                  maxQuickSearchLength)
 import           Pics            (getSearchResults, launchScanFileSystem,
                                   waitForScan)
 import           TestImport
@@ -63,7 +64,7 @@ spec = parallel $ withApp $ do
       statusIs 400
     it "rejects a too long search" $ do
       login
-      get (QuickSearchR, [("q", Text.replicate 201 "x")])
+      get (QuickSearchR, [("q", Text.replicate (maxQuickSearchLength + 1) "x")])
       statusIs 400
     it "lists at most five skipped filters" $ do
       let atoms n = [ Country (OpEqual (fromString ('c' : show i))) | i <- [1..n :: Int] ]

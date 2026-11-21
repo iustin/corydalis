@@ -609,7 +609,7 @@ spec = parallel $ do
       -- A distinctive argument, to find the process afterwards.
       let marker = "86413"
       result <- runTool tools (proc "sleep" [marker])
-      result `shouldBeLeftWithMessage` "timed out after 1 seconds"
+      result `shouldBeLeftWithMessage` "timed out after 1 second"
       -- The tool has been stopped (pgrep finds no such process).
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)

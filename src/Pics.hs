@@ -2048,10 +2048,11 @@ runTool limits pconfig =
       case result of
         Just r  -> return $ Right r
         Nothing -> stop >> return timedOut
+    timedOut = Left $ sformat ("External tool timed out after " % int % " second" % string)
+                 secs (if secs == 1 then "" else "s")
     -- Rounded up, so that a (test) limit under a second isn't shown
     -- as zero.
-    timedOut = Left $ sformat ("External tool timed out after " % int % " seconds")
-                 ((tlTimeout limits + 999999) `div` 1000000)
+    secs = (tlTimeout limits + 999999) `div` 1000000
     describe :: IOException -> Text
     describe = sformat ("Failed to run external tool: " % shown)
 
