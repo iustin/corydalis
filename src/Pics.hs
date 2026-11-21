@@ -111,6 +111,7 @@ module Pics ( PicDir(..)
             , computeImagesStats
 #ifdef TEST
             , readToolProcess
+            , runTool
             , decodeToolOutput
             , jpegMagic
             , checkEmbeddedImage
@@ -197,6 +198,7 @@ import           System.Log.FastLogger   (toLogStr)
 import qualified System.Posix.Files      (fileSize)
 import           System.Posix.Files      hiding (fileSize)
 import           System.Posix.Types
+import           System.Posix.Signals    (sigKILL, signalProcessGroup)
 import           System.Process.Typed
 import qualified Text.Regex.TDFA         as TDFA
 import           UnliftIO.Exception
@@ -1636,7 +1638,7 @@ forceBuildThumbCaches ctx repo = do
                          (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
       classifySize (pend, n, es) i size = do
         checkRepoOwnership ctx repo
-        res <- imageNeedsRender (ctxLogger ctx) config i size
+        res <- imageNeedsRender (ctxToolLimits ctx) (ctxLogger ctx) config i size
         return $ case res of
           Left err ->
             (pend, n, ProgressError (imageForError i size) (Text.pack $ show err):es)
@@ -1653,7 +1655,7 @@ forceBuildThumbCaches ctx repo = do
     }
   mapM_ (\(i, size) -> do
             checkRepoOwnership ctx repo
-            res <- imageAtRes (ctxLogger ctx) config i . Just . ImageSize $ size
+            res <- imageAtRes (ctxToolLimits ctx) (ctxLogger ctx) config i . Just . ImageSize $ size
             let modifier = case res of
                   Left   err      -> incErrors (imageForError i size) (Text.pack $ show err)
                   Right (_, _, _) -> incDone
@@ -1828,9 +1830,9 @@ scaledCacheNeedsBuild config origPath mtime size =
 -- embedded previews for RAW/movies), then delegates to
 -- 'scaledCacheNeedsBuild'. Failures from that resolution are returned
 -- as 'Left'.
-imageNeedsRender :: LogFn -> Config -> Image -> Int -> IO (Either ImageError Bool)
-imageNeedsRender logfn config img size = try $ do
-  (origFile, _, _, _, mtime) <- getViewableVersion logfn config img
+imageNeedsRender :: ToolLimits -> LogFn -> Config -> Image -> Int -> IO (Either ImageError Bool)
+imageNeedsRender tools logfn config img size = try $ do
+  (origFile, _, _, _, mtime) <- getViewableVersion tools logfn config img
   scaledCacheNeedsBuild config (fileFullPath origFile) mtime (ImageSize size)
 
 -- | Generate a preview for an image.
@@ -1845,10 +1847,10 @@ imageNeedsRender logfn config img size = try $ do
 -- ImageMagick picks it based on the file contents, e.g. running a
 -- PostScript or SVG document named @photo.jpg@ as such. If no decoder
 -- is known for the file (the 'Left' case), the preview can't be built.
-loadCachedOrBuild :: Config -> FilePath -> FilePath -> Either Text String
+loadCachedOrBuild :: ToolLimits -> Config -> FilePath -> FilePath -> Either Text String
                   -> MimeType -> POSIXTime -> ImageSize
                   -> IO (Bool, MimeType, FilePath)
-loadCachedOrBuild config origPath bytesPath decoder mime mtime size = do
+loadCachedOrBuild tools config origPath bytesPath decoder mime mtime size = do
   let res = findBestSize size (cfgAllImageSizes config)
   case res of
     Nothing -> return (False, mime, bytesPath)
@@ -1877,9 +1879,8 @@ loadCachedOrBuild config origPath bytesPath decoder mime mtime size = do
         writeViaTempFile fpath $ \tmpPath -> do
           -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
           pconfig <- convertProcess config (concat [[inFile], operators, [fmt ++ ":" ++ tmpPath]])
-          (exitCode, out, err) <- readProcess pconfig `catch`
-                                  (\e -> let e' = sformat shown (e :: SomeException)
-                                         in throwIO . ImageError $ e')
+          (exitCode, out, err) <- either (throwIO . ImageError) return =<<
+                                  runTool tools pconfig
           when (exitCode /= ExitSuccess) . throwIO . ImageError . decodeToolOutput $ err `BSL.append` out
       return (needsGen, sformat ("image/" % string) fmt, fpath)
 
@@ -1980,6 +1981,60 @@ readToolProcess pconfig =
   where describe :: IOException -> Text
         describe = sformat ("Failed to run external tool: " % shown)
 
+-- | Runs an external tool for building a preview, as 'readToolProcess'
+-- does, but within the given limits (see 'ToolLimits'): a tool running
+-- for too long is killed, and its run is returned as an error.
+--
+-- The tool is also killed if the run is interrupted otherwise (e.g.
+-- the request is cancelled). This is needed as typed-process, when the
+-- run is interrupted, first closes the tool's output pipes, which waits
+-- for their reader threads, which only finish when the tool exits; so
+-- it would wait for the tool to finish by itself before stopping it.
+-- SIGKILL is used, as e.g. ffmpeg only stops at a safe point on
+-- SIGTERM; the callers have the tools write to temporary files, which
+-- they remove on failure. The tool runs in its own process group,
+-- which is killed as a whole: a process it started would otherwise
+-- keep running, and keep the output pipes open, so the run would still
+-- wait for it.
+runTool :: ToolLimits -> ProcessConfig stdin stdout stderr
+        -> IO (Either Text (ExitCode, LByteString, LByteString))
+runTool limits pconfig =
+  either (Left . describe) id <$> try run
+  where
+    pconfig' = setCreateGroup True
+               . setStdout byteStringOutput
+               . setStderr byteStringOutput
+               $ pconfig
+    run = withProcessTerm pconfig' $ \p -> do
+      -- After killing the tool, this waits for typed-process to record
+      -- its exit; otherwise, its cleanup can interrupt the thread
+      -- waiting for the tool right after the tool was reaped, but
+      -- before its exit was recorded, and then fail waiting for it
+      -- again ("No child processes"). The group's id is the tool's
+      -- process id. Failing to send the signal (e.g. the tool has just
+      -- exited, and been reaped, along with the rest of its group) is
+      -- ignored.
+      let stop = do
+            mpid <- getPid p
+            case mpid of
+              Just pid -> void . tryIO $ signalProcessGroup sigKILL pid
+              Nothing  -> return ()
+            void . atomically $ waitExitCodeSTM p
+      result <- timeout (tlTimeout limits)
+                  (atomically $ (,,) <$> waitExitCodeSTM p
+                                     <*> getStdout p
+                                     <*> getStderr p)
+                `onException` stop
+      case result of
+        Just r  -> return $ Right r
+        Nothing -> stop >> return timedOut
+    -- Rounded up, so that a (test) limit under a second isn't shown
+    -- as zero.
+    timedOut = Left $ sformat ("External tool timed out after " % int % " seconds")
+                 ((tlTimeout limits + 999999) `div` 1000000)
+    describe :: IOException -> Text
+    describe = sformat ("Failed to run external tool: " % shown)
+
 -- | Decodes the output of an external tool, for error messages.
 --
 -- The output can contain anything, e.g. file names which are not valid
@@ -2025,9 +2080,9 @@ embeddedArgs tag path = ["-b", "-" ++ tag, "--", path]
 -- saved, and an error is returned. A previously extracted image is
 -- reused, unless it is older than the given modification time of the
 -- source file.
-extractEmbedded :: Config -> FilePath -> POSIXTime -> String
+extractEmbedded :: ToolLimits -> Config -> FilePath -> POSIXTime -> String
                 -> IO (Either Text (MimeType, FilePath))
-extractEmbedded config path mtime tag = do
+extractEmbedded tools config path mtime tag = do
   let outputPath = embeddedImagePath config path
       args = embeddedArgs tag path
       mime = "image/jpeg"
@@ -2041,7 +2096,7 @@ extractEmbedded config path mtime tag = do
             setStdin closed
             . setCloseFds True
             $ proc "exiftool" args
-      result <- readToolProcess pconfig
+      result <- runTool tools pconfig
       case result of
         Left msg -> return $ Left msg
         Right (exitCode, out, err) ->
@@ -2057,12 +2112,12 @@ extractEmbedded config path mtime tag = do
       return goodRet
 
 -- | Extract the first valid thumbnail from an image.
-bestEmbedded :: Config -> FilePath -> POSIXTime -> IO (Either Text (MimeType, FilePath))
-bestEmbedded config path mtime =
+bestEmbedded :: ToolLimits -> Config -> FilePath -> POSIXTime -> IO (Either Text (MimeType, FilePath))
+bestEmbedded tools config path mtime =
   go config path previewTags
   where go _ _ [] = return $ Left "No tags available"
         go c p (x:xs) = do
-          r <- extractEmbedded c p mtime x
+          r <- extractEmbedded tools c p mtime x
           case r of
             Left _ -> case xs of
               [] -> return r
@@ -2078,9 +2133,9 @@ viewableAsIs (TS.toText -> path) (cfgViewableImages -> exts)  =
 --
 -- As for embedded images, a previously extracted frame is reused,
 -- unless it is older than the given modification time of the movie.
-extractFirstFrame :: Config -> FilePath -> POSIXTime
+extractFirstFrame :: ToolLimits -> Config -> FilePath -> POSIXTime
                   -> IO (Either Text (MimeType, FilePath))
-extractFirstFrame config path mtime =
+extractFirstFrame tools config path mtime =
   case movieDemuxer config path of
     Left msg -> return $ Left msg
     Right demuxer -> do
@@ -2122,7 +2177,7 @@ extractFirstFrame config path mtime =
                   setStdin closed
                   . setCloseFds True
                   $ proc "ffmpeg" (args tmpPath)
-            ran <- readToolProcess pconfig
+            ran <- runTool tools pconfig
             case ran of
               Left msg -> throwIO $ ImageError msg
               Right (exitCode, out, err) ->
@@ -2197,9 +2252,9 @@ ensureStorageFile logfn config f = do
 -- For a processed file, return it directly; for a raw file, extract
 -- the embedded image, if any; etc. Also returns the ImageMagick
 -- decoder to use for the viewable file.
-getViewableVersion :: LogFn -> Config -> Image
+getViewableVersion :: ToolLimits -> LogFn -> Config -> Image
                    -> IO (File, FilePath, Either Text String, MimeType, POSIXTime)
-getViewableVersion logfn config img
+getViewableVersion tools logfn config img
   | j:_ <- imgJpegPath img = do
       ensureStorageFile logfn config j
       return (j, fileFullPath j, fileDecoder j, jpegMimeType j, fileLastTouch j)
@@ -2213,7 +2268,7 @@ getViewableVersion logfn config img
       viewable <- if fileName r `viewableAsIs` config
                   then return $ Right (fileDecoder r, jpegMimeType r, fileFullPath r)
                   else fmap (\(mime, path) -> (extractedDecoder, mime, path)) <$>
-                         bestEmbedded config (fileFullPath r) (fileLastTouch r)
+                         bestEmbedded tools config (fileFullPath r) (fileLastTouch r)
       case viewable of
         Left msg -> throwIO $ ImageError msg
         Right (decoder, mime, path) -> do
@@ -2221,10 +2276,10 @@ getViewableVersion logfn config img
           return (r, path, decoder, mime, mtime)
   | Just m <- bestMovie img = do
       ensureStorageFile logfn config m
-      embedded <- bestEmbedded config (fileFullPath m) (fileLastTouch m)
+      embedded <- bestEmbedded tools config (fileFullPath m) (fileLastTouch m)
       case embedded of
         Left _ -> do
-          firstFrame <- extractFirstFrame config (fileFullPath m) (fileLastTouch m)
+          firstFrame <- extractFirstFrame tools config (fileFullPath m) (fileLastTouch m)
           case firstFrame of
             Left msg' -> throwIO $ ImageError msg'
             Right (mime, path) -> do
@@ -2248,12 +2303,12 @@ getViewableVersion logfn config img
 -- down (as needed).
 --
 -- TODO: handle and meaningfully return errors.
-imageAtRes :: LogFn -> Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Bool, MimeType, FilePath))
-imageAtRes logfn config img size = try $ do
-  (origFile, path, decoder, mime, mtime) <- getViewableVersion logfn config img
+imageAtRes :: ToolLimits -> LogFn -> Config -> Image -> Maybe ImageSize -> IO (Either ImageError (Bool, MimeType, FilePath))
+imageAtRes tools logfn config img size = try $ do
+  (origFile, path, decoder, mime, mtime) <- getViewableVersion tools logfn config img
   case size of
     Nothing -> return (False, mime, path)
-    Just s  -> loadCachedOrBuild config (fileFullPath origFile) path decoder mime mtime s
+    Just s  -> loadCachedOrBuild tools config (fileFullPath origFile) path decoder mime mtime s
 
 -- | Returns the movie file to serve for an image, after checking that
 -- it can be read (see 'ensureStorageFile').

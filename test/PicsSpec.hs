@@ -202,7 +202,7 @@ writeMovie path = do
 buildThumbnail :: Config -> FilePath -> Either Text String
                -> IO (Either ImageError (Bool, MimeType, FilePath))
 buildThumbnail config path decoder =
-  try $ loadCachedOrBuild config path path decoder "image/jpeg" 0
+  try $ testToolLimits >>= \tools -> loadCachedOrBuild tools config path path decoder "image/jpeg" 0
           (ImageSize (cfgThumbnailSize config))
 
 -- | Checks that building the thumbnail failed without creating it.
@@ -221,7 +221,7 @@ previewSize = ImageSize 1920
 buildPreview :: Config -> FilePath
              -> IO (Either ImageError (Bool, MimeType, FilePath))
 buildPreview config path =
-  try $ loadCachedOrBuild config path path (Right "jpeg") "image/jpeg" 0 previewSize
+  try $ testToolLimits >>= \tools -> loadCachedOrBuild tools config path path (Right "jpeg") "image/jpeg" 0 previewSize
 
 -- | The path of the preview built by 'buildPreview'.
 previewPath :: Config -> FilePath -> IO FilePath
@@ -255,6 +255,20 @@ policyReadableCoders = do
 fileWithMimeType :: Maybe Text -> File
 fileWithMimeType mime =
   (simpleFile "a.jpg") { fileExif = def { exifMimeType = mkSym <$> mime } }
+
+-- | 'extractEmbedded', with the default tool limits.
+extractEmbeddedT :: Config -> FilePath -> POSIXTime -> String
+                 -> IO (Either Text (MimeType, FilePath))
+extractEmbeddedT config path mtime tag = do
+  tools <- testToolLimits
+  extractEmbedded tools config path mtime tag
+
+-- | 'extractFirstFrame', with the default tool limits.
+extractFirstFrameT :: Config -> FilePath -> POSIXTime
+                   -> IO (Either Text (MimeType, FilePath))
+extractFirstFrameT config path mtime = do
+  tools <- testToolLimits
+  extractFirstFrame tools config path mtime
 
 spec :: Spec
 spec = parallel $ do
@@ -421,7 +435,7 @@ spec = parallel $ do
             path = cfgCacheDir config </> "photo.mie"
         writePreviewJpeg preview
         writeFileWithPreview preview path
-        result <- extractEmbedded config path 0 "PreviewImage"
+        result <- extractEmbeddedT config path 0 "PreviewImage"
         case result of
           Left msg -> expectationFailure ("Failed to extract the preview: " ++ show msg)
           Right (mime, extracted) -> do
@@ -438,7 +452,7 @@ spec = parallel $ do
         writePreviewJpeg preview
         writeFileWithPreview preview path
         blockOutput (embeddedImagePath config path)
-        result <- extractEmbedded config path farFutureTime "PreviewImage"
+        result <- extractEmbeddedT config path farFutureTime "PreviewImage"
         result `shouldSatisfy` isLeft
     it "fails if there is no embedded image" $
       withConfig' $ \config -> do
@@ -448,7 +462,7 @@ spec = parallel $ do
             path = cfgCacheDir config </> "photo.mie"
         writePreviewJpeg preview
         writeFileWithPreview preview path
-        result <- extractEmbedded config path 0 "JpgFromRaw"
+        result <- extractEmbeddedT config path 0 "JpgFromRaw"
         result `shouldBeLeftWithMessage` "No embedded image JpgFromRaw found"
     forM_ [(False, "reuses an up to date", 0), (True, "rebuilds an outdated", farFutureTime)] $
       \(rebuilt, what, mtime) ->
@@ -461,11 +475,11 @@ spec = parallel $ do
             writePreviewJpeg preview
             writeFileWithPreview preview path
             expected <- readFile preview
-            extractEmbedded config path 0 "PreviewImage" >>= \case
+            extractEmbeddedT config path 0 "PreviewImage" >>= \case
               Left msg -> expectationFailure ("Failed to extract the preview: " ++ show msg)
               Right (_, extracted) -> do
                 writeFile extracted ("old" :: ByteString)
-                _ <- extractEmbedded config path mtime "PreviewImage"
+                _ <- extractEmbeddedT config path mtime "PreviewImage"
                 readFile extracted `shouldReturn`
                   (if rebuilt then expected else "old")
   describe "movie frames" $ withConfig $ do
@@ -473,7 +487,7 @@ spec = parallel $ do
       requireFfmpeg
       let path = cfgCacheDir config </> "movie.mp4"
       writeMovie path
-      result <- extractFirstFrame config path 0
+      result <- extractFirstFrameT config path 0
       case result of
         Left msg -> expectationFailure ("Failed to extract the frame: " ++ show msg)
         Right (mime, frame) -> do
@@ -484,7 +498,7 @@ spec = parallel $ do
       requireFfmpeg
       let path = cfgCacheDir config </> "movie.avi"
       writeMovie path
-      extractFirstFrame config path 0 >>= \case
+      extractFirstFrameT config path 0 >>= \case
         Left msg -> expectationFailure ("Failed to extract the frame: " ++ show msg)
         Right (_, frame) -> do
           contents <- readFile frame
@@ -495,7 +509,7 @@ spec = parallel $ do
           path = cfgCacheDir config </> "fake.mp4"
       writeMovie avi
       renameFile avi path
-      result <- extractFirstFrame config path 0
+      result <- extractFirstFrameT config path 0
       result `shouldSatisfy` isLeft
       doesFileExist (embeddedImagePath config path) `shouldReturn` False
     it "refuses a concat script named as a movie" $ \config -> do
@@ -506,7 +520,7 @@ spec = parallel $ do
           path = dir </> "script.mp4"
       writeMovie (dir </> "other.mp4")
       writeFile path ("ffconcat version 1.0\nfile 'other.mp4'\n" :: ByteString)
-      result <- extractFirstFrame config path 0
+      result <- extractFirstFrameT config path 0
       result `shouldSatisfy` isLeft
       doesFileExist (embeddedImagePath config path) `shouldReturn` False
     it "leaves no file behind on failure" $ \config -> do
@@ -515,7 +529,7 @@ spec = parallel $ do
           path = dir </> "broken.mp4"
       createDirectoryIfMissing True dir
       writeFile path ("not a movie" :: ByteString)
-      extractFirstFrame config path 0 >>= (`shouldSatisfy` isLeft)
+      extractFirstFrameT config path 0 >>= (`shouldSatisfy` isLeft)
       let (outDir, _) = splitFileName (embeddedImagePath config path)
       outputs <- listDirectory outDir
       outputs `shouldSatisfy` all (\f -> not ("broken.mp4-" `isPrefixOf` f))
@@ -525,12 +539,12 @@ spec = parallel $ do
       createDirectoryIfMissing True (takeDirectory path)
       writeMovie path
       blockOutput (embeddedImagePath config path)
-      result <- extractFirstFrame config path farFutureTime
+      result <- extractFirstFrameT config path farFutureTime
       result `shouldSatisfy` isLeft
     it "refuses movies without a configured demuxer" $ \config -> do
       let path = cfgCacheDir config </> "movie.xyz"
       writeFile path ("whatever" :: ByteString)
-      result <- extractFirstFrame config path 0
+      result <- extractFirstFrameT config path 0
       result `shouldBeLeftWithMessage` "No movie demuxer configured for extension 'xyz'"
     forM_ [(False, "reuses an up to date", 0), (True, "rebuilds an outdated", farFutureTime)] $
       \(rebuilt, what, mtime) ->
@@ -538,11 +552,11 @@ spec = parallel $ do
           requireFfmpeg
           let path = cfgCacheDir config </> "movie.mp4"
           writeMovie path
-          extractFirstFrame config path 0 >>= \case
+          extractFirstFrameT config path 0 >>= \case
             Left msg -> expectationFailure ("Failed to extract the frame: " ++ show msg)
             Right (_, frame) -> do
               writeFile frame ("old" :: ByteString)
-              _ <- extractFirstFrame config path mtime
+              _ <- extractFirstFrameT config path mtime
               contents <- readFile frame
               jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` rebuilt
   describe "bestMovie" $ withConfig $ do
@@ -570,6 +584,40 @@ spec = parallel $ do
     it "returns the exit code and output of a tool" $ \_ -> do
       result <- readToolProcess (proc "sh" ["-c", "echo out; echo err >&2; exit 3"])
       result `shouldBe` Right (ExitFailure 3, "out\n", "err\n")
+  describe "runTool" $ do
+    it "returns the result of a tool within the time limit" $ \_ -> do
+      tools <- testToolLimits
+      result <- runTool tools (proc "sh" ["-c", "echo out; exit 2"])
+      result `shouldBe` Right (ExitFailure 2, "out\n", "")
+    it "stops a tool running for too long" $ \_ -> do
+      tools <- atomically $ newToolLimits 200000
+      -- A distinctive argument, to find the process afterwards.
+      let marker = "86413"
+      result <- runTool tools (proc "sleep" [marker])
+      result `shouldBeLeftWithMessage` "timed out after 1 seconds"
+      -- The tool has been stopped (pgrep finds no such process).
+      found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
+      fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
+    it "stops the processes started by a tool" $ \_ -> do
+      tools <- atomically $ newToolLimits 200000
+      let marker = "86415"
+      -- The shell starts sleep, which keeps the output pipes open: if
+      -- only the shell were killed, the run would wait for sleep to
+      -- finish (and couldn't be interrupted, even by a timeout here).
+      result <- runTool tools $
+                  proc "sh" ["-c", "sleep " ++ marker ++ " & wait"]
+      result `shouldBeLeftWithMessage` "timed out"
+      found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
+      fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
+    it "stops a tool when interrupted" $ \_ -> do
+      tools <- testToolLimits
+      let marker = "86414"
+      -- E.g. as when the request is cancelled; this would wait for
+      -- the tool to finish by itself if it weren't stopped.
+      result <- timeout 200000 $ runTool tools (proc "sleep" [marker])
+      result `shouldBe` Nothing
+      found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
+      fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
   describe "build file from inode" $ do
     it "builds a file from an inode with no subdirs" $ \_ -> do
       let ii = InodeInfo "file.jpg" [] False 0 0 0

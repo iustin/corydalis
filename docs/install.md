@@ -465,12 +465,14 @@ read the files: ImageMagick only uses the decoder configured for the
 file's extension (see [Image decoders](#image-decoders)) and its
 security policy, ffmpeg only the demuxer configured for the extension
 (see [Movie demuxers](#movie-demuxers)) and only local files, and
-embedded previews are only used if they are JPEG images. This limits
-which parsers read a file, but a bug in one of them, or in exiftool
-(which reads the metadata of every file), can still be exploited: keep
-ImageMagick, ffmpeg and exiftool up to date, and consider restricting
-what the application can do (e.g. with systemd's sandboxing options),
-so that a compromised tool can do little harm.
+embedded previews are only used if they are JPEG images. Building a
+preview is also stopped (and fails) if a tool runs for more than five
+minutes. This limits which parsers read a file, but a bug in one of
+them, or in exiftool (which reads the metadata of every file), can
+still be exploited: keep ImageMagick, ffmpeg and exiftool up to date,
+and consider restricting what the application can do (e.g. with
+systemd's sandboxing options), so that a compromised tool can do little
+harm.
 
 The folder settings files (`corydalis.yaml`) are checked when scanned
 (they must be small, regular files), and their contents are only used
