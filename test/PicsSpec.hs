@@ -430,6 +430,9 @@ spec = parallel $ do
       embeddedArgs "PreviewImage" "-x.nef" `shouldBe`
         ["-b", "-PreviewImage", "--", "-x.nef"]
     let largeEnough = BSL.replicate 1024 0
+        -- Checks an image extracted as a whole.
+        check code image = checkEmbeddedImage "PreviewImage" code
+                             (BSL.length image) (BSL.take 3 image)
     it "starts all JPEG images with the JPEG magic" $
       withConfig' $ \config -> do
         requireConvert
@@ -438,20 +441,18 @@ spec = parallel $ do
         contents <- readFile path
         jpegMagic `BSL.isPrefixOf` fromStrict contents `shouldBe` True
     it "accepts JPEG images" $ \_ -> do
-      let image = jpegMagic <> largeEnough
-      checkEmbeddedImage "PreviewImage" ExitSuccess image "" `shouldBe` Right image
+      check ExitSuccess (jpegMagic <> largeEnough) "" `shouldBe` Right ()
     it "refuses images which are not JPEGs" $ \_ ->
-      checkEmbeddedImage "PreviewImage" ExitSuccess ("\x89PNG\r\n" <> largeEnough) ""
+      check ExitSuccess ("\x89PNG\r\n" <> largeEnough) ""
         `shouldBeLeftWithMessage` "PreviewImage is not a JPEG"
     it "refuses too small images" $ \_ ->
-      checkEmbeddedImage "PreviewImage" ExitSuccess jpegMagic ""
+      check ExitSuccess jpegMagic ""
         `shouldBeLeftWithMessage` "PreviewImage is too small (3 bytes)"
     it "reports a missing embedded image" $ \_ ->
-      checkEmbeddedImage "PreviewImage" ExitSuccess "" ""
+      check ExitSuccess "" ""
         `shouldBeLeftWithMessage` "No embedded image PreviewImage found"
     it "returns the error of a failed extraction" $ \_ -> do
-      let result = checkEmbeddedImage "PreviewImage" (ExitFailure 1)
-                     (jpegMagic <> largeEnough) "tool error"
+      let result = check (ExitFailure 1) (jpegMagic <> largeEnough) "tool error"
       result `shouldBeLeftWithMessage` "PreviewImage"
       result `shouldBeLeftWithMessage` "tool error"
     it "extracts an embedded JPEG image" $
@@ -502,6 +503,10 @@ spec = parallel $ do
         writeFileWithPreview preview path
         result <- extractEmbeddedT config path 0 "JpgFromRaw"
         result `shouldBeLeftWithMessage` "No embedded image JpgFromRaw found"
+        -- Nor is any (temporary) file left behind.
+        let output = embeddedImagePath config path
+        doesFileExist output `shouldReturn` False
+        listDirectory (takeDirectory output) `shouldReturn` []
     forM_ [(False, "reuses an up to date", 0), (True, "rebuilds an outdated", farFutureTime)] $
       \(rebuilt, what, mtime) ->
         it (what ++ " embedded image") $
