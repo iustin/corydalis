@@ -69,7 +69,11 @@ module Types ( Config(..)
              , ctxCleanProgress
              , ctxSearchCache
              , ctxLogger
+             , ctxToolLimits
              , newContext
+             , ToolLimits(..)
+             , defaultToolTimeout
+             , newToolLimits
              , ViewMode(..)
              , formatViewMode
              , parseViewMode
@@ -517,6 +521,29 @@ instance NFData WorkResults where
     rnf a `seq` rnf b `seq` rnf c
 
 
+-- | Limits for running the external tools (ImageMagick, ffmpeg and
+-- exiftool) which build the previews, as requested by users.
+--
+-- They read untrusted files, so a crafted file could make them run for
+-- very long.
+newtype ToolLimits = ToolLimits
+  { tlTimeout :: Int
+    -- ^ How long a tool may run, in microseconds, before it is killed.
+  }
+
+-- | The default time limit for a tool run: five minutes, as building a
+-- preview of a very large image on a slow machine can take a while.
+defaultToolTimeout :: Int
+defaultToolTimeout = 300 * 1000000
+
+-- | Creates the tool limits.
+--
+-- The time limit is at least a microsecond: zero would stop the tools
+-- right away.
+newToolLimits :: Int  -- ^ The time limit, in microseconds.
+              -> STM ToolLimits
+newToolLimits = return . ToolLimits . max 1
+
 -- | Data representing the entirety of the application state.
 --
 -- Sadly this is parametrized only to work around the big monolitic
@@ -531,6 +558,7 @@ data Context a b = Context
   -- TODO: this really shouldn't be parametrised…
   , ctxSearchCache    :: !(TVar b)
   , ctxLogger         :: !LogFn
+  , ctxToolLimits     :: !ToolLimits
   }
 
 newContext :: Config -> LogFn -> a -> b -> STM (Context a b)
@@ -541,6 +569,7 @@ newContext config logfn a b = do
   scanProg <- newTVar def
   renderProg <- newTVar def
   cleanProg <- newTVar def
+  tools <- newToolLimits defaultToolTimeout
   return $ Context { ctxConfig         = config
                    , ctxRepo           = ta
                    , ctxScanner        = scanner
@@ -549,6 +578,7 @@ newContext config logfn a b = do
                    , ctxCleanProgress  = cleanProg
                    , ctxSearchCache    = tb
                    , ctxLogger         = logfn
+                   , ctxToolLimits     = tools
                    }
 
 -- | View mode type.

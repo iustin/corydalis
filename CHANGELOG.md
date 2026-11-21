@@ -101,6 +101,12 @@ searches are rejected. The message listing the filters skipped by a
 quick search shows at most five of them, as it is kept in the session
 cookie until shown.
 
+The external tools building the previews (ImageMagick, ffmpeg, and
+exiftool when extracting embedded previews) are now stopped if they run
+for more than five minutes, e.g. on a crafted file, and the preview
+fails. Previously, they could run indefinitely, and a cancelled request
+waited for the tool to finish; the tool is now stopped as well.
+
 ### Fixed bugs
 
 The static files directory still had links to libraries that are now

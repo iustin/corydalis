@@ -307,6 +307,11 @@ responseLocation :: YesodExample App (Maybe ByteString)
 responseLocation = withResponse $ \response ->
   return $ lookup "Location" $ simpleHeaders response
 
+-- | Tool limits for the tests (see 'ToolLimits'), the same as the
+-- application's.
+testToolLimits :: IO ToolLimits
+testToolLimits = atomically $ newToolLimits defaultToolTimeout
+
 -- | Returns the CSRF token from the meta tag of the last page, as the
 -- frontend code does.
 pageCsrfToken :: YesodExample App Text
