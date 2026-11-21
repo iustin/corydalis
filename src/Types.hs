@@ -113,7 +113,7 @@ import           Data.Time.LocalTime
 import           Database.Persist.Sql       (PersistFieldSql)
 import           Symbolize
 import qualified Symbolize.Textual          as ST
-import           System.FilePath            (pathSeparator)
+import           System.FilePath            (isAbsolute, pathSeparator)
 import           System.Log.FastLogger      (LogStr)
 import           Text.Blaze                 (ToMarkup (..))
 import qualified Text.Regex.TDFA            as TDFA
@@ -260,6 +260,19 @@ parseExtensionMap setting what allowed entries = do
       fail $ "Unsafe " <> what <> " for extension " <> show ext <> ": " <> show value
   return lowered
 
+-- | Checks that a directory (from the named setting) is an absolute
+-- path.
+--
+-- The picture and cache directories must be absolute: relative ones
+-- would depend on the current directory, which differs between the
+-- server and the other tools reading the same settings (e.g. the
+-- scanner), and their paths are stored, compared and shown.
+absoluteDir :: MonadFail m => String -> FilePath -> m FilePath
+absoluteDir setting dir
+  | isAbsolute dir = return dir
+  | otherwise = fail $ "The " <> setting <>
+                  " setting must use absolute paths, but has " <> show dir
+
 -- | Parses and validates the extension to ImageMagick decoder map.
 parseImageDecoders :: MonadFail m => Map Text Text -> m (Map Text Text)
 parseImageDecoders =
@@ -317,10 +330,10 @@ instance FromJSON Config where
         moviedemuxers = v .:? "moviedemuxers" .!= defaultMovieDemuxers >>= parseMovieDemuxers
     in
     Config <$>
-         v .: "sourcedirs"      <*>
-         v .: "outputdirs"      <*>
+         (v .: "sourcedirs" >>= mapM (absoluteDir "sourcedirs")) <*>
+         (v .: "outputdirs" >>= mapM (absoluteDir "outputdirs")) <*>
          v .: "blacklisteddirs" <*>
-         v .: "cachedir"        <*>
+         (v .: "cachedir" >>= absoluteDir "cachedir") <*>
          thumbsize              <*>
          browsingsize           <*>
          autosizes              <*>

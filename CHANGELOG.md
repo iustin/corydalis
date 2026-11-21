@@ -11,6 +11,13 @@ likely that modern browsers support more formats, so it is now
 configurable. Moreover, it has to be configured. A starting point can be
 seen in the sample configuration file.
 
+The picture and cache directories (`sourcedirs`, `outputdirs` and
+`cachedir`) must now be absolute paths; Corydalis refuses to start
+otherwise. Relative paths depended on the current directory, which can
+differ between Corydalis and the other tools reading the same settings
+(such as the scanner). The sample configuration already uses absolute
+paths; if yours doesn't, write the paths out in full.
+
 ### New features
 
 The camera and lens information pages now have two more graphs: per the

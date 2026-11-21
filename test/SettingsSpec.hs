@@ -52,6 +52,7 @@ spec = do
   secureSessionsSpec
   unixSocketSpec
   insecureApprootSpec
+  storageDirsSpec
 
 unixSocketSpec :: Spec
 unixSocketSpec = describe "unix-socket" $ do
@@ -125,6 +126,25 @@ insecureApprootSpec = describe "insecureApprootWarning" $ do
     quiet (Just "http://photos.example.com") False
   it "can't tell without a root" $
     quiet Nothing True
+
+storageDirsSpec :: Spec
+storageDirsSpec = describe "storage directories" $ do
+  let loadWithConfig fields = loadSettingsWith [object ["config" .= object fields]]
+  it "accepts absolute paths" $ do
+    settings <- loadWithConfig [ "sourcedirs" .= ["/pics/raw" :: Text]
+                            , "outputdirs" .= ["/pics/out" :: Text]
+                            , "cachedir" .= ("/pics/cache" :: Text)
+                            ]
+    cfgSourceDirs (appConfig settings) `shouldBe` ["/pics/raw"]
+    cfgOutputDirs (appConfig settings) `shouldBe` ["/pics/out"]
+    cfgCacheDir (appConfig settings) `shouldBe` "/pics/cache"
+  it "refuses relative paths" $ do
+    loadWithConfig ["sourcedirs" .= ["/pics/raw", "raw" :: Text]]
+      `shouldThrow` anyException
+    loadWithConfig ["outputdirs" .= ["./out" :: Text]]
+      `shouldThrow` anyException
+    loadWithConfig ["cachedir" .= ("cache" :: Text)]
+      `shouldThrow` anyException
 
 sessionMaxAgeSpec :: Spec
 sessionMaxAgeSpec = describe "session-max-age" $ do
