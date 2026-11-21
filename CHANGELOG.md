@@ -121,6 +121,9 @@ built yet wait for their turn. Previously, many such requests at once
 crawler) could run any number of ImageMagick or ffmpeg processes at
 once.
 
+Both limits can be changed, with the new `preview-tool-timeout` (in
+seconds) and `preview-tool-slots` settings.
+
 ### Fixed bugs
 
 The static files directory still had links to libraries that are now

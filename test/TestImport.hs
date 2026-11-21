@@ -69,7 +69,8 @@ import           Data.Text.Short                (ShortText)
 import qualified Data.Text.Short                as TS
 import           Formatting
 import           Network.Wai.Test               (simpleHeaders)
-import           Settings                       (AppSettings (..))
+import           Settings                       (AppSettings (..),
+                                                 newPreviewToolLimits)
 import           System.Directory               (createDirectory,
                                                  createDirectoryIfMissing,
                                                  findExecutable,
@@ -180,7 +181,7 @@ openTempContext :: AppSettings -> LogFn -> IO (FilePath, Ctx)
 openTempContext settings logfn = do
   tempDir <- setTempDir
   config <- updateConfig tempDir settings
-  ctx <- atomically $ initContext config logfn
+  ctx <- atomically $ newPreviewToolLimits settings >>= initContext config logfn
   launchScanFileSystem ctx
   _ <- waitForScan ctx
   return (tempDir, ctx)
@@ -200,7 +201,7 @@ openUnscannedContext :: AppSettings -> LogFn -> IO (FilePath, Ctx)
 openUnscannedContext settings logfn = do
   tempDir <- setTempDir
   config <- updateConfig tempDir settings
-  ctx <- atomically $ initContext config logfn
+  ctx <- atomically $ newPreviewToolLimits settings >>= initContext config logfn
   return (tempDir, ctx)
 
 withUnscannedContext' :: (Ctx -> IO ()) -> IO ()

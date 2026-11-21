@@ -178,7 +178,8 @@ makeFoundation appSettings = do
         either (throwIO . userError . unpack)
                (const . logfn LevelInfo . toLogStr $ "Using the ImageMagick policy in " <> dir)
 
-    appContext <- atomically $ initContext config logfn
+    appContext <- atomically $
+      newPreviewToolLimits appSettings >>= initContext config logfn
     -- The user to check unknown users' passwords against, at login.
     appDummyLoginUser <- makeDummyLoginUser
 

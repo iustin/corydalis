@@ -221,9 +221,9 @@ type Ctx = Context Repository SearchCache
 
 -- TODO: move this to IO, so that callers don't have to know about
 -- atomically? [cleanup]
-initContext :: Config -> LogFn -> STM Ctx
-initContext config logfn =
-  newContext config logfn startupRepository emptySearchCache
+initContext :: Config -> LogFn -> ToolLimits -> STM Ctx
+initContext config logfn tools =
+  newContext config logfn tools startupRepository emptySearchCache
 
 neverRecurseDirs :: [String]
 neverRecurseDirs = [".", ".."]

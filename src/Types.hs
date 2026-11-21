@@ -550,14 +550,15 @@ data ToolLimits = ToolLimits
     -- ^ How long a tool may run, in microseconds, before it is killed.
   }
 
--- | The default number of tools which may run at once: one per
--- processor used by the runtime (with @+RTS -N@, as the application is
--- built, all of them).
+-- | The default number of tools which may run at once (see the
+-- preview-tool-slots setting): one per processor used by the runtime
+-- (with @+RTS -N@, as the application is built, all of them).
 defaultToolSlots :: Int
 defaultToolSlots = numCapabilities
 
--- | The default time limit for a tool run: five minutes, as building a
--- preview of a very large image on a slow machine can take a while.
+-- | The default time limit for a tool run (see the preview-tool-timeout
+-- setting): five minutes, as building a preview of a very large image
+-- on a slow machine can take a while.
 defaultToolTimeout :: Int
 defaultToolTimeout = 300 * 1000000
 
@@ -590,15 +591,14 @@ data Context a b = Context
   , ctxToolLimits     :: !ToolLimits
   }
 
-newContext :: Config -> LogFn -> a -> b -> STM (Context a b)
-newContext config logfn a b = do
+newContext :: Config -> LogFn -> ToolLimits -> a -> b -> STM (Context a b)
+newContext config logfn tools a b = do
   ta <- newTVar a
   tb <- newTVar b
   scanner <- newTVar Nothing
   scanProg <- newTVar def
   renderProg <- newTVar def
   cleanProg <- newTVar def
-  tools <- newToolLimits defaultToolSlots defaultToolTimeout
   return $ Context { ctxConfig         = config
                    , ctxRepo           = ta
                    , ctxScanner        = scanner
