@@ -32,9 +32,13 @@ import           Import
 -- These handlers embed files in the executable at compile time to avoid a
 -- runtime dependency, and for efficiency.
 
+-- | The favicon, cached for a month.
+--
+-- Private because Yesod attaches the session cookie to handler
+-- responses; it can be public once routes can go without a session,
+-- see <https://github.com/yesodweb/yesod/issues/1938>.
 getFaviconR :: Handler TypedContent
-getFaviconR = do -- Private because Yesod attaches the session cookie to handler responses.
-                 addHeader "Cache-Control" "private, max-age=2592000" -- cache for a month
+getFaviconR = do addHeader "Cache-Control" "private, max-age=2592000"
                  return $ TypedContent "image/x-icon"
                         $ toContent $(embedFile "config/favicon.ico")
 
