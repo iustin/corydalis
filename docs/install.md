@@ -237,6 +237,27 @@ means that `ip-from-header` is not enabled, that a proxy doesn't set the
 headers, or that a later one replaces them; or, with a proxy that
 appends to the client's header, that the client sent that address.
 
+### Limiting login attempts
+
+Corydalis doesn't limit the number of login attempts. The passwords are
+stored with a slow hash, so attempts also cost CPU time; it is best to
+limit them in the proxy. With nginx, for example, at most ten attempts a
+minute per client address:
+
+    # In the http block:
+    limit_req_zone $binary_remote_addr zone=corydalis_login:10m rate=10r/m;
+
+    # In the server block, besides the location for Corydalis:
+    location = /auth/page/hashdb/login {
+        limit_req zone=corydalis_login burst=5 nodelay;
+        # The same proxy settings as for the other Corydalis pages.
+        proxy_pass http://unix:/run/corydalis/socket:;
+    }
+
+Apache has no such limit built in; modules such as `mod_security`, or
+tools such as `fail2ban` (watching the request log for posts to
+`/auth/page/hashdb/login`), can do it.
+
 ## Basic configuration
 
 The `settings.yml` file has comments on the configuration
@@ -347,6 +368,17 @@ CPU time; increasing the idle GC timeout helps - I use slightly more
 than one minute:
 
     ./corydalis +RTS -I63
+
+### Running as a systemd service
+
+`config/corydalis.service.sample` is a sample systemd unit. It runs
+Corydalis as its own user, and uses systemd's sandboxing to limit what
+Corydalis and the tools it runs (ImageMagick, ffmpeg and exiftool) can
+do, should a crafted picture or movie exploit one of them (see
+[Picture and cache directories](#picture-and-cache-directories)). Its
+comments explain what to adjust (the paths, the socket settings) and
+the sandboxing options, some of which are not yet tested with
+Corydalis.
 
 ### Note about the session key
 

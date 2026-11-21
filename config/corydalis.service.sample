@@ -1,0 +1,70 @@
+# Sample systemd unit for Corydalis.
+#
+# Runs Corydalis as its own "corydalis" user, using systemd's sandboxing
+# to limit what it, and the tools it runs on the pictures and movies
+# (ImageMagick, ffmpeg and exiftool), can do, should a crafted file
+# exploit one of them. See the installation documentation.
+#
+# Copy it to /etc/systemd/system/corydalis.service, and adjust the paths:
+# the installation directory, the picture directories (read-only), and
+# the database and cache directories (writable). "systemd-analyze
+# security corydalis" lists what else could be restricted.
+
+[Unit]
+Description=Corydalis web application
+Documentation=https://corydalis.readthedocs.io/
+After=network.target
+
+[Service]
+ExecStart=/usr/local/corydalis/corydalis config/settings.yml +RTS -I63
+WorkingDirectory=/usr/local/corydalis
+User=corydalis
+Group=corydalis
+Restart=always
+StandardInput=null
+SyslogIdentifier=corydalis
+
+# For a Unix socket in /run/corydalis, shared with the proxy through the
+# corydalis-socket group (see unix-socket-group in the settings); remove
+# these when listening on a port.
+RuntimeDirectory=corydalis
+SupplementaryGroups=corydalis-socket
+
+# Sandboxing. With ProtectSystem=strict, everything outside the
+# ReadWritePaths is read-only, including the installation directory: the
+# session key (config/client_session_key.aes) can't be created there, so
+# create it before (e.g. by running Corydalis once, as its user, without
+# the sandbox), and restrict the config directory yourself.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+# The pictures are only read.
+ReadOnlyPaths=/srv/pictures
+# The database, the cache, and the generated (combined) style sheets
+# and scripts are written.
+ReadWritePaths=/srv/corydalis/db /srv/corydalis/cache /usr/local/corydalis/static/tmp
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+# The options below are not yet tested with Corydalis, although it
+# shouldn't need what they forbid: should the service, or the previews,
+# fail with permission errors, or be killed for a disallowed system call
+# (see "journalctl -u corydalis"), remove the offending option.
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+# MemoryDenyWriteExecute is not used, as the Haskell runtime may need
+# memory both writable and executable.
+
+[Install]
+WantedBy=multi-user.target

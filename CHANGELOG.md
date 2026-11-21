@@ -547,6 +547,11 @@ only connect with a permissive umask, or by running on a TCP port
 instead; now it can share a dedicated group with Corydalis. See the
 installation documentation for an example.
 
+There is now a sample systemd unit, `config/corydalis.service.sample`,
+using systemd's sandboxing to limit what Corydalis and the tools it runs
+can do; and the installation documentation has an example of limiting
+login attempts in nginx.
+
 ### Internal changes
 
 The remaining (trivial) corydalis JS code has been converted to
