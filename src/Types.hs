@@ -73,6 +73,7 @@ module Types ( Config(..)
              , newContext
              , ToolLimits(..)
              , defaultToolTimeout
+             , defaultToolSlots
              , newToolLimits
              , ViewMode(..)
              , formatViewMode
@@ -93,6 +94,8 @@ module Types ( Config(..)
 import           Control.Applicative
 import           Control.Concurrent.Async
 import           Control.Concurrent.STM
+import           Control.Concurrent.STM.TSem
+import           GHC.Conc                   (numCapabilities)
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
@@ -525,11 +528,20 @@ instance NFData WorkResults where
 -- exiftool) which build the previews, as requested by users.
 --
 -- They read untrusted files, so a crafted file could make them run for
--- very long.
-newtype ToolLimits = ToolLimits
-  { tlTimeout :: Int
+-- very long; and many requests for previews which aren't built yet
+-- could run many of them at once.
+data ToolLimits = ToolLimits
+  { tlSlots   :: !TSem
+    -- ^ How many tools may run at once; further runs wait.
+  , tlTimeout :: !Int
     -- ^ How long a tool may run, in microseconds, before it is killed.
   }
+
+-- | The default number of tools which may run at once: one per
+-- processor used by the runtime (with @+RTS -N@, as the application is
+-- built, all of them).
+defaultToolSlots :: Int
+defaultToolSlots = numCapabilities
 
 -- | The default time limit for a tool run: five minutes, as building a
 -- preview of a very large image on a slow machine can take a while.
@@ -538,11 +550,15 @@ defaultToolTimeout = 300 * 1000000
 
 -- | Creates the tool limits.
 --
--- The time limit is at least a microsecond: zero would stop the tools
--- right away.
-newToolLimits :: Int  -- ^ The time limit, in microseconds.
+-- At least one tool may run, and for at least a microsecond: no slots
+-- would block all the tools forever, and a zero time limit would stop
+-- them right away.
+newToolLimits :: Int  -- ^ The number of tools which may run at once.
+              -> Int  -- ^ The time limit, in microseconds.
               -> STM ToolLimits
-newToolLimits = return . ToolLimits . max 1
+newToolLimits slots limit = do
+  sem <- newTSem (fromIntegral (max 1 slots))
+  return $ ToolLimits sem (max 1 limit)
 
 -- | Data representing the entirety of the application state.
 --
@@ -569,7 +585,7 @@ newContext config logfn a b = do
   scanProg <- newTVar def
   renderProg <- newTVar def
   cleanProg <- newTVar def
-  tools <- newToolLimits defaultToolTimeout
+  tools <- newToolLimits defaultToolSlots defaultToolTimeout
   return $ Context { ctxConfig         = config
                    , ctxRepo           = ta
                    , ctxScanner        = scanner

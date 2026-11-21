@@ -198,6 +198,7 @@ import           System.Log.FastLogger   (toLogStr)
 import qualified System.Posix.Files      (fileSize)
 import           System.Posix.Files      hiding (fileSize)
 import           System.Posix.Types
+import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
 import           System.Posix.Signals    (sigKILL, signalProcessGroup)
 import           System.Process.Typed
 import qualified Text.Regex.TDFA         as TDFA
@@ -1982,8 +1983,9 @@ readToolProcess pconfig =
         describe = sformat ("Failed to run external tool: " % shown)
 
 -- | Runs an external tool for building a preview, as 'readToolProcess'
--- does, but within the given limits (see 'ToolLimits'): a tool running
--- for too long is killed, and its run is returned as an error.
+-- does, but within the given limits (see 'ToolLimits'): it waits for a
+-- free slot, if as many tools as allowed are running; and a tool
+-- running for too long is killed, and its run returned as an error.
 --
 -- The tool is also killed if the run is interrupted otherwise (e.g.
 -- the request is cancelled). This is needed as typed-process, when the
@@ -1999,7 +2001,9 @@ readToolProcess pconfig =
 runTool :: ToolLimits -> ProcessConfig stdin stdout stderr
         -> IO (Either Text (ExitCode, LByteString, LByteString))
 runTool limits pconfig =
-  either (Left . describe) id <$> try run
+  bracket_ (atomically . waitTSem $ tlSlots limits)
+           (atomically . signalTSem $ tlSlots limits) $
+    either (Left . describe) id <$> try run
   where
     pconfig' = setCreateGroup True
                . setStdout byteStringOutput

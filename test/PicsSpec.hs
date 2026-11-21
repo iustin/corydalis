@@ -31,6 +31,7 @@ import qualified Data.Map         as Map
 import qualified Data.Set         as Set
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
+import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
 import           Data.Time.Clock.POSIX (POSIXTime)
 import           System.Directory (createDirectoryIfMissing, doesFileExist,
                                    listDirectory, renameFile)
@@ -590,7 +591,7 @@ spec = parallel $ do
       result <- runTool tools (proc "sh" ["-c", "echo out; exit 2"])
       result `shouldBe` Right (ExitFailure 2, "out\n", "")
     it "stops a tool running for too long" $ \_ -> do
-      tools <- atomically $ newToolLimits 200000
+      tools <- atomically $ newToolLimits 1 200000
       -- A distinctive argument, to find the process afterwards.
       let marker = "86413"
       result <- runTool tools (proc "sleep" [marker])
@@ -599,7 +600,7 @@ spec = parallel $ do
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
     it "stops the processes started by a tool" $ \_ -> do
-      tools <- atomically $ newToolLimits 200000
+      tools <- atomically $ newToolLimits 1 200000
       let marker = "86415"
       -- The shell starts sleep, which keeps the output pipes open: if
       -- only the shell were killed, the run would wait for sleep to
@@ -609,6 +610,20 @@ spec = parallel $ do
       result `shouldBeLeftWithMessage` "timed out"
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
+    it "allows at least one tool to run" $ \_ -> do
+      tools <- atomically $ newToolLimits 0 defaultToolTimeout
+      runTool tools (proc "true" []) >>= (`shouldBe` Right (ExitSuccess, "", ""))
+    it "waits for a free slot" $ \_ -> do
+      tools <- atomically $ newToolLimits 1 defaultToolTimeout
+      let run = runTool tools (proc "true" [])
+      -- Taking the only slot, as a running tool would.
+      atomically . waitTSem $ tlSlots tools
+      -- The run can't start, and doesn't complete.
+      timeout 200000 run >>= (`shouldBe` Nothing)
+      atomically . signalTSem $ tlSlots tools
+      run >>= (`shouldBe` Right (ExitSuccess, "", ""))
+      -- The slot is free again, even after the interrupted run.
+      run >>= (`shouldBe` Right (ExitSuccess, "", ""))
     it "stops a tool when interrupted" $ \_ -> do
       tools <- testToolLimits
       let marker = "86414"
