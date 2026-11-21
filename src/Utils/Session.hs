@@ -35,6 +35,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- 'rotatingCsrfSessions', drops the token when saving it. Yesod then
 -- generates a new token at the next request, as for any new session;
 -- login and logout end with a redirect, so that is the next page.
+--
+-- This can go once Yesod can replace the token itself, see
+-- <https://github.com/yesodweb/yesod/issues/1939> (and the older
+-- <https://github.com/yesodweb/yesod/issues/1546>).
 module Utils.Session ( rotatingCsrfSessions
                      , requestNewCsrfToken
                      , newCsrfTokenKey

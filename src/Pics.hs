@@ -2014,6 +2014,13 @@ readToolProcess pconfig =
 -- which is killed as a whole: a process it started would otherwise
 -- keep running, and keep the output pipes open, so the run would still
 -- wait for it.
+--
+-- Both the kill on interruption and the wait in @stop@ below work around
+-- typed-process bugs, fixed upstream by
+-- <https://github.com/fpco/typed-process/pull/93> (the wait for the
+-- output pipes, <https://github.com/fpco/typed-process/issues/84>) and
+-- <https://github.com/fpco/typed-process/pull/70> ("No child
+-- processes", <https://github.com/fpco/typed-process/issues/69>).
 runTool :: ToolLimits -> ProcessConfig stdin stdout stderr
         -> IO (Either Text (ExitCode, LByteString, LByteString))
 runTool limits pconfig =

@@ -140,6 +140,23 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 - wai-logger 2.5.1 (which escapes the Apache request log fields) is an
   extra-dep in `stack.yaml`; drop it once the Stackage LTS has it.
 
+Workarounds for upstream bugs, to drop once fixed there:
+
+- typed-process: `runTool` (`src/Pics.hs`) kills the tool's process
+  group on interruption, and waits for its recorded exit, working
+  around [#84](https://github.com/fpco/typed-process/issues/84) (fixed
+  by [PR #93](https://github.com/fpco/typed-process/pull/93)) and
+  [#69](https://github.com/fpco/typed-process/issues/69) (fixed by
+  [PR #70](https://github.com/fpco/typed-process/pull/70)).
+- Yesod: the CSRF token is replaced at login and logout by wrapping the
+  session backend (`src/Utils/Session.hs`), relying on Yesod's
+  internal `_TOKEN` session key; see
+  [#1939](https://github.com/yesodweb/yesod/issues/1939) and
+  [#1546](https://github.com/yesodweb/yesod/issues/1546).
+- Yesod: the favicon is only cached privately, as handler responses
+  carry the session cookie; see
+  [#1938](https://github.com/yesodweb/yesod/issues/1938).
+
 ## Bugs
 
 ### Cache cleanup
