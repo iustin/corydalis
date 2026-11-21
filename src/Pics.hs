@@ -194,7 +194,6 @@ import qualified System.Environment
 import qualified System.IO
 import           System.Exit
 import           System.FilePath
-import           System.IO.Error
 import           System.Log.FastLogger   (toLogStr)
 import qualified System.Posix.Files      (fileSize)
 import           System.Posix.Files      hiding (fileSize)
@@ -1820,9 +1819,14 @@ scaledImagePath config path res =
 -- An empty file is never a valid image; such files were left behind by
 -- failed conversions before they were written via a temporary file (see
 -- 'loadCachedOrBuild'), so they are rebuilt.
+--
+-- A file that can't be checked at all (e.g. as its name is too long,
+-- or its parent directory is a regular file) also needs building, so
+-- that the build reports the problem, the way its callers report
+-- errors, instead of the check throwing.
 cacheFileNeedsBuild :: FilePath -> POSIXTime -> IO Bool
 cacheFileNeedsBuild fpath mtime = do
-  stat <- tryJust (guard . isDoesNotExistError) $ getFileStatus fpath
+  stat <- tryIO $ getFileStatus fpath
   return $ case stat of
     Left _   -> True
     Right st -> modificationTimeHiRes st < mtime ||

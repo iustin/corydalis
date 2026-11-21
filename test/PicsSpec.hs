@@ -189,6 +189,18 @@ blockOutput path = do
   createDirectoryIfMissing True path
   writeFile (path </> "file") ("" :: ByteString)
 
+-- | A file name longer than allowed (255 bytes, on most file systems).
+tooLongName :: FilePath
+tooLongName = replicate 300 'x'
+
+-- | Makes the cache directory of a file a regular file, so that its
+-- cache files can't be checked or written.
+blockCacheDir :: Config -> FilePath -> IO ()
+blockCacheDir config path = do
+  let dir = takeDirectory (embeddedImagePath config path)
+  createDirectoryIfMissing True (takeDirectory dir)
+  writeFile dir ("" :: ByteString)
+
 -- | Writes a short movie, using ffmpeg.
 writeMovie :: FilePath -> IO ()
 writeMovie path = do
@@ -469,6 +481,17 @@ spec = parallel $ do
         blockOutput (embeddedImagePath config path)
         result <- extractEmbeddedT config path farFutureTime "PreviewImage"
         result `shouldSatisfy` isLeft
+    it "returns an error if the image's cache directory is a file" $
+      withConfig' $ \config -> do
+        requireExifTool
+        requireConvert
+        let preview = cfgCacheDir config </> "preview.jpg"
+            path = cfgCacheDir config </> "photo.mie"
+        writePreviewJpeg preview
+        writeFileWithPreview preview path
+        blockCacheDir config path
+        result <- extractEmbeddedT config path 0 "PreviewImage"
+        result `shouldSatisfy` isLeft
     it "fails if there is no embedded image" $
       withConfig' $ \config -> do
         requireExifTool
@@ -538,6 +561,24 @@ spec = parallel $ do
       result <- extractFirstFrameT config path 0
       result `shouldSatisfy` isLeft
       doesFileExist (embeddedImagePath config path) `shouldReturn` False
+    it "returns an error if the frame's cache file name is too long" $ \config -> do
+      requireFfmpeg
+      -- The movie's name is valid, but not with the cache suffix.
+      let path = cfgCacheDir config </> take 248 tooLongName ++ ".mp4"
+      writeMovie path
+      -- The cache directory exists, as once other files in the folder
+      -- have cache files; otherwise, checking the cache file only finds
+      -- that its directory is missing.
+      createDirectoryIfMissing True (takeDirectory (embeddedImagePath config path))
+      result <- extractFirstFrameT config path 0
+      result `shouldSatisfy` isLeft
+    it "returns an error if the frame's cache directory is a file" $ \config -> do
+      requireFfmpeg
+      let path = cfgCacheDir config </> "movie.mp4"
+      writeMovie path
+      blockCacheDir config path
+      result <- extractFirstFrameT config path 0
+      result `shouldSatisfy` isLeft
     it "leaves no file behind on failure" $ \config -> do
       requireFfmpeg
       let dir = cfgCacheDir config </> "sub"
@@ -754,6 +795,12 @@ spec = parallel $ do
         let path = cfgCacheDir config </> "fresh"
         writeNonEmpty path
         cacheFileNeedsBuild path 0 `shouldReturn` False
+      it "treats a cache file in a non-directory as needing a rebuild" $ \config -> do
+        let parent = cfgCacheDir config </> "file"
+        writeNonEmpty parent
+        cacheFileNeedsBuild (parent </> "preview") 0 `shouldReturn` True
+      it "treats a cache file with a too long name as needing a rebuild" $ \config ->
+        cacheFileNeedsBuild (cfgCacheDir config </> tooLongName) 0 `shouldReturn` True
       it "treats an empty cache file as needing a rebuild" $ \config -> do
         -- E.g. as left behind by a failed conversion in older versions.
         let path = cfgCacheDir config </> "empty"
