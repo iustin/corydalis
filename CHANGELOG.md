@@ -107,6 +107,13 @@ for more than five minutes, e.g. on a crafted file, and the preview
 fails. Previously, they could run indefinitely, and a cancelled request
 waited for the tool to finish; the tool is now stopped as well.
 
+At most as many preview tools run at once as the application uses
+processors (by default, all of them); further requests for previews not
+built yet wait for their turn. Previously, many such requests at once
+(e.g. by scrolling quickly through a folder not yet rendered, or by a
+crawler) could run any number of ImageMagick or ffmpeg processes at
+once.
+
 ### Fixed bugs
 
 The static files directory still had links to libraries that are now

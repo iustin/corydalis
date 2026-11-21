@@ -467,8 +467,10 @@ security policy, ffmpeg only the demuxer configured for the extension
 (see [Movie demuxers](#movie-demuxers)) and only local files, and
 embedded previews are only used if they are JPEG images. Building a
 preview is also stopped (and fails) if a tool runs for more than five
-minutes. This limits which parsers read a file, but a bug in one of
-them, or in exiftool (which reads the metadata of every file), can
+minutes, and at most as many tools run at once as the application uses
+processors (all of them, unless limited with `+RTS -N`); further
+previews wait. This limits which parsers read a file, but a bug in one
+of them, or in exiftool (which reads the metadata of every file), can
 still be exploited: keep ImageMagick, ffmpeg and exiftool up to date,
 and consider restricting what the application can do (e.g. with
 systemd's sandboxing options), so that a compromised tool can do little
