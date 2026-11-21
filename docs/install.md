@@ -84,6 +84,20 @@ e.g.:
 Without ffmpeg, the application still works, but movies without an
 embedded preview have no preview image.
 
+For HEIC/HEIF pictures (e.g. from phones), ImageMagick needs libheif's
+HEVC decoder. Releases where libheif uses plugins (e.g. Debian 13,
+Ubuntu 24.04) package it separately:
+
+    sudo apt install libheif-plugin-libde265
+
+Without it, previews of these pictures fail with an "Unsupported codec"
+error.
+
+ImageMagick reads the pictures as `/dev/fd/0` and writes the previews
+as `/dev/fd/1`, so that it never gets a file name to interpret; these
+must exist, as on any usual Linux system (systemd's `PrivateDevices`
+keeps them).
+
 Install the sample configuration file and the ImageMagick policy from
 the source code:
 
@@ -310,6 +324,10 @@ Files whose extension has no configured decoder get no previews; if you
 add an extension to `jpegexts` or `viewableimages` that is not in the
 default list, also add it to `imagedecoders`.
 
+For a file holding several images (e.g. a multi-page TIFF, or an
+animated WebP), the preview is built from the first one (for a HEIC
+file, its primary image).
+
 ### Movie demuxers
 
 For movies without an embedded preview, the preview is the first frame,
@@ -360,11 +378,15 @@ as a crafted image can claim huge dimensions: images at most 32K pixels
 wide and high, 1 GiB of memory, 2 GiB of memory map and of disk, with
 large images (over 256 megapixels) kept on disk. These are the limits of
 the Debian and Ubuntu policy; unlike the rules above, they replace the
-system policy's own limits instead of adding to them. Adjust them to
-your system and pictures: for example, previews of panoramas wider than
-32K pixels need a larger `width`, and, for very large images, enough
-disk. `convert -list resource`, with `MAGICK_CONFIGURE_PATH` set to the
-policy's directory, shows the limits in effect.
+system policy's own limits instead of adding to them. Adjust these
+limits to your system and pictures: for example, previews of panoramas
+wider than 32K pixels need a larger `width`, and, for very large
+images, enough disk. `convert -list resource`, with
+`MAGICK_CONFIGURE_PATH` set to the policy's directory, shows the limits
+in effect. Don't add a limit on how many images ImageMagick reads from
+one file (`list-length`): for an animated WebP, it decodes all the
+frames even though previews only use the first, so previews of longer
+animations would fail.
 
 ## Running corydalis
 

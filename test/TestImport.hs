@@ -80,6 +80,8 @@ import           System.IO.Temp
 import           System.Log.FastLogger          (defaultBufSize,
                                                  newStdoutLoggerSet,
                                                  rmLoggerSet)
+import           System.Process.Typed           (ExitCode (..), proc,
+                                                 readProcess)
 import           Yesod.Core.Types               (loggerSet)
 import           Text.HTML.DOM                  (parseLBS)
 import           Text.XML.Cursor                (attribute, fromDocument)
@@ -277,6 +279,25 @@ requireConvert =
   findExecutable "convert" >>=
     maybe (expectationFailure "ImageMagick (convert) is required for running the tests")
           (const (return ()))
+
+-- | Fails the test if ImageMagick can't write and read back a HEIC
+-- image.
+--
+-- The tests create HEIC images, which needs libheif's HEVC encoder as
+-- well as its decoder; on recent Debian and Ubuntu releases, these are
+-- separate packages. (@convert -list format@ shows HEIC as readable
+-- even without the decoder, so this tries both.)
+requireHeic :: IO ()
+requireHeic = X.withSystemTempDirectory "heic" $ \dir -> do
+  let path = "heic:" ++ dir </> "test.heic"
+      run args = (\(code, _, _) -> code == ExitSuccess) <$>
+                   readProcess (proc "convert" args)
+  written <- run ["-size", "64x64", "xc:red", path]
+  readBack <- if written then run [path, "info:"] else return False
+  unless readBack $
+    expectationFailure "ImageMagick must write and read HEIC images for running the tests \
+                       \(on recent Debian/Ubuntu releases: libheif-plugin-libde265 and \
+                       \libheif-plugin-x265)"
 
 -- | Fails the test if ffmpeg is not installed.
 --

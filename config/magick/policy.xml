@@ -38,4 +38,9 @@
   <policy domain="resource" name="disk" value="2GiB"/>
   <policy domain="resource" name="width" value="32KP"/>
   <policy domain="resource" name="height" value="32KP"/>
+  <!-- No limit on how many images ImageMagick reads from one file
+       (list-length): previews use only the first image of a file, but
+       for an animated WebP, ImageMagick still decodes all the frames,
+       so such a limit would make the previews of longer animations
+       fail. -->
 </policymap>

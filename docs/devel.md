@@ -19,7 +19,10 @@ Operating system:
 - make sure to clone from somewhere else the git configs for your usual
   aliases.
 - install the image tools, see the install doc, e.g. `apt install
-  imagemagick libimage-exiftool-perl`.
+  imagemagick libimage-exiftool-perl ffmpeg`; the tests also need
+  ImageMagick to read and write HEIC images, which on recent
+  Debian/Ubuntu releases needs `libheif-plugin-libde265` and
+  `libheif-plugin-x265`.
 - have some images for a basic library (clone from another development
   machine, or fake ones, etc.).
 

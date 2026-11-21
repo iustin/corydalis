@@ -26,23 +26,29 @@ module PicsSpec (spec) where
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Default
-import           Data.Either      (isLeft)
+import           Data.Either      (isLeft, isRight)
 import qualified Data.Map         as Map
 import qualified Data.Set         as Set
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
+import qualified Control.Exception
+import           Control.Exception (AsyncException (ThreadKilled))
 import           Data.Time.Clock.POSIX (POSIXTime)
 import           System.Directory (createDirectoryIfMissing, doesFileExist,
                                    listDirectory, renameFile)
 import           System.Exit      (ExitCode (..))
-import           System.FilePath  (splitFileName, takeDirectory)
+import           System.FilePath  (splitFileName, takeDirectory,
+                                   takeFileName)
 import           System.Posix.Files (createNamedPipe, createSymbolicLink,
                                      ownerReadMode, ownerWriteMode,
                                      unionFileModes)
 import           Control.Monad.Logger (LogLevel (..))
 import           System.Log.FastLogger (fromLogStr)
-import           System.Process.Typed (proc, readProcess)
+import           System.Posix.IO   (OpenMode (..), closeFd, defaultFileFlags,
+                                   openFd)
+import qualified System.IO
+import           System.Process.Typed (proc, readProcess, setCloseFds)
 
 import           AtomTypes
 import           Exif
@@ -146,20 +152,57 @@ postScriptDocument =
   \10 10 moveto (harmless) show\n\
   \showpage\n"
 
+-- | A time limit for tests that could block if they fail, so that they
+-- fail instead of blocking the test suite: only a last resort, not how
+-- the tests synchronise.
+lastResort :: Int
+lastResort = 30 * 1000000
+
+-- | Runs convert to create a test image, without the application's
+-- policy, which doesn't allow e.g. creating images from a colour.
+convertTestImage :: [String] -> IO ()
+convertTestImage args = do
+  (code, _, err) <- readProcess (proc "convert" args)
+  unless (code == ExitSuccess) $
+    expectationFailure ("Failed to create test image: " ++ show err)
+
 -- | Writes a real JPEG image, using ImageMagick.
 writeRealJpeg :: FilePath -> IO ()
-writeRealJpeg path = do
-  (code, _, err) <- readProcess (proc "convert" ["-size", "8x8", "xc:white", "jpeg:" ++ path])
-  unless (code == ExitSuccess) $
-    expectationFailure ("Failed to create test JPEG: " ++ show err)
+writeRealJpeg path = convertTestImage ["-size", "8x8", "xc:white", "jpeg:" ++ path]
 
 -- | Writes a JPEG image large enough to be accepted as an embedded one.
 writePreviewJpeg :: FilePath -> IO ()
-writePreviewJpeg path = do
-  (code, _, err) <- readProcess (proc "convert" ["-size", "128x128", "gradient:red-blue",
-                                                 "jpeg:" ++ path])
+writePreviewJpeg path =
+  convertTestImage ["-size", "128x128", "gradient:red-blue", "jpeg:" ++ path]
+
+-- | Writes a JPEG image as 'writePreviewJpeg' does, under a name that
+-- convert might not use as given (e.g. one with format specifiers, in
+-- the file's name or a folder's), creating its directory if needed:
+-- convert writes it to its standard output, not to a named file.
+writePreviewJpegAs :: FilePath -> IO ()
+writePreviewJpegAs path = do
+  (code, out, err) <- readProcess (proc "convert" ["-size", "128x128", "gradient:red-blue",
+                                                   "jpeg:-"])
   unless (code == ExitSuccess) $
-    expectationFailure ("Failed to create test JPEG: " ++ show err)
+    expectationFailure ("Failed to create test image: " ++ show err)
+  createDirectoryIfMissing True (takeDirectory path)
+  writeFile path (toStrict out)
+
+-- | Returns a property of an image, as formatted by convert (without the
+-- application's policy).
+imageProperty :: FilePath -> String -> IO String
+imageProperty path format = do
+  (code, out, err) <- readProcess (proc "convert" [path, "-format", format, "info:"])
+  unless (code == ExitSuccess) $
+    expectationFailure ("Failed to read " ++ format ++ " of " ++ path ++ ": " ++ show err)
+  return . unpack $ (decodeUtf8 (toStrict out) :: Text)
+
+-- | Whether a single-image file is red, judging by its centre (as a
+-- thumbnail can be padded).
+isRedImage :: FilePath -> IO Bool
+isRedImage path =
+  (== "1") <$> imageProperty path
+    "%[fx:p{w/2,h/2}.r>0.8&&p{w/2,h/2}.g<0.2&&p{w/2,h/2}.b<0.2]"
 
 -- | Writes a file with the given embedded preview image.
 --
@@ -233,8 +276,27 @@ previewSize = ImageSize 1920
 -- | Builds a (non-thumbnail) preview of a JPEG file, returning the result.
 buildPreview :: Config -> FilePath
              -> IO (Either ImageError (Bool, MimeType, FilePath))
-buildPreview config path =
-  try $ testToolLimits >>= \tools -> loadCachedOrBuild tools config path path (Right "jpeg") "image/jpeg" 0 previewSize
+buildPreview config path = buildPreviewOf config path "jpeg"
+
+-- | Builds a (non-thumbnail) preview of a file, with the given decoder,
+-- returning the result.
+buildPreviewOf :: Config -> FilePath -> String
+               -> IO (Either ImageError (Bool, MimeType, FilePath))
+buildPreviewOf config path decoder =
+  try $ testToolLimits >>= \tools -> loadCachedOrBuild tools config path path (Right decoder) "image/jpeg" 0 previewSize
+
+-- | Checks that a preview was built, as the only file in its directory
+-- (so with no other output or temporary files next to it), and returns
+-- its contents. The picture must be the only one with cache files in
+-- that directory.
+shouldBeOnlyPreview :: Either ImageError (Bool, MimeType, FilePath) -> FilePath
+                    -> IO LByteString
+shouldBeOnlyPreview result expected = do
+  case result of
+    Right (built, _, path) -> (built, path) `shouldBe` (True, expected)
+    Left e -> expectationFailure ("Building the preview failed: " ++ show e)
+  listDirectory (takeDirectory expected) `shouldReturn` [takeFileName expected]
+  fromStrict <$> readFile expected
 
 -- | The path of the preview built by 'buildPreview'.
 previewPath :: Config -> FilePath -> IO FilePath
@@ -242,6 +304,18 @@ previewPath config path =
   case findBestSize previewSize (cfgAllImageSizes config) of
     Nothing  -> expectationFailure "expected a cached size for 1920" >> return ""
     Just res -> return $ scaledImagePath config path res
+
+-- | Checks that the (non-thumbnail) preview of a picture was built, as a
+-- JPEG and alone in its directory (see 'shouldBeOnlyPreview'), and
+-- returns its path.
+shouldBeOnlyPreviewOf :: Config -> FilePath
+                      -> Either ImageError (Bool, MimeType, FilePath)
+                      -> IO FilePath
+shouldBeOnlyPreviewOf config path result = do
+  expected <- previewPath config path
+  preview <- shouldBeOnlyPreview result expected
+  jpegMagic `BSL.isPrefixOf` preview `shouldBe` True
+  return expected
 
 -- | Writes a non-empty file, creating its directory if needed.
 writeNonEmpty :: FilePath -> IO ()
@@ -334,6 +408,16 @@ spec = parallel $ do
     it "names the extension when no decoder is found" $ \config ->
       imageDecoder config "a.xyz" `shouldBeLeftWithMessage` "'xyz'"
   describe "building previews" $ withConfig $ do
+    it "doesn't give convert the application's open files" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "photo.jpg"
+          succeeded = either (const False) (\(c, _, _) -> c == ExitSuccess)
+      writePreviewJpeg path
+      bracket (openFd path ReadOnly defaultFileFlags) closeFd $ \fd -> do
+        pconfig <- convertProcess config ["jpeg:/dev/fd/" ++ show fd, "png:" ++ path ++ ".png"]
+        -- The file can be read by convert if it gets it.
+        readToolProcess (setCloseFds False pconfig) >>= (`shouldSatisfy` succeeded)
+        readToolProcess pconfig >>= (`shouldSatisfy` not . succeeded)
     it "builds the thumbnail of a JPEG" $ \config -> do
       requireConvert
       let path = cfgCacheDir config </> "photo.JPG"
@@ -361,6 +445,274 @@ spec = parallel $ do
       case result of
         Left (ImageError msg) -> msg `shouldBe` "no decoder"
         _                     -> expectationFailure ("Unexpected result: " ++ show result)
+    it "reads the first image from the standard input, and writes to the standard output" $ \_ ->
+      forM_ [(PreviewScaled, "jpeg:"), (PreviewThumbnail, "png:")] $ \(kind, coder) -> do
+        let args = previewArgs kind "tiff" 800
+        headMay args `shouldBe` Just "tiff:/dev/fd/0[0]"
+        lastMay args `shouldBe` Just (coder ++ "/dev/fd/1")
+        -- Never enlarged.
+        args `shouldSatisfy` elem "800x800>"
+    it "removes the picture's path from thumbnails" $ \_ -> do
+      let pairs xs = zip xs (drop 1 xs)
+          thumbnail = previewArgs PreviewThumbnail "jpeg" 64
+          scaled = previewArgs PreviewScaled "jpeg" 800
+      -- After -thumbnail, which records it.
+      dropWhile (/= "-thumbnail") thumbnail `shouldSatisfy` (("+set", "Thumb::URI") `elem`) . pairs
+      scaled `shouldSatisfy` notElem "-thumbnail"
+    it "accepts previews of the expected format" $ \_ -> do
+      checkPreviewImage PreviewScaled jpegMagic `shouldBe` Right ()
+      checkPreviewImage PreviewThumbnail pngMagic `shouldBe` Right ()
+    it "refuses empty previews" $ \_ -> do
+      checkPreviewImage PreviewScaled "" `shouldSatisfy` isLeft
+      checkPreviewImage PreviewThumbnail "" `shouldSatisfy` isLeft
+    it "refuses previews of another format" $ \_ -> do
+      checkPreviewImage PreviewScaled pngMagic `shouldBeLeftWithMessage` "JPEG"
+      checkPreviewImage PreviewThumbnail jpegMagic `shouldBeLeftWithMessage` "PNG"
+    it "refuses previews with only part of the signature" $ \_ -> do
+      checkPreviewImage PreviewScaled (BSL.take 2 jpegMagic) `shouldSatisfy` isLeft
+      checkPreviewImage PreviewThumbnail (BSL.take 4 pngMagic) `shouldSatisfy` isLeft
+    it "checks the preview file written by convert" $ \config -> do
+      let path = cfgCacheDir config </> "preview"
+          check kind contents = do
+            writeFile path (toStrict contents)
+            checkPreviewFile kind path
+      check PreviewScaled (jpegMagic <> "rest") `shouldReturn` Right ()
+      check PreviewThumbnail (pngMagic <> "rest") `shouldReturn` Right ()
+      check PreviewScaled "" >>= (`shouldSatisfy` isLeft)
+      check PreviewScaled (BSL.take 2 jpegMagic) >>= (`shouldSatisfy` isLeft)
+      check PreviewScaled (pngMagic <> "rest") >>= (`shouldSatisfy` isLeft)
+      check PreviewThumbnail (jpegMagic <> "rest") >>= (`shouldSatisfy` isLeft)
+    describe "with a stand-in for convert" $ do
+      -- A shell script, which gets the picture as its standard input,
+      -- and writes the preview to its standard output.
+      let build config script = do
+            tools <- testToolLimits
+            let target = cfgCacheDir config </> "dir" </> "preview"
+                picture = cfgCacheDir config </> "picture"
+            writeFile picture ("the picture" :: ByteString)
+            result <- try . buildPreviewFile tools PreviewScaled target picture $
+                        proc "sh" ["-c", script]
+            return (target, result :: Either ImageError ())
+          failsWith config script check = do
+            (target, result) <- build config script
+            case result of
+              Left (ImageError msg) -> msg `shouldSatisfy` check
+              _ -> expectationFailure ("Unexpected result: " ++ show result)
+            -- No file is left behind either: neither the cache file nor
+            -- the temporary one.
+            listDirectory (takeDirectory target) `shouldReturn` []
+      it "caches the preview, if it is of the expected format" $ \config -> do
+        (target, result) <- build config "printf '\\377\\330\\377rest'"
+        result `shouldSatisfy` isRight
+        readFile target `shouldReturn` "\255\216\255rest"
+        listDirectory (takeDirectory target) `shouldReturn` [takeFileName target]
+      it "gives the picture as the standard input" $ \config -> do
+        (target, result) <- build config "printf '\\377\\330\\377'; cat"
+        result `shouldSatisfy` isRight
+        readFile target `shouldReturn` "\255\216\255the picture"
+      it "refuses to cache an empty preview, with the tool's messages" $ \config ->
+        failsWith config "echo 'wrote it elsewhere' >&2"
+          (\msg -> "wrote it elsewhere" `isInfixOf` msg && not ("\n" `isSuffixOf` msg))
+      it "refuses to cache a preview of another format" $ \config ->
+        failsWith config "printf GIF89a" ("JPEG" `isInfixOf`)
+      it "names the exit code of a failed tool" $ \config ->
+        failsWith config "exit 3" (tshow (ExitFailure 3) `isInfixOf`)
+      it "refuses a preview that looks right, from a failed tool" $ \config ->
+        failsWith config "printf '\\377\\330\\377partial'; exit 1"
+          (tshow (ExitFailure 1) `isInfixOf`)
+      it "refuses a picture that isn't a regular file, without waiting" $ \config -> do
+        tools <- testToolLimits
+        let target = cfgCacheDir config </> "dir" </> "preview"
+            picture = cfgCacheDir config </> "pipe"
+        -- Opening a pipe for reading would wait for a writer.
+        createNamedPipe picture 0o600
+        -- The time limit is only a last resort, so that a regression
+        -- fails the test instead of blocking the whole test suite.
+        result <- timeout lastResort . try . buildPreviewFile tools PreviewScaled target picture $
+                    proc "sh" ["-c", "cat"]
+        case result of
+          Just (Left (ImageError msg)) -> msg `shouldSatisfy` (pack picture `isInfixOf`)
+          Nothing -> expectationFailure "Building the preview blocked"
+          _ -> expectationFailure ("Unexpected result: " ++ show result)
+        listDirectory (takeDirectory target) `shouldReturn` []
+      it "lets a cancellation through, stopping the tool" $ \config -> do
+        tools <- testToolLimits
+        let target = cfgCacheDir config </> "dir" </> "preview"
+            picture = cfgCacheDir config </> "picture"
+            started = cfgCacheDir config </> "started"
+        writeFile picture ("the picture" :: ByteString)
+        -- The tool says it started through a pipe, then waits; opened
+        -- for both reading and writing, the pipe doesn't wait for the
+        -- tool.
+        createNamedPipe started 0o600
+        withBinaryFile started ReadWriteMode $ \h -> do
+          running <- async . buildPreviewFile tools PreviewScaled target picture $
+                       proc "sh" ["-c", "echo started > \"$0\"; exec sleep 1000", started]
+          -- With a last resort time limit, in case the tool never runs.
+          timeout lastResort (System.IO.hGetLine h) `shouldReturn` Just "started"
+          cancel running
+          waitCatch running >>= \case
+            Left e -> (fromException e :: Maybe ImageError) `shouldSatisfy` isNothing
+            Right () -> expectationFailure "The build wasn't cancelled"
+        -- No file is left behind: neither the cache file nor the
+        -- temporary one.
+        listDirectory (takeDirectory target) `shouldReturn` []
+      it "names a picture that can't be read" $ \config -> do
+        tools <- testToolLimits
+        let target = cfgCacheDir config </> "dir" </> "preview"
+            picture = cfgCacheDir config </> "missing"
+        result <- try . buildPreviewFile tools PreviewScaled target picture $
+                    proc "sh" ["-c", "cat"]
+        case result of
+          Left (ImageError msg) -> msg `shouldSatisfy` (pack picture `isInfixOf`)
+          _ -> expectationFailure ("Unexpected result: " ++ show result)
+    describe "tryImageError" $ do
+      it "returns the message of an image error" $ \_ ->
+        tryImageError (throwIO (ImageError "the message")) `shouldReturn` Left "the message"
+      it "returns other exceptions, shown" $ \_ ->
+        tryImageError (throwIO (userError "disk on fire")) >>= (`shouldBeLeftWithMessage` "disk on fire")
+      it "returns success" $ \_ ->
+        tryImageError (return ()) `shouldReturn` Right ()
+      it "doesn't catch asynchronous exceptions" $ \_ ->
+        -- Thrown as is: UnliftIO's throwIO would make it synchronous.
+        tryImageError (Control.Exception.throwIO ThreadKilled) `shouldThrow` (== ThreadKilled)
+    forM_ ["jpeg", "png", "tiff", "webp", "heic"] $ \decoder ->
+      it ("builds the preview of a " ++ decoder ++ " image") $ \config -> do
+        requireConvert
+        when (decoder == "heic") requireHeic
+        let path = cfgCacheDir config </> "picture"
+        convertTestImage ["-size", "64x64", "gradient:red-blue", decoder ++ ":" ++ path]
+        buildPreviewOf config path decoder >>= void . shouldBeOnlyPreviewOf config path
+    -- Some formats with several images that convert can write. libheif
+    -- makes the first image it writes the primary one, so this only
+    -- checks that the first image of a HEIC file is used; that
+    -- ImageMagick returns the primary image first, even when it isn't
+    -- the first one, is not tested.
+    forM_ [ ("tiff", "the pages of a TIFF")
+          , ("webp", "the frames of a WebP")
+          , ("heic", "the images of a HEIC file")
+          ] $ \(decoder, what) ->
+      it ("builds the preview from the first of " ++ what) $ \config -> do
+        requireConvert
+        when (decoder == "heic") requireHeic
+        let path = cfgCacheDir config </> "picture"
+            frame colour = ["-size", "64x64", "xc:" ++ colour]
+        convertTestImage (frame "red" ++ frame "blue" ++ [decoder ++ ":" ++ path])
+        preview <- buildPreviewOf config path decoder >>= shouldBeOnlyPreviewOf config path
+        isRedImage preview `shouldReturn` True
+        -- Once built, the preview is reused, not built again.
+        buildPreviewOf config path decoder >>= \case
+          Right (built, _, cached) -> (built, cached) `shouldBe` (False, preview)
+          Left e -> expectationFailure ("Reusing the preview failed: " ++ show e)
+        listDirectory (takeDirectory preview) `shouldReturn` [takeFileName preview]
+    it "builds the preview of an animated WebP with many frames" $ \config -> do
+      requireConvert
+      -- ImageMagick decodes all the frames of an animated WebP, even
+      -- with [0], so this fails if the policy limits how many images
+      -- it reads from a file (list-length) to fewer than there are.
+      -- The frames all differ, so that none is merged into another.
+      let path = cfgCacheDir config </> "animation"
+          frame :: Int -> [String]
+          frame i = ["-size", "32x32", "xc:rgb(" ++ show (i * 8) ++ ",0,255)"]
+      convertTestImage (["-size", "32x32", "xc:red"] ++ concatMap frame [1 .. 29] ++
+                        ["webp:" ++ path])
+      -- Each frame prints the number of frames.
+      frames <- readMay . takeWhile (/= '\n') <$> imageProperty path "%n\n"
+      frames `shouldBe` Just (30 :: Int)
+      preview <- buildPreviewOf config path "webp" >>= shouldBeOnlyPreviewOf config path
+      isRedImage preview `shouldReturn` True
+    it "pads a thumbnail to a square, with transparency" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "wide.png"
+          thumb = scaledImagePath config path (cfgThumbnailSize config)
+          size = show (cfgThumbnailSize config)
+      convertTestImage ["-size", "256x128", "xc:red", "png:" ++ path]
+      result <- buildThumbnail config path (Right "png")
+      void $ shouldBeOnlyPreview result thumb
+      imageProperty thumb "%wx%h" `shouldReturn` (size ++ "x" ++ size)
+      isRedImage thumb `shouldReturn` True
+      -- Above the (scaled down) picture, in the middle.
+      imageProperty thumb "%[fx:p{w/2,h/8}.a<0.2]" `shouldReturn` "1"
+    forM_ ([((4000, 100), (1920, 48)), ((64, 32), (64, 32))] :: [((Int, Int), (Int, Int))]) $
+      \((w, h), expected) ->
+      it ("scales a " ++ show w ++ "x" ++ show h ++ " picture down, but never up") $ \config -> do
+        requireConvert
+        let path = cfgCacheDir config </> "picture.png"
+            showSize (a, b) = show a ++ "x" ++ show b
+        convertTestImage ["-size", showSize (w, h), "xc:red", "png:" ++ path]
+        preview <- buildPreviewOf config path "png" >>= shouldBeOnlyPreviewOf config path
+        imageProperty preview "%wx%h" `shouldReturn` showSize expected
+    it "builds a single thumbnail for a file with several images" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "multi.tif"
+          thumb = scaledImagePath config path (cfgThumbnailSize config)
+      convertTestImage ["-size", "64x64", "xc:red", "xc:blue", "tiff:" ++ path]
+      result <- buildThumbnail config path (Right "tiff")
+      -- Without the [0], convert would try to write each image to a
+      -- numbered file (/dev/fd/1-0, …), and fail.
+      void $ shouldBeOnlyPreview result thumb
+      isRedImage thumb `shouldReturn` True
+    it "doesn't record the path of the picture in its thumbnail" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "photo.jpg"
+          thumb = scaledImagePath config path (cfgThumbnailSize config)
+      writePreviewJpeg path
+      result <- buildThumbnail config path (Right "jpeg")
+      contents <- toStrict <$> shouldBeOnlyPreview result thumb
+      -- -thumbnail records the name of its input in the Thumb::URI
+      -- property, a PNG text chunk, compressed when long (so that the
+      -- path wouldn't be found as such); its key never is.
+      contents `shouldSatisfy` not . ("Thumb::URI" `isInfixOf`)
+      contents `shouldSatisfy` not . (encodeUtf8 (pack (cfgCacheDir config)) `isInfixOf`)
+    it "reads the given file, and names the preview after the picture" $ \config -> do
+      requireConvert
+      -- As for a raw file, whose preview is built from its extracted
+      -- embedded image.
+      let picture = cfgCacheDir config </> "raw" </> "photo.nef"
+          extracted = cfgCacheDir config </> "extracted" </> "embedded.jpg"
+      createDirectoryIfMissing True (takeDirectory extracted)
+      writePreviewJpeg extracted
+      tools <- testToolLimits
+      result <- try $ loadCachedOrBuild tools config picture extracted (Right "jpeg")
+                        "image/jpeg" 0 previewSize
+      void $ shouldBeOnlyPreviewOf config picture result
+    it "fails if the picture can't be read, naming it" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "missing.jpg"
+      result <- buildThumbnail config path (Right "jpeg")
+      shouldFailToBuild config path result
+      case result of
+        Left (ImageError msg) -> msg `shouldSatisfy` (pack path `isInfixOf`)
+        _ -> expectationFailure ("Unexpected result: " ++ show result)
+    it "reports convert failing to decode the picture" $ \config -> do
+      requireConvert
+      let path = cfgCacheDir config </> "photo.jpg"
+      writeFile path ("not a JPEG image" :: ByteString)
+      result <- buildThumbnail config path (Right "jpeg")
+      shouldFailToBuild config path result
+      case result of
+        Left (ImageError msg) -> msg `shouldSatisfy` ("convert" `isInfixOf`)
+        _ -> expectationFailure ("Unexpected result: " ++ show result)
+    it "fails with an image error if the preview can't be written" $ \config -> do
+      requireConvert
+      -- A valid name, but not with the suffix of the cache file. Any
+      -- other exception would escape 'buildPreview', failing the test.
+      let path = cfgCacheDir config </> take 248 tooLongName ++ ".jpg"
+      writePreviewJpegAs path
+      buildPreview config path >>= \case
+        -- The error names where the preview was to be written.
+        Left (ImageError msg) -> msg `shouldSatisfy` (pack (cfgCacheDir config) `isInfixOf`)
+        result -> expectationFailure ("Unexpected result: " ++ show result)
+    -- convert expands format specifiers in file names (with an image
+    -- selected, in input names too), whether of the file or of a
+    -- folder; as it gets no path, none applies. The others are guards:
+    -- convert also gives brackets and other percent signs a meaning.
+    forM_ ["100%d.jpg", "d%d/photo.jpg", "photo[1].jpg", "50%.jpg"] $ \name ->
+      it ("builds the preview of a file named " ++ name) $ \config -> do
+        requireConvert
+        let path = cfgCacheDir config </> name
+        writePreviewJpegAs path
+        buildPreview config path >>= void . shouldBeOnlyPreviewOf config path
   describe "ImageMagick policy" $ withConfig $ do
     it "is used by the test configuration" $ \config ->
       cfgMagickPolicyDir config `shouldBe` Just "config/magick"

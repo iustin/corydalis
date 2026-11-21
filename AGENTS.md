@@ -16,7 +16,9 @@ Stack is the build tool. After Haskell changes:
 
 - Run tests with `make test`; `exiftool`, ImageMagick (`convert`) and
   `ffmpeg` must be installed, as some tests run them (they fail, rather
-  than being skipped, if they are missing)
+  than being skipped, if they are missing); ImageMagick must also read
+  and write HEIC images (on recent Debian/Ubuntu releases, the
+  `libheif-plugin-libde265` and `libheif-plugin-x265` packages)
 - Obtain coverage with `make coverage-hs` (`make coverage` covers both
   codebases)
 - Lint with `make lint`
