@@ -166,9 +166,10 @@ deleteCacheFile cachedir path = do
 -- item, since it's either a file under its parent directory, or a symlink to
 -- somewhere else (which doesn't matter).
 --
--- The cache directory is canonicalised too, as configured it can be relative,
--- have a trailing slash or go through symlinks; and the paths are compared by
--- whole components, as e.g. @/pics/cache2@ is not within @/pics/cache@.
+-- The cache directory is canonicalised too, as configured it can have a
+-- trailing slash or go through symlinks (it is always absolute, see
+-- 'absoluteDir'); and the paths are compared by whole components, as e.g.
+-- @/pics/cache2@ is not within @/pics/cache@.
 deleteCacheFile' :: FilePath  -- ^ Path to the cache directory.
                  -> FilePath  -- ^ Relative path to the cache file.
                  -> IO ()

@@ -88,6 +88,7 @@ database:
 # log-level: "info"
 
 config:
+  # The picture and cache directories below must be absolute paths.
   # List of directories holding source pictures:
   sourcedirs: ["/pics/raw"]
   # List of directories containing output pictures:

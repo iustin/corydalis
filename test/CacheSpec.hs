@@ -26,8 +26,7 @@ module CacheSpec (spec) where
 import qualified Data.ByteString.Char8 as BS8
 import           Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
 import           System.Directory
-import           System.FilePath    (isRelative, joinPath, makeRelative,
-                                     splitDirectories, takeDirectory)
+import           System.FilePath    (takeDirectory)
 import           System.Posix.Files (setFileTimesHiRes)
 
 import           Cache
@@ -168,13 +167,6 @@ spec = parallel $ withConfig $ do
             cacheLink = takeDirectory cache </> "cache-link"
         createDirectoryLink cache cacheLink
         deleteVia cacheLink config
-
-      it "as a relative path" $ \config -> do
-        cwd <- getCurrentDirectory
-        let ups = replicate (length (splitDirectories cwd) - 1) ".."
-            rel = joinPath ups </> makeRelative "/" (cfgCacheDir config)
-        isRelative rel `shouldBe` True
-        deleteVia rel config
 
     describe "correctly reports failures" $ do
       it "reports delete failure for missing file" $ \config -> do

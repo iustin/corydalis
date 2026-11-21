@@ -268,6 +268,11 @@ configuration:
 - where the processed output (JPEGs) live
 - what should be the cache directory
 
+These must be absolute paths: Corydalis refuses to start otherwise, as
+relative ones would depend on the current directory, which can differ
+between Corydalis and the other tools reading the same settings (such
+as the scanner).
+
 The application uses a database to store users for authentication;
 normally I expect only one or at most a few users - family - to be
 defined, but it was easier to use a database than (e.g.) something
