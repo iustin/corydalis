@@ -31,6 +31,7 @@ module Settings
   ( AppSettings(..)
   , RequestLogging(..)
   , insecureApprootWarning
+  , newPreviewToolLimits
   , widgetFile
   , combineStylesheets
   , combineScripts
@@ -115,6 +116,13 @@ data AppSettings = AppSettings
     -- ^ How long a login is valid, regardless of activity; after this,
     -- the user has to log in again.
 
+    , appPreviewToolSlots :: Int
+    -- ^ How many external tools (ImageMagick, ffmpeg and exiftool) may
+    -- run at once to build previews; further previews wait.
+    , appPreviewToolTimeout :: Int
+    -- ^ How long such a tool may run, in microseconds, before it is
+    -- stopped, and the preview fails.
+
     , appLoginMessage   :: Maybe Text
     -- ^ Extra message to show on login page.
     , appHomeMessage    :: Maybe Text
@@ -181,6 +189,19 @@ instance FromJSON AppSettings where
           parseFail $ "Invalid session-max-age (must be positive): " ++
             show sessionMaxAge
         let appSessionMaxAge = fromIntegral sessionMaxAge * 3600
+        appPreviewToolSlots <- o .:? "preview-tool-slots" .!= defaultToolSlots
+        when (appPreviewToolSlots <= 0) $
+          parseFail $ "Invalid preview-tool-slots (must be positive): " ++
+            show appPreviewToolSlots
+        toolTimeout <- o .:? "preview-tool-timeout" .!=
+                         (defaultToolTimeout `div` 1000000)
+        -- The limit is kept in microseconds, which must fit in an Int.
+        let maxToolTimeout = maxBound `div` 1000000 :: Int
+        when (toolTimeout <= 0 || toolTimeout > maxToolTimeout) $
+          parseFail $ "Invalid preview-tool-timeout (must be a positive " ++
+            "number of seconds, at most " ++ show maxToolTimeout ++ "): " ++
+            show toolTimeout
+        let appPreviewToolTimeout = toolTimeout * 1000000
         appLoginMessage   <- o .:? "login-msg"
         appHomeMessage    <- o .:? "home-msg"
         appRequestLogging <- o .:? "request-logging" .!= defaultRequestLogging
@@ -191,6 +212,11 @@ instance FromJSON AppSettings where
         appConfig         <- o .:  "config"
 
         return AppSettings {..}
+
+-- | Creates the limits for the preview tools, as configured.
+newPreviewToolLimits :: AppSettings -> STM ToolLimits
+newPreviewToolLimits settings =
+  newToolLimits (appPreviewToolSlots settings) (appPreviewToolTimeout settings)
 
 -- | Returns a warning if the session cookies are secure, but the
 -- configured application root is a plain HTTP URL, other than on

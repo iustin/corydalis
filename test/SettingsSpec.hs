@@ -27,7 +27,8 @@ import qualified Data.ByteString.Lazy  as BSL
 import           Yesod.Default.Config2 (loadYamlSettings, useEnv)
 
 import           Settings              (AppSettings (..),
-                                        insecureApprootWarning)
+                                        insecureApprootWarning,
+                                        newPreviewToolLimits)
 import           TestImport
 
 -- | Loads the test settings, overriding some values (a null value
@@ -53,6 +54,7 @@ spec = do
   unixSocketSpec
   insecureApprootSpec
   storageDirsSpec
+  previewToolsSpec
 
 unixSocketSpec :: Spec
 unixSocketSpec = describe "unix-socket" $ do
@@ -162,3 +164,31 @@ sessionMaxAgeSpec = describe "session-max-age" $ do
       `shouldThrow` anyException
     loadSettingsWith [object ["session-max-age" .= (-1 :: Int)]]
       `shouldThrow` anyException
+
+previewToolsSpec :: Spec
+previewToolsSpec = describe "preview tool limits" $ do
+  -- The error names the setting and the offending value.
+  let refused setting value =
+        loadSettingsWith [object [fromString setting .= value]] `shouldThrow` \e ->
+          let msg = show (e :: SomeException)
+          in all (`isInfixOf` msg) [setting, show value]
+  it "default to one tool per processor, for five minutes" $ do
+    settings <- loadSettingsWith []
+    appPreviewToolSlots settings `shouldBe` defaultToolSlots
+    appPreviewToolTimeout settings `shouldBe` defaultToolTimeout
+    appPreviewToolTimeout settings `shouldBe` 300 * 1000000
+  it "can be configured, with the timeout in seconds" $ do
+    settings <- loadSettingsWith [object [ "preview-tool-slots" .= (2 :: Int)
+                                         , "preview-tool-timeout" .= (60 :: Int)
+                                         ]]
+    appPreviewToolSlots settings `shouldBe` 2
+    appPreviewToolTimeout settings `shouldBe` 60 * 1000000
+    limits <- atomically $ newPreviewToolLimits settings
+    tlTimeout limits `shouldBe` 60 * 1000000
+  it "must be positive" $ do
+    refused "preview-tool-slots" (0 :: Int)
+    refused "preview-tool-slots" (-1 :: Int)
+    refused "preview-tool-timeout" (0 :: Int)
+    refused "preview-tool-timeout" (-5 :: Int)
+  it "refuses a timeout which doesn't fit in microseconds" $
+    refused "preview-tool-timeout" (maxBound :: Int)

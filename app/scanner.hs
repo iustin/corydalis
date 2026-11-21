@@ -30,7 +30,9 @@ benchmark :: Config -> FastLogger -> IO ()
 benchmark config logger = do
     let logfn _ str = logger $ toLogStr str
 
-    ctx <- atomically $ initContext config logfn
+    ctx <- atomically $
+      newToolLimits defaultToolSlots defaultToolTimeout
+      >>= initContext config logfn
     -- Scan repository
     t1m <- getTime Monotonic
     t1p <- getTime ProcessCPUTime

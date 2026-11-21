@@ -47,6 +47,14 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # also expire after two hours without activity. Defaults to a week.
 # session-max-age: 168
 
+# How many external tools (ImageMagick, ffmpeg, exiftool) may run at
+# once to build previews; further previews wait. Defaults to the number
+# of processors the application uses.
+# preview-tool-slots: 4
+# How long, in seconds, such a tool may run before it is stopped, and
+# the preview fails. Defaults to five minutes.
+# preview-tool-timeout: 300
+
 # Custom message to show on login page
 #login-msg:      "Hello, *brave* user!"
 
