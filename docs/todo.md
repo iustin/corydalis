@@ -86,6 +86,19 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
   the viewer's image sizes too (`Handler.Widgets`).
 - Range files and their components get identical previews
   (`loadCachedOrBuild`).
+- convert's warnings are dropped when it succeeds (e.g. "Premature end
+  of JPEG file" for a truncated picture, whose preview is still built
+  and cached); log them.
+- The MIME type of a cached preview comes from the current
+  configuration (`thumbnailsize`), not from the file: after changing
+  `thumbnailsize` past an existing cached size, that preview is served
+  with the wrong type (PNG vs. JPEG) until it is rebuilt. Naming cache
+  files by format, or checking the signature when serving, would fix
+  it.
+- A convert stopped on timeout (it is killed) can't remove its own
+  temporary files, e.g. the pixel cache of a large image. Giving each
+  run a private temporary directory (`MAGICK_TEMPORARY_PATH`), removed
+  afterwards, would clean them up.
 
 ## Curate page
 

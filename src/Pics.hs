@@ -115,6 +115,13 @@ module Pics ( PicDir(..)
             , convertProcess
             , decodeToolOutput
             , jpegMagic
+            , pngMagic
+            , PreviewFormat(..)
+            , previewArgs
+            , checkPreviewImage
+            , checkPreviewFile
+            , buildPreviewFile
+            , tryImageError
             , checkEmbeddedImage
             , extractEmbedded
             , embeddedArgs
@@ -170,7 +177,7 @@ module Pics ( PicDir(..)
 import           Control.Applicative
 import           Control.DeepSeq
 import qualified Data.ByteString         as BS (hGet)
-import qualified Data.ByteString.Lazy    as BSL (append, isPrefixOf, length,
+import qualified Data.ByteString.Lazy    as BSL (append, isPrefixOf, length, null,
                                                 pack)
 import qualified Data.Foldable
 import           Data.LruCache           (LruCache)
@@ -199,6 +206,9 @@ import           System.Log.FastLogger   (toLogStr)
 import qualified System.Posix.Files      (fileSize)
 import           System.Posix.Files      hiding (fileSize)
 import           System.Posix.Types
+import           System.Posix.IO         (OpenFileFlags (..), OpenMode (..),
+                                          closeFd, defaultFileFlags,
+                                          fdToHandle, openFd)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
 import           System.Posix.Signals    (sigKILL, signalProcessGroup)
 import           System.Process.Typed
@@ -1817,9 +1827,11 @@ scaledImagePath config path res =
 
 -- | Whether a cache file is missing, empty, or older than the source mtime.
 --
--- An empty file is never a valid image; such files were left behind by
--- failed conversions before they were written via a temporary file (see
--- 'loadCachedOrBuild'), so they are rebuilt.
+-- An empty file is never a valid image. Such files were left behind by
+-- failed conversions (before previews were written via a temporary
+-- file), and by convert succeeding without writing the file it was
+-- given (before previews were checked, see 'buildPreviewFile'); they
+-- are rebuilt.
 --
 -- A file that can't be checked at all (e.g. as its name is too long,
 -- or its parent directory is a regular file) also needs building, so
@@ -1877,34 +1889,199 @@ loadCachedOrBuild tools config origPath bytesPath decoder mime mtime size = do
   case res of
     Nothing -> return (False, mime, bytesPath)
     Just res' -> do
-      let geom = show res' ++ "x" ++ show res' ++ ">"
-          fpath = scaledImagePath config origPath res'
-          isThumb = res' <= cfgThumbnailSize config
-          -- The canonical coder names, as the ImageMagick policy lists
-          -- them: ImageMagick 6 checks the name as given, so e.g. "jpg"
-          -- would be refused by a policy allowing only "JPEG".
-          fmt = if isThumb then "png" else "jpeg"
+      let fpath = scaledImagePath config origPath res'
+          kind = if res' <= cfgThumbnailSize config
+                   then PreviewThumbnail
+                   else PreviewScaled
       -- Note: this calls getFileStatus not getSymbolicLinkStatus
       -- since this is a file, not a directory, so symlinks to
       -- somewhere else are OK-ish; we do not recurse into the target
       -- directory.
       needsGen <- cacheFileNeedsBuild fpath mtime
       when needsGen $ do
-        let operators = if isThumb
-                          then ["-thumbnail", geom, "-background", "none", "-gravity", "center", "-extent", geom]
-                          else ["-resize", geom]
         decoder' <- either (throwIO . ImageError) return decoder
-        let inFile = decoder' ++ ":" ++ bytesPath
-        -- convert can leave an empty or partial output file behind when
-        -- it fails, which would then be served as the preview, so it
-        -- writes to a temporary file, moved in place only on success.
-        writeViaTempFile fpath $ \tmpPath -> do
-          -- FIXME: this is a stopgap fix, make nicer error handling (not all) and log errors too.
-          pconfig <- convertProcess config (concat [[inFile], operators, [fmt ++ ":" ++ tmpPath]])
-          (exitCode, out, err) <- either (throwIO . ImageError) return =<<
-                                  runTool tools pconfig
-          when (exitCode /= ExitSuccess) . throwIO . ImageError . decodeToolOutput $ err `BSL.append` out
-      return (needsGen, sformat ("image/" % string) fmt, fpath)
+        buildPreviewFile tools kind fpath bytesPath
+          =<< convertProcess config (previewArgs kind decoder' res')
+      return (needsGen, previewMimeType kind, fpath)
+
+-- | Builds a preview into the given cache file, running the given tool
+-- with the picture as its standard input, and its standard output going
+-- to a temporary file (see 'previewArgs').
+--
+-- The temporary file is moved in place only if the tool succeeded and
+-- the file starts with the signature of the expected format (see
+-- 'checkPreviewImage'): a failed, empty or partial preview must not be
+-- served. If the tool fails, or its preview is refused, its error
+-- output is added to the error.
+--
+-- All failures are thrown as an 'ImageError', which is what the
+-- callers expect: any other exception (e.g. if the temporary file
+-- can't be created, as the picture's name is too long once the cache
+-- suffix is added) would fail the request, or stop the rendering of all
+-- the other pictures (see 'toImageError').
+buildPreviewFile :: ToolLimits -> PreviewFormat
+                 -> FilePath  -- ^ The cache file to build.
+                 -> FilePath  -- ^ The picture.
+                 -> ProcessConfig stdin stdout stderr  -- ^ The tool.
+                 -> IO ()
+buildPreviewFile tools kind fpath input pconfig =
+  either (throwIO . toImageError) return =<<
+  tryAny (writeViaTempFile fpath $ \tmpPath -> do
+    let openInput = openRegularFile input `catchIO`
+          (throwIO . ImageError . sformat ("Cannot read the image to scale: " % shown))
+    (exitCode, err) <- either (throwIO . ImageError) return =<<
+      bracket openInput System.IO.hClose (\h ->
+        runToolToFile tools tmpPath (setStdin (useHandleOpen h) pconfig))
+    let output = Text.strip $ decodeToolOutput err
+        withOutput msg | Text.null output = msg
+                       | otherwise = msg <> ": " <> output
+    unless (exitCode == ExitSuccess) . throwIO . ImageError . withOutput $
+      sformat ("convert failed (" % shown % ")") exitCode
+    checkPreviewFile kind tmpPath >>= either (throwIO . ImageError . withOutput) return)
+
+-- | Opens a regular file for reading, refusing anything else.
+--
+-- The file is opened without waiting: opening a pipe for reading would
+-- otherwise wait for a writer, with no time limit (e.g. if a picture
+-- was replaced by one after the scan). Its type is then checked on the
+-- open file itself, so that it can't be replaced in between.
+openRegularFile :: FilePath -> IO System.IO.Handle
+openRegularFile path = do
+  fd <- openFd path ReadOnly defaultFileFlags { nonBlock = True, cloexec = True }
+  (do status <- getFdStatus fd
+      unless (isRegularFile status) . throwIO . ImageError $
+        sformat ("Cannot read the image to scale: " % string % " is not a regular file") path
+      h <- fdToHandle fd
+      System.IO.hSetBinaryMode h True
+      return h) `onException` closeFd fd
+
+-- | The kinds of previews built by convert.
+data PreviewFormat
+  = PreviewThumbnail  -- ^ A thumbnail: a PNG, scaled down and padded
+                      -- to a square with transparency.
+  | PreviewScaled     -- ^ A scaled-down (never enlarged) image: a JPEG.
+  deriving (Show, Eq)
+
+-- | The ImageMagick coder for a preview's output.
+--
+-- These are the canonical coder names, as the ImageMagick policy lists
+-- them: ImageMagick 6 checks the name as given, so e.g. @jpg@ would be
+-- refused by a policy allowing only @JPEG@.
+previewCoder :: PreviewFormat -> String
+previewCoder PreviewThumbnail = "png"
+previewCoder PreviewScaled    = "jpeg"
+
+-- | The MIME type of a preview.
+previewMimeType :: PreviewFormat -> MimeType
+previewMimeType PreviewThumbnail = "image/png"
+previewMimeType PreviewScaled    = "image/jpeg"
+
+-- | The bytes a preview of the given kind starts with.
+previewMagic :: PreviewFormat -> LByteString
+previewMagic PreviewThumbnail = pngMagic
+previewMagic PreviewScaled    = jpegMagic
+
+-- | The convert arguments for building a preview, reading the picture
+-- from the standard input, and writing the preview to the standard
+-- output (see 'buildPreviewFile').
+--
+-- Only the first image of the input is used (the @[0]@): files can
+-- hold several (e.g. the pages of a TIFF, the frames of an animated
+-- WebP, or the images of a HEIC file, which ImageMagick returns with
+-- the primary image first), and convert would otherwise try to write
+-- each of them, to numbered files. (For an animated WebP, ImageMagick
+-- still decodes all the frames, so the policy must not limit how many
+-- images it reads from a file; see config\/magick\/policy.xml.)
+--
+-- No path is named on the command line, so that convert has none to
+-- interpret: it expands format specifiers in file names (e.g. the @%d@
+-- of a picture named @100%d.jpg@, or of a folder name), in the output
+-- name, and, once an image is selected, in the input name too; and
+-- for several images, it writes numbered files next to the output file
+-- it was given, not that file. Telling it to use the names as given
+-- (@filename:literal@) is no fix, as ImageMagick 7.1.2 then also takes
+-- the @[0]@ as part of the name.
+--
+-- The standard input and output are named as @\/dev\/fd\/0@ and
+-- @\/dev\/fd\/1@, which convert opens as ordinary files. Not @-@: with
+-- it, convert first copies the whole input to a temporary file (left
+-- behind if it is killed). The output must be a file, not a pipe, to
+-- which convert fails to write. @\/dev\/stdout@ would work too, but was
+-- seen as a regular file, not a link, in a container whose
+-- @\/dev\/fd@ was fine. systemd's @PrivateDevices@ keeps @\/dev\/fd@.
+--
+-- @-thumbnail@ records the name of its input in the thumbnail (its
+-- @Thumb::URI@ property); here, it only names @\/dev\/fd\/0@, but it
+-- is removed anyway, as it would disclose the picture's path to anyone
+-- who can see the thumbnails if a path were ever given.
+previewArgs :: PreviewFormat  -- ^ The kind of preview.
+            -> String         -- ^ The decoder for the input.
+            -> Int            -- ^ The size to scale down to (if larger).
+            -> [String]
+previewArgs kind decoder size =
+  [decoder ++ ":/dev/fd/0[0]"] ++ operators ++ [previewCoder kind ++ ":/dev/fd/1"]
+  where geom = show size ++ "x" ++ show size ++ ">"
+        operators = case kind of
+          PreviewThumbnail -> ["-thumbnail", geom, "-background", "none",
+                               "-gravity", "center", "-extent", geom,
+                               "+set", "Thumb::URI"]
+          PreviewScaled    -> ["-resize", geom]
+
+-- | Checks a preview written by convert, from its first bytes.
+--
+-- A safeguard: convert has been seen to succeed without writing the
+-- file it was given (for several images, before only the first was
+-- used, see 'previewArgs'); an empty preview, or one that doesn't
+-- start with the signature of the format it is served as, must not be
+-- cached.
+checkPreviewImage :: PreviewFormat
+                  -> LByteString  -- ^ The preview's first bytes (as many
+                                  -- as its 'previewMagic' has, or all of
+                                  -- them if it is shorter).
+                  -> Either Text ()
+checkPreviewImage kind start
+  | BSL.null start = Left "Building the preview produced no image"
+  | not (previewMagic kind `BSL.isPrefixOf` start) =
+      Left $ sformat ("Building the preview produced something other than a " %
+                      string % " image") (toUpper $ previewCoder kind)
+  | otherwise = Right ()
+
+-- | Checks the preview written by convert to the given file (see
+-- 'checkPreviewImage').
+checkPreviewFile :: PreviewFormat -> FilePath -> IO (Either Text ())
+checkPreviewFile kind path =
+  checkPreviewImage kind . snd <$> readFileStart path (BSL.length $ previewMagic kind)
+
+-- | The 'ImageError' for a failure to build a cache file: the exception
+-- itself if it is one, or else the exception, shown after \"Failed to
+-- write the cache file: \" (e.g. if the temporary file couldn't be
+-- created).
+toImageError :: SomeException -> ImageError
+toImageError e =
+  fromMaybe (ImageError $ sformat ("Failed to write the cache file: " % shown) e)
+            (fromException e)
+
+-- | Runs an action writing a cache file, returning the message of its
+-- failure, if any (see 'toImageError').
+--
+-- Only synchronous exceptions are caught ('tryAny'), so that e.g. a
+-- cancelled request still stops the action.
+tryImageError :: IO () -> IO (Either Text ())
+tryImageError action = do
+  result <- tryAny action
+  return $ case result of
+    Left e -> Left $ case toImageError e of
+      ImageError msg   -> msg
+      ImageNotViewable -> "The image is not viewable"
+    Right () -> Right ()
+
+-- | Returns the size of a file and its first bytes: the given number of
+-- them, or the whole file if it is shorter.
+readFileStart :: FilePath -> Int64 -> IO (Integer, LByteString)
+readFileStart path n =
+  System.IO.withBinaryFile path System.IO.ReadMode $ \h ->
+    (,) <$> System.IO.hFileSize h
+        <*> (fromStrict <$> BS.hGet h (fromIntegral n))
 
 -- | Creates a file by writing it to a temporary file in the same
 -- directory (creating the directory if needed), then renaming it to its
@@ -1929,10 +2106,11 @@ writeViaTempFile path write = do
 -- | Builds the process configuration for running ImageMagick's convert.
 --
 -- If a policy directory is configured, ImageMagick is pointed to it via
--- the MAGICK_CONFIGURE_PATH environment variable.
+-- the MAGICK_CONFIGURE_PATH environment variable. convert gets none of
+-- Corydalis' other open files.
 convertProcess :: Config -> [String] -> IO (ProcessConfig () () ())
 convertProcess config args = do
-  let pconfig = proc "convert" args
+  let pconfig = setCloseFds True $ proc "convert" args
       var = "MAGICK_CONFIGURE_PATH"
   case cfgMagickPolicyDir config of
     Nothing -> return pconfig
@@ -1991,6 +2169,10 @@ minImageSize = 512
 jpegMagic :: LByteString
 jpegMagic = BSL.pack [0xFF, 0xD8, 0xFF]
 
+-- | The bytes every PNG image starts with (its signature).
+pngMagic :: LByteString
+pngMagic = BSL.pack [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+
 -- | Runs an external tool, returning its exit code and output.
 --
 -- Failing to run the tool at all, e.g. because it isn't installed, is
@@ -2031,7 +2213,8 @@ runTool :: ToolLimits -> ProcessConfig stdin stdout stderr
 runTool limits = runToolWith limits id . setStdout byteStringOutput
 
 -- | Runs an external tool as 'runTool' does, but with its output
--- written to the given file, instead of read in memory.
+-- written to the given file, instead of read in memory. Failing to open
+-- the file is thrown, not returned.
 runToolToFile :: ToolLimits -> FilePath -> ProcessConfig stdin stdout stderr
               -> IO (Either Text (ExitCode, LByteString))
 runToolToFile limits path pconfig =
@@ -2153,20 +2336,13 @@ extractEmbedded tools config path mtime tag = do
             setStdin closed
             . setCloseFds True
             $ proc "exiftool" args
-      result <- tryAny . writeViaTempFile outputPath $ \tmpPath -> do
+      result <- tryImageError . writeViaTempFile outputPath $ \tmpPath -> do
         ran <- runToolToFile tools tmpPath pconfig
         (exitCode, err) <- either (throwIO . ImageError) return ran
-        (size, start) <- System.IO.withBinaryFile tmpPath System.IO.ReadMode $ \h ->
-          (,) <$> System.IO.hFileSize h
-              <*> BS.hGet h (fromIntegral $ BSL.length jpegMagic)
+        (size, start) <- readFileStart tmpPath (BSL.length jpegMagic)
         either (throwIO . ImageError) return $
-          checkEmbeddedImage tag exitCode (fromIntegral size) (fromStrict start) err
-      return $ case result of
-        Left e
-          | Just (ImageError msg) <- fromException e -> Left msg
-          -- E.g. the temporary file couldn't be written.
-          | otherwise -> Left $ sformat shown e
-        Right () -> goodRet
+          checkEmbeddedImage tag exitCode (fromIntegral size) start err
+      return (const goodRet =<< result)
     else
       return goodRet
 
@@ -2231,7 +2407,7 @@ extractFirstFrame tools config path mtime =
           -- ffmpeg can leave a partial file behind when it fails (or is
           -- interrupted), so it writes to a temporary file, moved in
           -- place only on success.
-          result <- tryAny . writeViaTempFile outputPath $ \tmpPath -> do
+          result <- tryImageError . writeViaTempFile outputPath $ \tmpPath -> do
             let pconfig =
                   setStdin closed
                   . setCloseFds True
@@ -2242,12 +2418,7 @@ extractFirstFrame tools config path mtime =
               Right (exitCode, out, err) ->
                 unless (exitCode == ExitSuccess) .
                   throwIO . ImageError . decodeToolOutput $ out `BSL.append` err
-          return $ case result of
-            Left e
-              | Just (ImageError msg) <- fromException e -> Left msg
-              -- E.g. the temporary file couldn't be written.
-              | otherwise -> Left $ sformat shown e
-            Right () -> goodRet
+          return (const goodRet =<< result)
         else
           return goodRet
 

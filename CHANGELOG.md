@@ -146,6 +146,32 @@ which was then served (as an empty image) instead of being rebuilt.
 Previews are now written to a temporary file, and moved into the cache
 only once complete; empty files already in the cache are rebuilt.
 
+Pictures holding several images (e.g. multi-page TIFF files, animated
+WebP images, or HEIC files with several images) got no preview, and
+were converted again at each attempt to view them: ImageMagick wrote
+one numbered file per image instead of the preview. Pictures with a
+format specifier in their path (e.g. `100%d.jpg`, or a folder named
+`d%d`) got no preview either, as ImageMagick wrote it under another
+name. The preview is now built from the first image only (for HEIC
+files, the primary image); ImageMagick reads the picture from its
+standard input and writes the preview to its standard output, so that
+it has no file names to interpret; and a preview is only kept if it
+starts with the signature of the expected format (PNG or JPEG).
+
+A preview that couldn't be written to the cache at all (e.g. for a
+picture whose name becomes too long with the cache suffix) made the
+request fail with a server error, and, when rendering the previews
+after a scan, stopped the scan with an error, leaving the other
+pictures' previews unbuilt. It is now reported as any other failed
+preview, for that picture only.
+
+Thumbnails no longer include the full server path of their picture,
+which ImageMagick records in them, and which on a public site was thus
+visible to anyone looking inside a thumbnail file. Thumbnails built
+earlier keep it until they are rebuilt, e.g. after removing them from
+the cache directory (they are the files ending in a dash and a size up
+to `thumbnailsize`, e.g. `-64`).
+
 On the status page, finished work (scan, rendering and cache cleaning)
 is shown with a green border again, as intended: a typo in the style
 name meant it had no border.
@@ -517,6 +543,15 @@ reloaded before their buttons and forms work again.
 
 ### Deployment changes
 
+HEIC/HEIF pictures have always needed libheif's HEVC decoder, which
+recent Debian and Ubuntu releases package separately
+(`libheif-plugin-libde265`); without it, their previews fail with an
+"Unsupported codec" error. The installation documentation now says so.
+
+ImageMagick now reads pictures as `/dev/fd/0` and writes previews as
+`/dev/fd/1`, so these must exist (as on any usual Linux system,
+including under systemd's `PrivateDevices`).
+
 The secure sessions setting will no longer enforce also an
 [HSTS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security)
 header, but instead only set the secure bit on cookies; there is a new
@@ -588,6 +623,11 @@ replace the limits of the system policy, so check them against your
 pictures (e.g. large panoramas), and copy the new policy when upgrading.
 
 ### Internal changes
+
+Running the tests needs ImageMagick to write HEIC pictures too, as the
+tests create some: on recent Debian and Ubuntu releases, this needs
+libheif's HEVC encoder (`libheif-plugin-x265`) as well as its decoder.
+CI installs both.
 
 The remaining (trivial) corydalis JS code has been converted to
 TypeScript, and the entire codebase has been converted to modules, and is
