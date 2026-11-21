@@ -169,8 +169,9 @@ module Pics ( PicDir(..)
 
 import           Control.Applicative
 import           Control.DeepSeq
+import qualified Data.ByteString         as BS (hGet)
 import qualified Data.ByteString.Lazy    as BSL (append, isPrefixOf, length,
-                                                null, pack, writeFile)
+                                                pack)
 import qualified Data.Foldable
 import           Data.LruCache           (LruCache)
 import qualified Data.LruCache           as LRU
@@ -2027,13 +2028,30 @@ readToolProcess pconfig =
 -- processes", <https://github.com/fpco/typed-process/issues/69>).
 runTool :: ToolLimits -> ProcessConfig stdin stdout stderr
         -> IO (Either Text (ExitCode, LByteString, LByteString))
-runTool limits pconfig =
+runTool limits = runToolWith limits id . setStdout byteStringOutput
+
+-- | Runs an external tool as 'runTool' does, but with its output
+-- written to the given file, instead of read in memory.
+runToolToFile :: ToolLimits -> FilePath -> ProcessConfig stdin stdout stderr
+              -> IO (Either Text (ExitCode, LByteString))
+runToolToFile limits path pconfig =
+  System.IO.withBinaryFile path System.IO.WriteMode $ \h ->
+    fmap (\(code, (), err) -> (code, err)) <$>
+      runToolWith limits return (setStdout (useHandleOpen h) pconfig)
+
+-- | Runs an external tool as 'runTool' does, but with its output going
+-- where the process configuration says (a pipe, or a file); the given
+-- function returns the result of the output stream, once the tool
+-- exited (e.g. the output read from a pipe, or @()@ for a file).
+runToolWith :: ToolLimits -> (stdout -> STM a)
+            -> ProcessConfig stdin stdout stderr
+            -> IO (Either Text (ExitCode, a, LByteString))
+runToolWith limits output pconfig =
   bracket_ (atomically . waitTSem $ tlSlots limits)
            (atomically . signalTSem $ tlSlots limits) $
     either (Left . describe) id <$> try run
   where
     pconfig' = setCreateGroup True
-               . setStdout byteStringOutput
                . setStderr byteStringOutput
                $ pconfig
     run = withProcessTerm pconfig' $ \p -> do
@@ -2053,7 +2071,7 @@ runTool limits pconfig =
             void . atomically $ waitExitCodeSTM p
       result <- timeout (tlTimeout limits)
                   (atomically $ (,,) <$> waitExitCodeSTM p
-                                     <*> getStdout p
+                                     <*> output (getStdout p)
                                      <*> getStderr p)
                 `onException` stop
       case result of
@@ -2078,25 +2096,30 @@ decodeToolOutput = TextL.toStrict . Text.decodeUtf8With lenientDecode
 
 -- | Checks the result of extracting an embedded image with exiftool.
 --
--- Returns the image if the extraction succeeded, and the image is a
--- JPEG large enough to be a real image. Exiftool already checks this
--- for most, but not all, embedded images it knows about. Note that
--- exiftool succeeds, without any output, if the image doesn't have
--- the requested embedded image.
-checkEmbeddedImage :: String -> ExitCode -> LByteString -> LByteString
-                   -> Either Text LByteString
-checkEmbeddedImage tag exitCode out err
+-- Succeeds if the extraction succeeded, and the image is a JPEG large
+-- enough to be a real image. Exiftool already checks this for most,
+-- but not all, embedded images it knows about. Note that exiftool
+-- succeeds, without any output, if the image doesn't have the
+-- requested embedded image.
+checkEmbeddedImage :: String       -- ^ The embedded image's tag.
+                   -> ExitCode     -- ^ Exiftool's exit code.
+                   -> Int64        -- ^ The image's size.
+                   -> LByteString  -- ^ The image's first bytes (at least
+                                   -- as many as 'jpegMagic' has).
+                   -> LByteString  -- ^ Exiftool's error output.
+                   -> Either Text ()
+checkEmbeddedImage tag exitCode size start err
   | exitCode /= ExitSuccess =
       Left $ sformat ("Failed to extract the embedded image " % string % " (" %
                       shown % "): " % stext) tag exitCode (decodeToolOutput err)
-  | BSL.null out =
+  | size == 0 =
       Left $ sformat ("No embedded image " % string % " found") tag
-  | BSL.length out < minImageSize =
+  | size < minImageSize =
       Left $ sformat ("The embedded image " % string % " is too small (" % int %
-                      " bytes)") tag (BSL.length out)
-  | not (jpegMagic `BSL.isPrefixOf` out) =
+                      " bytes)") tag size
+  | not (jpegMagic `BSL.isPrefixOf` start) =
       Left $ sformat ("The embedded image " % string % " is not a JPEG") tag
-  | otherwise = Right out
+  | otherwise = Right ()
 
 -- | The exiftool arguments for extracting the given embedded image.
 --
@@ -2122,24 +2145,28 @@ extractEmbedded tools config path mtime tag = do
   needsBuild <- cacheFileNeedsBuild outputPath mtime
   if needsBuild
     then do
-      -- TODO: stream exiftool's output to the temporary file, instead
-      -- of reading it in memory first.
+      -- Exiftool writes the image straight to a temporary file, moved
+      -- in place only if it is a valid image; otherwise, or if the
+      -- extraction is interrupted, it is removed, so that no partial
+      -- or invalid image is served as the preview.
       let pconfig =
             setStdin closed
             . setCloseFds True
             $ proc "exiftool" args
-      result <- runTool tools pconfig
-      case result of
-        Left msg -> return $ Left msg
-        Right (exitCode, out, err) ->
-          case checkEmbeddedImage tag exitCode out err of
-            Left msg -> return $ Left msg
-            Right image -> do
-              -- Written via a temporary file, so that an interrupted
-              -- write doesn't leave a partial image, which would be
-              -- served as the preview.
-              written <- tryAny $ writeViaTempFile outputPath (`BSL.writeFile` image)
-              return $ either (Left . sformat shown) (const goodRet) written
+      result <- tryAny . writeViaTempFile outputPath $ \tmpPath -> do
+        ran <- runToolToFile tools tmpPath pconfig
+        (exitCode, err) <- either (throwIO . ImageError) return ran
+        (size, start) <- System.IO.withBinaryFile tmpPath System.IO.ReadMode $ \h ->
+          (,) <$> System.IO.hFileSize h
+              <*> BS.hGet h (fromIntegral $ BSL.length jpegMagic)
+        either (throwIO . ImageError) return $
+          checkEmbeddedImage tag exitCode (fromIntegral size) (fromStrict start) err
+      return $ case result of
+        Left e
+          | Just (ImageError msg) <- fromException e -> Left msg
+          -- E.g. the temporary file couldn't be written.
+          | otherwise -> Left $ sformat shown e
+        Right () -> goodRet
     else
       return goodRet
 
