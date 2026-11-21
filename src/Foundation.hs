@@ -84,6 +84,8 @@ import           Handler.Cookies
 import           Indexer
 import           Pics
 import           Utils.Logging        (sanitizeLogStr)
+import           Utils.Session        (requestNewCsrfToken,
+                                       rotatingCsrfSessions)
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -244,6 +246,7 @@ instance Yesod App where
         then sslOnlySessions
         else id) $
       laxSameSiteSessions $
+      rotatingCsrfSessions $
       Just <$> defaultClientSessionBackend sessionTimeout clientSessionKeyFile
 
     -- Yesod Middleware allows you to run code before and after each handler function.
@@ -464,8 +467,11 @@ instance YesodAuth App where
 
     -- Records the login time, to limit the age of the session (see
     -- 'checkLoginAge'), and the user's session generation (see
-    -- 'getAuthEntity'); otherwise as the default.
+    -- 'getAuthEntity'), and replaces the CSRF token, which could have
+    -- been known before login (see "Utils.Session"); otherwise as the
+    -- default.
     onLogin = do
+      requestNewCsrfToken
       now <- liftIO getCurrentTime
       setSession loginTimeKey . tshow $
         (floor (utcTimeToPOSIXSeconds now) :: Int64)
@@ -484,6 +490,7 @@ instance YesodAuth App where
       addMessageI "success" NowLoggedIn
 
     onLogout = do
+      requestNewCsrfToken
       deleteSession loginTimeKey
       deleteSession loginGenerationKey
 
