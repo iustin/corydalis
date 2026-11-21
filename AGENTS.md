@@ -82,6 +82,10 @@ for structure of older changelog entries).
 
 Add tests for any new code, regardless of language.
 
+Test error messages by their properties (e.g. that they name the
+setting and the offending value), not by their exact wording, so that
+rewording a message doesn't break the tests.
+
 Every source file (Haskell under `src/`, `test/` and `app/`, TypeScript
 under `js/`, including tests and small entry points) starts with the AGPL
 copyright header, with `Copyright (C) 2013 Iustin Pop` as in all existing

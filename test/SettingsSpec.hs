@@ -139,12 +139,11 @@ storageDirsSpec = describe "storage directories" $ do
     cfgOutputDirs (appConfig settings) `shouldBe` ["/pics/out"]
     cfgCacheDir (appConfig settings) `shouldBe` "/pics/cache"
   it "refuses relative paths" $ do
-    -- The error names the setting and the path.
+    -- The error names the setting and the path, and says why.
     let refused setting path fields =
           loadWithConfig fields `shouldThrow` \e ->
             let msg = show (e :: SomeException)
-            in ("The " <> setting <> " setting must use absolute paths") `isInfixOf` msg
-               && show (path :: FilePath) `isInfixOf` msg
+            in all (`isInfixOf` msg) [setting, path :: String, "absolute"]
     refused "sourcedirs" "raw"
       ["sourcedirs" .= ["/pics/raw", "raw" :: Text]]
     refused "outputdirs" "./out" ["outputdirs" .= ["./out" :: Text]]
