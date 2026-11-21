@@ -111,12 +111,18 @@ Behind a reverse proxy:
   `host` and `port`, or to a Unix socket, configured via `unix-socket`
   (which is more efficient, and ignores the `host`, `port` and `https`
   settings);
-- set `secure-sessions: true` if the proxy serves HTTPS, so that the
-  cookies are only sent over HTTPS (it defaults to the `https` setting,
-  so it has to be set explicitly here);
+- keep `secure-sessions` enabled (the default), so that the cookies
+  are only sent over HTTPS;
 - set `approot` to the public URL, as seen by the browser;
 - set `ip-from-header: true`, so that the logs show the clients'
   addresses instead of the proxy's (see below).
+
+Serving plain HTTP (without HTTPS, even in a proxy) requires
+`secure-sessions: false`, except on `localhost`, which browsers treat as
+secure: otherwise, browsers don't keep the session cookies, and logging
+in silently fails, going back to the login page. If `approot` is set to
+a plain `http://` URL while the cookies are secure, Corydalis logs a
+warning at startup.
 
 The `Strict-Transport-Security` (HSTS) header is controlled by the
 `strict-transport-security` setting, which defaults to the `https` one;

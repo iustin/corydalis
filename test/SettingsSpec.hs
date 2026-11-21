@@ -26,7 +26,8 @@ import           Data.Aeson            (Value (..), encode, object, (.=))
 import qualified Data.ByteString.Lazy  as BSL
 import           Yesod.Default.Config2 (loadYamlSettings, useEnv)
 
-import           Settings              (AppSettings (..))
+import           Settings              (AppSettings (..),
+                                        insecureApprootWarning)
 import           TestImport
 
 -- | Loads the test settings, overriding some values (a null value
@@ -50,6 +51,7 @@ spec = do
   sessionMaxAgeSpec
   secureSessionsSpec
   unixSocketSpec
+  insecureApprootSpec
 
 unixSocketSpec :: Spec
 unixSocketSpec = describe "unix-socket" $ do
@@ -86,9 +88,12 @@ secureSessionsSpec = describe "secure-sessions" $ do
                   , "secure-sessions" .= (secure :: Maybe Bool)
                   , "unix-socket" .= (socket :: Maybe String)
                   ]]
-  it "defaults to the https setting" $ do
+  it "defaults to true" $ do
     load True Nothing Nothing `shouldReturn` True
-    load False Nothing Nothing `shouldReturn` False
+    load False Nothing Nothing `shouldReturn` True
+    load False Nothing (Just "/run/socket") `shouldReturn` True
+  it "can be disabled for plain HTTP" $
+    load False (Just False) Nothing `shouldReturn` False
   it "can be enabled without https, for proxies" $
     load False (Just True) Nothing `shouldReturn` True
   it "is forced when serving https directly" $
@@ -96,6 +101,30 @@ secureSessionsSpec = describe "secure-sessions" $ do
   it "is not forced on a Unix socket, which ignores https" $ do
     load True (Just False) (Just "/run/socket") `shouldReturn` False
     load True Nothing (Just "/run/socket") `shouldReturn` True
+
+insecureApprootSpec :: Spec
+insecureApprootSpec = describe "insecureApprootWarning" $ do
+  let warning root secure =
+        insecureApprootWarning <$> loadSettingsWith
+          [object [ "approot" .= (root :: Maybe Text)
+                  , "secure-sessions" .= (secure :: Bool)
+                  ]]
+      warns root = warning (Just root) True >>= (`shouldSatisfy` isJust)
+      quiet root secure = warning root secure >>= (`shouldBe` Nothing)
+  it "warns about secure cookies on a plain HTTP root" $ do
+    warns "http://photos.example.com"
+    warns "http://photos.example.com:3000/"
+    warns "HTTP://192.168.1.10:3000"
+  it "accepts an HTTPS root" $
+    quiet (Just "https://photos.example.com") True
+  it "accepts plain HTTP on localhost" $
+    forM_ [ "http://localhost:3000", "http://localhost", "http://dev.localhost"
+          , "http://127.0.0.1:3000", "http://[::1]:3000/"] $ \root ->
+      quiet (Just root) True
+  it "accepts plain HTTP without secure cookies" $
+    quiet (Just "http://photos.example.com") False
+  it "can't tell without a root" $
+    quiet Nothing True
 
 sessionMaxAgeSpec :: Spec
 sessionMaxAgeSpec = describe "session-max-age" $ do
