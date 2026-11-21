@@ -139,12 +139,16 @@ storageDirsSpec = describe "storage directories" $ do
     cfgOutputDirs (appConfig settings) `shouldBe` ["/pics/out"]
     cfgCacheDir (appConfig settings) `shouldBe` "/pics/cache"
   it "refuses relative paths" $ do
-    loadWithConfig ["sourcedirs" .= ["/pics/raw", "raw" :: Text]]
-      `shouldThrow` anyException
-    loadWithConfig ["outputdirs" .= ["./out" :: Text]]
-      `shouldThrow` anyException
-    loadWithConfig ["cachedir" .= ("cache" :: Text)]
-      `shouldThrow` anyException
+    -- The error names the setting and the path.
+    let refused setting path fields =
+          loadWithConfig fields `shouldThrow` \e ->
+            let msg = show (e :: SomeException)
+            in ("The " <> setting <> " setting must use absolute paths") `isInfixOf` msg
+               && show (path :: FilePath) `isInfixOf` msg
+    refused "sourcedirs" "raw"
+      ["sourcedirs" .= ["/pics/raw", "raw" :: Text]]
+    refused "outputdirs" "./out" ["outputdirs" .= ["./out" :: Text]]
+    refused "cachedir" "cache" ["cachedir" .= ("cache" :: Text)]
 
 sessionMaxAgeSpec :: Spec
 sessionMaxAgeSpec = describe "session-max-age" $ do
