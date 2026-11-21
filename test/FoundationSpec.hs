@@ -428,20 +428,46 @@ appSpec = parallel $ withApp $ do
       get $ AuthR LoginR
       post ReloadR
       statusIs 303
-    it "keeps the token across logging out and in again" $ do
-      userEntity <- createUser "foo"
-      authenticateAs userEntity
+    it "keeps the token while logged in" $ do
+      login
       checkRoute HomeR
       tokenBefore <- pageCsrfToken
-      checkRoute $ AuthR LogoutR
-      request $ do
-        setMethod "POST"
-        setUrl $ AuthR LogoutR
-        addToken
+      checkRoute CurateR
+      tokenAfter <- pageCsrfToken
+      liftIO $ tokenAfter `shouldBe` tokenBefore
+    it "replaces the token when logging in" $ do
+      userEntity <- createUser "foo"
+      get $ AuthR LoginR
+      tokenBefore <- pageCsrfToken
       authenticateAs userEntity
       checkRoute HomeR
       tokenAfter <- pageCsrfToken
-      liftIO $ tokenAfter `shouldBe` tokenBefore
+      liftIO $ tokenAfter `shouldNotBe` tokenBefore
+    it "no longer accepts the token from before logging in" $ do
+      userEntity <- createUser "foo"
+      get $ AuthR LoginR
+      tokenBefore <- pageCsrfToken
+      authenticateAs userEntity
+      request $ do
+        setMethod "POST"
+        setUrl ReloadR
+        addCsrfHeader tokenBefore
+      statusIs 403
+      checkRoute HomeR
+      performWithToken "POST" ReloadR
+      statusIs 303
+    it "replaces the token when logging out" $ do
+      login
+      checkRoute HomeR
+      tokenBefore <- pageCsrfToken
+      request $ do
+        setMethod "POST"
+        setUrl $ AuthR LogoutR
+        addToken_ "form[action$=/auth/logout] "
+      statusIs 303
+      get $ AuthR LoginR
+      tokenAfter <- pageCsrfToken
+      liftIO $ tokenAfter `shouldNotBe` tokenBefore
     it "allows logging out via the button in the page layout" $ do
       login
       checkRoute HomeR

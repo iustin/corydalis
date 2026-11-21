@@ -479,6 +479,13 @@ only two hours, as the session timeout (in minutes) was used for it; it
 is now one year, the usual value, so browsers keep using HTTPS for the
 site between visits.
 
+Security hardening: the CSRF token is now replaced when logging in and
+out. It was kept for the whole life of the session, so someone who knew
+the token of a session before login (e.g. by planting the session cookie
+in the browser) could forge requests as the user who then logged in.
+Pages opened before logging in or out (e.g. in other tabs) need to be
+reloaded before their buttons and forms work again.
+
 ### Deployment changes
 
 The secure sessions setting will no longer enforce also an
