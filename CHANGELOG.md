@@ -132,10 +132,13 @@ Optional clean-ups:
 
 These were found by security reviews of the code.
 
-#### Untrusted files in the picture folders
+#### Files in the picture folders
 
-Pictures and movies often come from elsewhere, so their files (names
-and contents) are treated as untrusted:
+Pictures and movies often come from elsewhere, so their contents
+(including their metadata) are untrusted. The structure of the picture
+folders (which files are there, and their names) is trusted, as only
+the administrators should be able to change it (see the installation
+documentation), but it is now handled defensively too:
 
 - File names starting with a dash were interpreted as options by
   `exiftool` while scanning: a file named e.g. `-Comment=x.jpg` could
@@ -484,8 +487,10 @@ The viewer and the image grid:
   committed `.npmrc` disables their install scripts.
 - `make check-static` (also run by `make release` and CI) fails on
   unused files and broken links in the static directory.
-- The GitHub Actions used by the workflows are pinned to commits, kept
-  up to date by Dependabot.
+- The third-party GitHub Actions used by the workflows
+  (`haskell-actions/setup`, `8c6794b6/hpc-codecov-action` and
+  `codecov/codecov-action`) are pinned to commits, kept up to date by
+  Dependabot.
 - Development builds no longer name their cache files with a `-dev`
   suffix; their old `repo-cache-dev` file can be deleted.
 - The tests need `exiftool`, ImageMagick (able to write HEIC, i.e. with
