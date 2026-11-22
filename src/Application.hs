@@ -190,8 +190,10 @@ makeFoundation appSettings = do
              cacheTempDir config <> " (temporary cache files): " <> show e)
       return
 
-    appContext <- atomically $
-      newPreviewToolLimits appSettings >>= initContext config logfn
+    appContext <- atomically $ do
+      tools <- newPreviewToolLimits appSettings
+      scanTools <- newScanToolLimits appSettings
+      initContext config logfn tools scanTools
     -- The user to check unknown users' passwords against, at login.
     appDummyLoginUser <- makeDummyLoginUser
 

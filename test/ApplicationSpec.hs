@@ -54,8 +54,8 @@ import           Application                          (defaultCacheControl,
                                                        redactPassword,
                                                        requestLoggerSettings)
 import           Cache                                (cacheTempDir)
-import           Settings                             (RequestLogging (..),
-                                                       appConfig)
+import           Settings                             (AppSettings (..),
+                                                       RequestLogging (..))
 import           System.Directory                     (createDirectoryIfMissing,
                                                        listDirectory)
 import           TestImport
@@ -122,6 +122,15 @@ spec = do
       writeFile (tmpDir </> "sub" </> "file") ("x" :: ByteString)
       _ <- makeFoundation settings
       listDirectory tmpDir `shouldReturn` []
+  it "gives the previews and the scan their configured tool limits" $
+    bracket setTempDir cleanupTempDir $ \tempDir -> do
+      settings <- loadSettings >>= updateSettings tempDir
+      foundation <- makeFoundation settings { appPreviewToolTimeout = 7000000
+                                            , appScanToolTimeout = 11000000
+                                            }
+      let ctx = appContext foundation
+      tlTimeout (ctxToolLimits ctx) `shouldBe` 7000000
+      tlTimeout (ctxScanToolLimits ctx) `shouldBe` 11000000
  describe "request logging" $ do
   it "doesn't log the password in the detailed format" $ do
     logged <- logOfLogin False RequestLoggingDetailed

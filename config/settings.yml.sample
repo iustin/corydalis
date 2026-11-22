@@ -55,6 +55,15 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # the preview fails. Defaults to five minutes.
 # preview-tool-timeout: 300
 
+# The same limits, separately, for the scan's exiftool runs, which read
+# the metadata of batches of files: how many runs at once (defaults to
+# the number of processors the application uses), and for how long, in
+# seconds, before a run is stopped and the metadata of all the files of
+# its batch fails (defaults to ten minutes). The previews the scan
+# renders afterwards use the preview-tool-* limits.
+# scan-tool-slots: 4
+# scan-tool-timeout: 600
+
 # Custom message to show on login page
 #login-msg:      "Hello, *brave* user!"
 

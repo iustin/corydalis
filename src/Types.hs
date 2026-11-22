@@ -70,9 +70,11 @@ module Types ( Config(..)
              , ctxSearchCache
              , ctxLogger
              , ctxToolLimits
+             , ctxScanToolLimits
              , newContext
              , ToolLimits(..)
              , defaultToolTimeout
+             , defaultScanToolTimeout
              , defaultToolSlots
              , newToolLimits
              , ViewMode(..)
@@ -537,12 +539,14 @@ instance NFData WorkResults where
     rnf a `seq` rnf b `seq` rnf c
 
 
--- | Limits for running the external tools (ImageMagick, ffmpeg and
--- exiftool) which build the previews, as requested by users.
+-- | Limits for running external tools: those which build the previews
+-- (ImageMagick, ffmpeg and exiftool), whether requested by users or by
+-- the scan's rendering, and, separately, the scan's exiftool runs,
+-- which read the files' metadata.
 --
 -- They read untrusted files, so a crafted file could make them run for
--- very long; and many requests for previews which aren't built yet
--- could run many of them at once.
+-- very long; and many requests for previews which aren't built yet, or
+-- the scan of many folders at once, could run many of them at once.
 data ToolLimits = ToolLimits
   { tlSlots   :: !TSem
     -- ^ How many tools may run at once; further runs wait.
@@ -551,8 +555,9 @@ data ToolLimits = ToolLimits
   }
 
 -- | The default number of tools which may run at once (see the
--- preview-tool-slots setting): one per processor used by the runtime
--- (with @+RTS -N@, as the application is built, all of them).
+-- preview-tool-slots and scan-tool-slots settings): one per processor
+-- used by the runtime (with @+RTS -N@, as the application is built,
+-- all of them).
 defaultToolSlots :: Int
 defaultToolSlots = numCapabilities
 
@@ -561,6 +566,13 @@ defaultToolSlots = numCapabilities
 -- on a slow machine can take a while.
 defaultToolTimeout :: Int
 defaultToolTimeout = 300 * 1000000
+
+-- | The default time limit for a run of exiftool reading the metadata
+-- during the scan (see the scan-tool-timeout setting): ten minutes, as
+-- it reads a batch of up to 32 files (exifToolBatchSize in Exif), which
+-- can be large, on a possibly slow (e.g. network) filesystem.
+defaultScanToolTimeout :: Int
+defaultScanToolTimeout = 600 * 1000000
 
 -- | Creates the tool limits.
 --
@@ -589,10 +601,16 @@ data Context a b = Context
   , ctxSearchCache    :: !(TVar b)
   , ctxLogger         :: !LogFn
   , ctxToolLimits     :: !ToolLimits
+    -- ^ The limits of the tools building previews.
+  , ctxScanToolLimits :: !ToolLimits
+    -- ^ The limits of the scan's exiftool runs, reading the metadata.
   }
 
-newContext :: Config -> LogFn -> ToolLimits -> a -> b -> STM (Context a b)
-newContext config logfn tools a b = do
+newContext :: Config -> LogFn
+           -> ToolLimits  -- ^ The limits of the tools building previews.
+           -> ToolLimits  -- ^ The limits of the scan's exiftool runs.
+           -> a -> b -> STM (Context a b)
+newContext config logfn tools scanTools a b = do
   ta <- newTVar a
   tb <- newTVar b
   scanner <- newTVar Nothing
@@ -608,6 +626,7 @@ newContext config logfn tools a b = do
                    , ctxSearchCache    = tb
                    , ctxLogger         = logfn
                    , ctxToolLimits     = tools
+                   , ctxScanToolLimits = scanTools
                    }
 
 -- | View mode type.

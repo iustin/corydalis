@@ -28,7 +28,8 @@ import           Yesod.Default.Config2 (loadYamlSettings, useEnv)
 
 import           Settings              (AppSettings (..),
                                         insecureApprootWarning,
-                                        newPreviewToolLimits)
+                                        newPreviewToolLimits,
+                                        newScanToolLimits)
 import           TestImport
 
 -- | Loads the test settings, overriding some values (a null value
@@ -55,6 +56,7 @@ spec = do
   insecureApprootSpec
   storageDirsSpec
   previewToolsSpec
+  scanToolsSpec
 
 unixSocketSpec :: Spec
 unixSocketSpec = describe "unix-socket" $ do
@@ -192,3 +194,32 @@ previewToolsSpec = describe "preview tool limits" $ do
     refused "preview-tool-timeout" (-5 :: Int)
   it "refuses a timeout which doesn't fit in microseconds" $
     refused "preview-tool-timeout" (maxBound :: Int)
+
+scanToolsSpec :: Spec
+scanToolsSpec = describe "scan tool limits" $ do
+  -- The error names the setting and the offending value.
+  let refused setting value =
+        loadSettingsWith [object [fromString setting .= value]] `shouldThrow` \e ->
+          let msg = show (e :: SomeException)
+          in all (`isInfixOf` msg) [setting, show value]
+  it "default to one tool per processor, for ten minutes" $ do
+    settings <- loadSettingsWith []
+    appScanToolSlots settings `shouldBe` defaultToolSlots
+    appScanToolTimeout settings `shouldBe` defaultScanToolTimeout
+    appScanToolTimeout settings `shouldBe` 600 * 1000000
+  it "can be configured, independently of the preview ones" $ do
+    settings <- loadSettingsWith [object [ "scan-tool-slots" .= (3 :: Int)
+                                         , "scan-tool-timeout" .= (90 :: Int)
+                                         ]]
+    appScanToolSlots settings `shouldBe` 3
+    appScanToolTimeout settings `shouldBe` 90 * 1000000
+    appPreviewToolSlots settings `shouldBe` defaultToolSlots
+    appPreviewToolTimeout settings `shouldBe` defaultToolTimeout
+    limits <- atomically $ newScanToolLimits settings
+    tlTimeout limits `shouldBe` 90 * 1000000
+    takeFreeSlots limits `shouldReturn` 3
+  it "must be positive" $ do
+    refused "scan-tool-slots" (0 :: Int)
+    refused "scan-tool-timeout" (-5 :: Int)
+  it "refuses a timeout which doesn't fit in microseconds" $
+    refused "scan-tool-timeout" (maxBound :: Int)

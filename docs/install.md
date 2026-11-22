@@ -519,9 +519,18 @@ processors (all of them, unless limited with `+RTS -N`); further
 previews wait. Both limits can be changed with the
 `preview-tool-timeout` (in seconds) and `preview-tool-slots` settings,
 e.g. to allow more time on a slow machine, or to leave processors free
-for other services. This limits which parsers read a file, but a bug in one
-of them, or in exiftool (which reads the metadata of every file), can
-still be exploited: keep ImageMagick, ffmpeg and exiftool up to date,
+for other services. The scan's exiftool runs, which read the metadata
+of the files in batches, have the same kind of limits, separately (the
+previews the scan renders use the preview ones): a run is stopped
+after ten minutes, and all the files of its batch then fail (again at
+each scan, if one of them makes exiftool hang), and at most as many
+runs happen at once as the application uses processors, changed with
+the `scan-tool-timeout` (in seconds) and `scan-tool-slots` settings.
+The two limits add up: by default, during a scan, up to twice as many
+tools as processors can run at once. The decoder and demuxer
+restrictions limit which parsers read a file, but a bug in one of them,
+or in exiftool (which reads the metadata of every file), can still be
+exploited: keep ImageMagick, ffmpeg and exiftool up to date,
 and consider restricting what the application can do (e.g. with
 systemd's sandboxing options), so that a compromised tool can do little
 harm.

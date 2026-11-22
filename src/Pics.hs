@@ -227,9 +227,12 @@ type Ctx = Context Repository SearchCache
 
 -- TODO: move this to IO, so that callers don't have to know about
 -- atomically? [cleanup]
-initContext :: Config -> LogFn -> ToolLimits -> STM Ctx
-initContext config logfn tools =
-  newContext config logfn tools startupRepository emptySearchCache
+initContext :: Config -> LogFn
+            -> ToolLimits  -- ^ The limits of the tools building previews.
+            -> ToolLimits  -- ^ The limits of the scan's exiftool runs.
+            -> STM Ctx
+initContext config logfn tools scanTools =
+  newContext config logfn tools scanTools startupRepository emptySearchCache
 
 neverRecurseDirs :: [String]
 neverRecurseDirs = [".", ".."]
@@ -1389,7 +1392,7 @@ loadFolder ctx name path isSource = do
   logfn LevelDebug $ "loadFolder scanned " <> toLogStr path <> " (" <>
     toLogStr (show (length contents)) <> " inodes)"
   let known = filter (isKnownMediaInode config) contents
-  (readexifs, lcache) <- getExif logfn config path $
+  (readexifs, lcache) <- getExif logfn (ctxScanToolLimits ctx) config path $
                            map inodeFullName known
   logfn LevelDebug $ "loadFolder yaml " <> toLogStr path
   let warnYaml reason = logfn LevelWarn $ "Folder " <> toLogStr path <>

@@ -124,6 +124,18 @@ once.
 Both limits can be changed, with the new `preview-tool-timeout` (in
 seconds) and `preview-tool-slots` settings.
 
+The scan's exiftool runs, which read the metadata of the files in
+batches, have the same kind of limits, separately (the previews the
+scan renders use the preview ones): a run is stopped after ten
+minutes, and all the files of its batch then get the error (again at
+each scan, if one of them makes exiftool hang); and at most as many
+runs happen at once as the application uses processors. Previously, a
+run could run indefinitely (e.g. on a crafted file), so that the scan
+never finished, and the scan could run one exiftool at once for each
+directory directly under the picture directories (e.g. one per year).
+They can be changed with the new `scan-tool-timeout` (in seconds) and
+`scan-tool-slots` settings.
+
 ### Fixed bugs
 
 The static files directory still had links to libraries that are now

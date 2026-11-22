@@ -32,6 +32,7 @@ module Settings
   , RequestLogging(..)
   , insecureApprootWarning
   , newPreviewToolLimits
+  , newScanToolLimits
   , widgetFile
   , combineStylesheets
   , combineScripts
@@ -39,7 +40,7 @@ module Settings
 
 import           ClassyPrelude.Yesod
 import           Data.Aeson                 (withObject, (.!=), (.:?))
-import           Data.Aeson.Types           (Parser, parseFail)
+import           Data.Aeson.Types           (Object, Parser, parseFail)
 import           Data.Time                  (NominalDiffTime)
 import           Database.Persist.Sqlite    (SqliteConf)
 import           Language.Haskell.TH.Syntax (Exp, Name, Q)
@@ -122,6 +123,12 @@ data AppSettings = AppSettings
     , appPreviewToolTimeout :: Int
     -- ^ How long such a tool may run, in microseconds, before it is
     -- stopped, and the preview fails.
+    , appScanToolSlots :: Int
+    -- ^ How many exiftool runs the scan may have at once; further runs
+    -- wait.
+    , appScanToolTimeout :: Int
+    -- ^ How long such a run may take, in microseconds, before it is
+    -- stopped, and the exif data of its files fails.
 
     , appLoginMessage   :: Maybe Text
     -- ^ Extra message to show on login page.
@@ -189,19 +196,10 @@ instance FromJSON AppSettings where
           parseFail $ "Invalid session-max-age (must be positive): " ++
             show sessionMaxAge
         let appSessionMaxAge = fromIntegral sessionMaxAge * 3600
-        appPreviewToolSlots <- o .:? "preview-tool-slots" .!= defaultToolSlots
-        when (appPreviewToolSlots <= 0) $
-          parseFail $ "Invalid preview-tool-slots (must be positive): " ++
-            show appPreviewToolSlots
-        toolTimeout <- o .:? "preview-tool-timeout" .!=
-                         (defaultToolTimeout `div` 1000000)
-        -- The limit is kept in microseconds, which must fit in an Int.
-        let maxToolTimeout = maxBound `div` 1000000 :: Int
-        when (toolTimeout <= 0 || toolTimeout > maxToolTimeout) $
-          parseFail $ "Invalid preview-tool-timeout (must be a positive " ++
-            "number of seconds, at most " ++ show maxToolTimeout ++ "): " ++
-            show toolTimeout
-        let appPreviewToolTimeout = toolTimeout * 1000000
+        (appPreviewToolSlots, appPreviewToolTimeout) <-
+          parseToolLimits o "preview" defaultToolTimeout
+        (appScanToolSlots, appScanToolTimeout) <-
+          parseToolLimits o "scan" defaultScanToolTimeout
         appLoginMessage   <- o .:? "login-msg"
         appHomeMessage    <- o .:? "home-msg"
         appRequestLogging <- o .:? "request-logging" .!= defaultRequestLogging
@@ -213,10 +211,38 @@ instance FromJSON AppSettings where
 
         return AppSettings {..}
 
+-- | Parses the limits of a kind of tools: how many may run at once
+-- (@KIND-tool-slots@), and for how long (@KIND-tool-timeout@, in
+-- seconds), returned in microseconds.
+parseToolLimits :: Object
+                -> String  -- ^ The kind of tools, as in the setting names.
+                -> Int     -- ^ The default time limit, in microseconds.
+                -> Parser (Int, Int)
+parseToolLimits o kind defaultTimeout = do
+  let slotsKey = kind ++ "-tool-slots"
+      timeoutKey = kind ++ "-tool-timeout"
+  slots <- o .:? fromString slotsKey .!= defaultToolSlots
+  when (slots <= 0) $
+    parseFail $ "Invalid " ++ slotsKey ++ " (must be positive): " ++ show slots
+  toolTimeout <- o .:? fromString timeoutKey .!= (defaultTimeout `div` 1000000)
+  -- The limit is kept in microseconds, which must fit in an Int.
+  let maxToolTimeout = maxBound `div` 1000000 :: Int
+  when (toolTimeout <= 0 || toolTimeout > maxToolTimeout) $
+    parseFail $ "Invalid " ++ timeoutKey ++ " (must be a positive " ++
+      "number of seconds, at most " ++ show maxToolTimeout ++ "): " ++
+      show toolTimeout
+  return (slots, toolTimeout * 1000000)
+
 -- | Creates the limits for the preview tools, as configured.
 newPreviewToolLimits :: AppSettings -> STM ToolLimits
 newPreviewToolLimits settings =
   newToolLimits (appPreviewToolSlots settings) (appPreviewToolTimeout settings)
+
+-- | Creates the limits for the scan's exiftool runs, reading the
+-- metadata, as configured.
+newScanToolLimits :: AppSettings -> STM ToolLimits
+newScanToolLimits settings =
+  newToolLimits (appScanToolSlots settings) (appScanToolTimeout settings)
 
 -- | Returns a warning if the session cookies are secure, but the
 -- configured application root is a plain HTTP URL, other than on

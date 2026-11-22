@@ -73,6 +73,7 @@ import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
                                             parseMaybe, typeMismatch)
 import           Data.Bifunctor
 import qualified Data.ByteString           as BS (ByteString, length, readFile)
+import qualified Data.ByteString.Lazy      as BSL (null)
 import           Data.Default
 import qualified Data.Map.Strict           as Map
 import           Data.Scientific           (toBoundedInteger)
@@ -90,6 +91,8 @@ import           System.Process.Typed
 import           Cache
 import           Compat.Orphans            ()
 import           Import.NoFoundation       hiding (Key, get)
+import           Utils.Tools               (decodeToolOutput, runToolToFile,
+                                            withToolSlot)
 import           Text.Blaze                (ToMarkup (..))
 
 -- | Shutter counts this high are unlikely, but they do appear in
@@ -1121,8 +1124,10 @@ insertForced m k e = do
   return $ Map.insert k e' m
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
-getExif :: LogFn -> Config -> FilePath -> [FilePath] -> IO (Int, Map Text EExif)
-getExif logfn config dir paths = do
+getExif :: LogFn
+        -> ToolLimits  -- ^ The limits of the scan's exiftool runs.
+        -> Config -> FilePath -> [FilePath] -> IO (Int, Map Text EExif)
+getExif logfn tools config dir paths = do
   logfn LevelDebug $ "getExif " <> toLogStr dir <> ": " <>
     toLogStr (show (length paths)) <> " paths"
   (cache1, m1) <- foldM (\(c, m) p -> do
@@ -1153,7 +1158,7 @@ getExif logfn config dir paths = do
   logfn LevelDebug $ "getExif " <> toLogStr dir <> ": json hits=" <>
     toLogStr (show (Map.size cache2 - Map.size cache1)) <> " exiftool=" <>
     toLogStr (show (length m2))
-  cache3 <- foldM (runExifToolBatch logfn config dir) cache2
+  cache3 <- foldM (runExifToolBatch logfn tools config dir) cache2
               (chunkPaths m2)
   return (length m2, cache3)
 
@@ -1172,9 +1177,23 @@ chunkPaths xs =
   let (h, t) = splitAt exifToolBatchSize xs
   in h : chunkPaths t
 
-runExifToolBatch :: LogFn -> Config -> FilePath -> Map Text EExif -> [FilePath]
-                 -> IO (Map Text EExif)
-runExifToolBatch logfn config dir acc batch = do
+-- | Runs exiftool on a batch of files, within the given limits, and
+-- adds their exif data to the given map.
+--
+-- If the run fails (e.g. exiftool can't be started, is stopped for
+-- running too long, or its output can't be parsed), all the files of
+-- the batch get its error. They aren't retried one by one, which could
+-- take as long again for each file. The error isn't cached either, as
+-- it isn't about the files themselves, so the next scan runs exiftool
+-- on them again (and, if the same file makes it fail again, fails the
+-- whole batch again).
+runExifToolBatch :: LogFn -> ToolLimits -> Config -> FilePath -> Map Text EExif
+                 -> [FilePath] -> IO (Map Text EExif)
+runExifToolBatch logfn tools config dir acc batch = do
+  let failed msg = do
+        logfn LevelError $ "exiftool batch failed in " <> toLogStr dir <>
+          ": " <> toLogStr msg
+        return $ Left msg
   -- TODO: fix this. It is very ugly, catches _all_
   -- exceptions, but it's the only way I found to
   -- reliably disable the slowloris protection. There a
@@ -1183,23 +1202,21 @@ runExifToolBatch logfn config dir acc batch = do
   -- solutions. See
   -- https://github.com/yesodweb/wai/issues/351 for
   -- example.
-  exifs <- (parseExifs <$> extractExifs logfn dir batch) `catch`
-    (\e -> let e' = sformat shown (e :: SomeException)
-           in logfn LevelError ("exiftool batch failed: " <> toLogStr e') >>
-              return (Left e'))
-  let parsed = case exifs of
-        Left msg -> map (\p ->
-                           let freFilePath = p
-                               freMessage = msg
-                               freValue = Nothing
-                           in Left FailRExif{..}) batch
-        Right rs -> rs
-  logfn LevelDebug $ "extractExifs: parsed " <> toLogStr (show (length parsed)) <>
-    " results for " <> toLogStr dir
-  foldM (\m r -> do
-           (path, e) <- writeExifs config dir r
-           insertForced m (Text.pack path) e
-        ) acc parsed
+  exifs <- (extractExifs logfn tools dir batch >>=
+              either failed (return . parseExifs)) `catch`
+    (\e -> failed $ sformat shown (e :: SomeException))
+  case exifs of
+    -- The batch's error isn't written to the exif caches: it isn't
+    -- about the files themselves, which the next scan tries again.
+    Left msg ->
+      return $ foldl' (\m p -> Map.insert (Text.pack p) (Left msg) m) acc batch
+    Right parsed -> do
+      logfn LevelDebug $ "extractExifs: parsed " <> toLogStr (show (length parsed)) <>
+        " results for " <> toLogStr dir
+      foldM (\m r -> do
+               (path, e) <- writeExifs config dir r
+               insertForced m (Text.pack path) e
+            ) acc parsed
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =
@@ -1224,29 +1241,44 @@ exifToolArgs paths = [
   "--"
   ] ++ paths
 
-extractExifs :: LogFn -> FilePath -> [FilePath] -> IO BS.ByteString
-extractExifs logfn dir paths = withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
+-- | Runs exiftool on the given files, in a slot of the given limits,
+-- returning its (JSON) output, or why it failed (e.g. it couldn't be
+-- run, or ran for too long).
+--
+-- The slot is taken first, so that the runs waiting for one don't hold
+-- a temporary file. The output goes to that file, rather than being
+-- kept in memory while exiftool runs.
+extractExifs :: LogFn -> ToolLimits -> FilePath -> [FilePath]
+             -> IO (Either Text BS.ByteString)
+extractExifs logfn tools dir paths =
+  withToolSlot tools $ \slot ->
+  withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
+  hClose fhandle
   let args = exifToolArgs paths
       pconfig =
         setStdin closed
-        . setStdout (useHandleClose fhandle)
-        . setStderr closed  -- TODO: this failes the writes, not sure if OK
         . setCloseFds True
         . setWorkingDir dir
         $ proc "exiftool" args
   logfn LevelDebug $ "extractExifs: spawning exiftool on " <>
     toLogStr (show (length paths)) <> " files in " <> toLogStr dir <>
     " -> " <> toLogStr fpath
-  -- Note: exiftool exits with non-zero exit code if errors happened,
-  -- but still generates valid JSON output. So we ignore the exit code
-  -- completely, as we can't attribute the error to a specific
-  -- file. That should be rather done via 'Error' entry in the object.
-  _ <- runProcess pconfig
-  logfn LevelDebug $ "extractExifs: exiftool exited, reading " <> toLogStr fpath
-  bs <- BS.readFile fpath
-  logfn LevelDebug $ "extractExifs: read " <> toLogStr (show (BS.length bs)) <>
-    " bytes"
-  return bs
+  ran <- runToolToFile slot fpath pconfig
+  case ran of
+    Left msg -> return $ Left msg
+    -- Note: exiftool exits with non-zero exit code if errors happened,
+    -- but still generates valid JSON output. So we ignore the exit code
+    -- completely, as we can't attribute the error to a specific
+    -- file. That should be rather done via 'Error' entry in the object.
+    Right (_, err) -> do
+      unless (BSL.null err) . logfn LevelDebug $
+        "extractExifs: exiftool messages for " <> toLogStr dir <> ": " <>
+        toLogStr (decodeToolOutput err)
+      logfn LevelDebug $ "extractExifs: exiftool exited, reading " <> toLogStr fpath
+      bs <- BS.readFile fpath
+      logfn LevelDebug $ "extractExifs: read " <> toLogStr (show (BS.length bs)) <>
+        " bytes"
+      return $ Right bs
 
 parseExifs :: BS.ByteString -> Either Text [ERawExif]
 parseExifs bs =
