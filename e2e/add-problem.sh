@@ -28,18 +28,28 @@ if [ $# -ne 1 ]; then
   echo "Usage: $0 WORKDIR" >&2
   exit 1
 fi
-LIB=$(realpath "$1")/lib
+LIB=$(realpath -m "$1")/lib
 DIR="$LIB/src/2024/2024-12-01 Broken 99"
+# Check everything before creating anything, so that a wrong WORKDIR
+# leaves nothing behind.
+if [ ! -d "$LIB/src" ]; then
+  echo "$LIB/src not found; run e2e/setup.sh with this WORKDIR first" >&2
+  exit 1
+fi
 if [ -e "$DIR" ]; then
   echo "$DIR already exists, refusing to overwrite it" >&2
   exit 1
 fi
-mkdir -p "$DIR"
-
 # A good picture, and a truncated copy of it, for which exiftool warns
 # "JPEG format error", i.e. the picture's problem (and whose previews
 # fail, which shows the preview error image).
 good=$(find "$LIB/src" -name 'IMG_0001.jpg' | head -n 1)
+if [ -z "$good" ]; then
+  echo "IMG_0001.jpg not found under $LIB/src; is it the library made by e2e/setup.sh?" >&2
+  exit 1
+fi
+
+mkdir -p "$DIR"
 cp -p "$good" "$DIR/IMG_GOOD.jpg"
 head -c 2000 "$good" > "$DIR/IMG_BAD.jpg"
 echo "Added $DIR, with IMG_GOOD and the truncated IMG_BAD"
