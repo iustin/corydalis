@@ -1677,12 +1677,15 @@ renderableImages =
 -- First classifies every image×size, checking only the cache files
 -- (see 'imagePendingSizes'; no tool runs), then builds the stale ones,
 -- including any extraction they need. Render progress 'pgGoal' is the
--- pending work, not the classified total.
+-- pending work, not the classified total; the classification has its
+-- own progress ('ctxRenderCheckProgress'), counting the images
+-- checked.
 forceBuildThumbCaches :: Ctx -> Repository -> IO Progress
 forceBuildThumbCaches ctx repo = do
   checkRepoOwnership ctx repo
   let config = ctxConfig ctx
       renderProgress = ctxRenderProgress ctx
+      checkProgress = ctxRenderCheckProgress ctx
       images = renderableImages repo
       sizes = Set.toList (cfgAutoImageSizes config)
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
@@ -1690,13 +1693,16 @@ forceBuildThumbCaches ctx repo = do
       classifyImage (pend, n, es) i = do
         checkRepoOwnership ctx repo
         res <- imagePendingSizes (ctxLogger ctx) config i sizes
+        atomically $ modifyTVar' checkProgress incDone
         return $ case res of
           Left err ->
             let msg = Text.pack $ show err
             in (pend, n, [ProgressError (imageForError i size) msg | size <- reverse sizes] ++ es)
           Right stale ->
             (map (i,) (reverse stale) ++ pend, n + length sizes - length stale, es)
-  atomically $ writeTVar renderProgress def
+  atomically $ do
+    writeTVar renderProgress def
+    writeTVar checkProgress def { pgGoal = length images }
   (pending, noops, errs) <- foldM classifyImage ([], 0, []) images
   atomically $ writeTVar renderProgress Progress
     { pgErrors = errs

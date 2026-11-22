@@ -78,6 +78,21 @@ spec = parallel $ withApp $ describe "the status page" $ do
     checkStatusPage ["rendering images", "Cleaning has not started yet."] 1
     -- With nothing to render, the estimate is known (now).
     bodyContains "ETA: <abbr title=\"At "
+  it "shows the check of what needs rendering, while in progress" $ do
+    setRepoStatus $ \now -> RepoRendering (done now) (WorkStart now)
+    ctx <- appContext <$> getTestYesod
+    liftIO . atomically $
+      writeTVar (ctxRenderCheckProgress ctx) def { pgGoal = 10, pgDone = 3 }
+    checkStatusPage [ "rendering images"
+                    , "Checking which previews need rendering: 3/10 images."
+                    ] 1
+    bodyNotContains "Rendering progress:"
+    -- Once the check is done, the rendering progress shows.
+    liftIO . atomically $
+      writeTVar (ctxRenderCheckProgress ctx) def { pgGoal = 10, pgDone = 10 }
+    checkRoute StatusR
+    bodyContains "Rendering progress:"
+    bodyNotContains "Checking which previews"
   it "shows no estimated end time when infinite" $ do
     -- Images to render, but none rendered yet: the estimate is infinite.
     setRepoStatus $ \now -> RepoRendering (done now) (WorkStart now)

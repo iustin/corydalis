@@ -1842,6 +1842,18 @@ spec = parallel $ do
             pgDone pg `shouldBe` 0
             pgNumErrors pg `shouldBe` length staleSizes
             pgWork pg `shouldBe` length staleSizes
+      it "counts the images checked by the first pass" $ \ctx -> do
+        repo <- getRepo ctx
+        _ <- forceBuildThumbCaches ctx repo
+        -- Nothing renderable: nothing to check.
+        checked <- readTVarIO (ctxRenderCheckProgress ctx)
+        (pgGoal checked, pgDone checked) `shouldBe` (0, 0)
+        (repo', _) <- insertJpeg ctx (jpegFile ctx)
+        _ <- forceBuildThumbCaches ctx repo'
+        -- The picture isn't on disk, so its check fails, but it is
+        -- checked all the same.
+        checked' <- readTVarIO (ctxRenderCheckProgress ctx)
+        (pgGoal checked', pgDone checked') `shouldBe` (1, 1)
       it "records a fully cached image as noops with an empty work goal" $ \ctx -> do
         let config = ctxConfig ctx
             jpeg = jpegFile ctx
