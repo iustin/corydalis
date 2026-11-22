@@ -32,6 +32,7 @@ module Utils.Tools ( ToolSlot
                    ) where
 
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
+import qualified Data.Text               as Text (strip)
 import qualified Data.Text.Lazy          as TextL
 import           Data.Text.Encoding.Error (lenientDecode)
 import qualified Data.Text.Lazy.Encoding as Text (decodeUtf8With)
@@ -77,7 +78,8 @@ withToolSlot limits action =
 
 -- | Runs an external tool, as 'readToolProcess' does, but in the given
 -- slot (see 'withToolSlot'): a tool running for longer than the
--- slot's time limit is killed, and its run returned as an error.
+-- slot's time limit is killed, and its run returned as an error, with
+-- what it wrote to its error output until then.
 --
 -- The tool is also killed if the run is interrupted otherwise (e.g.
 -- the request is cancelled). This is needed as typed-process, when the
@@ -146,9 +148,21 @@ runToolWith (ToolSlot limit) output pconfig =
                 `onException` stop
       case result of
         Just r  -> return $ Right r
-        Nothing -> stop >> return timedOut
-    timedOut = Left $ sformat ("External tool timed out after " % int % " second" % string)
+        Nothing -> do
+          stop
+          -- What the tool wrote to its error output before it was
+          -- stopped, e.g. which file it was reading, if it said so.
+          -- With the tool's process group killed, its error output is
+          -- closed, and has been read in full shortly after; the
+          -- limit is only in case a process outside the group kept it
+          -- open.
+          err <- timeout 1000000 (atomically $ getStderr p)
+          return . Left $ withOutput (fromMaybe "" err) timedOut
+    timedOut = sformat ("External tool timed out after " % int % " second" % string)
                  secs (if secs == 1 then "" else "s")
+    withOutput err msg =
+      let written = Text.strip (decodeToolOutput err)
+      in if null written then msg else msg <> ": " <> written
     -- Rounded up, so that a (test) limit under a second isn't shown
     -- as zero.
     secs = (limit + 999999) `div` 1000000

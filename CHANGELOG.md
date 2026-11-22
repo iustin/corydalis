@@ -111,8 +111,9 @@ cookie until shown.
 The external tools building the previews (ImageMagick, ffmpeg, and
 exiftool when extracting embedded previews) are now stopped if they run
 for more than five minutes, e.g. on a crafted file, and the preview
-fails. Previously, they could run indefinitely, and a cancelled request
-waited for the tool to finish; the tool is now stopped as well.
+fails, with what the tool wrote to its error output until then.
+Previously, they could run indefinitely, and a cancelled request waited
+for the tool to finish; the tool is now stopped as well.
 
 At most as many preview tools run at once as the application uses
 processors (by default, all of them); further requests for previews not
