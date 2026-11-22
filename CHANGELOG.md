@@ -199,6 +199,10 @@ of a removed `a.nef copy 2.jpg`, next to `a.nef`). It now keeps
 exactly the cache files of the pictures in the library, for the sizes
 configured.
 
+Camera and lens names containing HTML (they come from the pictures'
+metadata) were partly interpreted as such on the charts, e.g. showing a
+link; they are now shown as written.
+
 On the status page, finished work (scan, rendering and cache cleaning)
 is shown with a green border again, as intended: a typo in the style
 name meant it had no border.

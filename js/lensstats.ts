@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as Plotly from 'plotly.js-cartesian-dist';
 import 'bootstrap';
 import { loadBootJSON } from './boot';
+import { escapeTraces } from './plot-text';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
@@ -86,8 +87,8 @@ function onDataReceived(series: any) {
     modeBarButtonsToRemove: ['toImage' as const, 'sendChartToCloud' as const],
     responsive: true,
   };
-  Plotly.newPlot('lensChart', series.imagecount, lensLayout, config);
-  Plotly.newPlot('trendsChart', series.trends, trendsLayout, config);
+  Plotly.newPlot('lensChart', escapeTraces(series.imagecount), lensLayout, config);
+  Plotly.newPlot('trendsChart', escapeTraces(series.trends), trendsLayout, config);
 }
 
 export function initLensStats(): void {
