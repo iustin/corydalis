@@ -2,764 +2,447 @@
 
 ## vNext
 
-### Breaking changes
+This release started with a few features planned and under way: the
+reworked view modes, more camera and lens statistics, and folder
+events. Then security analyses of the code became available, and the
+focus switched to them; as a result, some of these features are only
+half-done, folder events most of all (see below).
 
-A new key in the configuration has been added, `viewableimages`, which
-represents what file extensions are directly viewable by the browser and
-don't need to be converted. Previously this was hard-coded, but it is
-likely that modern browsers support more formats, so it is now
-configurable. Moreover, it has to be configured. A starting point can be
-seen in the sample configuration file.
+The main goal of this release is thus to close a lot of gaps in the
+security posture of Corydalis: how it handles untrusted files in the
+picture folders and the external tools reading them, what anonymous
+visitors of a public site can see, sessions and logins, HTTP headers,
+logs, and resource limits. Along with this, the installation
+documentation now describes the deployment much more completely:
+serving over HTTPS or a Unix socket behind a reverse proxy, limiting
+login attempts, the image decoders, movie demuxers and ImageMagick
+policy, running as a sandboxed systemd service, session lifetime, and
+who should be able to read or write the private, picture and cache
+directories. The frontend was modernised along the way: it is now
+entirely TypeScript, bundled with `esbuild`, and no longer uses jQuery.
 
-The picture and cache directories (`sourcedirs`, `outputdirs` and
-`cachedir`) must now be absolute paths; Corydalis refuses to start
-otherwise. Relative paths depended on the current directory, which can
-differ between Corydalis and the other tools reading the same settings
-(such as the scanner). The sample configuration already uses absolute
-paths; if yours doesn't, write the paths out in full.
+Since a lot changed since v2025.21.0, read the upgrade notes first.
 
-### New features
+### Upgrading
 
-The camera and lens information pages now have two more graphs: per the
-paired item (for a camera, the lenses, and vice-versa) statistics (bar
-chart) and timeline, per-paired item trends (line chart). This should show
-better the actual usage of a camera or lens, and including the pairings.
-Of course, these are only useful in terms of timeline for fixed-lens
-cameras.
+Configuration changes:
 
-Additionally, all the timeline graphs (either on global camera and lens
-stats, or in the individual pages) have been switched to bars for better
-readability, and even more, correctness. The previous method of
-line+markers was connecting across gaps, which was misleading, and was
-significantly complicating the shape of the graph. Will have to see if
-this is indeed better.
+- The new `viewableimages` key is required: it lists the file
+  extensions that browsers can show directly, without conversion
+  (previously hard-coded). The sample configuration has a starting
+  point.
+- `sourcedirs`, `outputdirs` and `cachedir` must be absolute paths;
+  Corydalis refuses to start otherwise.
+- `secure-sessions` is now optional and defaults to true, and
+  `https: true` now always makes the cookies secure. Serving plain HTTP
+  (other than on `localhost`) needs `secure-sessions: false`; Corydalis
+  warns at startup if `approot` is a plain `http://` URL while the
+  cookies are secure.
+- The `Strict-Transport-Security` header is no longer tied to
+  `secure-sessions`, but has its own `strict-transport-security`
+  setting, which defaults to `https` (and to off with a Unix socket).
+  If your reverse proxy already sends the header, leave it off here.
+- Previews are now built with an explicit ImageMagick decoder (per
+  file extension) and ffmpeg demuxer (per movie extension), with
+  defaults for the usual formats: if you added extensions to
+  `jpegexts`, `viewableimages` or `movieexts`, check that the new
+  `imagedecoders` and `moviedemuxers` settings cover them, otherwise
+  those files get no previews.
+- Corydalis now ships an ImageMagick security policy,
+  `config/magick/policy.xml`, used when `magickpolicydir` points to its
+  directory (as in the sample configuration). Copy it when installing:
+  Corydalis then refuses to start unless ImageMagick loads it. Its
+  resource limits (e.g. images of at most 32K pixels per side) replace
+  the system ones, so check them against your largest pictures (e.g.
+  panoramas).
 
-### Changed behaviour
+Deployment changes:
 
-The complex 5 view modes (image list, image grid, folder list, folder grid
-and image view) are being reworked. The longer goal is to make moving
-around the site more natural and to simplify it.
+- The cache directory must be a single filesystem (files are written
+  in its `.tmp` directory, then moved into place), and each instance
+  needs its own: a production and a development build can no longer
+  share one.
+- `/dev/fd/0` and `/dev/fd/1` must exist (as on any usual Linux system,
+  including under systemd's `PrivateDevices`), since ImageMagick now
+  reads and writes through them.
+- HEIC/HEIF previews need libheif's HEVC decoder, which recent Debian
+  and Ubuntu releases package separately (`libheif-plugin-libde265`).
+- Symbolic links and special files in the picture folders are now
+  skipped (and listed as errors on the status page), including links to
+  directories: if you use such links to keep pictures elsewhere, add
+  their targets to `sourcedirs` or `outputdirs` instead.
+- The `config` directory (holding the session key) and the database
+  directory are restricted to their owner at startup (with a warning if
+  that's not possible), and may not be inside the picture or cache
+  directories, otherwise Corydalis refuses to start.
+- If a reverse proxy in front of Corydalis sets a
+  `Content-Security-Policy` header, align it with the one Corydalis now
+  sends (browsers apply both).
 
-Currently two main changes have been done.
+On the first start after upgrading:
 
-On the navigation side, using the "chips" to go to a year, or
-location-based attribute, will directly jump to a folder list, whereas the
-others will obey the "view mode".
+- the database migrations (marking deleted users, the users' session
+  generation, and dropping the foreign key on the flagged images'
+  author) are done automatically;
+- the repository is rescanned, as the configuration is part of its
+  cache;
+- everybody has to log in again once, and pages opened before the
+  upgrade must be reloaded; scripts posting to Corydalis must now send
+  a CSRF token, and real PUT/DELETE requests to flag images.
 
-On the view modes, there was a difference between "folder browse"—which
-navigated to the first folder image in "view" mode—and image browsing,
-which opened an inline view of the image (using the `fancybox` library).
-This latter inline view mode has been replaced with the standard view mode
-of the application, which is now the only image/movie viewer model.
+Optional clean-ups:
 
-Furthermore, the above-mentioned folder browse mode, which looked similar
-but behaved different from the image browse mode, has been entirely
-removed. For folders, the only remaining mode is listing, which makes more
-sense as showing just a picture was not representative for a folder.
+- Small pictures were upscaled in the cache; the fix doesn't remove the
+  existing too-large previews, so consider wiping the cache.
+- Thumbnails built before the upgrade contain the full server path of
+  their picture (see below); they are the cache files ending in a dash
+  and a size up to `thumbnailsize` (e.g. `-64`), and can be removed to
+  rebuild them.
+- If you used the detailed request logging, remove the old logs, which
+  contain the login passwords (see below).
+- If untrusted users can add files to your picture folders, check for
+  files named starting with a dash, and for unexpected `_original`
+  backups (see below).
 
-In the movie play mode, if the end of the movie is reached, pressing
-spacebar once again will advance to the next item, instead of replaying
-the movie.
+### Security
 
-The "Flag" and "Un-flag" buttons on the image information page and on the
-flagged images page now work in place, like flagging in the image viewer:
-the result is shown as a notification in the bottom right corner of the
-page, instead of reloading the image page. Notifications disappear after
-a few seconds, except for errors, which stay until closed. The buttons
-require JavaScript.
+These were found by security reviews of the code.
 
-The rendering phase of the repository scan has now been changed to better
-show the progress; it does two passes, first classifying what is already
-rendered (and up to date) and what is pending, and in the second pass,
-processing the pending items, so that both the remaining count and the ETA
-of the computation are more accurate.
+#### Untrusted files in the picture folders
 
-The logout button now logs out directly, instead of going through an
-intermediate page, and afterwards always shows the login page.
+Pictures and movies often come from elsewhere, so their files (names
+and contents) are treated as untrusted:
 
-Many icons have been changed so that different things no longer share the
-same icon: the search attributes (e.g. lens vs. camera, person vs. people
-count, season/month/day vs. year, flash mode vs. flash source), the viewer
-buttons (zoom vs. search, the folder list vs. the image list), and a few
-homepage and status icons. The "random image" button on the homepage now
-uses the same icon as the one in the viewer.
+- File names starting with a dash were interpreted as options by
+  `exiftool` while scanning: a file named e.g. `-Comment=x.jpg` could
+  switch it to write mode, and modify, rename or move the other files
+  scanned with it. File names are no longer read as options.
+- ImageMagick guessed the format of a file from its contents, so a
+  PostScript or SVG document named e.g. `photo.jpg` (or embedded as the
+  preview of a RAW file) was decoded as such, PostScript through
+  Ghostscript, which has had several sandbox escapes. ImageMagick is
+  now told which decoder to use, based on the extension (see
+  `imagedecoders`; decoders running programs or reading other files are
+  refused), and restricted by the shipped security policy.
+- Similarly, ffmpeg guessed the format of movies, and some formats
+  (e.g. a concat script named `movie.mp4`) make it read other files. It
+  is now told which demuxer to use (see `moviedemuxers`; only plain
+  container formats are accepted), and only allowed to read local
+  files.
+- Files were served with the type detected from their contents, so an
+  SVG or HTML file named `photo.jpg` was served as a document, and could
+  run scripts as the logged-in user. Only image and video types
+  (excluding SVG) are passed through; anything else is served as a JPEG
+  image or MP4 movie, opened directly it is sandboxed, and all
+  responses forbid content type guessing (`nosniff`).
+- The scan followed symbolic links to files, so anyone able to add one
+  to a picture folder (e.g. `key.jpg`) could download any file the
+  application can read, such as the session key. Symbolic links and
+  special files are now skipped, and before reading or serving a file,
+  it is checked again that no part of its path has been replaced by a
+  symbolic link since the scan.
+- Previews embedded in RAW files and movies are only used if they are
+  actually JPEG images.
+- Files that are not a known image, movie or sidecar format (e.g.
+  `SHA1SUMS`) are no longer treated as pictures, so `exiftool` and
+  ImageMagick no longer run on them (see below).
+- Markup in names coming from the files (folder names, or camera and
+  lens names from the metadata) was turned into HTML elements in the
+  drop-down filters of the image lists, and partly interpreted on the
+  charts (e.g. as links). The charts now show such names as written,
+  and these drop-down filters (folder, camera and lens) have been
+  removed; the text filters still work on these columns.
 
-The sortable tables (folder and image lists, camera and lens statistics,
-and so on) no longer use the `tablesorter` plugin, but a small built-in
-module that does what Corydalis used: sorting (shift-click on a header to
-add a secondary sort column), the filter row, and the group headers. They
-load much faster on large lists, and sorting now works from the keyboard,
-as the column headers are buttons. The filters are "contains" matches,
-except that on numeric columns (e.g. image counts) a filter starting with
-a comparison operator compares the numbers: `>10`, `<=5`, `!=0`, with the
-same operators as the numeric search atoms (`=`, `!=`, `<`, `<=`, `>`,
-`>=`, plus their alternative spellings). The rest of the filter syntax
-of `tablesorter` (e.g. `a|b` or ranges) is no longer supported. Group
-headers are no longer collapsible (this was already disabled).
+The installation documentation now describes who should be able to
+write to the picture folders.
 
-The usage periods in the camera and lens statistics are now computed in
-calendar years and months, instead of approximating a year as 365 days
-and a month as 30, so e.g. a full year is shown as "1 year" rather than
-"1 year and 1 day" in leap years.
+#### Public sites
 
-Quick searches are now limited to 200 characters and 10 (distinct)
-words, as each word is checked against the whole repository; longer
-searches are rejected. The message listing the filters skipped by a
-quick search shows at most five of them, as it is kept in the session
-cookie until shown.
+On public sites (built with the `public-site` flag), anonymous visitors
+could see:
 
-The external tools building the previews (ImageMagick, ffmpeg, and
-exiftool when extracting embedded previews) are now stopped if they run
-for more than five minutes, e.g. on a crafted file, and the preview
-fails, with what the tool wrote to its error output until then.
-Previously, they could run indefinitely, and a cancelled request waited
-for the tool to finish; the tool is now stopped as well.
+- the flagged images pages, which show the names of the users who
+  flagged the images, i.e. valid login names, the settings page, which
+  shows the server configuration, and the status pages, which show the
+  errors of the scan; these pages now always require logging in;
+- the full paths of the folders and files on the server, on the folder
+  and image pages, and the raw image record; they now see the paths
+  relative to the configured directories, prefixed by the kind of
+  directory (e.g. `output: 2020/2020-01-01 Trip`), and no raw record;
+- the error output of the external tools (which names the paths of the
+  picture and its cache files) in the error image shown for a preview
+  that could not be built; they now get a generic message, while the
+  details are logged (previously, most weren't), and still shown to
+  logged in users;
+- the pictures' problems (the errors and warnings from reading their
+  metadata, which can name paths), on the home and curate pages, in the
+  problems list, on the image page, and by searching for them; these
+  are now only shown to logged in users: searches by problem are
+  refused, and quick searches don't look at problems;
+- the repository status (including the error of a failed scan) on the
+  login and "not found" pages, and in the navigation bar's status icon;
+  these are now only shown to logged in users;
+- the full server path of the picture inside thumbnails, as recorded by
+  ImageMagick; new thumbnails no longer have it.
 
-At most as many preview tools run at once as the application uses
-processors (by default, all of them); further requests for previews not
-built yet wait for their turn. Previously, many such requests at once
-(e.g. by scrolling quickly through a folder not yet rendered, or by a
-crawler) could run any number of ImageMagick or ffmpeg processes at
-once.
+#### Logins, sessions and CSRF
 
-Both limits can be changed, with the new `render-tool-timeout` (in
-seconds) and `render-tool-slots` settings.
+- Logging in took much longer for existing users than for unknown ones,
+  which showed whether a user name exists; both now take the same time.
+  The login no longer accepts JSON requests, only the form.
+- Sessions stayed logged in indefinitely if used at least every two
+  hours. Logins are now valid for at most a week, configurable with the
+  new `session-max-age` setting (in hours).
+- Deleting a user, changing a password, or restoring a deleted user
+  (with `db-util`) didn't end the user's sessions; worse, SQLite could
+  give the id of a deleted user to the next user added, who then
+  inherited the deleted user's sessions. Deleted users are now kept,
+  marked as deleted, so their ids are never reused, and each user has a
+  session generation, increased by these operations, which ends all its
+  sessions. The new `db-util logout` command does only that.
+- State-changing requests (flagging images, triggering a rescan) had no
+  CSRF protection. They, and the login form, now need a CSRF token,
+  which is replaced when logging in and out; the session cookie is
+  `SameSite=Lax`; and forms can no longer turn a POST into a PUT or
+  DELETE request (via a `_method` field).
+- After logging in or out, a rescan, or flagging an image from a form,
+  Corydalis redirected to the page in the `Referer` header, even on
+  another site. It now only returns to its own pages, and logging out
+  always shows the login page.
+- `https: true` was documented to force secure cookies, but didn't; it
+  does now, and secure cookies are the default (see the upgrade notes).
+- The `Strict-Transport-Security` header had a `max-age` of two hours
+  (the session timeout, taken as seconds); it is now one year, and
+  covers all responses, including static files.
+- The session key (`config/client_session_key.aes`), with which anyone
+  can create session cookies for any user, and the database, holding
+  the password hashes, were created readable by all users of the
+  machine. Their directories are now restricted at startup; see the
+  installation documentation on replacing the key, if other users could
+  have read it.
+- (Development only) When run from GHCi via `DevelMain.update`, the
+  server listened on all interfaces, with the password-less development
+  login enabled; it now uses the configured host.
 
-The scan's exiftool runs, which read the metadata of the files in
-batches, have the same kind of limits, separately (the previews the
-scan renders use the render ones): a run is stopped after ten
-minutes, and all the files of its batch then get the error (again at
-each scan, if one of them makes exiftool hang); and at most as many
-runs happen at once as the application uses processors. Previously, a
-run could run indefinitely (e.g. on a crafted file), so that the scan
-never finished, and the scan could run one exiftool at once for each
-directory directly under the picture directories (e.g. one per year).
-They can be changed with the new `scan-tool-timeout` (in seconds) and
-`scan-tool-slots` settings.
+#### HTTP headers
 
-When extracting the first frame of a movie fails, the error now only
-has ffmpeg's error messages, instead of also its banner and the details
-of the movie's streams.
+- Dynamic pages, JSON, served media and errors had no `Cache-Control`
+  header, and the favicon was `public` while setting the session cookie,
+  so a caching reverse proxy or CDN could serve a logged-in response,
+  or a session cookie, to other visitors. They now send
+  `Cache-Control: private, no-cache` (the favicon `private`, with a
+  long `max-age`); static assets remain publicly cacheable.
+- All responses send a `Content-Security-Policy` that only allows
+  scripts from Corydalis' own static files, so that an HTML injection
+  can't run code, and forbids embedding the pages in frames.
+- All responses send `Referrer-Policy: same-origin`, so that the URLs of
+  Corydalis pages, which contain folder and image names and search
+  terms, aren't sent to other sites.
+
+#### Logs
+
+- The detailed request logging (`request-logging: "detailed"`, the
+  default in development builds) logged the password of each login in
+  plain text. The password is now hidden, and raw request bodies are no
+  longer logged.
+- Text from outside the application (file names, tool output, request
+  paths and headers) was logged unchanged, so newlines could forge log
+  lines, and terminal escape sequences act on the terminal of whoever
+  reads the logs. Control characters, invisible formatting characters
+  (e.g. bidirectional text controls) and similar are now escaped, e.g.
+  as `\x0a`. The request logs in the Apache format are escaped by
+  wai-logger, since version 2.5.1, as Apache httpd does; Corydalis now
+  needs this version, which the Stack configuration adds. The client
+  address taken from `X-Forwarded-For` or `X-Real-IP` is now only the
+  first address in the header.
+
+#### Resource limits
+
+- The external tools building previews (ImageMagick, ffmpeg, and
+  exiftool extracting embedded previews) could run indefinitely, e.g.
+  on a crafted file, and any number of them could run at once (e.g.
+  scrolling quickly through a folder not yet rendered, or a crawler).
+  They are now stopped after five minutes, with at most as many at once
+  as the application uses processors, configurable with the new
+  `render-tool-timeout` and `render-tool-slots` settings. A cancelled
+  request now stops its tool too.
+- Likewise, the scan's exiftool runs could hang (so that the scan never
+  finished), and run one at once per directory directly under the
+  picture directories. They are now stopped after ten minutes (all the
+  files of the batch then get the error), with the same limit on how
+  many run at once: see the new `scan-tool-timeout` and
+  `scan-tool-slots` settings.
+- The ImageMagick policy limits the image size, memory and disk used.
+- Quick searches are limited to 200 characters and 10 distinct words,
+  as each word is checked against the whole repository.
+
+### New features and changes
+
+- The camera and lens pages have two more charts: the statistics and
+  the timeline per paired item (for a camera, its lenses, and
+  vice-versa). All the timeline charts are now bar charts, as the
+  previous lines connected across gaps, which was misleading.
+- The view modes are being reworked, to make moving around the site
+  more natural. The "chips" for a year or a location go directly to a
+  folder list, while the others follow the view mode. The inline image
+  view of the image grid (with the `fancybox` library) is replaced by
+  the application's standard viewer, now the only one; and the folder
+  browse mode is removed, as one picture doesn't represent a folder
+  well, leaving folder listing.
+- The sortable tables (folder and image lists, camera and lens
+  statistics, etc.) use a small built-in module instead of the
+  `tablesorter` plugin: they load much faster on large lists, and can
+  be sorted from the keyboard. Filters match any part of the text; on
+  numeric columns, they can compare numbers (e.g. `>10`, `<=5`, `!=0`).
+  The rest of tablesorter's filter syntax (e.g. `a|b`, or ranges) is no
+  longer supported.
+- The "Flag" and "Un-flag" buttons on the image and flagged images
+  pages now work in place, as in the viewer, with a notification instead
+  of reloading the page (they now need JavaScript).
+- In the movie player, pressing space at the end of a movie goes to the
+  next item, instead of replaying it.
+- The logout button logs out directly, without an intermediate page.
+- The rendering phase of the scan now first classifies what is already
+  rendered and what is pending, then renders the pending items, so the
+  remaining count and ETA are more accurate.
+- Many icons changed, so that different things no longer share one.
+- Usage periods in the camera and lens statistics are computed in
+  calendar years and months (e.g. a full year is "1 year", not "1 year
+  and 1 day" in leap years).
+- Files that are not a known image, movie or sidecar format are listed
+  separately on the folder page, and don't affect folder dates; a
+  `type=unknown` search finds the folders containing them. With many
+  such files, scans are faster.
+- Folder events (work in progress, and not documented yet): a folder
+  can declare an event (generic, birthday, getaway, grand vacation or
+  work trip, with a name and people) in a `corydalis.yaml` file, read
+  only as a regular file of at most 64 KiB; folders without one, spanning
+  more than two days, get an inferred getaway (or grand vacation, from a
+  week). Events are
+  shown on the folder page and summarised on the home page, and folders
+  can be searched by them (e.g. `event`, `birthday`, `event-kind`), but
+  pictures don't match these searches yet, and the file format may
+  still change.
+
+### Deployment and configuration
+
+New settings, all optional unless noted (see the sample configuration
+and the installation documentation):
+
+- `viewableimages` (required, see the upgrade notes);
+- `unix-socket`, to listen on a Unix socket instead of a TCP port,
+  behind a reverse proxy, with `unix-socket-group` and
+  `unix-socket-mode` (e.g. `"0660"`) to let a proxy running as another
+  user connect; at startup, only a socket left at that path is
+  replaced, and anything else there makes Corydalis refuse to start;
+- `strict-transport-security`, for the HSTS header;
+- `session-max-age`, the maximum age of a login, in hours;
+- `imagedecoders`, `moviedemuxers` and `magickpolicydir`, for building
+  previews;
+- `render-tool-timeout`, `render-tool-slots`, `scan-tool-timeout` and
+  `scan-tool-slots`, the limits of the external tools.
+
+Also:
+
+- the new `db-util logout` command ends all the sessions of a user;
+- a sample systemd unit, `config/corydalis.service.sample`, uses
+  systemd's sandboxing to limit what Corydalis and its tools can do;
+- the installation documentation has an example of limiting login
+  attempts in nginx;
+- the flagged images' author is no longer a foreign key to the users
+  table, which prevented removing users who had flagged images.
 
 ### Fixed bugs
 
-The static files directory still had links to libraries that are now
-bundled, or no longer used: the files were served, although unused, and
-the link to jQuery, dropped earlier, was broken, which made the
-installation step copying the directory (`cp -aL static`) fail. These
-links are removed, and a new check (`make check-static`, also run by
-`make release`) catches unused static files and broken links.
-
-With ImageMagick 6 (as shipped by Debian and Ubuntu), the ImageMagick
-policy added in this release (see below) made all the (non-thumbnail)
-image previews fail: they were written as `jpg`, which ImageMagick 6
-checks against the policy as such, while the policy only allows `JPEG`
-(ImageMagick 7 resolves the alias first). Previews are now written as
-`jpeg`, and served with the standard `image/jpeg` content type instead
-of `image/jpg`.
-
-Moreover, a failed preview build could leave an empty file in the cache,
-which was then served (as an empty image) instead of being rebuilt.
-Previews are now written to a temporary file, and moved into the cache
-only once complete; empty files already in the cache are rebuilt.
-
-Pictures holding several images (e.g. multi-page TIFF files, animated
-WebP images, or HEIC files with several images) got no preview, and
-were converted again at each attempt to view them: ImageMagick wrote
-one numbered file per image instead of the preview. Pictures with a
-format specifier in their path (e.g. `100%d.jpg`, or a folder named
-`d%d`) got no preview either, as ImageMagick wrote it under another
-name. The preview is now built from the first image only (for HEIC
-files, the primary image); ImageMagick reads the picture from its
-standard input and writes the preview to its standard output, so that
-it has no file names to interpret; and a preview is only kept if it
-starts with the signature of the expected format (PNG or JPEG).
-
-A preview that couldn't be written to the cache at all (e.g. for a
-picture whose name becomes too long with the cache suffix) made the
-request fail with a server error, and, when rendering the previews
-after a scan, stopped the scan with an error, leaving the other
-pictures' previews unbuilt. It is now reported as any other failed
-preview, for that picture only.
-
-Thumbnails no longer include the full server path of their picture,
-which ImageMagick records in them, and which on a public site was thus
-visible to anyone looking inside a thumbnail file. Thumbnails built
-earlier keep it until they are rebuilt, e.g. after removing them from
-the cache directory (they are the files ending in a dash and a size up
-to `thumbnailsize`, e.g. `-64`).
-
-The cache cleanup after a scan deleted the cache files of a picture
-when another picture's name starts with its name followed by a
-character sorting before a dash (e.g. `a.nef`, next to
-`a.nef copy.jpg`); they were then rebuilt when needed. It also kept
-the previews of sizes no longer configured, and the cache files of a
-removed picture whose name starts with another picture's (e.g. those
-of a removed `a.nef copy 2.jpg`, next to `a.nef`). It now keeps
-exactly the cache files of the pictures in the library, for the sizes
-configured.
-
-Camera and lens names containing HTML (they come from the pictures'
-metadata) were partly interpreted as such on the charts, e.g. showing a
-link; they are now shown as written.
-
-Searches combining a negative number of filters (`any` or `all` with a
-negative count) are now refused, instead of silently matching
-everything or nothing. Browsing images at a huge page number showed the
-first page, with a negative starting index and a broken link to the
-next page, as the page's position overflowed; such pages are now empty,
-as any other page past the end. A `pagesize` that isn't positive is now
-refused at startup.
-
-On the status page, finished work (scan, rendering and cache cleaning)
-is shown with a green border again, as intended: a typo in the style
-name meant it had no border.
-
-In the image viewer, failing to load the image information or a random
-image (e.g. because the server is unreachable) was only logged to the
-browser console, so the viewer seemed to hang; such errors are now shown
-in the viewer, and stay until the next message. An expired session (as
-also when flagging an image, here and on the other pages) is reported as
-such, asking to reload the page to log in again.
-
-If `ffmpeg` was not installed, a single movie without an embedded preview
-made the whole repository scan fail with an error status: on a rescan, the
-repository kept the contents of the previous scan, missing any changes
-since, and on a first scan (without cached data) it remained empty.
-Failing to run `ffmpeg` (or `exiftool`, when extracting
-previews) now only affects the preview of that one image or movie.
-Similarly, error output from these tools (including `convert`) that is not
-valid UTF-8, e.g. because it contains a file name, no longer causes
-further failures.
-
-Files that are not a known image, movie, or sidecar format (for example
-`SHA1SUMS`, `corydalis.yaml`, or files with no extension) are no longer
-treated as pictures. They are listed separately on the folder page, they
-do not affect folder timestamps or date ranges, and the renderer no longer
-tries to generate previews for them. A `type=unknown` search lists folders
-that contain such files. If there are many such files in the repository,
-this will speed up the scans, and furthermore it will not run `exiftool`
-and `convert` on arbitrary files, which might be problematic.
-
-When going from any other page to the image viewer, and then moving to
-another image (still inside the image viewer), navigating back in history
-to the first image was not working. This has been fixed.
-
-The picture cache had a bug in that for small pictures, they would be
-upscaled instead of left as-is. With many small pictures and with high
-maximum size auto-render, this could lead to significant cache usage. This
-has now been fixed, but the "too-large" thumbnails will not be
-automatically cleaned, it's recommended to wipe the cache manually.
-
-Security: file names starting with a dash were interpreted as options by
-`exiftool` while scanning a folder. A file named, for example,
-`-Comment=x.jpg` could switch `exiftool` to write mode, and modify, rename
-or move the other files being scanned with it. File names can no longer be
-interpreted as options. If untrusted users can add files to your picture
-folders, consider checking for such files, and for unexpected `_original`
-backups.
-
-Security: previews were built by passing the file to ImageMagick's
-`convert` without saying what format it is, so ImageMagick guessed it from
-the file contents. A PostScript or SVG document named, for example,
-`photo.jpg` (or embedded as the preview of a RAW file) was therefore
-decoded as such, and PostScript is run through Ghostscript, which has had
-several sandbox escapes. If untrusted users can add files to your picture
-folders, this could read other files into a served preview, or worse.
-ImageMagick is now always told which decoder to use, based on the file
-extension (see the new `imagedecoders` setting below), and can
-additionally be restricted by a security policy shipped with Corydalis.
-
-Security: similarly, the first frame of movies without an embedded
-preview was extracted by ffmpeg without saying what format the file is,
-so ffmpeg guessed it from the contents. Some formats make ffmpeg read
-other files: recent ffmpeg versions refuse the known cases of this
-(playlists need their own extension, and concat scripts can only refer
-to files next to them), but e.g. a concat script named `movie.mp4` was
-still read as such. ffmpeg is now always told which demuxer to use,
-based on the file extension (see the new `moviedemuxers` setting below),
-limited to plain container formats, and only allowed to read local
-files. Also, the extracted frames, and the previews extracted with
-exiftool, are now written to a temporary file first, so that a failed
-or interrupted extraction doesn't leave a partial preview behind, which
-was then used as is.
-
-Security: dynamic pages, JSON endpoints, served media, and error
-responses did not send a `Cache-Control` header, and the favicon sent
-`Cache-Control: public` alongside the session cookie. Behind a caching
-reverse proxy or CDN (especially on a public site, where the same URLs
-show storage paths, scan errors, raw records, and CSRF tokens to
-logged-in users), a shared cache could serve a logged-in response, or a
-cached favicon's session cookie and CSRF token, to other visitors.
-Responses without their own `Cache-Control` header (other than
-successful static assets) now send `Cache-Control: private, no-cache`,
-which forbids shared caches from storing them and requires browsers to
-revalidate with the server before reuse (served images and movies still
-avoid re-downloading via `304 Not Modified`), while keeping browser
-back/forward navigation working; the trade-off compared to `no-store` is
-that browsers on shared devices may still retain visited pages in cache
-after logout. Responses with their own `Cache-Control` (such as Yesod's
-redirects) keep it, the favicon now sends `private, max-age=2592000`,
-and static assets remain publicly cacheable.
-
-Previews embedded in RAW files and movies are now only used if they are
-actually JPEG images. Exiftool already checks this for most of them, but
-not all; otherwise, a non-JPEG preview was saved and used, failing to
-build the scaled-down versions, and preventing the use of the next
-embedded preview, if any.
-
-Previews extracted from RAW files and movies (the embedded preview, or
-the first frame of the movie) were cached forever, so after editing or
-replacing such a file, the old preview kept being shown. They are now
-extracted again if the file changed since.
-
-Security: with the detailed request logging (`request-logging:
-"detailed"`, the default in development builds), the request parameters
-were logged, including the password of each login, in plain text. The
-password is now hidden, and the raw request bodies are no longer logged.
-If you used detailed request logging, consider removing the old logs.
-
-Security: the request logs in the Apache format contained the fields
-taken from the request (the client address, if taken from the headers,
-the method, the path, the referrer and the user agent) as they were:
-newlines in them could make a request look like several log lines, e.g.
-forged ones, terminal escape sequences could act on the terminal of
-whoever reads the logs, and quotes could shift the fields seen by log
-parsers. These fields are now escaped by the library formatting these
-lines, wai-logger, since version 2.5.1
-([logger#226](https://github.com/kazu-yamamoto/logger/issues/226)), as
-Apache httpd does: quotes and backslashes with a backslash (`\"`,
-`\\`), whitespace controls in C notation (e.g. `\n`), and other
-non-printable or non-ASCII bytes as `\xhh`, so that log analysis tools
-read them as they read Apache's logs. The client address taken from the
-`X-Forwarded-For` or `X-Real-IP` headers is also only the first address
-in the header. Corydalis now needs wai-logger 2.5.1 or later, which the
-Stack configuration adds to the snapshot.
-
-Security: the logs could contain text from outside the application
-unchanged: file names and the output of the external tools in the
-application logs, and parts of requests (e.g. the path and the headers)
-in the detailed request logs. Newlines in it could make a message look
-like several log lines, e.g. forged ones, and terminal escape sequences
-could act on the terminal of whoever reads the logs. Such characters
-are now escaped, as `\x0a` (or `\u{202e}` for characters above
-U+00FF): control characters (including newlines, tabs and the escape
-character), the Unicode line and paragraph separators, invisible
-formatting characters (including the bidirectional text controls, which
-can make a line display differently from its contents), spaces other
-than the ASCII one, private use and unassigned characters, and the
-backslash itself, so that the escapes are unambiguous. Other characters,
-such as accented letters, are logged as they are. The detailed request
-logs, meant for debugging, keep several lines per request, but each
-line is escaped in the same way. The request logs in the Apache format
-are escaped by wai-logger instead, as described above.
-
-Security: on public sites (built with the `public-site` flag), anonymous
-visitors could see the flagged images pages, which show the names of the
-users who flagged the images, i.e. valid login names, and the settings
-page, which shows the server configuration, e.g. the paths of the picture
-folders. Similarly, the status pages show the errors of the repository
-scan, which can also contain such paths. These pages now always require
-logging in.
-
-Security: on public sites, the folder and image pages showed anonymous
-visitors the full paths of the folders and files on the server, which
-reveal the configured picture directories, the same information that
-the settings page only shows after logging in. Anonymous visitors now
-see the paths relative to the configured directories, prefixed by the
-kind of directory (for example, `output: 2020/2020-01-01 Trip`), and the
-raw image record at the bottom of the image page is not shown to them.
-
-Security: on public sites, when an image or movie preview could not be
-read or built, the error image shown to anonymous visitors contained the
-error output of the external tools (ImageMagick, `exiftool`, `ffmpeg`),
-which names the full paths of the picture and its cache files. Anonymous
-visitors now get a generic message, while logged in users still see the
-details in the error image. In both cases, the error and its details are
-now always logged (previously, most of them weren't logged at all).
-
-Security: on public sites, the problems of the pictures (the errors and
-warnings from reading their metadata, e.g. those of `exiftool`, which
-can name paths on the server) were shown to anonymous visitors: on the
-home and curate pages, in the problems list, as the warnings on the
-image page, and in the results of searches by problem. They are now
-only shown to logged in users: anonymous visitors don't see them, a
-search using the `problem` atom is refused, and quick searches don't
-look at problems.
-
-Security: the repository status shown at the top of all pages, including
-the error message of a failed scan (which can contain e.g. paths on the
-server), was also shown to anonymous visitors, on the login page and the
-"not found" page. It is now only shown to logged in users, and the
-status icon in the navigation bar no longer shows the repository state
-(e.g. a failed scan) to anonymous visitors.
-
-Security: the session key (`config/client_session_key.aes`), which
-encrypts and authenticates the session cookies, and the database, which
-holds the password hashes, were created with the default permissions,
-i.e. usually readable by all users on the machine; with the session key,
-they could create session cookies and log in as any user. At startup,
-the `config` directory and the database directory are now restricted to
-their owner, if needed; if this isn't possible (e.g. if owned by another
-user), a warning is logged instead. See the installation documentation
-on replacing the key, if other users could have read it.
-
-Security: the repository scan followed symbolic links to files, which
-were then shown and served like any other picture, so anyone who could
-add a symbolic link to a picture folder (named, for example, `key.jpg`)
-could download any file the application can read, e.g. the session key.
-Symbolic links, and other special files (pipes, sockets and devices),
-are now skipped at all levels of the picture folders, and listed as
-errors on the status page. This includes symbolic links to directories,
-which were already ignored, but silently; if you use such links to keep
-pictures elsewhere, add their targets to the configured source or output
-directories instead. Additionally, before reading or serving a file, it
-is checked again that no part of its path below the configured
-directories has been replaced by a symbolic link since the scan.
-
-Security: the per-folder `corydalis.yaml` files were still read through
-symbolic links, and from special files: a link to e.g. `/dev/zero` made
-the scan read until it ran out of memory, and one to a YAML file outside
-the picture folders showed its contents (if valid) on the folder page.
-These files are now only read if the scan found them as regular files,
-like pictures (a symbolic link or special file is listed as an error on
-the status page), and of at most 64 KiB; a file that is ignored for its
-size, or can't be read or parsed, is logged as a warning.
-
-Security: the application now refuses to start if the `config`
-directory (holding the session key) or the directory holding the
-database is within one of the configured source or output directories,
-since their files would then be scanned, and possibly shown, like
-pictures, or within the cache directory, where the cache cleanup could
-delete them (as would clearing the cache).
-
-Security: logging in with a password took much longer for existing users
-than for unknown ones, since the (deliberately slow) password check was
-only done for the former, so the response time showed whether a user
-name exists. Logging in as an unknown user (or a user without a
-password) now checks the password against a dummy one, taking the same
-time. As a side effect, the login no longer accepts JSON requests, only
-the login form, which is all Corydalis uses.
-
-Security: deleting a user (with `db-util`) didn't end the user's
-sessions, which kept working until they expired, and since the sessions
-only hold the id of the user, and SQLite can reuse the id of the last
-user once it's deleted, the next user added could get the same id, and
-these sessions would then be logged in as the new user. Deleted users
-are now kept in the database, marked as deleted, so their ids are never
-reused; they can't log in, and their sessions are no longer valid.
-Adding a deleted user again restores it, with the same id. The database
-migration adding the mark is done automatically at the first start
-after upgrading.
-
-Security: a session that was used at least every two hours stayed
-logged in indefinitely, even after, for example, the password of the
-user was changed. Logins are now valid for at most a week, configurable
-(in hours) with the new `session-max-age` setting, after which users
-have to log in again. Since sessions from before upgrading don't record
-the login time, everybody has to log in again once after upgrading.
-
-Security: changing the password of a user didn't end its existing
-sessions, which kept working until they expired (see above); neither
-did restoring a deleted user, whose old sessions came back if they
-hadn't expired yet. Each user now has a session generation, recorded in
-the session at login, and sessions are only valid while it is current:
-changing the password, deleting, or restoring a user (with `db-util`)
-increases it, ending all the user's sessions. The new `db-util logout`
-command does only that, e.g. after losing a device that was logged in.
-The database migration adding the generation is done automatically at
-the first start after upgrading, and doesn't end the existing sessions.
-
-Security: state-changing requests (flagging and un-flagging images, and
-triggering a rescan) had no CSRF protection, so any web site could trigger
-them on behalf of a logged-in user. They, and the login form, now require
-a CSRF token, and the session cookie is now `SameSite=Lax`. Pages opened
-before upgrading must be reloaded, and any scripts posting to these
-endpoints directly must now send a token. If the token in a page becomes
-stale, for example after the session expired and you logged in again in
-another tab, flagging an image in the viewer will ask you to reload the
-page.
-
-Security hardening: POST requests can no longer be turned into PUT or
-DELETE requests via a `_method` form field. Since plain HTML forms can
-only send GET and POST, this ensures that other web sites cannot reach the
-flagging endpoints with forms, even independently of the CSRF protection.
-Scripts flagging images must now send real PUT/DELETE requests.
-
-Security hardening: all responses now include a `Content-Security-Policy`
-header. It only allows scripts loaded from Corydalis' own static files, so
-that a bug allowing HTML injection cannot be used to run code, and it
-forbids embedding Corydalis pages in frames. If a reverse proxy in front
-of Corydalis already sets such a header, browsers apply both policies, so
-you might want to remove or align the proxy's one.
-
-Security: image and movie files were served with the type detected from
-their contents, so for example an SVG or HTML file named `photo.jpg` or
-`clip.mp4` in the repository was served as a document, and could run
-scripts as the logged-in user. Only image and video types (excluding SVG)
-are now passed through, anything else being served as a JPEG image or MP4
-movie; additionally, file contents are sandboxed when opened directly,
-and all responses forbid content type guessing (`nosniff`).
-
-Security: the drop-down filters on the folder, camera and lens columns of
-image lists were built from the table cells as HTML, so markup in a folder
-name or in a picture's camera or lens EXIF data was turned into actual
-elements (the content security policy above prevents it from running
-scripts). These drop-downs have been removed; the text filters on these
-columns still work, matching any part of the name.
-
-Security: after logging in or out, Corydalis redirected to the page given
-in the request's `Referer` header, even if it was on another site, so a
-malicious site linking to the login page could send users to a fake page
-after they logged in. Now only pages of the Corydalis site itself are
-returned to after login, and logging out always shows the login page.
-
-Security (development only): when run from GHCi via `DevelMain.update`,
-the server ignored the configured `host` and listened on all IPv4
-interfaces, while the password-less development login was enabled. It now
-uses the same Warp settings, including the host, as `yesod devel`.
-
-In the image viewer, if a movie could not be played (for example because
-the browser blocked playback, or the movie format is not supported), the
-play button still switched to "pause", as if the movie was playing. The
-button now reverts to "play", and a message explains why the movie did
-not start.
-
-Similarly, if the browser refused to switch the image viewer to full
-screen (for example, due to a permissions policy when embedded), nothing
-happened. The viewer now falls back to its emulated full screen mode, the
-same as on browsers without full screen support.
-
-In the image browse mode, if loading more images while scrolling failed
-(e.g. due to a network error), the grid silently stopped growing. It now
-shows an error message below the images, and also a "Loading more
-images..." message while a page is loading, and "No more images" once the
-end is reached.
-
-Security: the documentation and the sample configuration said that
-`https: true` forces `secure-sessions`, but the two settings were read
-independently, so `https: true` with `secure-sessions: false` sent the
-session cookies without the secure bit. When serving HTTPS directly
-(without a Unix socket, which ignores `https`), the cookies are now
-always secure. Moreover, `secure-sessions` is now optional, and defaults
-to true, so that the cookies are secure by default, including behind a
-reverse proxy; serving plain HTTP, other than on `localhost`, requires
-`secure-sessions: false`, and Corydalis warns at startup if `approot` is
-a plain `http://` URL while the cookies are secure.
-
-When using a Unix socket, Corydalis removed whatever was at the
-configured path at startup, to replace a socket left by a previous run;
-with a mistake in the configuration, this could have been any file
-(e.g. the database). It now only removes a socket, and refuses to start
-if the path holds anything else.
-
-The cache cleanup failed to delete any obsolete file if the configured
-cache directory was relative, had a trailing slash, or went through a
-symlink, as the check that a file is within the cache directory compared
-the configured path with the resolved path of the file. Moreover, the
-check compared the paths as strings, so e.g. `/pics/cache2` counted as
-within `/pics/cache` (only reachable through a symlink in the cache
-directory, which Corydalis doesn't create). The cache directory is now
-resolved too, and the paths compared by whole components.
-
-Searching for a missing value of an attribute that always has one, e.g.
-`no-folder`, `no-filename` or `no-status` in the URL, made the server
-fail with an internal error; it is now rejected as an invalid search.
-
-After a rescan, or after flagging an image from a form, Corydalis
-redirected to the page in the request's `Referer` header, even if it was
-on another site; now it only returns to pages of the Corydalis site
-itself, as already done after login. These requests need a valid CSRF
-token, so in practice they came from Corydalis' own pages anyway.
-
-Security hardening: all responses now include `Referrer-Policy:
-same-origin`, so that browsers don't send the URLs of Corydalis pages,
-which contain folder and image names and search terms, to other sites
-(e.g. when following a link to the documentation).
-
-The `Strict-Transport-Security` header (when enabled) had a `max-age` of
-only two hours, as the session timeout (in minutes) was used for it; it
-is now one year, the usual value, so browsers keep using HTTPS for the
-site between visits.
-
-Security hardening: the CSRF token is now replaced when logging in and
-out. It was kept for the whole life of the session, so someone who knew
-the token of a session before login (e.g. by planting the session cookie
-in the browser) could forge requests as the user who then logged in.
-Pages opened before logging in or out (e.g. in other tabs) need to be
-reloaded before their buttons and forms work again.
-
-### Deployment changes
-
-HEIC/HEIF pictures have always needed libheif's HEVC decoder, which
-recent Debian and Ubuntu releases package separately
-(`libheif-plugin-libde265`); without it, their previews fail with an
-"Unsupported codec" error. The installation documentation now says so.
-
-ImageMagick now reads pictures as `/dev/fd/0` and writes previews as
-`/dev/fd/1`, so these must exist (as on any usual Linux system,
-including under systemd's `PrivateDevices`).
-
-The cache files being written (previews, and images extracted from raw
-pictures and movies) are now kept in a `.tmp` directory at the root of
-the cache directory, emptied at startup, and moved into place once
-complete; the scan's exiftool runs also write their output there,
-instead of the system's temporary directory. The cache directory must
-thus be a single filesystem, and each instance of the application
-needs its own: it can no longer be shared between a production and a
-development build either (see below).
-
-The secure sessions setting will no longer enforce also an
-[HSTS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security)
-header, but instead only set the secure bit on cookies; there is a new
-`strict-transport-security` config setting to control the header,
-defaulting to the `https` setting (but to off with `unix-socket`, which
-ignores `https`), and covering all responses, including static files.
-However, even in https mode, the header can now be skipped, since
-usually the header is emitted in front-line applications, and thus when
-Corydalis is being reverse proxied, it should not be emitted from it
-too; duplicate HSTS headers are technically incorrect and will prevent
-sites from reaching an A+ score on SSL tests.
-Note that the sample configuration file initially named this setting
-`secure-transport-security`, which is ignored; if you copied it from
-there, rename it to `strict-transport-security`.
-
-Additionally, it is now possible to bind the app to a Unix socket, instead
-of a host:port TCP connection, in order to improve performance and
-security of reverse-proxied deployments. This is controlled via the new
-`unix-socket` configuration key.
-
-Two new, optional, configuration keys control how previews are built:
-
-- `imagedecoders` maps file extensions (case-insensitively) to the
-  ImageMagick decoder to use for them. The default covers JPEG, HEIC/HEIF,
-  TIFF, PNG and WebP; files with other extensions get no previews, so if
-  you have added extensions to `jpegexts` or `viewableimages`, check that
-  they are covered. Decoders that run programs or read other files (e.g.
-  PostScript, PDF, SVG) are refused.
-- `moviedemuxers` maps movie file extensions (case-insensitively) to the
-  ffmpeg demuxer to use when extracting their first frame. The default
-  covers MP4, M4V, MOV, 3GP, AVI, MKV, WebM, MTS/M2TS and MPEG; movies
-  with other extensions get no extracted frame, so if you have added
-  extensions to `movieexts`, check that they are covered. Only plain
-  container formats (`mov`, `avi`, `matroska`, `mpegts`, `mpeg`, `asf`,
-  `ogg`) are accepted.
-- `magickpolicydir` points to a directory holding the ImageMagick security
-  policy to use; a restrictive one is in `config/magick/policy.xml`. When
-  set, Corydalis refuses to start unless ImageMagick actually loads that
-  policy; when not set, it logs a warning. See the installation
-  documentation for details. The sample configuration sets it, so copy
-  the policy too if you start from the sample.
-
-Since the configuration is part of the repository cache, the first start
-after upgrading rescans the repository.
-
-The author of a flagged image is no longer a foreign key to the users
-table, which the database migration (done automatically at the first
-start after upgrading) removes. The key wasn't needed, as flags of
-unknown authors are shown as such, but it prevented removing users who
-had flagged images, and it prevented any change to the users table,
-since the migration rebuilds the table, which the key doesn't allow.
-
-Two new, optional, configuration keys control access to the Unix socket
-(`unix-socket`): `unix-socket-group` sets its group, and
-`unix-socket-mode` its permissions (as a quoted octal string, e.g.
-`"0660"`). Connecting to the socket requires write permission on it, so
-a reverse proxy running as another user, as is usual for nginx, could
-only connect with a permissive umask, or by running on a TCP port
-instead; now it can share a dedicated group with Corydalis. See the
-installation documentation for an example.
-
-There is now a sample systemd unit, `config/corydalis.service.sample`,
-using systemd's sandboxing to limit what Corydalis and the tools it runs
-can do; and the installation documentation has an example of limiting
-login attempts in nginx.
-
-The ImageMagick policy (`config/magick/policy.xml`) now also sets
-resource limits, as in the Debian and Ubuntu policy: images at most 32K
-pixels wide and high, and limits on the memory and disk used. These
-replace the limits of the system policy, so check them against your
-pictures (e.g. large panoramas), and copy the new policy when upgrading.
+Previews and the cache:
+
+- A failed preview could leave an empty file in the cache, then served
+  instead of being rebuilt; previews are now written to a temporary
+  file and moved into place once complete, and empty files are rebuilt.
+- Pictures holding several images (multi-page TIFF, animated WebP, HEIC
+  with several images), or with a format specifier in their path (e.g.
+  `100%d.jpg`), got no preview. The preview is now built from the first
+  (or primary) image, with ImageMagick reading and writing through its
+  standard input and output, and kept only if it has the expected
+  format's signature.
+- Small pictures were upscaled in the cache (see the upgrade notes).
+- A preview that couldn't be written to the cache (e.g. a name too long
+  with the cache suffix) failed the request with a server error, and
+  stopped the scan's rendering; it now fails for that picture only.
+- Previews extracted from RAW files and movies were cached forever; they
+  are extracted again when the file changes. A non-JPEG embedded
+  preview no longer prevents using the next one.
+- Without `ffmpeg` installed, a single movie without an embedded preview
+  made the whole scan fail, keeping the previous contents (or none).
+  Failing to run `ffmpeg` or `exiftool` now only affects that preview,
+  and tool output that is not valid UTF-8 no longer causes further
+  failures. The error of a failed movie frame extraction only has
+  ffmpeg's error messages, not its banner and the stream details.
+- The cache cleanup deleted the files of a picture when another one's
+  name started with its name and a character sorting before a dash
+  (e.g. `a.nef` and `a.nef copy.jpg`), kept the previews of sizes no
+  longer configured and some files of removed pictures, and deleted
+  nothing if the cache directory had a trailing slash or went through a
+  symbolic link. It now keeps exactly the files of the pictures in the
+  library, for the configured sizes.
+
+Searches and pages:
+
+- Searching for a missing value of an attribute that always has one
+  (e.g. `no-folder`) caused an internal error; it is now refused.
+- `any`/`all` with a negative count are refused, instead of matching
+  everything or nothing; browsing at a huge page number showed the first
+  page with a broken link, and now shows an empty page; a `pagesize`
+  that isn't positive is refused at startup.
+- Finished work on the status page has its green border again.
+
+The viewer and the image grid:
+
+- Going back in history to the first image viewed didn't work.
+- Failing to load the image information or a random image only logged
+  to the browser console, so the viewer seemed to hang; such errors are
+  now shown, and an expired session asks to reload the page.
+- A movie that could not be played switched the button to "pause"
+  anyway; it now stays "play", with a message saying why.
+- If the browser refused full screen, nothing happened; the viewer now
+  falls back to its emulated full screen.
+- Failing to load more images while scrolling the grid silently stopped
+  it; it now shows an error, as well as loading and end-of-list
+  messages.
 
 ### Internal changes
 
-The third-party GitHub Actions used by the workflows (CI and the
-Copilot setup steps: `haskell-actions/setup`,
-`8c6794b6/hpc-codecov-action` and `codecov/codecov-action`) are now
-pinned to commits, with their version in a comment, which Dependabot
-keeps up to date; a tag can be moved to other code, a commit can't.
-
-Development builds no longer name their exif and repository cache files
-differently (with a `-dev` suffix), which was meant to let them share a
-cache directory with a production build; the cache cleanup now deletes
-the cache files it doesn't use, which would include the development
-build's own `-dev` exif caches. A development build rebuilds these
-files once; its old repository cache (`repo-cache-dev`, at the root of
-the cache directory, which the cleanup doesn't visit) can be deleted
-by hand.
-
-Running the tests needs ImageMagick to write HEIC pictures too, as the
-tests create some: on recent Debian and Ubuntu releases, this needs
-libheif's HEVC encoder (`libheif-plugin-x265`) as well as its decoder.
-CI installs both.
-
-The remaining (trivial) corydalis JS code has been converted to
-TypeScript, and the entire codebase has been converted to modules, and is
-using `esbuild` as a bundler. This has plusses and minuses, but brings the
-code into a more modern era and should simplify use/integration of new
-libraries.
-
-The TypeScript code is now linted with
-[oxlint](https://oxc.rs/docs/guide/usage/linter) instead of ESLint. It
-uses oxlint's default (correctness) rules plus a few extra ones, and
-removes a large number of development dependencies. It also no longer
-depends on the `typescript` package, which unblocks moving to TypeScript
-7 (the native Go port). With TypeScript 7 in place, the linter now also
-runs type-aware rules and type-checks the code, which found the movie
-playback and full screen bugs listed above.
-
-The frontend no longer uses jQuery: its remaining uses (requests to the
-server, and some DOM manipulation in the viewer) were small, and are now
-done with the standard browser APIs (`fetch` and the DOM). Requests go
-through a small helper, which adds the CSRF token to state-changing
-requests; the linter forbids using `fetch` directly elsewhere. This
-halves the size of most JavaScript bundles. Since the sortable tables
-are now small, their bundle has been merged into the basic one.
-
-The Node.js version used for development is now pinned in a
-`.node-version` file (currently Node 24), which CI uses as well; Node 20,
-as shipped by Debian stable, is no longer sufficient.
-
-Movie frames extracted with `ffmpeg` (for movies without an embedded
-preview) are now explicitly encoded as JPEG, instead of relying on the
-default of `ffmpeg`, which happened to be JPEG. The tests now need
-ImageMagick and `ffmpeg`, besides `exiftool`.
-
-The TypeScript code now has a coverage report too (`npm run coverage`,
-using `c8`), uploaded to Codecov next to the Haskell one, each with its
-own flag. It also lists the modules that no test loads (e.g. the image
-viewer), at 0%, so that the untested parts of the frontend show up
-instead of being left out.
-
-`make bootstrap` now installs the npm dependencies with `npm ci`, i.e.
-exactly the versions in `package-lock.json`, and a committed `.npmrc`
-disables the install scripts of the dependencies (which can run
-arbitrary code at install time; none are needed). The `allowScripts`
-setting in `package.json`, which npm ignores, is removed.
+- The frontend is entirely TypeScript, as ES modules bundled with
+  `esbuild`, and no longer uses jQuery: requests use `fetch` through a
+  small helper adding the CSRF token. This halves most bundles.
+- The TypeScript code is linted with oxlint (instead of ESLint), with
+  type-aware rules and type-checking, which found the movie and full
+  screen bugs above; it has unit tests (`node:test`, with jsdom for the
+  DOM), and a coverage report uploaded to Codecov next to the Haskell
+  one.
+- The development Node.js version is pinned in `.node-version` (Node
+  24, also used by CI); Node 20 is no longer enough.
+- `make bootstrap` installs the npm dependencies with `npm ci`, and a
+  committed `.npmrc` disables their install scripts.
+- `make check-static` (also run by `make release` and CI) fails on
+  unused files and broken links in the static directory.
+- The GitHub Actions used by the workflows are pinned to commits, kept
+  up to date by Dependabot.
+- Development builds no longer name their cache files with a `-dev`
+  suffix; their old `repo-cache-dev` file can be deleted.
+- The tests need `exiftool`, ImageMagick (able to write HEIC, i.e. with
+  `libheif-plugin-x265` on recent Debian and Ubuntu) and `ffmpeg`.
+- The `e2e/` directory has browser scripts, run by hand, checking the
+  tables, the charts and a public-site build.
 
 ### Dependencies
 
-The dependencies have been updated as follows:
-
-- The graphing library `plotly` has been updated to version 3.0.
-- TypeScript (used only for type-checking, since `esbuild` does the
-  bundling) has been updated to version 7, the native Go port, which
-  type-checks the code about three times faster.
-- The `tablesorter` jQuery plugin has been removed, replaced by a small
-  built-in module (see above). It was unmaintained and incompatible with
-  jQuery 4, which it was blocking.
-- jQuery has been removed (see above), instead of being updated to
-  version 4.
+- The Stackage LTS is now 24.68 (GHC 9.10), from 23.22 (GHC 9.8), and
+  wai-logger must be at least 2.5.1.
+- `plotly` 4.3 (from 2.30), Font Awesome 7 (from 6), TypeScript 7 (the
+  native Go port, from 5), `imagesloaded` 5, `infinite-scroll` 5, and
+  `screenfull` 6.
+- Removed: jQuery, `tablesorter`, `fancybox`, and ESLint.
 
 ## v2025.21.0 - "Zooming for all"
 
