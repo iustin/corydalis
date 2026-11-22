@@ -53,7 +53,8 @@ cachedBasename config path suffix =
 
 -- | The directory holding the cache files written via a temporary file
 -- (the previews, and the images extracted from raw pictures and movies)
--- while they are written, at the root of the cache directory.
+-- while they are written, at the root of the cache directory. It also
+-- holds the output of the scan's exiftool runs, while they run.
 --
 -- The cache cleanup doesn't look into it, as it only visits the cache
 -- directories of the picture directories (see 'cleanupCache'), so it
