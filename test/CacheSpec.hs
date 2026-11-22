@@ -42,6 +42,12 @@ pathShouldExist p = doesPathExist p `shouldReturn` True
 pathShouldNotExist :: FilePath -> IO ()
 pathShouldNotExist p = doesPathExist p `shouldReturn` False
 
+-- | Writes a small file, creating its directory if needed.
+writeSome :: FilePath -> IO ()
+writeSome path = do
+  createDirectoryIfMissing True (takeDirectory path)
+  BS8.writeFile path "x"
+
 setMtimeOffset :: FilePath -> POSIXTime -> IO ()
 setMtimeOffset path delta = do
   now <- getPOSIXTime
@@ -202,3 +208,27 @@ spec = parallel $ withConfig $ do
         pathIsSymbolicLink fp `shouldReturn` True
         deleteCacheFile cache "x.txt" `shouldReturn` Nothing
         pathShouldNotExist fp
+
+  describe "resetCacheTempDir" $ do
+    it "creates the cache's temporary directory" $ \config -> do
+      resetCacheTempDir config
+      listDirectory (cacheTempDir config) `shouldReturn` []
+    it "empties it, leaving the rest of the cache alone" $ \config -> do
+      let tmpDir = cacheTempDir config
+          cached = cfgCacheDir config </> "pics" </> "a.jpg-1024"
+      createDirectoryIfMissing True (tmpDir </> "sub")
+      writeSome (tmpDir </> "a.jpg-1024123.tmp")
+      writeSome (tmpDir </> "sub" </> "file")
+      writeSome cached
+      resetCacheTempDir config
+      listDirectory tmpDir `shouldReturn` []
+      doesFileExist cached `shouldReturn` True
+    it "doesn't follow symbolic links in it" $ \config -> do
+      let tmpDir = cacheTempDir config
+          outside = cfgCacheDir config </> "outside"
+      writeSome outside
+      createDirectoryIfMissing True tmpDir
+      createFileLink outside (tmpDir </> "link")
+      resetCacheTempDir config
+      listDirectory tmpDir `shouldReturn` []
+      pathShouldExist outside

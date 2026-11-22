@@ -49,10 +49,15 @@ import           Yesod.Core                           (messageLoggerSource)
 import           Yesod.Core.Types                     (Logger, loggerSet)
 
 import           Application                          (defaultCacheControl,
+                                                       makeFoundation,
                                                        makeLogFn,
                                                        redactPassword,
                                                        requestLoggerSettings)
-import           Settings                             (RequestLogging (..))
+import           Cache                                (cacheTempDir)
+import           Settings                             (RequestLogging (..),
+                                                       appConfig)
+import           System.Directory                     (createDirectoryIfMissing,
+                                                       listDirectory)
 import           TestImport
 
 -- | Runs 'defaultCacheControl' over a stub response and returns the headers.
@@ -107,6 +112,16 @@ withFileLogger action = withSystemTempDirectory "corydalis-log" $ \dir -> do
 
 spec :: Spec
 spec = do
+ describe "makeFoundation" $ do
+  it "empties the cache's temporary directory" $
+    bracket setTempDir cleanupTempDir $ \tempDir -> do
+      settings <- loadSettings >>= updateSettings tempDir
+      let tmpDir = cacheTempDir (appConfig settings)
+      createDirectoryIfMissing True (tmpDir </> "sub")
+      writeFile (tmpDir </> "a.jpg-64123.tmp") ("x" :: ByteString)
+      writeFile (tmpDir </> "sub" </> "file") ("x" :: ByteString)
+      _ <- makeFoundation settings
+      listDirectory tmpDir `shouldReturn` []
  describe "request logging" $ do
   it "doesn't log the password in the detailed format" $ do
     logged <- logOfLogin False RequestLoggingDetailed

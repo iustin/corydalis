@@ -21,6 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 
 module Cache ( cachedBasename
+             , cacheTempDir
+             , resetCacheTempDir
              , CachePathTransformer
              , writeCacheFile
              , readCacheFile
@@ -32,7 +34,8 @@ import qualified Data.ByteString.Lazy  as BSL (ByteString, writeFile)
 import           Data.List.NonEmpty    hiding (isPrefixOf, zip)
 import           Data.Time.Clock.POSIX
 import           System.Directory      (canonicalizePath,
-                                        createDirectoryIfMissing, removeFile)
+                                        createDirectoryIfMissing,
+                                        removeFile, removePathForcibly)
 import           System.FilePath       (splitFileName)
 import           System.IO.Error
 import           System.Posix.Files
@@ -47,6 +50,30 @@ cachedBasename :: Config   -- ^ Application configuration (cache directory).
                -> String   -- ^ Cache path: @cachedir/path-suffix@.
 cachedBasename config path suffix =
   cfgCacheDir config ++ "/" ++ path ++ "-" ++ suffix
+
+-- | The directory holding the cache files written via a temporary file
+-- (the previews, and the images extracted from raw pictures and movies)
+-- while they are written, at the root of the cache directory.
+--
+-- The cache cleanup doesn't look into it, as it only visits the cache
+-- directories of the picture directories (see 'cleanupCache'), so it
+-- can't delete a file being written; and as it is emptied at startup,
+-- the files left behind by a crash don't accumulate. The files are
+-- moved into place by renaming them, so the cache directory must be a
+-- single filesystem.
+cacheTempDir :: Config -> FilePath
+cacheTempDir config = cfgCacheDir config </> ".tmp"
+
+-- | Empties the directory holding the cache files being written,
+-- creating it if needed (see 'cacheTempDir').
+--
+-- This must be done at startup, before anything writes a cache file
+-- through it; no other instance may use the same cache directory.
+resetCacheTempDir :: Config -> IO ()
+resetCacheTempDir config = do
+  let dir = cacheTempDir config
+  removePathForcibly dir
+  createDirectoryIfMissing True dir
 
 -- | Types that can be written as cache file contents.
 class WritableContent a where

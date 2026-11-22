@@ -51,6 +51,7 @@ import qualified System.IO
 import           System.Process.Typed (proc, readProcess, setCloseFds)
 
 import           AtomTypes
+import           Cache              (cacheTempDir, cachedBasename)
 import           Exif
 import           Pics
 import           Utils.Yaml         (maxYamlSize)
@@ -490,7 +491,7 @@ spec = parallel $ do
             let target = cfgCacheDir config </> "dir" </> "preview"
                 picture = cfgCacheDir config </> "picture"
             writeFile picture ("the picture" :: ByteString)
-            result <- try . buildPreviewFile tools PreviewScaled target picture $
+            result <- try . buildPreviewFile tools config PreviewScaled target picture $
                         proc "sh" ["-c", script]
             return (target, result :: Either ImageError ())
           failsWith config script check = do
@@ -528,7 +529,7 @@ spec = parallel $ do
         createNamedPipe picture 0o600
         -- The time limit is only a last resort, so that a regression
         -- fails the test instead of blocking the whole test suite.
-        result <- timeout lastResort . try . buildPreviewFile tools PreviewScaled target picture $
+        result <- timeout lastResort . try . buildPreviewFile tools config PreviewScaled target picture $
                     proc "sh" ["-c", "cat"]
         case result of
           Just (Left (ImageError msg)) -> msg `shouldSatisfy` (pack picture `isInfixOf`)
@@ -546,7 +547,7 @@ spec = parallel $ do
         -- tool.
         createNamedPipe started 0o600
         withBinaryFile started ReadWriteMode $ \h -> do
-          running <- async . buildPreviewFile tools PreviewScaled target picture $
+          running <- async . buildPreviewFile tools config PreviewScaled target picture $
                        proc "sh" ["-c", "echo started > \"$0\"; exec sleep 1000", started]
           -- With a last resort time limit, in case the tool never runs.
           timeout lastResort (System.IO.hGetLine h) `shouldReturn` Just "started"
@@ -561,7 +562,7 @@ spec = parallel $ do
         tools <- testToolLimits
         let target = cfgCacheDir config </> "dir" </> "preview"
             picture = cfgCacheDir config </> "missing"
-        result <- try . buildPreviewFile tools PreviewScaled target picture $
+        result <- try . buildPreviewFile tools config PreviewScaled target picture $
                     proc "sh" ["-c", "cat"]
         case result of
           Left (ImageError msg) -> msg `shouldSatisfy` (pack picture `isInfixOf`)
@@ -1184,29 +1185,84 @@ spec = parallel $ do
       let target config = cfgCacheDir config </> "sub" </> "file"
           entries = listDirectory . takeDirectory
       it "creates the file, and its directory" $ \config -> do
-        writeViaTempFile (target config) $ \tmp ->
+        writeViaTempFile config (target config) $ \tmp ->
           writeFile tmp ("contents" :: ByteString)
         readFile (target config) `shouldReturn` ("contents" :: ByteString)
         entries (target config) `shouldReturn` ["file"]
-      it "writes to another file, in the same directory" $ \config -> do
-        writeViaTempFile (target config) $ \tmp -> do
-          takeDirectory tmp `shouldBe` takeDirectory (target config)
-          tmp `shouldNotBe` target config
+        listDirectory (cacheTempDir config) `shouldReturn` []
+      it "writes to another file, in the cache's temporary directory" $ \config -> do
+        writeViaTempFile config (target config) $ \tmp -> do
+          takeDirectory tmp `shouldBe` cacheTempDir config
           doesFileExist (target config) `shouldReturn` False
           writeFile tmp ("x" :: ByteString)
       it "replaces an existing file" $ \config -> do
         writeNonEmpty (target config)
-        writeViaTempFile (target config) $ \tmp ->
+        writeViaTempFile config (target config) $ \tmp ->
           writeFile tmp ("new" :: ByteString)
         readFile (target config) `shouldReturn` ("new" :: ByteString)
       it "leaves nothing behind on failure, and rethrows" $ \config -> do
         let failing tmp = do
               writeFile tmp ("partial" :: ByteString)
               throwIO (ImageError "conversion failed")
-        writeViaTempFile (target config) failing
+        writeViaTempFile config (target config) failing
           `shouldThrow` (\case ImageError msg -> msg == "conversion failed"
                                _ -> False)
         entries (target config) `shouldReturn` []
+        listDirectory (cacheTempDir config) `shouldReturn` []
+      it "keeps files of the same name, written at once, apart" $ \config -> do
+        -- The temporary files of all the directories are in the same
+        -- one, so files of the same name must still get their own.
+        let one = cfgCacheDir config </> "x" </> "a.jpg-64"
+            two = cfgCacheDir config </> "y" </> "a.jpg-64"
+        writeViaTempFile config one $ \tmp1 -> do
+          writeFile tmp1 ("first" :: ByteString)
+          writeViaTempFile config two $ \tmp2 -> do
+            tmp2 `shouldNotBe` tmp1
+            writeFile tmp2 ("second" :: ByteString)
+        readFile one `shouldReturn` ("first" :: ByteString)
+        readFile two `shouldReturn` ("second" :: ByteString)
+    describe "isLiveCacheFile" $ do
+      let files = Set.fromList ["/p/a.nef", "/p/a.nef copy.jpg"]
+          live config = isLiveCacheFile (cacheFileSuffixes config) files
+      it "accepts a file's path, a dash, and a suffix in use" $ \config -> do
+        forM_ (Set.toList (cfgAllImageSizes config)) $ \size ->
+          live config ("/p/a.nef-" <> tshow size) `shouldBe` True
+        forM_ ["embedded", "exif", "bexif"] $ \suffix ->
+          live config ("/p/a.nef-" <> suffix) `shouldBe` True
+      it "accepts the files of a picture another's name starts with" $ \config -> do
+        -- "a.nef copy.jpg" sorts between "a.nef" and "a.nef-exif", which
+        -- defeated the earlier check (the largest repository path not
+        -- after the cache file's had to be its prefix).
+        live config "/p/a.nef-exif" `shouldBe` True
+        live config "/p/a.nef copy.jpg-exif" `shouldBe` True
+      it "refuses the files of files not in the repository" $ \config -> do
+        live config "/p/b.nef-exif" `shouldBe` False
+        -- Paths starting with a repository file's path, which the
+        -- earlier check kept.
+        live config "/p/a.nef copy 2.jpg-exif" `shouldBe` False
+        isLiveCacheFile (cacheFileSuffixes config) (Set.singleton "/p/a")
+          "/p/a.nef-exif" `shouldBe` False
+      it "accepts the paths of all kinds of cache files" $ \config -> do
+        let picture = "/p/a.nef"
+            -- The paths without the cache directory, as the cleanup
+            -- sees them.
+            relative path = fromMaybe path $
+              stripPrefix (cfgCacheDir config ++ "/") path
+            paths = embeddedImagePath config picture :
+                    exifPath config picture :
+                    bExifPath config picture :
+                    map (scaledImagePath config picture)
+                        (Set.toList (cfgAllImageSizes config))
+        forM_ paths $ \path ->
+          (path, live config (pack (relative path))) `shouldBe` (path, True)
+      it "refuses suffixes not in use" $ \config -> do
+        let unused = Set.findMax (cfgAllImageSizes config) + 1
+        live config ("/p/a.nef-" <> tshow unused) `shouldBe` False
+        live config "/p/a.nef-other" `shouldBe` False
+        live config "/p/a.nef-exif-dev" `shouldBe` False
+        live config "/p/a.nef" `shouldBe` False
+      it "refuses the temporary files left by older versions" $ \config ->
+        live config "/p/a.nef-exif123456.tmp" `shouldBe` False
   withConfig $ do
     describe "NFData" $ do
       it "forces image movie and untracked files" $ \config -> do
@@ -1623,6 +1679,51 @@ spec = parallel $ do
         _ <- waitForScan ctx
         getSearchResults ctx m2 [] `shouldReturn` m2
   withUnscannedContext $ do
+    describe "cache cleanup" $ do
+      it "keeps only the cache files in use, and the files being written" $ \ctx -> do
+        let config = ctxConfig ctx
+        case (cfgOutputDirs config, Set.toList (cfgAllImageSizes config)) of
+          (outRoot:_, size:_) -> do
+            -- Folders are two levels below the base directory, and
+            -- their names must match the folder pattern.
+            let srcDir = outRoot </> "2020" </> "2020-01-01-trip"
+                picture = srcDir </> "a.jpg"
+                -- Its name starts with the first picture's, and sorts
+                -- before the first picture's cache files.
+                other = srcDir </> "a.jpg copy.jpg"
+                unusedSize = Set.findMax (cfgAllImageSizes config) + 1
+                live = [ scaledImagePath config picture size
+                       , scaledImagePath config other size
+                       , embeddedImagePath config picture
+                       ]
+                obsolete = [ scaledImagePath config (srcDir </> "gone.jpg") size
+                           , scaledImagePath config picture unusedSize
+                           , scaledImagePath config other unusedSize
+                           , cachedBasename config picture "other"
+                           -- A removed copy, whose name starts with
+                           -- the first picture's.
+                           , scaledImagePath config (srcDir </> "a.jpg copy 2.jpg") size
+                           , scaledImagePath config picture size ++ "123456.tmp"
+                           ]
+                beingWritten = cacheTempDir config </> ("a.jpg-" ++ show size ++ "123.tmp")
+            createDirectoryIfMissing True srcDir
+            writeRealJpeg picture
+            writeRealJpeg other
+            mapM_ writeNonEmpty (live ++ obsolete ++ [beingWritten])
+            launchScanFileSystem ctx
+            repo <- waitForScan ctx
+            case repoStatus repo of
+              RepoFinished {} -> return ()
+              status -> expectationFailure $ "The scan failed: " ++ show status
+            -- With the path, to name the file in a failure.
+            let present path = (,) path <$> doesFileExist path
+            forM_ live $ \path -> present path `shouldReturn` (path, True)
+            forM_ obsolete $ \path -> present path `shouldReturn` (path, False)
+            doesFileExist beingWritten `shouldReturn` True
+            -- Written by the scan.
+            doesFileExist (exifPath config picture) `shouldReturn` True
+            doesFileExist (bExifPath config picture) `shouldReturn` True
+          _ -> expectationFailure "expected an output directory and image sizes"
     describe "scan abort" $ do
       it "records synchronous scan failures as RepoError" $ \ctx -> do
         repo <- getRepo ctx

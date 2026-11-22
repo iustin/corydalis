@@ -60,6 +60,7 @@ module Exif ( Exif(..)
             , chunkPaths
             , exifToolArgs
             , exifPath
+            , bExifPath
 #endif
             ) where
 
@@ -1202,11 +1203,11 @@ runExifToolBatch logfn config dir acc batch = do
 
 exifPath :: Config -> FilePath -> FilePath
 exifPath config path =
-  cachedBasename config path ("exif" ++ devSuffix)
+  cachedBasename config path "exif"
 
 bExifPath :: Config -> FilePath -> FilePath
 bExifPath config path =
-  cachedBasename config path ("bexif" ++ devSuffix)
+  cachedBasename config path "bexif"
 
 -- | Builds the exiftool command line for paths relative to its working
 -- directory.

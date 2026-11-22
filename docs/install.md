@@ -32,7 +32,8 @@ and due to extraction of metadata from all images, it also needs a
 relatively large cache space for itself; for my own usage, with two
 pre-rendered resolutions, this amounts to around 10% of the actual
 library space. Cache files belonging to pictures that are no longer in
-the library are deleted at the end of each scan.
+the library, or to preview sizes no longer configured, are deleted at
+the end of each scan.
 
 All the pre-rendering and exif extraction needs as well quite a bit of
 CPU; on my own collection, a cold start will probably take many hours
@@ -495,6 +496,14 @@ the right moment can thus make the application serve (or convert) any
 other file it can read, including the session key. The cache directory,
 whose files are served without further checks, is only written by the
 application, and should be writable only by its user.
+
+Each instance of the application needs its own cache directory: the
+cache cleanup deletes the files that aren't for a picture in its
+library or a size it uses, and the previews and extracted images being
+written are kept in the `.tmp` directory at its root, which is emptied
+at startup. They are then moved into place by renaming them, so the
+cache directory must be a single filesystem (with no other filesystem
+mounted inside it).
 
 The contents: pictures and movies often come from elsewhere (downloads,
 or files received from others), and a crafted file can try to exploit
