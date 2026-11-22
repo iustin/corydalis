@@ -32,7 +32,7 @@ jobs:
           fetch-tags: true
 
       - name: Setup Haskell
-        uses: haskell-actions/setup@v2
+        uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
         with:
           enable-stack: true
           stack-version: 'latest'
@@ -116,7 +116,7 @@ jobs:
         run: mkdir -p coverage/hs
 
       - name: Generate coverage report
-        uses: 8c6794b6/hpc-codecov-action@v4
+        uses: 8c6794b6/hpc-codecov-action@f943f40733e5390825b12d72165cad991e44340c # v4.3.0
         with:
           target: stack:test
           excludes: Main
@@ -128,7 +128,7 @@ jobs:
       # One upload per language, so that Codecov shows them separately
       # (see the flags in codecov.yml).
       - name: Upload the Haskell coverage report
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/hs/lcov.info
@@ -136,7 +136,7 @@ jobs:
           disable_search: true
 
       - name: Upload the TypeScript coverage report
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/ts/lcov.info
@@ -177,7 +177,7 @@ jobs:
           fetch-tags: true
 
       - name: Setup Haskell
-        uses: haskell-actions/setup@v2
+        uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
         with:
           enable-stack: true
           stack-version: 'latest'

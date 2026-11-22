@@ -674,6 +674,12 @@ pictures (e.g. large panoramas), and copy the new policy when upgrading.
 
 ### Internal changes
 
+The third-party GitHub Actions used by the workflows (CI and the
+Copilot setup steps: `haskell-actions/setup`,
+`8c6794b6/hpc-codecov-action` and `codecov/codecov-action`) are now
+pinned to commits, with their version in a comment, which Dependabot
+keeps up to date; a tag can be moved to other code, a commit can't.
+
 Development builds no longer name their exif and repository cache files
 differently (with a `-dev` suffix), which was meant to let them share a
 cache directory with a production build; the cache cleanup now deletes
