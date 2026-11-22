@@ -343,7 +343,7 @@ could see:
   separately on the folder page, and don't affect folder dates; a
   `type=unknown` search finds the folders containing them. With many
   such files, scans are faster.
-- Folder events (work in progress, and not documented yet): a folder
+- Folder events (work in progress; see the manual): a folder
   can declare an event (generic, birthday, getaway, grand vacation or
   work trip, with a name and people) in a `corydalis.yaml` file, read
   only as a regular file of at most 64 KiB; folders without one,
