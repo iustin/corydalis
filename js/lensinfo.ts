@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as Plotly from 'plotly.js-cartesian-dist';
 import 'bootstrap';
 import { loadBootJSON } from './boot';
+import { plotConfig } from './plot-config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
@@ -96,16 +97,7 @@ function onDataReceived(series: any) {
       },
     ],
   };
-  const config = {
-    showLink: false,
-    sendData: false,
-    displaylogo: false,
-    // Never render text as LaTeX (which would need MathJax): the
-    // charts show names from the pictures' metadata.
-    typesetMath: false,
-    modeBarButtonsToRemove: ['toImage' as const, 'sendChartToCloud' as const],
-    responsive: true,
-  };
+  const config = plotConfig;
   Plotly.newPlot('lensFlApChart', series.lensapfl.lensflap, lensLayout, config);
   Plotly.newPlot(
     'cameraChart',
