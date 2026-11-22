@@ -171,6 +171,12 @@ storageDirsSpec = describe "storage directories" $ do
       ["sourcedirs" .= ["/pics/raw", "raw" :: Text]]
     refused "outputdirs" "./out" ["outputdirs" .= ["./out" :: Text]]
     refused "cachedir" "cache" ["cachedir" .= ("cache" :: Text)]
+  it "refuses a page size which isn't positive" $
+    forM_ [0, -16 :: Int] $ \size ->
+      -- The error names the setting and the value.
+      loadWithConfig ["pagesize" .= size] `shouldThrow` \e ->
+        let msg = show (e :: SomeException)
+        in all (`isInfixOf` msg) ["pagesize", show size]
 
 sessionMaxAgeSpec :: Spec
 sessionMaxAgeSpec = describe "session-max-age" $ do

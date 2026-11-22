@@ -55,6 +55,14 @@ spec = parallel $ withApp $ do
       htmlAnyContain ".page-load-status .infinite-scroll-last" "No more images"
       htmlAnyContain ".page-load-status .infinite-scroll-error"
         "Failed to load more images"
+    it "shows no images for a page past the end, even a huge one" $ do
+      ctx <- appContext <$> getTestYesod
+      injectImages [simpleRawImage (ctxConfig ctx)]
+      login
+      -- Its index (page times page size) doesn't fit in an Int.
+      checkRoute $ BrowseImagesR maxBound
+      bodyContains "data-initial-count=\"0\""
+      htmlCount ".pagination-next" 0
     it "checks empty search on page 3" $ do
       login
       checkRoute $ BrowseImagesR 3

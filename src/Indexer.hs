@@ -1471,6 +1471,8 @@ anyAtom = go . nub
 -- Useful for any/all to correctly pop the required amount of items
 -- from the stack, and not all.
 anyAllParser :: ([Atom] -> Atom) -> [Atom] -> Int -> Either Text [Atom]
+anyAllParser _ _ count | count < 0 =
+  Left $ sformat ("Invalid number of items to combine (must not be negative): " % int) count
 anyAllParser fn stack count =
   let (selected, remaining) = splitAt count stack
   in if length selected < count

@@ -506,6 +506,11 @@ spec = parallel $ do
       parseAtomParams [("not", "")] `shouldBeLeftWithMessage` "Failed to parse the atom"
       parseAtomParams [("all", "x")] `shouldBeLeftWithMessage` "Failed"
 
+    it "refuses negative numbers of items to combine" $
+      forM_ ["all", "any"] $ \op ->
+        -- The error names the number.
+        parseAtomParams [("country", "A"), (op, "-1")] `shouldBeLeftWithMessage` "-1"
+
     it "roundtrips atomToParams for simple and combined atoms" $ do
       mapM_ roundTripAtom
         [ Country (OpEqual "Spain")
