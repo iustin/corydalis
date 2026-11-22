@@ -151,9 +151,10 @@ scanLabels = PhaseLabels
   { plWork      = scanning
   , plKind      = InvestigateAll
   , plUnit      = ("file", "files")
-  , plNoop      = ( "file had its metadata already cached"
-                  , "files had their metadata already cached")
-  , plDone      = ("file had its metadata read", "files had their metadata read")
+  -- Files with an up to date metadata cache, and files that are not
+  -- pictures, need no reading.
+  , plNoop      = ("file needed no reading", "files needed no reading")
+  , plDone      = ("file was read", "files were read")
   , plErrors    = ("file had issues", "files had issues")
   , plRemaining = ("file left to scan", "files left to scan")
   }
@@ -174,10 +175,10 @@ cleanLabels = PhaseLabels
   { plWork      = cleaning
   , plKind      = InvestigateAll
   , plUnit      = ("file", "files")
-  , plNoop      = ( "file belongs to a picture or its previews"
-                  , "files belong to pictures and their previews")
+  , plNoop      = ( "file belongs to an image in the library"
+                  , "files belong to images in the library")
   , plDone      = ("obsolete file was deleted", "obsolete files were deleted")
-  , plErrors    = ("file could not be deleted", "files could not be deleted")
+  , plErrors    = ("file failed to delete", "files failed to delete")
   , plRemaining = ("file left to check", "files left to check")
   }
 
@@ -196,9 +197,7 @@ progressDetails PhaseLabels{..} counter =
                 <ul>
                   <li>#{countPhrase (pgNoop counter) plNoop}.
                   <li>#{countPhrase (pgDone counter) plDone}.
-                  <li>
-                    #{swissNumOrNone errors} #
-                    <a href=@{StatusErrorsR}>#{forCount errors plErrors}</a>.
+                  <li>#{swissNumOrNone errors} <a href=@{StatusErrorsR}>#{forCount errors plErrors}</a>.
                   <li>#{countPhrase (remainingItems plKind counter) plRemaining}.
                   |]
   where errors = pgNumErrors counter
@@ -221,7 +220,7 @@ workInProgress now labels counter@Progress{..} WorkStart{..} =
   [whamlet|
           <div .card-body>
             <p .card-text>
-               #{work} progress: #{swissNum $ countedItems kind counter}/#{swissNum pgGoal} #{snd (plUnit labels)}:
+               #{work} progress: #{swissNum $ countedItems kind counter}/#{swissNum pgGoal} #{forCount pgGoal (plUnit labels)}:
             ^{progressDetails labels counter}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
@@ -348,9 +347,9 @@ percentsBar :: ProgressKind -> Progress -> Widget
 percentsBar kind counter =
   [whamlet|
     <div .progress>
-      ^{pgBar pN "bg-success" "Already up-to-date"}
-      ^{pgBar pE "bg-danger" "Processed with errors"}
-      ^{pgBar pD "bg-info progress-bar-striped" "Processed successfully"}
+      ^{pgBar pN "bg-success" "Nothing to do"}
+      ^{pgBar pE "bg-danger" "Failed"}
+      ^{pgBar pD "bg-info progress-bar-striped" "Done"}
       ^{pgBar pR "bg-light text-secondary" "Left to do"}
       |]
   where (pE, pN, pD, pR) = percentsDone kind counter

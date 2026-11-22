@@ -122,8 +122,8 @@ spec = parallel $ withApp $ describe "the status page" $ do
                    (results now def { pgGoal = 4, pgNoop = 3, pgDone = 1 })
     checkStatusPage [ -- The scan.
                       "Scanning finished, 3 files processed:"
-                    , "2 files had their metadata already cached."
-                    , "1 file had its metadata read."
+                    , "2 files needed no reading."
+                    , "1 file was read."
                     , "no files left to scan."
                       -- The rendering.
                     , "Rendering finished, 2 previews processed:"
@@ -132,12 +132,23 @@ spec = parallel $ withApp $ describe "the status page" $ do
                     , "no previews left to build."
                       -- The cleaning.
                     , "Cleaning finished, 4 files processed:"
-                    , "3 files belong to pictures and their previews."
+                    , "3 files belong to images in the library."
                     , "1 obsolete file was deleted."
                     , "no files left to check."
                     ] 3
-    bodyContains "files could not be deleted</a>."
+    bodyContains "files failed to delete</a>."
     bodyNotContains "items"
+    -- The link around the failures is closed once.
+    bodyNotContains "</a>.</a>"
+  it "describes work in progress, with failures, in its own words" $ do
+    setRepoStatus $ \now -> RepoScanning (WorkStart now)
+    ctx <- appContext <$> getTestYesod
+    liftIO . atomically . writeTVar (ctxScanProgress ctx) $
+      def { pgGoal = 2, pgErrors = [ProgressError "a.jpg" "broken"] }
+    checkStatusPage [ "Scanning progress: 1/2 files:"
+                    , ">file had issues</a>."
+                    , "1 file left to scan."
+                    ] 0
   it "shows a failed scan" $ do
     setRepoStatus . const $ RepoError "disk on fire"
     checkStatusPage [ "Repository scanning failed", "disk on fire"] 0
