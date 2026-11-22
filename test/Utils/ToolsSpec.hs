@@ -24,10 +24,15 @@ module Utils.ToolsSpec (spec) where
 
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
 import           System.Exit                 (ExitCode (..))
-import           System.Process.Typed        (proc)
+import           System.Process.Typed        (ProcessConfig, proc)
 
 import           TestImport
 import           Utils.Tools
+
+-- | Runs a tool in a slot of the given limits.
+runIn :: ToolLimits -> ProcessConfig stdin stdout stderr
+      -> IO (Either Text (ExitCode, LByteString, LByteString))
+runIn tools pconfig = withToolSlot tools $ \slot -> runTool slot pconfig
 
 spec :: Spec
 spec = do
@@ -46,13 +51,13 @@ spec = do
   describe "runTool" $ do
     it "returns the result of a tool within the time limit" $ do
       tools <- testToolLimits
-      result <- runTool tools (proc "sh" ["-c", "echo out; exit 2"])
+      result <- runIn tools (proc "sh" ["-c", "echo out; exit 2"])
       result `shouldBe` Right (ExitFailure 2, "out\n", "")
     it "stops a tool running for too long" $ do
       tools <- atomically $ newToolLimits 1 200000
       -- A distinctive argument, to find the process afterwards.
       let marker = "86413"
-      result <- runTool tools (proc "sleep" [marker])
+      result <- runIn tools (proc "sleep" [marker])
       result `shouldBeLeftWithMessage` "timed out after 1 second"
       -- The tool has been stopped (pgrep finds no such process).
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
@@ -63,31 +68,42 @@ spec = do
       -- The shell starts sleep, which keeps the output pipes open: if
       -- only the shell were killed, the run would wait for sleep to
       -- finish (and couldn't be interrupted, even by a timeout here).
-      result <- runTool tools $
+      result <- runIn tools $
                   proc "sh" ["-c", "sleep " ++ marker ++ " & wait"]
       result `shouldBeLeftWithMessage` "timed out"
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
     it "allows at least one tool to run" $ do
       tools <- atomically $ newToolLimits 0 defaultToolTimeout
-      runTool tools (proc "true" []) >>= (`shouldBe` Right (ExitSuccess, "", ""))
+      runIn tools (proc "true" []) >>= (`shouldBe` Right (ExitSuccess, "", ""))
     it "waits for a free slot" $ do
       tools <- atomically $ newToolLimits 1 defaultToolTimeout
-      let run = runTool tools (proc "true" [])
+      let run = runIn tools (proc "true" [])
       -- Taking the only slot, as a running tool would.
       atomically . waitTSem $ tlSlots tools
-      -- The run can't start, and doesn't complete.
-      timeout 200000 run >>= (`shouldBe` Nothing)
+      -- The run waits for the slot; cancelled while waiting, it
+      -- doesn't keep one.
+      waiting <- async run
+      waitUntilBlockedInSTM (asyncThreadId waiting)
+      cancel waiting
       atomically . signalTSem $ tlSlots tools
       run >>= (`shouldBe` Right (ExitSuccess, "", ""))
-      -- The slot is free again, even after the interrupted run.
-      run >>= (`shouldBe` Right (ExitSuccess, "", ""))
+      -- The slot is free again, even after the cancelled run.
+      takeFreeSlots tools `shouldReturn` 1
     it "stops a tool when interrupted" $ do
       tools <- testToolLimits
       let marker = "86414"
       -- E.g. as when the request is cancelled; this would wait for
       -- the tool to finish by itself if it weren't stopped.
-      result <- timeout 200000 $ runTool tools (proc "sleep" [marker])
+      result <- timeout 200000 $ runIn tools (proc "sleep" [marker])
       result `shouldBe` Nothing
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
+  describe "withToolSlot" $ do
+    it "frees the slot when the action fails" $ do
+      tools <- atomically $ newToolLimits 1 defaultToolTimeout
+      withToolSlot tools (\_ -> throwIO (userError "failed"))
+        `shouldThrow` anyIOException
+      -- Taking it doesn't wait (and would fail, not hang, otherwise).
+      atomically ((waitTSem (tlSlots tools) >> return True) `orElse` return False)
+        `shouldReturn` True

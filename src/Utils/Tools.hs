@@ -20,9 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Running the external tools (ImageMagick, ffmpeg and exiftool),
--- within limits.
-module Utils.Tools ( readToolProcess
+-- | Running the external tools (ImageMagick, ffmpeg and exiftool):
+-- within limits, or (for the startup checks) without.
+module Utils.Tools ( ToolSlot
+                   , withToolSlot
+                   , readToolProcess
                    , runTool
                    , runToolToFile
                    , runToolWith
@@ -40,11 +42,12 @@ import           UnliftIO.Exception
 
 import           Import.NoFoundation     hiding (path)
 
--- | Runs an external tool, returning its exit code and output.
+-- | Runs an external tool, returning its exit code and output, without
+-- any limits (see 'runTool' for running one within them), e.g. for the
+-- checks at startup.
 --
 -- Failing to run the tool at all, e.g. because it isn't installed, is
--- returned as an error instead of being thrown: a single image's preview
--- must not abort the whole repository scan.
+-- returned as an error instead of being thrown.
 readToolProcess :: ProcessConfig stdin stdout stderr
                 -> IO (Either Text (ExitCode, LByteString, LByteString))
 readToolProcess pconfig =
@@ -52,10 +55,29 @@ readToolProcess pconfig =
   where describe :: IOException -> Text
         describe = sformat ("Failed to run external tool: " % shown)
 
--- | Runs an external tool for building a preview, as 'readToolProcess'
--- does, but within the given limits (see 'ToolLimits'): it waits for a
--- free slot, if as many tools as allowed are running; and a tool
--- running for too long is killed, and its run returned as an error.
+-- | A slot for running an external tool, within the limits it was
+-- taken from (see 'withToolSlot'). The runners within limits
+-- ('runTool', 'runToolToFile' and 'runToolWith') need one, so that such
+-- a tool can't run without taking a slot first.
+newtype ToolSlot = ToolSlot Int  -- ^ The time limit, in microseconds.
+
+-- | Runs an action with a slot for running an external tool (see
+-- 'ToolLimits'): it first waits for a free slot, if as many tools as
+-- allowed are running, and frees it afterwards.
+--
+-- The action should run a single tool, and do there all the work for
+-- it that holds resources (e.g. creating its output file, or opening
+-- its input), so that the runs waiting for a slot don't hold them. The
+-- slot must not be used once the action has returned.
+withToolSlot :: ToolLimits -> (ToolSlot -> IO a) -> IO a
+withToolSlot limits action =
+  bracket_ (atomically . waitTSem $ tlSlots limits)
+           (atomically . signalTSem $ tlSlots limits) $
+    action (ToolSlot (tlTimeout limits))
+
+-- | Runs an external tool, as 'readToolProcess' does, but in the given
+-- slot (see 'withToolSlot'): a tool running for longer than the
+-- slot's time limit is killed, and its run returned as an error.
 --
 -- The tool is also killed if the run is interrupted otherwise (e.g.
 -- the request is cancelled). This is needed as typed-process, when the
@@ -75,31 +97,29 @@ readToolProcess pconfig =
 -- output pipes, <https://github.com/fpco/typed-process/issues/84>) and
 -- <https://github.com/fpco/typed-process/pull/70> ("No child
 -- processes", <https://github.com/fpco/typed-process/issues/69>).
-runTool :: ToolLimits -> ProcessConfig stdin stdout stderr
+runTool :: ToolSlot -> ProcessConfig stdin stdout stderr
         -> IO (Either Text (ExitCode, LByteString, LByteString))
-runTool limits = runToolWith limits id . setStdout byteStringOutput
+runTool slot = runToolWith slot id . setStdout byteStringOutput
 
 -- | Runs an external tool as 'runTool' does, but with its output
 -- written to the given file, instead of read in memory. Failing to open
 -- the file is thrown, not returned.
-runToolToFile :: ToolLimits -> FilePath -> ProcessConfig stdin stdout stderr
+runToolToFile :: ToolSlot -> FilePath -> ProcessConfig stdin stdout stderr
               -> IO (Either Text (ExitCode, LByteString))
-runToolToFile limits path pconfig =
+runToolToFile slot path pconfig =
   System.IO.withBinaryFile path System.IO.WriteMode $ \h ->
     fmap (\(code, (), err) -> (code, err)) <$>
-      runToolWith limits return (setStdout (useHandleOpen h) pconfig)
+      runToolWith slot return (setStdout (useHandleOpen h) pconfig)
 
 -- | Runs an external tool as 'runTool' does, but with its output going
 -- where the process configuration says (a pipe, or a file); the given
 -- function returns the result of the output stream, once the tool
 -- exited (e.g. the output read from a pipe, or @()@ for a file).
-runToolWith :: ToolLimits -> (stdout -> STM a)
+runToolWith :: ToolSlot -> (stdout -> STM a)
             -> ProcessConfig stdin stdout stderr
             -> IO (Either Text (ExitCode, a, LByteString))
-runToolWith limits output pconfig =
-  bracket_ (atomically . waitTSem $ tlSlots limits)
-           (atomically . signalTSem $ tlSlots limits) $
-    either (Left . describe) id <$> try run
+runToolWith (ToolSlot limit) output pconfig =
+  either (Left . describe) id <$> try run
   where
     pconfig' = setCreateGroup True
                . setStderr byteStringOutput
@@ -119,7 +139,7 @@ runToolWith limits output pconfig =
               Just pid -> void . tryIO $ signalProcessGroup sigKILL pid
               Nothing  -> return ()
             void . atomically $ waitExitCodeSTM p
-      result <- timeout (tlTimeout limits)
+      result <- timeout limit
                   (atomically $ (,,) <$> waitExitCodeSTM p
                                      <*> output (getStdout p)
                                      <*> getStderr p)
@@ -131,7 +151,7 @@ runToolWith limits output pconfig =
                  secs (if secs == 1 then "" else "s")
     -- Rounded up, so that a (test) limit under a second isn't shown
     -- as zero.
-    secs = (tlTimeout limits + 999999) `div` 1000000
+    secs = (limit + 999999) `div` 1000000
     describe :: IOException -> Text
     describe = sformat ("Failed to run external tool: " % shown)
 
