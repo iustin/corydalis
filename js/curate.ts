@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as Plotly from 'plotly.js-cartesian-dist';
 import 'bootstrap';
 import { loadBootJSON } from './boot';
+import { plotConfig } from './plot-config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
@@ -101,16 +102,7 @@ function onDataReceived(series: any) {
     legend: { orientation: 'h' as const },
     title: { text: 'Monthly image count and size' },
   };
-  const config = {
-    showLink: false,
-    sendData: false,
-    displaylogo: false,
-    // Never render text as LaTeX (which would need MathJax): the
-    // charts show names from the pictures' metadata.
-    typesetMath: false,
-    modeBarButtonsToRemove: ['toImage' as const, 'sendChartToCloud' as const],
-    responsive: true,
-  };
+  const config = plotConfig;
   Plotly.newPlot('cameraChart', series.global, cameraLayout, config);
   Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
   Plotly.newPlot('folderChart', series.folders, folderLayout, config);
