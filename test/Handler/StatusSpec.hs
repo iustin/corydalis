@@ -108,6 +108,12 @@ spec = parallel $ withApp $ describe "the status page" $ do
   it "shows cleaning in progress" $ do
     setRepoStatus $ \now -> RepoCleaning (done now) (done now) (WorkStart now)
     checkStatusPage ["cleaning the cache"] 2
+  it "never shows a negative number of items left" $ do
+    -- More files examined than counted in advance.
+    let overcounted now = (done now) { wrDone = def { pgGoal = 1, pgNoop = 3 } }
+    setRepoStatus $ \now -> RepoFinished (done now) (done now) (overcounted now)
+    checkStatusPage ["no items left to investigate."] 3
+    bodyNotContains "-2 items"
   it "shows a failed scan" $ do
     setRepoStatus . const $ RepoError "disk on fire"
     checkStatusPage [ "Repository scanning failed", "disk on fire"] 0

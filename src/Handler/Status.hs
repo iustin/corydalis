@@ -129,8 +129,10 @@ countedItems :: ProgressKind -> Progress -> Int
 countedItems InvestigateAll = pgTotal
 countedItems WorkOnly       = pgWork
 
+-- | Items left to process; never negative, as goals counted in advance
+-- (e.g. of the files to scan) can be off.
 remainingItems :: ProgressKind -> Progress -> Int
-remainingItems kind p = pgGoal p - countedItems kind p
+remainingItems kind p = max 0 $ pgGoal p - countedItems kind p
 
 progressDetails :: ProgressKind -> Progress -> Widget
 progressDetails kind counter =
@@ -146,7 +148,7 @@ progressDetails kind counter =
                   <li>#{swissNumOrNone $ remainingItems kind counter} #{remainingLabel}
                   |]
   where remainingLabel = case kind of
-          InvestigateAll -> "items to left to investigate." :: Text
+          InvestigateAll -> "items left to investigate." :: Text
           WorkOnly       -> "items left to process."
 
 progressThroughput :: ProgressKind -> Progress -> NominalDiffTime -> Widget

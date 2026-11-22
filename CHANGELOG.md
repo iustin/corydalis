@@ -458,6 +458,11 @@ Searches and pages:
   page with a broken link, and now shows an empty page; a `pagesize`
   that isn't positive is refused at startup.
 - Finished work on the status page has its green border again.
+- The cache cleaning's numbers on the status page didn't add up (e.g.
+  a negative number of items left), as the cache was counted before the
+  scan, which then added files to it; it is now counted just before the
+  cleaning, and the finished results use the number of files actually
+  examined. The number of items left is also never shown as negative.
 
 The viewer and the image grid:
 

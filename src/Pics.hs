@@ -1517,22 +1517,31 @@ cleanCacheFile prefix logger path = do
       return incDone
 
 -- | Cleanups given directories under the cache dir.
+--
+-- The goal of its progress is the number of files in these
+-- directories, counted just before; as the cache can still change
+-- meanwhile (e.g. previews built on demand), it is set to the number of
+-- files actually examined once done, so that the results add up.
 cleanupCache :: Ctx         -- ^ Context
              -> Repository  -- ^ Repository with current set of images
              -> [FilePath]  -- ^ Set of directories to cleanup
-             -> Int         -- ^ Target item count goal
              -> IO Progress -- ^ Result of cleanup
-cleanupCache ctx repo alldirs cachecount = do
+cleanupCache ctx repo alldirs = do
   let cleanProgress = ctxCleanProgress ctx
-  atomically $ writeTVar cleanProgress (def { pgGoal = cachecount })
-  let imgs = allRepoFiles repo
+      imgs = allRepoFiles repo
       iset = Set.fromList $ map (Text.pack . fileFullPath) imgs
       config = ctxConfig ctx
       cacheDir = cfgCacheDir config
+      cachePaths = map (cacheDir </>) alldirs
       handler = examineCacheFile cacheDir cleanProgress
                   (cacheFileEndings config) iset (ctxLogger ctx)
+  ctxLogger ctx LevelInfo $ "Counting cache items under " <> toLogStr (show cachePaths)
+  cachecount <- sum <$> mapConcurrently (countDirRaw config) cachePaths
+  atomically $ writeTVar cleanProgress (def { pgGoal = cachecount })
   mapM_ (allPathFiles config cacheDir handler) alldirs
-  readTVarIO cleanProgress
+  atomically $ do
+    modifyTVar' cleanProgress $ \p -> p { pgGoal = pgTotal p }
+    readTVar cleanProgress
 
 -- | Resets the repository to empty with an increase serial number.
 --
@@ -1599,12 +1608,9 @@ scanFilesystem ctx newrepo = do
   logfn LevelInfo $ "Counting images under " <> toLogStr (show alldirs)
   itemcounts <- mapConcurrently (countDir config 1) alldirs
   let cachePaths = map (cfgCacheDir config </>) alldirsAsRelative
-  logfn LevelInfo $ "Counting cache items under " ++ toLogStr (show cachePaths)
   -- Ensure cache top dirs are created if missing (likely only during
   -- bootstrap, but better to always redo during scanning).
   mapConcurrently_ (createDirectoryIfMissing True) cachePaths
-  cachecounts' <- mapConcurrently (countDirRaw config) cachePaths
-  let cachecounts = sum cachecounts'
   atomically $ writeTVar scanProgress (def { pgGoal = sum itemcounts })
   start <- getZonedTime
   let ws = WorkStart { wsStart = start }
@@ -1654,7 +1660,7 @@ scanFilesystem ctx newrepo = do
   repo_ar <- tryUpdateRepo ctx repo_ar'
   logfn LevelInfo "Finished rendering, starting cleanup"
   traceMarkerIO "scanFilesystem start cleanup"
-  clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative cachecounts
+  clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative
   endc <- getZonedTime
   let wrclean = WorkResults { wrStart = endr
                             , wrEnd = endc
