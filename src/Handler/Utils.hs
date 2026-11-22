@@ -323,16 +323,18 @@ getAtomParams = do
   atom <- case parseAtomParams params of
             Right v  -> return v
             Left msg -> invalidArgs [msg]
-  mapM_ requireSymbolAccess (atomSymbols atom)
+  requireSymbolsAccess (atomSymbols atom)
   return (params, atom)
 
--- | Refuses the request if the user can't search by a symbol (see
--- 'getSymbolAccess').
-requireSymbolAccess :: Symbol -> Handler ()
-requireSymbolAccess s = do
+-- | Refuses the request if the user can't search by all the given
+-- symbols (see 'getSymbolAccess').
+requireSymbolsAccess :: [Symbol] -> Handler ()
+requireSymbolsAccess symbols = do
   allowed <- getSymbolAccess
-  unless (allowed s) . permissionDenied $
-    "Searching by " <> symbolName s <> " needs a login"
+  case filter (not . allowed) symbols of
+    []  -> return ()
+    s:_ -> permissionDenied $
+             "Searching by " <> symbolName s <> " needs a login"
 
 getAtomAndSearch :: Handler (UrlParams, Atom, SearchResults)
 getAtomAndSearch = do
