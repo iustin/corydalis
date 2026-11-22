@@ -21,7 +21,7 @@ who should be able to read or write the private, picture and cache
 directories. The frontend was modernised along the way: it is now
 entirely TypeScript, bundled with `esbuild`, and no longer uses jQuery.
 
-Since a lot changed since v2025.21.0, read the upgrade notes first.
+As a lot changed since v2025.21.0, read the upgrade notes first.
 
 ### Upgrading
 
@@ -34,20 +34,27 @@ Configuration changes:
 - `sourcedirs`, `outputdirs` and `cachedir` must be absolute paths;
   Corydalis refuses to start otherwise.
 - `secure-sessions` is now optional and defaults to true, and
-  `https: true` now always makes the cookies secure. Serving plain HTTP
+  `https: true` now makes the cookies secure when serving HTTPS directly
+  (not on a Unix socket). Serving plain HTTP
   (other than on `localhost`) needs `secure-sessions: false`; Corydalis
   warns at startup if `approot` is a plain `http://` URL while the
   cookies are secure.
 - The `Strict-Transport-Security` header is no longer tied to
   `secure-sessions`, but has its own `strict-transport-security`
   setting, which defaults to `https` (and to off with a Unix socket).
-  If your reverse proxy already sends the header, leave it off here.
+  Previously, Corydalis sent it whenever `secure-sessions` or `https`
+  was set: behind a reverse proxy with `https: false`, either set
+  `strict-transport-security: true`, or (better) have the proxy send it;
+  if the proxy already sends it, leave it off here.
 - Previews are now built with an explicit ImageMagick decoder (per
   file extension) and ffmpeg demuxer (per movie extension), with
   defaults for the usual formats: if you added extensions to
   `jpegexts`, `viewableimages` or `movieexts`, check that the new
   `imagedecoders` and `moviedemuxers` settings cover them, otherwise
-  those files get no previews.
+  those files get no previews. The defaults cover JPEG, HEIC/HEIF,
+  TIFF, PNG and WebP pictures, and MP4, M4V, MOV, 3GP, AVI, MKV, WebM,
+  MTS/M2TS and MPEG movies; a decoder added to `imagedecoders` must
+  also be allowed by the ImageMagick policy (see below).
 - Corydalis now ships an ImageMagick security policy,
   `config/magick/policy.xml`, used when `magickpolicydir` points to its
   directory (as in the sample configuration). Copy it when installing:
@@ -58,19 +65,26 @@ Configuration changes:
 
 Deployment changes:
 
+- When building from source with Stack directly, add
+  `--flag corydalis:-dev` (to both `stack build` and `stack install`):
+  the `dev` flag is now on by default, for the tests, and disables the
+  executables. `make release` already does this.
 - The cache directory must be a single filesystem (files are written
-  in its `.tmp` directory, then moved into place), and each instance
-  needs its own: a production and a development build can no longer
-  share one.
+  in its `.tmp` directory, emptied at startup, then moved into place),
+  and each instance needs its own: a production and a development build
+  can no longer share one.
 - `/dev/fd/0` and `/dev/fd/1` must exist (as on any usual Linux system,
   including under systemd's `PrivateDevices`), since ImageMagick now
   reads and writes through them.
-- HEIC/HEIF previews need libheif's HEVC decoder, which recent Debian
-  and Ubuntu releases package separately (`libheif-plugin-libde265`).
-- Symbolic links and special files in the picture folders are now
-  skipped (and listed as errors on the status page), including links to
-  directories: if you use such links to keep pictures elsewhere, add
-  their targets to `sourcedirs` or `outputdirs` instead.
+- HEIC/HEIF previews have always needed libheif's HEVC decoder, which
+  recent Debian and Ubuntu releases package separately
+  (`libheif-plugin-libde265`); the installation documentation now says
+  so.
+- Symbolic links to files, and special files, in the picture folders
+  are now skipped, instead of being treated as pictures, and listed as
+  errors on the status page; so are symbolic links to directories,
+  which were already ignored, but silently. To keep pictures elsewhere,
+  add their location to `sourcedirs` or `outputdirs`.
 - The `config` directory (holding the session key) and the database
   directory are restricted to their owner at startup (with a warning if
   that's not possible), and may not be inside the picture or cache
@@ -132,8 +146,8 @@ and contents) are treated as untrusted:
 - Files were served with the type detected from their contents, so an
   SVG or HTML file named `photo.jpg` was served as a document, and could
   run scripts as the logged-in user. Only image and video types
-  (excluding SVG) are passed through; anything else is served as a JPEG
-  image or MP4 movie, opened directly it is sandboxed, and all
+  (excluding SVG) are passed through, and anything else is served as a
+  JPEG image or MP4 movie; files opened directly are sandboxed; and all
   responses forbid content type guessing (`nosniff`).
 - The scan followed symbolic links to files, so anyone able to add one
   to a picture folder (e.g. `key.jpg`) could download any file the
@@ -193,16 +207,17 @@ could see:
 - Sessions stayed logged in indefinitely if used at least every two
   hours. Logins are now valid for at most a week, configurable with the
   new `session-max-age` setting (in hours).
-- Deleting a user, changing a password, or restoring a deleted user
-  (with `db-util`) didn't end the user's sessions; worse, SQLite could
-  give the id of a deleted user to the next user added, who then
-  inherited the deleted user's sessions. Deleted users are now kept,
-  marked as deleted, so their ids are never reused, and each user has a
+- Deleting a user or changing a password (with `db-util`) didn't end
+  the user's sessions; worse, SQLite could give the id of a deleted user
+  to the next user added, who then inherited the deleted user's
+  sessions. Deleted users are now kept, marked as deleted, so their ids
+  are never reused (adding one again restores it), and each user has a
   session generation, increased by these operations, which ends all its
   sessions. The new `db-util logout` command does only that.
 - State-changing requests (flagging images, triggering a rescan) had no
   CSRF protection. They, and the login form, now need a CSRF token,
-  which is replaced when logging in and out; the session cookie is
+  which is replaced when logging in and out (so pages open in other
+  tabs need a reload then); the session cookie is
   `SameSite=Lax`; and forms can no longer turn a POST into a PUT or
   DELETE request (via a `_method` field).
 - After logging in or out, a rescan, or flagging an image from a form,
@@ -210,9 +225,10 @@ could see:
   another site. It now only returns to its own pages, and logging out
   always shows the login page.
 - `https: true` was documented to force secure cookies, but didn't; it
-  does now, and secure cookies are the default (see the upgrade notes).
+  does now (when serving HTTPS directly), and secure cookies are the
+  default (see the upgrade notes).
 - The `Strict-Transport-Security` header had a `max-age` of two hours
-  (the session timeout, taken as seconds); it is now one year, and
+  (the session timeout was used for it); it is now one year, and
   covers all responses, including static files.
 - The session key (`config/client_session_key.aes`), with which anyone
   can create session cookies for any user, and the database, holding
@@ -269,9 +285,9 @@ could see:
 - Likewise, the scan's exiftool runs could hang (so that the scan never
   finished), and run one at once per directory directly under the
   picture directories. They are now stopped after ten minutes (all the
-  files of the batch then get the error), with the same limit on how
-  many run at once: see the new `scan-tool-timeout` and
-  `scan-tool-slots` settings.
+  files of the batch then get the error), with a separate limit on how
+  many run at once (by default, also the number of processors): see the
+  new `scan-tool-timeout` and `scan-tool-slots` settings.
 - The ImageMagick policy limits the image size, memory and disk used.
 - Quick searches are limited to 200 characters and 10 distinct words,
   as each word is checked against the whole repository.
@@ -287,8 +303,21 @@ could see:
   folder list, while the others follow the view mode. The inline image
   view of the image grid (with the `fancybox` library) is replaced by
   the application's standard viewer, now the only one; and the folder
-  browse mode is removed, as one picture doesn't represent a folder
+  browse mode is removed (with its `/search/folders/grid/…` pages and
+  the viewer's `B` shortcut), as one picture doesn't represent a folder
   well, leaving folder listing.
+  Quick searches using filters that can't find pictures go to the folder
+  list.
+- The image viewer can show the picture's information over it (`i`),
+  open the image information page (`o`), and shows a progress bar while
+  loading an image.
+- The pictures' dimensions and megapixels are now tracked: shown on the
+  image information page (with the file size), and searchable with the
+  new `megapixels` atom. The camera and lens make (manufacturer) is
+  tracked too.
+- The folder list shows more useful columns: the date of the first
+  picture, and the countries, cities and people, instead of the counts
+  per image status.
 - The sortable tables (folder and image lists, camera and lens
   statistics, etc.) use a small built-in module instead of the
   `tablesorter` plugin: they load much faster on large lists, and can
@@ -304,7 +333,8 @@ could see:
 - The logout button logs out directly, without an intermediate page.
 - The rendering phase of the scan now first classifies what is already
   rendered and what is pending, then renders the pending items, so the
-  remaining count and ETA are more accurate.
+  remaining count and ETA are more accurate; the status page also
+  shows the estimated end time (as a tooltip).
 - Many icons changed, so that different things no longer share one.
 - Usage periods in the camera and lens statistics are computed in
   calendar years and months (e.g. a full year is "1 year", not "1 year
@@ -316,13 +346,12 @@ could see:
 - Folder events (work in progress, and not documented yet): a folder
   can declare an event (generic, birthday, getaway, grand vacation or
   work trip, with a name and people) in a `corydalis.yaml` file, read
-  only as a regular file of at most 64 KiB; folders without one, spanning
-  more than two days, get an inferred getaway (or grand vacation, from a
-  week). Events are
-  shown on the folder page and summarised on the home page, and folders
-  can be searched by them (e.g. `event`, `birthday`, `event-kind`), but
-  pictures don't match these searches yet, and the file format may
-  still change.
+  only as a regular file of at most 64 KiB; folders without one,
+  spanning more than two days, get an inferred getaway (or grand
+  vacation, from a week). Events are shown on the folder page and
+  summarised on the home page, and folders can be searched by them (e.g.
+  `event`, `birthday`, `event-kind`), but pictures don't match these
+  searches yet, and the file format may still change.
 
 ### Deployment and configuration
 
@@ -344,7 +373,8 @@ and the installation documentation):
 
 Also:
 
-- the new `db-util logout` command ends all the sessions of a user;
+- the new `db-util logout` command ends all the sessions of a user, and
+  `db-util list` marks the deleted users;
 - a sample systemd unit, `config/corydalis.service.sample`, uses
   systemd's sandboxing to limit what Corydalis and its tools can do;
 - the installation documentation has an example of limiting login
@@ -356,9 +386,12 @@ Also:
 
 Previews and the cache:
 
-- A failed preview could leave an empty file in the cache, then served
-  instead of being rebuilt; previews are now written to a temporary
-  file and moved into place once complete, and empty files are rebuilt.
+- A failed or interrupted preview could leave an empty or partial file
+  in the cache, then served instead of being rebuilt; previews (and
+  extracted embedded previews and movie frames) are now written to a
+  temporary file and moved into place once complete, and empty files
+  are rebuilt. Scaled previews are served as `image/jpeg`, instead of
+  the non-standard `image/jpg`.
 - Pictures holding several images (multi-page TIFF, animated WebP, HEIC
   with several images), or with a format specifier in their path (e.g.
   `100%d.jpg`), got no preview. The preview is now built from the first
@@ -385,6 +418,21 @@ Previews and the cache:
   nothing if the cache directory had a trailing slash or went through a
   symbolic link. It now keeps exactly the files of the pictures in the
   library, for the configured sizes.
+
+The scan:
+
+- Names that look like a range of files (e.g.
+  `img_3982-1773958749527.jpeg`) were expanded to all the names in the
+  range, which could run the scan out of memory; ranges are now capped
+  at 1024 files.
+- The scan's exiftool runs read whole directories at once, which could
+  run out of memory on large ones; they now read batches of 32 files.
+- When a scan was aborted and restarted during rendering, the previous
+  render threads kept running.
+- The rendering held on to memory it no longer needed (a long-standing
+  laziness bug), and the repository uses less memory (shared strings),
+  which also makes searches faster.
+- The `scanner` tool works again.
 
 Searches and pages:
 
