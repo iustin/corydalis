@@ -100,10 +100,11 @@ must exist, as on any usual Linux system (systemd's `PrivateDevices`
 keeps them).
 
 Install the sample configuration file and the ImageMagick policy from
-the source code:
+the source code, in the `config` directory (where the session key is
+also kept, see below, and as the sample systemd unit expects):
 
-    cp config/settings.yml.sample /path/to/target/settings.yml
-    mkdir /path/to/target/config/magick
+    mkdir -p /path/to/target/config/magick
+    cp config/settings.yml.sample /path/to/target/config/settings.yml
     cp config/magick/policy.xml /path/to/target/config/magick/
 
 ## Serving over HTTPS
@@ -278,7 +279,7 @@ tools such as `fail2ban` (watching the request log for posts to
 
 ## Basic configuration
 
-The `settings.yml` file has comments on the configuration
+The `config/settings.yml` file has comments on the configuration
 keys. Basically there are only three main that really need
 configuration:
 
@@ -397,7 +398,7 @@ animations would fail.
 Once the configuration is updated, simply run the application:
 
     cd /path/to/target
-    ./corydalis settings.yml
+    ./corydalis config/settings.yml
 
 Note that at the first run, it will start scanning the configured
 directories and parse metadata, so it will take a long while - maybe
