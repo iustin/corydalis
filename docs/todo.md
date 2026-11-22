@@ -79,6 +79,13 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 
 - Build the cached images concurrently (e.g. with
   `pooledMapConcurrentlyN_`).
+- Concurrent requests for the same preview not built yet each build it
+  (`loadCachedOrBuild`, `extractEmbedded`, `extractFirstFrame`), in
+  parallel as far as the tool slots allow, or later once a slot is
+  free, repeating the work. A table of the builds in progress, by output
+  file, would let the later requests wait for the first build instead,
+  then use its result; checking again for the cache file once given a
+  slot would already avoid the later builds.
 - Make the search cache size (`emptySearchCache`, now 10 entries)
   configurable.
 - Previews are also built in sizes larger than the image itself; skip
