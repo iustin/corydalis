@@ -22,9 +22,14 @@ directories. The frontend was modernised along the way: it is now
 entirely TypeScript, bundled with `esbuild`, and no longer uses jQuery.
 
 In total, 32 security issues were fixed (the items of the Security
-section below), and four issues found along the way were reported to
-upstream libraries: two to Yesod, one to yesod-auth-hashdb, and one to
-wai-logger, already fixed there (in version 2.5.1).
+section below): 5 of high severity, 7 medium, and 20 low or hardening
+only. The severity of many depends on who can write to the picture
+folders: the high ones need a crafted file in them (e.g. a photo with
+crafted metadata, or a symbolic link), except for the session key
+readable by the other users of the machine. Four issues found along the
+way were also reported to upstream libraries: two to Yesod, one to
+yesod-auth-hashdb, and one to wai-logger, already fixed there (in
+version 2.5.1).
 
 As a lot changed since v2025.21.0, read the upgrade notes first.
 
