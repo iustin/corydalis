@@ -371,18 +371,20 @@ waitsForSlotFirst config target run = do
   tools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
   -- Taking the only slot, as a running tool would.
   atomically . waitTSem $ tlSlots tools
-  running <- async (run tools)
-  -- It does nothing else in STM, so it is then waiting for the slot.
-  waitUntilBlockedInSTM (asyncThreadId running)
-  doesDirectoryExist (takeDirectory target) `shouldReturn` False
-  tmpFiles <- doesDirectoryExist (cacheTempDir config) >>= \case
-    True -> listDirectory (cacheTempDir config)
-    False -> return []
-  tmpFiles `shouldBe` []
-  atomically . signalTSem $ tlSlots tools
-  -- With a last resort time limit, in case it never finishes.
-  timeout lastResort (waitCatch running) >>=
-    maybe (expectationFailure "The run never finished" >> error "unreachable") return
+  -- Stopped if the test fails before it finishes (e.g. while it waits
+  -- for the slot, which would then never be freed).
+  withAsync (run tools) $ \running -> do
+    -- It does nothing else in STM, so it is then waiting for the slot.
+    waitUntilBlockedInSTM (asyncThreadId running)
+    doesDirectoryExist (takeDirectory target) `shouldReturn` False
+    tmpFiles <- doesDirectoryExist (cacheTempDir config) >>= \case
+      True -> listDirectory (cacheTempDir config)
+      False -> return []
+    tmpFiles `shouldBe` []
+    atomically . signalTSem $ tlSlots tools
+    -- With a last resort time limit, in case it never finishes.
+    timeout lastResort (waitCatch running) >>=
+      maybe (expectationFailure "The run never finished" >> error "unreachable") return
 
 spec :: Spec
 spec = parallel $ do
@@ -574,14 +576,16 @@ spec = parallel $ do
         -- tool.
         createNamedPipe started 0o600
         withBinaryFile started ReadWriteMode $ \h -> do
-          running <- async . buildPreviewFile tools config PreviewScaled target picture $
-                       proc "sh" ["-c", "echo started > \"$0\"; exec sleep 1000", started]
-          -- With a last resort time limit, in case the tool never runs.
-          timeout lastResort (System.IO.hGetLine h) `shouldReturn` Just "started"
-          cancel running
-          waitCatch running >>= \case
-            Left e -> (fromException e :: Maybe ImageError) `shouldSatisfy` isNothing
-            Right () -> expectationFailure "The build wasn't cancelled"
+          -- Also stopped if the test fails before cancelling it.
+          withAsync (buildPreviewFile tools config PreviewScaled target picture $
+                       proc "sh" ["-c", "echo started > \"$0\"; exec sleep 1000", started]) $
+            \running -> do
+              -- With a last resort time limit, in case the tool never runs.
+              timeout lastResort (System.IO.hGetLine h) `shouldReturn` Just "started"
+              cancel running
+              waitCatch running >>= \case
+                Left e -> (fromException e :: Maybe ImageError) `shouldSatisfy` isNothing
+                Right () -> expectationFailure "The build wasn't cancelled"
         -- No file is left behind: neither the cache file nor the
         -- temporary one.
         listDirectory (takeDirectory target) `shouldReturn` []

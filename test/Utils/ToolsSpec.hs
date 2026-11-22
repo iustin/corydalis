@@ -90,9 +90,9 @@ spec = do
       atomically . waitTSem $ tlSlots tools
       -- The run waits for the slot; cancelled while waiting, it
       -- doesn't keep one.
-      waiting <- async run
-      waitUntilBlockedInSTM (asyncThreadId waiting)
-      cancel waiting
+      withAsync run $ \waiting -> do
+        waitUntilBlockedInSTM (asyncThreadId waiting)
+        cancel waiting
       atomically . signalTSem $ tlSlots tools
       run >>= (`shouldBe` Right (ExitSuccess, "", ""))
       -- The slot is free again, even after the cancelled run.
