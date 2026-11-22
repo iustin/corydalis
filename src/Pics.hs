@@ -1632,6 +1632,11 @@ scanFilesystem ctx newrepo = do
                                   , repoStatus = RepoRendering { rsScanResults = wrscan,
                                                                  rsRenderGoal = wsrender }
                                   }
+  -- Reset the rendering's progress already: writing the disk cache can
+  -- take a while, during which the status page would otherwise show
+  -- the previous rendering's progress (forceBuildThumbCaches resets it
+  -- again, as it can be called on its own).
+  atomically $ resetRenderProgress ctx repo_as
   writeDiskCache config repo_as
   logfn LevelInfo "Finished building repo, starting rendering"
   traceMarkerIO "scanFilesystem start rendering"
@@ -1672,6 +1677,14 @@ renderableImages =
   filter (not . null . allViewableImageFiles) .
   filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
 
+-- | Resets the rendering's progress for a repository: nothing
+-- rendered yet, and its renderable images left to check (see
+-- 'forceBuildThumbCaches').
+resetRenderProgress :: Ctx -> Repository -> STM ()
+resetRenderProgress ctx repo = do
+  writeTVar (ctxRenderProgress ctx) def
+  writeTVar (ctxRenderCheckProgress ctx) def { pgGoal = length (renderableImages repo) }
+
 -- | Pre-render all auto image sizes, converting only stale caches.
 --
 -- First classifies every image×size, checking only the cache files
@@ -1700,9 +1713,7 @@ forceBuildThumbCaches ctx repo = do
             in (pend, n, [ProgressError (imageForError i size) msg | size <- reverse sizes] ++ es)
           Right stale ->
             (map (i,) (reverse stale) ++ pend, n + length sizes - length stale, es)
-  atomically $ do
-    writeTVar renderProgress def
-    writeTVar checkProgress def { pgGoal = length images }
+  atomically $ resetRenderProgress ctx repo
   (pending, noops, errs) <- foldM classifyImage ([], 0, []) images
   atomically $ writeTVar renderProgress Progress
     { pgErrors = errs

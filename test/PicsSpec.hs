@@ -1843,17 +1843,22 @@ spec = parallel $ do
             pgNumErrors pg `shouldBe` length staleSizes
             pgWork pg `shouldBe` length staleSizes
       it "counts the images checked by the first pass" $ \ctx -> do
+        let checkProgress = ctxRenderCheckProgress ctx
+            readChecked = (\p -> (pgGoal p, pgDone p)) <$> readTVarIO checkProgress
         repo <- getRepo ctx
+        -- A previous rendering's progress, e.g. an aborted one.
+        atomically $ writeTVar checkProgress def { pgGoal = 5, pgDone = 2 }
         _ <- forceBuildThumbCaches ctx repo
         -- Nothing renderable: nothing to check.
-        checked <- readTVarIO (ctxRenderCheckProgress ctx)
-        (pgGoal checked, pgDone checked) `shouldBe` (0, 0)
-        (repo', _) <- insertJpeg ctx (jpegFile ctx)
-        _ <- forceBuildThumbCaches ctx repo'
-        -- The picture isn't on disk, so its check fails, but it is
-        -- checked all the same.
-        checked' <- readTVarIO (ctxRenderCheckProgress ctx)
-        (pgGoal checked', pgDone checked') `shouldBe` (1, 1)
+        readChecked `shouldReturn` (0, 0)
+        -- A picture outside the picture folders fails its check, but it
+        -- is checked all the same.
+        let jpeg = (jpegFile ctx) { fileParent = mkSym (pack . cfgCacheDir $ ctxConfig ctx) }
+        writeFile (fileFullPath jpeg) ("" :: ByteString)
+        (repo', _) <- insertJpeg ctx jpeg
+        pg <- forceBuildThumbCaches ctx repo'
+        pgNumErrors pg `shouldBe` length (autoSizeList ctx)
+        readChecked `shouldReturn` (1, 1)
       it "records a fully cached image as noops with an empty work goal" $ \ctx -> do
         let config = ctxConfig ctx
             jpeg = jpegFile ctx
