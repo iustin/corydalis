@@ -275,6 +275,13 @@ absoluteDir setting dir
   | otherwise = fail $ "The " <> setting <>
                   " setting must use absolute paths, but has " <> show dir
 
+-- | Checks that a numeric setting is positive (e.g. the page size, as
+-- no images could be shown with zero per page).
+positiveSetting :: MonadFail m => String -> Int -> m Int
+positiveSetting setting n
+  | n > 0 = return n
+  | otherwise = fail $ "The " <> setting <> " setting must be positive, but is " <> show n
+
 -- | Parses and validates the extension to ImageMagick decoder map.
 parseImageDecoders :: MonadFail m => Map Text Text -> m (Map Text Text)
 parseImageDecoders =
@@ -341,7 +348,7 @@ instance FromJSON Config where
          autosizes              <*>
          demandsizes'           <*>
          allsizes               <*>
-         v .: "pagesize"        <*>
+         (v .: "pagesize" >>= positiveSetting "pagesize") <*>
          rawexts                <*>
          rawextsset             <*>
          jpegexts               <*>

@@ -203,6 +203,14 @@ Camera and lens names containing HTML (they come from the pictures'
 metadata) were partly interpreted as such on the charts, e.g. showing a
 link; they are now shown as written.
 
+Searches combining a negative number of filters (`any` or `all` with a
+negative count) are now refused, instead of silently matching
+everything or nothing. Browsing images at a huge page number showed the
+first page, with a negative starting index and a broken link to the
+next page, as the page's position overflowed; such pages are now empty,
+as any other page past the end. A `pagesize` that isn't positive is now
+refused at startup.
+
 On the status page, finished work (scan, rendering and cache cleaning)
 is shown with a green border again, as intended: a typo in the style
 name meant it had no border.
