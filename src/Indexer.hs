@@ -51,6 +51,7 @@ module Indexer ( Symbol(..)
                , maxQuickSearchLength
                , maxQuickSearchWords
                , atomFindsFiles
+               , atomSymbols
                , intToMonth
                , intToWeekDay
                , seasonStats
@@ -73,7 +74,7 @@ module Indexer ( Symbol(..)
 #endif
                ) where
 
-import           Control.Monad               (foldM, when)
+import           Control.Monad               (foldM, guard, when)
 import           Data.Bifunctor
 import           Data.List                   (nub, partition)
 import qualified Data.Map                    as Map
@@ -1214,6 +1215,54 @@ imageSearchFunction (Any as) = \img ->
 
 imageSearchFunction ConstTrue = const True
 
+-- | The symbols that an atom searches by, including those of its
+-- sub-atoms, in order and possibly repeated.
+atomSymbols :: Atom -> [Symbol]
+atomSymbols (Country _)      = [TCountry]
+atomSymbols (Province _)     = [TProvince]
+atomSymbols (City _)         = [TCity]
+atomSymbols (Location _)     = [TLocation]
+atomSymbols (Person _)       = [TPerson]
+atomSymbols (Keyword _)      = [TKeyword]
+atomSymbols (Title _)        = [TTitle]
+atomSymbols (Caption _)      = [TCaption]
+atomSymbols (Year _)         = [TYear]
+atomSymbols (Season _)       = [TSeason]
+atomSymbols (Month _)        = [TMonth]
+atomSymbols (Day _)          = [TDay]
+atomSymbols (Camera _)       = [TCamera]
+atomSymbols (Lens _)         = [TLens]
+atomSymbols (FStop _)        = [TFStop]
+atomSymbols (ShutterSpeed _) = [TShutterSpeed]
+atomSymbols (Iso _)          = [TIso]
+atomSymbols (FocalLength _)  = [TFocalLength]
+atomSymbols (Problem _)      = [TProblem]
+atomSymbols (Type _)         = [TType]
+atomSymbols (Folder _)       = [TFolder]
+atomSymbols (FileName _)     = [TFileName]
+atomSymbols (Status _)       = [TStatus]
+atomSymbols (FClass _)       = [TFClass]
+atomSymbols (Rating _)       = [TRating]
+atomSymbols (PplCnt _)       = [TPplCnt]
+atomSymbols (KwdCnt _)       = [TKwdCnt]
+atomSymbols (FlashSrc _)     = [TFlashSrc]
+atomSymbols (FlashMode _)    = [TFlashMode]
+atomSymbols (Megapixels _)   = [TMegapixels]
+atomSymbols (Event _)        = [TEvent]
+atomSymbols (Indexer.GenericEvent _) = [TGenericEvent]
+atomSymbols (Birthday _)     = [TBirthday]
+atomSymbols (Getaway _)      = [TGetaway]
+atomSymbols (GrandVacation _) = [TGrandVacation]
+atomSymbols (Vacation _)     = [TVacation]
+atomSymbols (WorkTrip _)     = [TWorkTrip]
+atomSymbols (EventKind _)    = [TEventKind]
+atomSymbols (And a b)        = atomSymbols a ++ atomSymbols b
+atomSymbols (Or a b)         = atomSymbols a ++ atomSymbols b
+atomSymbols (Not a)          = atomSymbols a
+atomSymbols (All as)         = concatMap atomSymbols as
+atomSymbols (Any as)         = concatMap atomSymbols as
+atomSymbols ConstTrue        = []
+
 -- | Computes whether a given atom can ever find files.
 atomFindsFiles :: Atom -> Bool
 atomFindsFiles (Event _)           = False
@@ -1701,18 +1750,23 @@ searchImages ctx atom pics = do
 -- * if the above is successful, return this single atom
 -- * otherwise, return all atoms that are able to parse the input
 --   string, unmodified.
-getAtomsForQuickSearch :: Text -> [Atom]
-getAtomsForQuickSearch word =
+--
+-- Only the symbols for which @allowed@ is true are used: for the
+-- others, a @symbol:keyword@ input is treated as if the symbol were
+-- unknown.
+getAtomsForQuickSearch :: (Symbol -> Bool) -> Text -> [Atom]
+getAtomsForQuickSearch allowed word =
   let r = do
         let (h, t) = Text.break (== ':') word
         (p, t') <- Text.uncons t
         when (p /= ':') Nothing
         s <- parseSymbol h
+        guard (allowed s)
         quickSearch s t'
   in case r of
     Just a -> [a]
-    Nothing -> mapMaybe (`quickSearch` word)
-               [minBound..maxBound]
+    Nothing -> mapMaybe (`quickSearch` word) $
+               filter allowed [minBound..maxBound]
 
 -- | The maximum length of a quick search, in characters.
 maxQuickSearchLength :: Int
@@ -1725,18 +1779,19 @@ maxQuickSearchLength = 200
 maxQuickSearchWords :: Int
 maxQuickSearchWords = 10
 
--- | Generates a quick search atom.
-genQuickSearchParams :: Repository -> Text ->
+-- | Generates a quick search atom, using only the symbols for which
+-- the given function is true (see 'getAtomsForQuickSearch').
+genQuickSearchParams :: (Symbol -> Bool) -> Repository -> Text ->
                         Either Text ([Atom], Maybe Atom)
-genQuickSearchParams _ "" = Left "Empty search parameter"
-genQuickSearchParams _ search
+genQuickSearchParams _ _ "" = Left "Empty search parameter"
+genQuickSearchParams _ _ search
   | Text.length search > maxQuickSearchLength =
       Left $ sformat ("Search too long, at most " % int % " characters are allowed")
                maxQuickSearchLength
   | length (nub $ Text.words search) > maxQuickSearchWords =
       Left $ sformat ("Search with too many words, at most " % int % " are allowed")
                maxQuickSearchWords
-genQuickSearchParams pics search =
+genQuickSearchParams allowed pics search =
   let swords = nub $ Text.words search
       -- TODO: this way of checking search is too slow, especially for
       -- negative searches, as it really needs to scan the entire
@@ -1756,7 +1811,7 @@ genQuickSearchParams pics search =
       -- meaning is Italy *or* England, but with any complex filters
       -- it would become a headache.
       params = foldl' (\(pf, pm) w ->
-                         let allA = getAtomsForQuickSearch w
+                         let allA = getAtomsForQuickSearch allowed w
                              -- allA is all atoms that were able to
                              -- parse from the input word.
                              (f, m) = partition findsAny allA

@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns      #-}
@@ -34,6 +35,7 @@ import           ClassyPrelude                  as X hiding (Handler, delete,
 import           Database.Persist               as X hiding (get)
 import           Database.Persist.Sql           (SqlPersistM,
                                                  runSqlPersistMPool)
+import           Exif                           (Exif (..))
 import           Foundation                     as X
 import           Model                          as X
 import           Pics                           (Ctx, File (..), Image (..),
@@ -53,6 +55,7 @@ import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
 import           Test.Hspec.QuickCheck          as X
 import           Types                          as X
 import           Yesod.Auth                     as X
+import           Yesod.Core                     (ToContent (..))
 import           Yesod.Core.Unsafe              (fakeHandlerGetLogger)
 import           Yesod.Default.Config2          (loadYamlSettings,
                                                  makeYesodLogger, useEnv)
@@ -87,7 +90,14 @@ import           System.Log.FastLogger          (defaultBufSize,
                                                  rmLoggerSet)
 import           System.Process.Typed           (ExitCode (..), proc,
                                                  readProcess)
-import           Yesod.Core.Types               (loggerSet)
+import           Data.ByteString.Builder        (toLazyByteString)
+import           Yesod.Core.Types               (Content (..),
+                                                 ErrorResponse (..),
+                                                 HandlerContents (..),
+                                                 HandlerData (..),
+                                                 HandlerFor (..),
+                                                 YesodRequest (..),
+                                                 loggerSet)
 import           Text.HTML.DOM                  (parseLBS)
 import           Text.XML.Cursor                (attribute, fromDocument)
 
@@ -102,6 +112,52 @@ runHandler :: Handler a -> YesodExample App a
 runHandler handler = do
     app <- getTestYesod
     fakeHandlerGetLogger appLogger app handler
+
+-- | Runs a handler outside of a request, as 'runHandler', so as an
+-- anonymous user (without access to storage paths, see
+-- 'hasAccessToStoragePaths'), but with the given GET parameters.
+--
+-- It returns how the handler stopped early (e.g. with a redirect or
+-- an error), if it did.
+--
+-- This skips the authorization of the route (see 'isAuthorized'): the
+-- tests aren't built with the @public-site@ flag, so all routes need
+-- logging in, but on a public site anonymous users can reach most of
+-- them, and only the handlers' own checks apply.
+runAnonymousHandler :: [(Text, Text)] -> Handler a
+                    -> YesodExample App (Either HandlerContents a)
+runAnonymousHandler params handler =
+  runHandler . withGetParams $ try handler
+  where withGetParams h = HandlerFor $ \hd ->
+          let req = handlerRequest hd
+          in unHandlerFor h hd { handlerRequest = req { reqGetParams = params } }
+
+-- | Whether a handler run by 'runAnonymousHandler' was refused (403),
+-- with a message containing the given text.
+isPermissionDenied :: Text -> Either HandlerContents a -> Bool
+isPermissionDenied txt (Left (HCError (PermissionDenied msg))) =
+  txt `isInfixOf` msg
+isPermissionDenied _ _ = False
+
+-- | Where a handler run by 'runAnonymousHandler' redirected to, if it
+-- did.
+redirectTarget :: Either HandlerContents a -> Maybe Text
+redirectTarget (Left (HCRedirect _ location)) = Just location
+redirectTarget _                              = Nothing
+
+-- | The page rendered by a handler run by 'runAnonymousHandler',
+-- failing if it stopped early.
+anonymousPage :: (ToContent c) => [(Text, Text)] -> Handler c
+              -> YesodExample App Text
+anonymousPage params handler =
+  runAnonymousHandler params handler >>= \case
+    Right c  -> liftIO . contentText $ toContent c
+    Left err -> liftIO . throwIO . userError $ "Handler failed: " <> show err
+  where contentText (ContentBuilder b _)    =
+          return . decodeUtf8 . toStrict $ toLazyByteString b
+        contentText (ContentDontEvaluate c) = contentText c
+        contentText _                       =
+          throwIO $ userError "Handler returned a stream or a file"
 
 {-# ANN ignoringIOErrors ("HLint: ignore Evaluate"::String) #-}
 -- | Adapted from temporary's code.
@@ -528,6 +584,25 @@ addScannedFolder name files = do
       RepoError err -> expectationFailure $ "The scan failed: " ++ unpack err
       _             -> return ()
   return dir
+
+-- | The exif warning of 'problemImage', i.e. its problem.
+problemWarning :: (IsString a) => a
+problemWarning = "Bad format in /srv/pictures/a.nef"
+
+-- | An image with a problem (see 'problemWarning'): the
+-- 'simpleRawImage', folder @test@ and name @a@.
+problemImage :: Config -> Image
+problemImage config =
+  let img = simpleRawImage config
+  in img { imgExif = (imgExif img) { exifWarning = Set.singleton problemWarning } }
+
+-- | Injects the 'problemImage', once the initial scan (which would
+-- replace it) is done.
+injectProblemImage :: YesodExample App ()
+injectProblemImage = do
+  ctx <- appContext <$> getTestYesod
+  _ <- liftIO $ waitForScan ctx
+  injectImages [problemImage (ctxConfig ctx)]
 
 -- | Inject images into the repository through the context
 injectImages :: [Image] -> YesodExample App ()

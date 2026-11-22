@@ -85,7 +85,8 @@ getQuickSearchR = do
     Just "" -> invalidArgs ["Empty search parameter"]
     Just q' -> return q'
   pics <- getPics
-  (skipped, atom) <- case genQuickSearchParams pics search of
+  allowed <- getSymbolAccess
+  (skipped, atom) <- case genQuickSearchParams allowed pics search of
     Left err -> invalidArgs [err]
     Right p' -> return p'
   case atom of

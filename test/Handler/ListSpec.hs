@@ -24,6 +24,7 @@ module Handler.ListSpec (spec) where
 
 import           TestImport
 
+import           Handler.List (getListItemsR)
 import           Indexer
 
 spec :: Spec
@@ -44,3 +45,15 @@ spec = parallel $ withApp $ do
         login
         checkRouteIsWithParams ListImagesR (atomToParams (FClass fclass)) 200
         bodyContains "not able to match files"
+  describe "problems" $ do
+    it "lists them to logged in users" $ do
+      injectProblemImage
+      login
+      checkRoute $ ListItemsR TProblem
+      bodyContains problemWarning
+    it "refuses to list them to anonymous users" $ do
+      injectProblemImage
+      r <- runAnonymousHandler [] (getListItemsR TProblem)
+      liftIO $ void r `shouldSatisfy` isPermissionDenied "problem"
+      page <- anonymousPage [] (getListItemsR TCamera)
+      liftIO $ page `shouldSatisfy` ("Listing" `isInfixOf`)
