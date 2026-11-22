@@ -78,6 +78,33 @@ populateSourceDir config files = do
 noLog :: LogFn
 noLog _ _ = return ()
 
+-- | Runs exiftool (as the scan does) on a picture and a pipe in the
+-- given folder, returning the files in the cache's temporary directory
+-- while it runs, and after it ran.
+--
+-- exiftool is kept running by the pipe: a shell opens it for writing,
+-- which waits until exiftool opens it for reading, says so, and keeps
+-- it open until told to go on.
+tmpFilesWhileRunning :: Config -> FilePath -> IO ([FilePath], [FilePath])
+tmpFilesWhileRunning config dir = do
+  tools <- testToolLimits
+  BS.writeFile (dir </> "normal.jpg") minimalJpeg
+  let pipe = dir </> "pipe.jpg"
+  createNamedPipe pipe 0o600
+  running <- async $ getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]
+  let writer = setStdin createPipe . setStdout createPipe $
+                 proc "sh" ["-c", "exec 3>\"$0\"; echo open; read x", pipe]
+  during <- withProcessWait writer $ \p -> do
+    -- With a last resort time limit, in case exiftool never opens it.
+    timeout (30 * 1000000) (System.IO.hGetLine (getStdout p)) `shouldReturn` Just "open"
+    files <- listDirectory (cacheTempDir config)
+    System.IO.hPutStrLn (getStdin p) "go on"
+    hClose (getStdin p)
+    return files
+  _ <- timeout (30 * 1000000) (wait running)
+  afterwards <- listDirectory (cacheTempDir config)
+  return (during, afterwards)
+
 -- Arbitrary instances for testing
 
 instance Arbitrary Orientation where
@@ -271,38 +298,25 @@ spec = parallel $ do
 
     it "writes exiftool's output in the cache's temporary directory" $ \config -> do
       requireExifTool
-      tools <- testToolLimits
-      dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
-      let pipe = dir </> "pipe.jpg"
-      createNamedPipe pipe 0o600
-      running <- async $ getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]
-      -- A shell opens the pipe for writing, which waits until exiftool
-      -- opens it for reading, says so, and keeps it open until told to
-      -- go on; exiftool is running meanwhile.
-      let writer = setStdin createPipe . setStdout createPipe $
-                     proc "sh" ["-c", "exec 3>\"$0\"; echo open; read x", pipe]
-      withProcessWait writer $ \p -> do
-        -- With a last resort time limit, in case exiftool never opens it.
-        timeout (30 * 1000000) (System.IO.hGetLine (getStdout p)) `shouldReturn` Just "open"
-        tmpFiles <- listDirectory (cacheTempDir config)
-        length tmpFiles `shouldBe` 1
-        -- Named after the folder, ending with "raw".
-        tmpFiles `shouldSatisfy` all ("_raw-exif" `isInfixOf`)
-        System.IO.hPutStrLn (getStdin p) "go on"
-        hClose (getStdin p)
-      _ <- timeout (30 * 1000000) (wait running)
+      dir <- populateSourceDir config []
+      (during, afterwards) <- tmpFilesWhileRunning config dir
+      length during `shouldBe` 1
+      -- Named after the folder, ending with "raw".
+      during `shouldSatisfy` all ("_raw-exif" `isInfixOf`)
       -- And it is removed afterwards.
-      listDirectory (cacheTempDir config) `shouldReturn` []
-    it "reads a folder whose path is near the length limit of a name" $ \config -> do
+      afterwards `shouldBe` []
+    it "names exiftool's output after the end of the folder's path only" $ \config -> do
       requireExifTool
-      tools <- testToolLimits
       root <- populateSourceDir config []
-      -- The output file's name doesn't take the whole path.
-      let dir = root </> replicate 200 'd'
+      -- The whole path could make the name too long; the start of the
+      -- path (above the folder) may contain other 'd's, but not in a
+      -- row.
+      let dir = root </> replicate 100 'd'
       createDirectory dir
-      BS.writeFile (dir </> "normal.jpg") minimalJpeg
-      (_, exifs) <- getExif noLog tools config dir ["normal.jpg"]
-      (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
+      (during, _) <- tmpFilesWhileRunning config dir
+      length during `shouldBe` 1
+      during `shouldSatisfy` all (\name -> replicate 40 'd' `isInfixOf` name &&
+                                         not (replicate 90 'd' `isInfixOf` name))
     it "waits for a slot of its limits" $ \config -> do
       requireExifTool
       tools <- atomically $ newToolLimits 1 defaultScanToolTimeout
