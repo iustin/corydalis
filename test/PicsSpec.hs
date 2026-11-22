@@ -1935,8 +1935,13 @@ spec = parallel $ do
         pgGoal pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
       it "counts an image that can't be checked as errors" $ \ctx -> do
-        -- The picture isn't on disk, so it fails the storage checks.
-        (repo, _) <- insertJpeg ctx (jpegFile ctx)
+        -- A picture outside the picture folders fails the storage checks.
+        let jpeg = (jpegFile ctx) { fileParent = mkSym (pack . cfgCacheDir $ ctxConfig ctx) }
+        writeFile (fileFullPath jpeg) ("" :: ByteString)
+        (repo, img) <- insertJpeg ctx jpeg
+        pendingOf ctx img >>= \case
+          Left (ImageError _) -> return ()
+          other -> expectationFailure $ "expected the check to fail, got " ++ show other
         pg <- forceBuildThumbCaches ctx repo
         pgGoal pg `shouldBe` length (autoSizeList ctx)
         pgNoop pg `shouldBe` 0
