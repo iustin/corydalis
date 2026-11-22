@@ -1859,6 +1859,15 @@ spec = parallel $ do
         pg <- forceBuildThumbCaches ctx repo'
         pgNumErrors pg `shouldBe` length (autoSizeList ctx)
         readChecked `shouldReturn` (1, 1)
+        -- Several images: counted as checked, the last one along with
+        -- the rendering's goal.
+        let config = ctxConfig ctx
+            picture name = mkImage config name "folder" Nothing Nothing
+                             [(jpegFile ctx) { fileName = unImageName name <> ".jpg" }]
+                             Nothing [] [] Nothing MediaImage def
+            dirs = foldl' (addImageToRepo config) (repoDirs repo) (map picture ["x", "y", "z"])
+        _ <- forceBuildThumbCaches ctx repo { repoDirs = dirs }
+        readChecked `shouldReturn` (3, 3)
       it "records a fully cached image as noops with an empty work goal" $ \ctx -> do
         let config = ctxConfig ctx
             jpeg = jpegFile ctx

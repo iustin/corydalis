@@ -346,8 +346,11 @@ getStatusR = do
   -- TODO: both of these should be moved to STM and read in a single
   -- transaction, and repo as well. [cleanup]
   scanProgress <- liftIO $ getProgress ctx
-  renderProgress <- liftIO $ getRenderProgress ctx
-  renderCheckProgress <- liftIO . readTVarIO $ ctxRenderCheckProgress ctx
+  -- Read together, so that the end of the rendering's first pass is
+  -- seen at once (see 'forceBuildThumbCaches').
+  (renderProgress, renderCheckProgress) <- liftIO . atomically $
+    (,) <$> readTVar (ctxRenderProgress ctx)
+        <*> readTVar (ctxRenderCheckProgress ctx)
   cleanProgress <- liftIO $ getCleanProgress ctx
   now <- liftIO getZonedTime
   defaultLayout $ do
