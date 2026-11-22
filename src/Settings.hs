@@ -104,7 +104,8 @@ data AppSettings = AppSettings
     -- which browsers treat as secure) need to disable it.
     , appStrictTransportSecurity :: Bool
     -- ^ Emit a Strict-Transport-Security header in the response. This
-    -- defaults to the https parameter; in case of plain http, it can be
+    -- defaults to the https parameter, except with a Unix socket (which
+    -- ignores https), where it defaults to false; in case of plain http, it can be
     -- useful when reverse proxied. However, it's preferable to configure
     -- this in the reverse proxy itself, since that's more commonly done
     -- on the entire (apex) domain (e.g. on example.com), rather than in
@@ -189,7 +190,12 @@ instance FromJSON AppSettings where
         -- setting), the cookies must not be sent in clear.
         let appSecureSessions =
               secureSessions || (appHttps && isNothing appUnixSocket)
-        appStrictTransportSecurity <- o .:? "strict-transport-security" .!= appHttps
+        -- By default, only when serving HTTPS directly (the condition
+        -- that forces the secure sessions on, above): behind a proxy, it
+        -- is the proxy's choice (and a header from here could override
+        -- its own).
+        appStrictTransportSecurity <- o .:? "strict-transport-security" .!=
+                                        (appHttps && isNothing appUnixSocket)
         appIpFromHeader   <- o .:  "ip-from-header"
         sessionMaxAge     <- o .:? "session-max-age" .!= defaultSessionMaxAge
         when (sessionMaxAge <= 0) $

@@ -140,9 +140,11 @@ a plain `http://` URL while the cookies are secure, Corydalis logs a
 warning at startup.
 
 The `Strict-Transport-Security` (HSTS) header is controlled by the
-`strict-transport-security` setting, which defaults to the `https` one;
-behind a proxy, it is usually better configured in the proxy, for the
-whole domain. When enabled, Corydalis sends it with a `max-age` of one
+`strict-transport-security` setting, which defaults to the `https` one,
+except with `unix-socket` (which ignores `https`), where it defaults to
+off; behind a proxy, it is usually better configured in the proxy, for
+the whole domain. When enabled, Corydalis sends it with all its
+responses (including static files and errors), with a `max-age` of one
 year, and `includeSubDomains` (which only covers the names under the
 one Corydalis is served on).
 

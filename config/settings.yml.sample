@@ -31,7 +31,8 @@ https:          true
 # cookies received over plain HTTP, so logging in wouldn't work).
 secure-sessions: true
 # Emit a Strict-Transport-Security header in the response. This
-# defaults to the https parameter; in case of plain http, it can be
+# defaults to the https parameter (but to false with unix-socket,
+# which ignores https); in case of plain http, it can be
 # useful when reverse proxied. However, it's preferable to configure
 # this in the reverse proxy itself, since that's more commonly done
 # on the entire (apex) domain (e.g. on example.com), rather than in

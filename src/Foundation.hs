@@ -47,6 +47,7 @@ module Foundation
   , setSameOriginUltDestReferer
   , alwaysRequiresAuthentication
   , hasAccessToStoragePaths
+  , hstsHeaderValue
   , makeDummyLoginUser
   , loginTimeKey
   , isLoginCurrent
@@ -143,10 +144,11 @@ msgValidTypes = Set.fromList [msgSuccess, msgInfo, msgWarning, msgDanger]
 sessionTimeout :: Int
 sessionTimeout = 120
 
--- | How long browsers remember to only use HTTPS (the HSTS max-age), in
--- minutes, as 'sslOnlyMiddleware' takes it: a year, the usual value.
-hstsMaxAge :: Int
-hstsMaxAge = 365 * 24 * 60
+-- | The HSTS header's value: browsers remember to only use HTTPS for a
+-- year (the usual value), for the subdomains too.
+hstsHeaderValue :: ByteString
+hstsHeaderValue =
+  "max-age=" <> encodeUtf8 (tshow (365 * 24 * 3600 :: Int)) <> "; includeSubDomains"
 
 data PageStyle
   = PageBasic  -- ^ Only the most basic CSS/JS. Well, with masonry since
@@ -256,13 +258,7 @@ instance Yesod App where
     -- Forms embed the token in a hidden field, and JavaScript reads it from
     -- the csrf-token meta tag in the page layout; no CSRF cookie is set.
     -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
-    yesodMiddleware = maybeSecureSessions . defaultYesodMiddleware . defaultCsrfCheckMiddleware
-      where maybeSecureSessions handler = do
-              master <- getYesod
-              let settings = appSettings master
-              (if appStrictTransportSecurity settings
-                 then sslOnlyMiddleware hstsMaxAge
-                 else id) handler
+    yesodMiddleware = defaultYesodMiddleware . defaultCsrfCheckMiddleware
 
     defaultLayout widget = do
         mmsg <- getMessage

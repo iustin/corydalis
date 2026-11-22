@@ -592,11 +592,13 @@ The secure sessions setting will no longer enforce also an
 [HSTS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security)
 header, but instead only set the secure bit on cookies; there is a new
 `strict-transport-security` config setting to control the header,
-defaulting to the `https` setting. However, even in https mode, the header
-can now be skipped, since usually the header is emitted in front-line
-applications, and thus when Corydalis is being reverse proxied, it should
-not be emitted from it too; duplicate HSTS headers are technically
-incorrect and will prevent sites from reaching an A+ score on SSL tests.
+defaulting to the `https` setting (but to off with `unix-socket`, which
+ignores `https`), and covering all responses, including static files.
+However, even in https mode, the header can now be skipped, since
+usually the header is emitted in front-line applications, and thus when
+Corydalis is being reverse proxied, it should not be emitted from it
+too; duplicate HSTS headers are technically incorrect and will prevent
+sites from reaching an A+ score on SSL tests.
 Note that the sample configuration file initially named this setting
 `secure-transport-security`, which is ignored; if you copied it from
 there, rename it to `strict-transport-security`.

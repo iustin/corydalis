@@ -256,6 +256,14 @@ sessionGenerationSpec = describe "session generation" $ do
         login
         checkRoute HomeR
         responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
+    withAppSettings (\settings -> settings { appStrictTransportSecurity = True }) $ do
+      it "is sent with static files" $ do
+        get ("/static/corydalis/manifest.json" :: Text)
+        statusIs 200
+        responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
+      it "is sent with errors" $ do
+        get ("/no-such-page" :: Text)
+        responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
     withApp $ it "is not sent when disabled" $ do
       login
       checkRoute HomeR
