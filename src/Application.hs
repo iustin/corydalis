@@ -235,7 +235,8 @@ makeApplication foundation = do
 -- logging.
 --
 -- The security headers are added at this level, rather than in the Yesod
--- middleware, so that they cover all responses, including errors. The
+-- middleware, so that they cover all responses, including errors and
+-- static files (see "Middlewares" in docs/devel.md). The
 -- nosniff header prevents browsers from guessing a different type than
 -- the one we send, e.g. executing a file as a script. The referrer
 -- policy keeps our URLs (which contain folder and image names, and

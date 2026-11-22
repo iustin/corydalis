@@ -113,6 +113,30 @@ clean build, is not affected; for other builds, change the module or
 build from scratch. The server also needs a restart, as it reads the
 files' hashes when it starts.
 
+## Middlewares: where headers and checks go
+
+Requests go through two layers of middleware, which see different
+things:
+
+- `appMiddlewares` (in `Application.hs`) wraps the whole WAI
+  application, so it sees every response, however it was made: pages,
+  redirects, errors, the authentication pages, and static files. It only
+  knows HTTP (the request and the response, with their headers), and the
+  settings it was built with; it can't use the session, the logged in
+  user, or the routes.
+- `yesodMiddleware` (in `Foundation.hs`) runs inside `Handler`, around
+  each request's handler, so it can use the session, the user, the
+  route and the settings, and can refuse or redirect the request (this
+  is where the authorization and CSRF checks happen). But the headers it
+  adds with `addHeader` don't reach the static files: yesod-static
+  answers with a WAI response of its own, which doesn't include them.
+
+So a header that every response must carry (the security headers,
+`Cache-Control`) goes in `appMiddlewares`; anything that depends on the
+user or the route, or must be able to stop a request, goes in
+`yesodMiddleware`. A header meant for all responses, but added in
+`yesodMiddleware`, silently misses the static files (as HSTS used to).
+
 ## Making a binary build/release
 
 There are two targets for binaries:
