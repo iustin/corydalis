@@ -344,7 +344,7 @@ search shows the matching folders, in the folder list.
 
 Quick searches are limited to 200 characters and 10 (distinct) words,
 as each word is checked against the whole repository. For anonymous
-visitors of a public site, they don't look at problems.
+visitors of a public site, quick searches don't look at problems.
 
 Further tweaks to the search parameters can be done by modifying the
 URL directly, per the previous section.
@@ -356,7 +356,7 @@ designed to help processing pictures. Just for image viewing, this
 section can be entirely ignored. But the status atom reuses the same
 status value, so this applies for searches as well.
 
-Depending on what kinds of files are present for an image, it will
+Depending on what kinds of files are present for an image, it will be
 categorised as follows:
 
 - _unprocessed_ if we only have a raw file for it (sidecars are
