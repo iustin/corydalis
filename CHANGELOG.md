@@ -350,6 +350,9 @@ could see:
   movies as needed), so the remaining count and ETA are more accurate;
   the status page shows the first pass as the images checked so far,
   and the estimated end time of the work (as a tooltip).
+- The status page describes each phase's work in its own words (e.g.
+  the previews built, or the obsolete cache files deleted), instead of
+  the same generic "items" for all of them.
 - Many icons changed, so that different things no longer share one.
 - Usage periods in the camera and lens statistics are computed in
   calendar years and months (e.g. a full year is "1 year", not "1 year
