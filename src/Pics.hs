@@ -167,7 +167,7 @@ module Pics ( PicDir(..)
             , scaledImagePath
             , cacheFileNeedsBuild
             , writeViaTempFile
-            , cacheFileSuffixes
+            , cacheFileEndings
             , isLiveCacheFile
             , scaledCacheNeedsBuild
             , splitPathExt
@@ -1451,31 +1451,33 @@ resolveProcessedRanges config picd =
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
--- | The suffixes of the cache files in use (see 'cachedBasename'): the
--- configured sizes, the embedded images (and movie frames), and the
--- exif caches.
+-- | The endings of the cache files' names in use: "-" and the suffix of
+-- the configured sizes, the embedded images (and movie frames), and the
+-- exif caches (see 'cachedBasename'). The dash is included, so that it
+-- isn't added again for each cache file the cleanup checks.
 --
 -- A new kind of cache file must be added here, as the cache cleanup
 -- deletes the files with any other suffix. The repository cache (see
 -- 'repoDiskPath') isn't, as it is at the root of the cache directory,
 -- which the cleanup doesn't visit.
-cacheFileSuffixes :: Config -> [Text]
-cacheFileSuffixes config =
-  "embedded" :
-  map (Text.pack . show) (Set.toList (cfgAllImageSizes config)) ++
-  ["exif", "bexif"]
+cacheFileEndings :: Config -> [Text]
+cacheFileEndings config =
+  map ("-" <>) $
+    "embedded" :
+    map (Text.pack . show) (Set.toList (cfgAllImageSizes config)) ++
+    ["exif", "bexif"]
 
 -- | Whether a cache file is in use: its path is exactly that of a file
--- in the repository, followed by "-" and a suffix in use (see
--- 'cachedBasename').
-isLiveCacheFile :: [Text]    -- ^ The suffixes in use ('cacheFileSuffixes')
+-- in the repository, followed by an ending in use (see
+-- 'cacheFileEndings').
+isLiveCacheFile :: [Text]    -- ^ The endings in use ('cacheFileEndings')
                 -> Set Text  -- ^ The files in the repository (absolute paths)
                 -> Text      -- ^ The cache file's path, without the cache
                              -- directory (so starting with a separator)
                 -> Bool
-isLiveCacheFile suffixes files path =
-  any (\suffix -> maybe False (`Set.member` files) $
-                    Text.stripSuffix ("-" <> suffix) path) suffixes
+isLiveCacheFile endings files path =
+  any (\ending -> maybe False (`Set.member` files) $
+                    Text.stripSuffix ending path) endings
 
 -- | Checks if a given cache file is obsolete, and deletes it if so.
 --
@@ -1487,13 +1489,13 @@ isLiveCacheFile suffixes files path =
 -- which isn't cleaned up here.
 examineCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
                  -> TVar Progress  -- ^ For tracking progress
-                 -> [Text]         -- ^ Suffixes of the cache files in use
+                 -> [Text]         -- ^ Endings of the cache files in use
                  -> Set Text       -- ^ Set of real image files (absolute paths)
                  -> LogFn          -- ^ Logger function
                  -> FilePath       -- ^ Relative path to the item being examined
                  -> IO ()
-examineCacheFile prefix cleanProgress suffixes iset logger path = do
-  let found = isLiveCacheFile suffixes iset (Text.pack $ pathSeparator:path)
+examineCacheFile prefix cleanProgress endings iset logger path = do
+  let found = isLiveCacheFile endings iset (Text.pack $ pathSeparator:path)
   modifier <- if found
               then return incNoop
               else cleanCacheFile prefix logger path
@@ -1528,7 +1530,7 @@ cleanupCache ctx repo alldirs cachecount = do
       config = ctxConfig ctx
       cacheDir = cfgCacheDir config
       handler = examineCacheFile cacheDir cleanProgress
-                  (cacheFileSuffixes config) iset (ctxLogger ctx)
+                  (cacheFileEndings config) iset (ctxLogger ctx)
   mapM_ (allPathFiles config cacheDir handler) alldirs
   readTVarIO cleanProgress
 

@@ -1223,7 +1223,7 @@ spec = parallel $ do
         readFile two `shouldReturn` ("second" :: ByteString)
     describe "isLiveCacheFile" $ do
       let files = Set.fromList ["/p/a.nef", "/p/a.nef copy.jpg"]
-          live config = isLiveCacheFile (cacheFileSuffixes config) files
+          live config = isLiveCacheFile (cacheFileEndings config) files
       it "accepts a file's path, a dash, and a suffix in use" $ \config -> do
         forM_ (Set.toList (cfgAllImageSizes config)) $ \size ->
           live config ("/p/a.nef-" <> tshow size) `shouldBe` True
@@ -1240,7 +1240,7 @@ spec = parallel $ do
         -- Paths starting with a repository file's path, which the
         -- earlier check kept.
         live config "/p/a.nef copy 2.jpg-exif" `shouldBe` False
-        isLiveCacheFile (cacheFileSuffixes config) (Set.singleton "/p/a")
+        isLiveCacheFile (cacheFileEndings config) (Set.singleton "/p/a")
           "/p/a.nef-exif" `shouldBe` False
       it "accepts the paths of all kinds of cache files" $ \config -> do
         let picture = "/p/a.nef"
