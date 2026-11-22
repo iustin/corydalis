@@ -169,6 +169,8 @@ module Pics ( PicDir(..)
             , isLiveCacheFile
             , scaledCacheNeedsBuild
             , imagePendingSizes
+            , imageViewSource
+            , ViewKind(..)
             , splitPathExt
             , isKnownMediaInode
             , renderableImages
@@ -2446,6 +2448,7 @@ data ViewKind
   = ViewAsIs     -- ^ The file itself (a JPEG, or a viewable raw file).
   | ViewEmbedded -- ^ A preview embedded in the (raw) file.
   | ViewMovie    -- ^ A movie's embedded preview, or else its first frame.
+  deriving (Show, Eq)
 
 -- | The file an image is viewed from, and how its viewable version is
 -- obtained from it: a processed file is used directly; for a raw file,

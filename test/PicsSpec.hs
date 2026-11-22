@@ -1854,6 +1854,24 @@ spec = parallel $ do
         pgGoal pg `shouldBe` 0
         pgDone pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
+    describe "imageViewSource" $ do
+      it "picks the file an image is viewed from, and how" $ \ctx -> do
+        let config = ctxConfig ctx
+            nef = simpleFile "r.nef"
+            png = simpleFile "r.png"
+            jpg = simpleFile "r.jpg"
+            mov = simpleFile "m.mov"
+            image raw jpegs movie =
+              mkImage config "r" "folder" raw Nothing jpegs movie [] [] Nothing
+                MediaImage
+            source = fmap (first fileName) . imageViewSource config
+        source (image (Just nef) [jpg] Nothing def) `shouldBe` Just ("r.jpg", ViewAsIs)
+        source (image (Just nef) [] Nothing def) `shouldBe` Just ("r.nef", ViewEmbedded)
+        source (image (Just png) [] Nothing def) `shouldBe` Just ("r.png", ViewAsIs)
+        source (image (Just nef) [] Nothing def { flagsSoftMaster = True })
+          `shouldBe` Just ("r.nef", ViewAsIs)
+        source (image Nothing [] (Just mov) def) `shouldBe` Just ("m.mov", ViewMovie)
+        source (simpleUntrackedImage config "folder" "u") `shouldBe` Nothing
     describe "imagePendingSizes" $ do
       let noLog _ _ = return ()
           rawFile ctx = (simpleFile "r.nef") { fileParent = mkSym (pack $ sourceDir ctx) }
@@ -1916,6 +1934,29 @@ spec = parallel $ do
         pgNoop pg `shouldBe` length sizes
         pgGoal pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
+      it "counts an image that can't be checked as errors" $ \ctx -> do
+        -- The picture isn't on disk, so it fails the storage checks.
+        (repo, _) <- insertJpeg ctx (jpegFile ctx)
+        pg <- forceBuildThumbCaches ctx repo
+        pgGoal pg `shouldBe` length (autoSizeList ctx)
+        pgNoop pg `shouldBe` 0
+        pgNumErrors pg `shouldBe` length (autoSizeList ctx)
+      it "builds from an already extracted preview or frame" $ \ctx -> do
+        let config = ctxConfig ctx
+            raw = rawFile ctx
+            movie = movieFile ctx
+        forM_ [ (raw, rawImage ctx raw), (movie, movieImage ctx movie) ] $ \(f, img) -> do
+          let epath = embeddedImagePath config (fileFullPath f)
+          writeFile (fileFullPath f) ("not a picture" :: ByteString)
+          writeNonEmpty epath
+          -- The extracted file is up to date, so it is used as is.
+          res <- imageAtRes (ctxRenderToolLimits ctx) noLog config img Nothing
+          case res of
+            Right (built, mime, path) -> do
+              built `shouldBe` False
+              mime `shouldBe` "image/jpeg"
+              path `shouldBe` epath
+            Left err -> expectationFailure $ "unexpected error: " ++ show err
       it "counts a failed extraction as an error of the build" $ \ctx -> do
         repo <- getRepo ctx
         let config = ctxConfig ctx
