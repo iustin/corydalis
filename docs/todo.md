@@ -172,15 +172,6 @@ Workarounds for upstream bugs, to drop once fixed there:
 
 ## Bugs
 
-### Cache cleanup
-
-The cache cleanup (`examineCacheFile`) can delete the cache files of an
-existing image, if another image's path starts with this one's,
-followed by a character sorting before `-` (e.g. `a.nef` and
-`a.nef copy.jpg`); see the comment there. The files are rebuilt when
-needed, so this only costs work. Checking the image path without the
-cache suffix for exact membership would fix it.
-
 ### Handling of copies
 
 1. The current copy system is really bad. A copy is declared as such

@@ -167,6 +167,8 @@ module Pics ( PicDir(..)
             , scaledImagePath
             , cacheFileNeedsBuild
             , writeViaTempFile
+            , cacheFileSuffixes
+            , isLiveCacheFile
             , scaledCacheNeedsBuild
             , splitPathExt
             , isKnownMediaInode
@@ -1449,31 +1451,49 @@ resolveProcessedRanges config picd =
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
--- | Checks if a given cache file is obsolete.
+-- | The suffixes of the cache files in use (see 'cachedBasename'): the
+-- configured sizes, the embedded images (and movie frames), and the
+-- exif caches.
+--
+-- A new kind of cache file must be added here, as the cache cleanup
+-- deletes the files with any other suffix. The repository cache (see
+-- 'repoDiskPath') isn't, as it is at the root of the cache directory,
+-- which the cleanup doesn't visit.
+cacheFileSuffixes :: Config -> [Text]
+cacheFileSuffixes config =
+  "embedded" :
+  map (Text.pack . show) (Set.toList (cfgAllImageSizes config)) ++
+  ["exif", "bexif"]
+
+-- | Whether a cache file is in use: its path is exactly that of a file
+-- in the repository, followed by "-" and a suffix in use (see
+-- 'cachedBasename').
+isLiveCacheFile :: [Text]    -- ^ The suffixes in use ('cacheFileSuffixes')
+                -> Set Text  -- ^ The files in the repository (absolute paths)
+                -> Text      -- ^ The cache file's path, without the cache
+                             -- directory (so starting with a separator)
+                -> Bool
+isLiveCacheFile suffixes files path =
+  any (\suffix -> maybe False (`Set.member` files) $
+                    Text.stripSuffix ("-" <> suffix) path) suffixes
+
+-- | Checks if a given cache file is obsolete, and deletes it if so.
+--
+-- Only the cache files in use are kept (see 'isLiveCacheFile'); all the
+-- others are deleted, e.g. those of files no longer in the repository,
+-- those of sizes no longer configured, and the temporary files that
+-- earlier development versions left next to the cache files when
+-- interrupted. The cache files being written are in 'cacheTempDir',
+-- which isn't cleaned up here.
 examineCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
                  -> TVar Progress  -- ^ For tracking progress
+                 -> [Text]         -- ^ Suffixes of the cache files in use
                  -> Set Text       -- ^ Set of real image files (absolute paths)
                  -> LogFn          -- ^ Logger function
                  -> FilePath       -- ^ Relative path to the item being examined
                  -> IO ()
-examineCacheFile prefix cleanProgress iset logger path = do
-  let fpath = Text.pack $ pathSeparator:path
-      -- Cache files are named after their image's absolute path, plus
-      -- "-" and a suffix (see 'cachedBasename'), so the image's path is a
-      -- prefix of the cache file's, and thus sorts before it. The
-      -- largest image path not after the cache file's (lookupLE) is then
-      -- normally that image's, if the image still exists: found is
-      -- whether it is a prefix of the cache file's path.
-      --
-      -- This fails if another image's path starts with this one's,
-      -- followed by a character sorting before '-' (e.g. a space): for
-      -- images "a.nef" and "a.nef copy.jpg", lookupLE finds the latter
-      -- for "a.nef-1024", which isn't its prefix, so a.nef's cache files
-      -- are deleted (and rebuilt when needed). Checking the image path
-      -- without the suffix for membership would be exact; 'found' also
-      -- accepts any image path that's merely a prefix (e.g. "a" for
-      -- "a.nef-1024"), which only keeps orphaned files.
-      found = maybe False (`isPrefixOf` fpath) $ Set.lookupLE fpath iset
+examineCacheFile prefix cleanProgress suffixes iset logger path = do
+  let found = isLiveCacheFile suffixes iset (Text.pack $ pathSeparator:path)
   modifier <- if found
               then return incNoop
               else cleanCacheFile prefix logger path
@@ -1507,7 +1527,8 @@ cleanupCache ctx repo alldirs cachecount = do
       iset = Set.fromList $ map (Text.pack . fileFullPath) imgs
       config = ctxConfig ctx
       cacheDir = cfgCacheDir config
-      handler = examineCacheFile cacheDir cleanProgress iset (ctxLogger ctx)
+      handler = examineCacheFile cacheDir cleanProgress
+                  (cacheFileSuffixes config) iset (ctxLogger ctx)
   mapM_ (allPathFiles config cacheDir handler) alldirs
   readTVarIO cleanProgress
 
@@ -1694,7 +1715,7 @@ repoDiskFile :: String
 repoDiskFile = "repo"
 
 repoDiskPath :: Config -> FilePath -> FilePath
-repoDiskPath config path = cachedBasename config path ("cache" ++ devSuffix)
+repoDiskPath config path = cachedBasename config path "cache"
 
 writeDiskCache :: Config -> Repository -> IO ()
 writeDiskCache config repo =
@@ -1900,7 +1921,7 @@ loadCachedOrBuild tools config origPath bytesPath decoder mime mtime size = do
       needsGen <- cacheFileNeedsBuild fpath mtime
       when needsGen $ do
         decoder' <- either (throwIO . ImageError) return decoder
-        buildPreviewFile tools kind fpath bytesPath
+        buildPreviewFile tools config kind fpath bytesPath
           =<< convertProcess config (previewArgs kind decoder' res')
       return (needsGen, previewMimeType kind, fpath)
 
@@ -1919,14 +1940,14 @@ loadCachedOrBuild tools config origPath bytesPath decoder mime mtime size = do
 -- can't be created, as the picture's name is too long once the cache
 -- suffix is added) would fail the request, or stop the rendering of all
 -- the other pictures (see 'toImageError').
-buildPreviewFile :: ToolLimits -> PreviewFormat
+buildPreviewFile :: ToolLimits -> Config -> PreviewFormat
                  -> FilePath  -- ^ The cache file to build.
                  -> FilePath  -- ^ The picture.
                  -> ProcessConfig stdin stdout stderr  -- ^ The tool.
                  -> IO ()
-buildPreviewFile tools kind fpath input pconfig =
+buildPreviewFile tools config kind fpath input pconfig =
   either (throwIO . toImageError) return =<<
-  tryAny (writeViaTempFile fpath $ \tmpPath -> do
+  tryAny (writeViaTempFile config fpath $ \tmpPath -> do
     let openInput = openRegularFile input `catchIO`
           (throwIO . ImageError . sformat ("Cannot read the image to scale: " % shown))
     (exitCode, err) <- either (throwIO . ImageError) return =<<
@@ -2087,21 +2108,25 @@ readFileStart path n =
     (,) <$> System.IO.hFileSize h
         <*> (fromStrict <$> BS.hGet h (fromIntegral n))
 
--- | Creates a file by writing it to a temporary file in the same
--- directory (creating the directory if needed), then renaming it to its
--- final name, so that the file only appears once fully written.
+-- | Creates a cache file by writing it to a temporary file in the
+-- cache's temporary directory (see 'cacheTempDir'), then renaming it to
+-- its final name, so that the file only appears once fully written.
+-- Both directories are created first, if needed; as the file is
+-- renamed, it must be on the cache directory's filesystem.
 --
 -- If the writing action fails, the temporary file is removed, and the
 -- exception is rethrown. The file gets the default permissions (subject
 -- to the umask), as a newly created file would; if it replaces an
 -- existing file, it does not keep that file's permissions (the cache
 -- files are all created by this code, so they have the default ones).
-writeViaTempFile :: FilePath -> (FilePath -> IO ()) -> IO ()
-writeViaTempFile path write = do
+writeViaTempFile :: Config -> FilePath -> (FilePath -> IO ()) -> IO ()
+writeViaTempFile config path write = do
   let (dir, name) = splitFileName path
+      tmpDir = cacheTempDir config
   createDirectoryIfMissing True dir
+  createDirectoryIfMissing True tmpDir
   bracketOnError
-    (do (tmpPath, h) <- System.IO.openTempFileWithDefaultPermissions dir (name ++ ".tmp")
+    (do (tmpPath, h) <- System.IO.openTempFileWithDefaultPermissions tmpDir (name ++ ".tmp")
         System.IO.hClose h
         return tmpPath)
     (void . tryIO . removeFile)
@@ -2340,7 +2365,7 @@ extractEmbedded tools config path mtime tag = do
             setStdin closed
             . setCloseFds True
             $ proc "exiftool" args
-      result <- tryImageError . writeViaTempFile outputPath $ \tmpPath -> do
+      result <- tryImageError . writeViaTempFile config outputPath $ \tmpPath -> do
         ran <- runToolToFile tools tmpPath pconfig
         (exitCode, err) <- either (throwIO . ImageError) return ran
         (size, start) <- readFileStart tmpPath (BSL.length jpegMagic)
@@ -2411,7 +2436,7 @@ extractFirstFrame tools config path mtime =
           -- ffmpeg can leave a partial file behind when it fails (or is
           -- interrupted), so it writes to a temporary file, moved in
           -- place only on success.
-          result <- tryImageError . writeViaTempFile outputPath $ \tmpPath -> do
+          result <- tryImageError . writeViaTempFile config outputPath $ \tmpPath -> do
             let pconfig =
                   setStdin closed
                   . setCloseFds True

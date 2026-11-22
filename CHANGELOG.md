@@ -172,6 +172,16 @@ earlier keep it until they are rebuilt, e.g. after removing them from
 the cache directory (they are the files ending in a dash and a size up
 to `thumbnailsize`, e.g. `-64`).
 
+The cache cleanup after a scan deleted the cache files of a picture
+when another picture's name starts with its name followed by a
+character sorting before a dash (e.g. `a.nef`, next to
+`a.nef copy.jpg`); they were then rebuilt when needed. It also kept
+the previews of sizes no longer configured, and the cache files of a
+removed picture whose name starts with another picture's (e.g. those
+of a removed `a.nef copy 2.jpg`, next to `a.nef`). It now keeps
+exactly the cache files of the pictures in the library, for the sizes
+configured.
+
 On the status page, finished work (scan, rendering and cache cleaning)
 is shown with a green border again, as intended: a typo in the style
 name meant it had no border.
@@ -552,6 +562,14 @@ ImageMagick now reads pictures as `/dev/fd/0` and writes previews as
 `/dev/fd/1`, so these must exist (as on any usual Linux system,
 including under systemd's `PrivateDevices`).
 
+The cache files being written (previews, and images extracted from raw
+pictures and movies) are now kept in a `.tmp` directory at the root of
+the cache directory, emptied at startup, and moved into place once
+complete. The cache directory must thus be a single filesystem, and
+each instance of the application needs its own: it can no longer be
+shared between a production and a development build either (see
+below).
+
 The secure sessions setting will no longer enforce also an
 [HSTS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security)
 header, but instead only set the secure bit on cookies; there is a new
@@ -623,6 +641,15 @@ replace the limits of the system policy, so check them against your
 pictures (e.g. large panoramas), and copy the new policy when upgrading.
 
 ### Internal changes
+
+Development builds no longer name their exif and repository cache files
+differently (with a `-dev` suffix), which was meant to let them share a
+cache directory with a production build; the cache cleanup now deletes
+the cache files it doesn't use, which would include the development
+build's own `-dev` exif caches. A development build rebuilds these
+files once; its old repository cache (`repo-cache-dev`, at the root of
+the cache directory, which the cleanup doesn't visit) can be deleted
+by hand.
 
 Running the tests needs ImageMagick to write HEIC pictures too, as the
 tests create some: on recent Debian and Ubuntu releases, this needs

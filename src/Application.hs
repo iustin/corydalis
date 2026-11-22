@@ -95,6 +95,8 @@ import           Yesod.Core.Types                          (Logger,
 import           Utils.Logging                             (sanitizeLogLines,
                                                             sanitizeLogStr)
 
+import           Cache                                     (cacheTempDir,
+                                                            resetCacheTempDir)
 import           Pics                                      (checkMagickPolicy,
                                                             initContext)
 
@@ -177,6 +179,16 @@ makeFoundation appSettings = do
       Just dir -> checkMagickPolicy config >>=
         either (throwIO . userError . unpack)
                (const . logfn LevelInfo . toLogStr $ "Using the ImageMagick policy in " <> dir)
+
+    -- Empty the directory of the cache files being written, before
+    -- anything writes one: what's there was left behind by a crash. A
+    -- failure isn't fatal: the pages and the existing cache files can
+    -- still be served, and building new previews then fails with the
+    -- reason, if it fails too.
+    tryIO (resetCacheTempDir config) >>= either
+      (\e -> logfn LevelWarn . toLogStr $ "Cannot empty the directory " <>
+             cacheTempDir config <> " (temporary cache files): " <> show e)
+      return
 
     appContext <- atomically $
       newPreviewToolLimits appSettings >>= initContext config logfn
