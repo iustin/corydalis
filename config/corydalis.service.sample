@@ -23,6 +23,11 @@ Group=corydalis
 Restart=always
 StandardInput=null
 SyslogIdentifier=corydalis
+# The files Corydalis creates (database, cache, generated style sheets
+# and scripts) are only for its own user: it serves them itself. The
+# Unix socket gets these permissions too (0700), unless unix-socket-mode
+# is set, as a proxy in the socket's group needs (e.g. "0660").
+UMask=0077
 
 # For a Unix socket in /run/corydalis, shared with the proxy through the
 # corydalis-socket group (see unix-socket-group in the settings); remove
@@ -59,6 +64,13 @@ ProtectClock=true
 ProtectHostname=true
 RestrictRealtime=true
 RestrictSUIDSGID=true
+# Corydalis makes no outgoing connections. Listening on a Unix socket
+# (which is in the filesystem, not in the network), it needs no network
+# at all; the line below can then be replaced by these two, which
+# also keep a compromised preview tool from making network connections
+# (only Unix sockets in the filesystem stay reachable):
+#   PrivateNetwork=true
+#   RestrictAddressFamilies=AF_UNIX
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 LockPersonality=true
 CapabilityBoundingSet=
