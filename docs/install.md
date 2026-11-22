@@ -518,11 +518,11 @@ preview is also stopped (and fails) if a tool runs for more than five
 minutes, and at most as many tools run at once as the application uses
 processors (all of them, unless limited with `+RTS -N`); further
 previews wait. Both limits can be changed with the
-`preview-tool-timeout` (in seconds) and `preview-tool-slots` settings,
+`render-tool-timeout` (in seconds) and `render-tool-slots` settings,
 e.g. to allow more time on a slow machine, or to leave processors free
 for other services. The scan's exiftool runs, which read the metadata
 of the files in batches, have the same kind of limits, separately (the
-previews the scan renders use the preview ones): a run is stopped
+previews the scan renders use the render ones): a run is stopped
 after ten minutes, and all the files of its batch then fail (again at
 each scan, if one of them makes exiftool hang), and at most as many
 runs happen at once as the application uses processors, changed with

@@ -232,8 +232,8 @@ initContext :: Config -> LogFn
             -> ToolLimits  -- ^ The limits of the tools building previews.
             -> ToolLimits  -- ^ The limits of the scan's exiftool runs.
             -> STM Ctx
-initContext config logfn tools scanTools =
-  newContext config logfn tools scanTools startupRepository emptySearchCache
+initContext config logfn renderTools scanTools =
+  newContext config logfn renderTools scanTools startupRepository emptySearchCache
 
 neverRecurseDirs :: [String]
 neverRecurseDirs = [".", ".."]
@@ -1685,7 +1685,7 @@ forceBuildThumbCaches ctx repo = do
                          (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
       classifySize (pend, n, es) i size = do
         checkRepoOwnership ctx repo
-        res <- imageNeedsRender (ctxToolLimits ctx) (ctxLogger ctx) config i size
+        res <- imageNeedsRender (ctxRenderToolLimits ctx) (ctxLogger ctx) config i size
         return $ case res of
           Left err ->
             (pend, n, ProgressError (imageForError i size) (Text.pack $ show err):es)
@@ -1702,7 +1702,7 @@ forceBuildThumbCaches ctx repo = do
     }
   mapM_ (\(i, size) -> do
             checkRepoOwnership ctx repo
-            res <- imageAtRes (ctxToolLimits ctx) (ctxLogger ctx) config i . Just . ImageSize $ size
+            res <- imageAtRes (ctxRenderToolLimits ctx) (ctxLogger ctx) config i . Just . ImageSize $ size
             let modifier = case res of
                   Left   err      -> incErrors (imageForError i size) (Text.pack $ show err)
                   Right (_, _, _) -> incDone

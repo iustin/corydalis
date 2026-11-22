@@ -31,7 +31,7 @@ module Settings
   ( AppSettings(..)
   , RequestLogging(..)
   , insecureApprootWarning
-  , newPreviewToolLimits
+  , newRenderToolLimits
   , newScanToolLimits
   , widgetFile
   , combineStylesheets
@@ -117,10 +117,10 @@ data AppSettings = AppSettings
     -- ^ How long a login is valid, regardless of activity; after this,
     -- the user has to log in again.
 
-    , appPreviewToolSlots :: Int
+    , appRenderToolSlots :: Int
     -- ^ How many external tools (ImageMagick, ffmpeg and exiftool) may
     -- run at once to build previews; further previews wait.
-    , appPreviewToolTimeout :: Int
+    , appRenderToolTimeout :: Int
     -- ^ How long such a tool may run, in microseconds, before it is
     -- stopped, and the preview fails.
     , appScanToolSlots :: Int
@@ -196,8 +196,8 @@ instance FromJSON AppSettings where
           parseFail $ "Invalid session-max-age (must be positive): " ++
             show sessionMaxAge
         let appSessionMaxAge = fromIntegral sessionMaxAge * 3600
-        (appPreviewToolSlots, appPreviewToolTimeout) <-
-          parseToolLimits o "preview" defaultToolTimeout
+        (appRenderToolSlots, appRenderToolTimeout) <-
+          parseToolLimits o "render" defaultRenderToolTimeout
         (appScanToolSlots, appScanToolTimeout) <-
           parseToolLimits o "scan" defaultScanToolTimeout
         appLoginMessage   <- o .:? "login-msg"
@@ -234,9 +234,9 @@ parseToolLimits o kind defaultTimeout = do
   return (slots, toolTimeout * 1000000)
 
 -- | Creates the limits for the preview tools, as configured.
-newPreviewToolLimits :: AppSettings -> STM ToolLimits
-newPreviewToolLimits settings =
-  newToolLimits (appPreviewToolSlots settings) (appPreviewToolTimeout settings)
+newRenderToolLimits :: AppSettings -> STM ToolLimits
+newRenderToolLimits settings =
+  newToolLimits (appRenderToolSlots settings) (appRenderToolTimeout settings)
 
 -- | Creates the limits for the scan's exiftool runs, reading the
 -- metadata, as configured.

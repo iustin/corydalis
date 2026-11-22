@@ -74,7 +74,7 @@ import           GHC.Conc                       (BlockReason (..),
                                                  ThreadId, ThreadStatus (..),
                                                  threadStatus, yield)
 import           Settings                       (AppSettings (..),
-                                                 newPreviewToolLimits,
+                                                 newRenderToolLimits,
                                                  newScanToolLimits)
 import           System.Directory               (createDirectory,
                                                  createDirectoryIfMissing,
@@ -186,9 +186,9 @@ withTestLogFn settings action =
 -- | Creates a context, with the configured tool limits.
 newTestContext :: AppSettings -> Config -> LogFn -> STM Ctx
 newTestContext settings config logfn = do
-  tools <- newPreviewToolLimits settings
+  renderTools <- newRenderToolLimits settings
   scanTools <- newScanToolLimits settings
-  initContext config logfn tools scanTools
+  initContext config logfn renderTools scanTools
 
 -- | Builds and returns a valid context.
 openTempContext :: AppSettings -> LogFn -> IO (FilePath, Ctx)
@@ -344,7 +344,7 @@ responseLocation = withResponse $ \response ->
 -- | Tool limits for the tests (see 'ToolLimits'), the same as the
 -- application's.
 testToolLimits :: IO ToolLimits
-testToolLimits = atomically $ newToolLimits defaultToolSlots defaultToolTimeout
+testToolLimits = atomically $ newToolLimits defaultToolSlots defaultRenderToolTimeout
 
 -- | Waits until the given thread is blocked in STM, e.g. waiting for a
 -- tool slot (see 'withToolSlot'), failing if it finishes first. There

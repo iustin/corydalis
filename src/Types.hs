@@ -69,11 +69,11 @@ module Types ( Config(..)
              , ctxCleanProgress
              , ctxSearchCache
              , ctxLogger
-             , ctxToolLimits
+             , ctxRenderToolLimits
              , ctxScanToolLimits
              , newContext
              , ToolLimits(..)
-             , defaultToolTimeout
+             , defaultRenderToolTimeout
              , defaultScanToolTimeout
              , defaultToolSlots
              , newToolLimits
@@ -555,17 +555,17 @@ data ToolLimits = ToolLimits
   }
 
 -- | The default number of tools which may run at once (see the
--- preview-tool-slots and scan-tool-slots settings): one per processor
+-- render-tool-slots and scan-tool-slots settings): one per processor
 -- used by the runtime (with @+RTS -N@, as the application is built,
 -- all of them).
 defaultToolSlots :: Int
 defaultToolSlots = numCapabilities
 
--- | The default time limit for a tool run (see the preview-tool-timeout
+-- | The default time limit for a tool run (see the render-tool-timeout
 -- setting): five minutes, as building a preview of a very large image
 -- on a slow machine can take a while.
-defaultToolTimeout :: Int
-defaultToolTimeout = 300 * 1000000
+defaultRenderToolTimeout :: Int
+defaultRenderToolTimeout = 300 * 1000000
 
 -- | The default time limit for a run of exiftool reading the metadata
 -- during the scan (see the scan-tool-timeout setting): ten minutes, as
@@ -600,7 +600,7 @@ data Context a b = Context
   -- TODO: this really shouldn't be parametrised…
   , ctxSearchCache    :: !(TVar b)
   , ctxLogger         :: !LogFn
-  , ctxToolLimits     :: !ToolLimits
+  , ctxRenderToolLimits :: !ToolLimits
     -- ^ The limits of the tools building previews.
   , ctxScanToolLimits :: !ToolLimits
     -- ^ The limits of the scan's exiftool runs, reading the metadata.
@@ -610,7 +610,7 @@ newContext :: Config -> LogFn
            -> ToolLimits  -- ^ The limits of the tools building previews.
            -> ToolLimits  -- ^ The limits of the scan's exiftool runs.
            -> a -> b -> STM (Context a b)
-newContext config logfn tools scanTools a b = do
+newContext config logfn renderTools scanTools a b = do
   ta <- newTVar a
   tb <- newTVar b
   scanner <- newTVar Nothing
@@ -625,7 +625,7 @@ newContext config logfn tools scanTools a b = do
                    , ctxCleanProgress  = cleanProg
                    , ctxSearchCache    = tb
                    , ctxLogger         = logfn
-                   , ctxToolLimits     = tools
+                   , ctxRenderToolLimits = renderTools
                    , ctxScanToolLimits = scanTools
                    }
 
