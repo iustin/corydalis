@@ -66,6 +66,7 @@ module Types ( Config(..)
              , ctxScanner
              , ctxScanProgress
              , ctxRenderProgress
+             , ctxRenderCheckProgress
              , ctxCleanProgress
              , ctxSearchCache
              , ctxLogger
@@ -603,6 +604,9 @@ data Context a b = Context
   , ctxScanner        :: !(TVar (Maybe (Async a)))
   , ctxScanProgress   :: !(TVar Progress)
   , ctxRenderProgress :: !(TVar Progress)
+  , ctxRenderCheckProgress :: !(TVar Progress)
+    -- ^ The images checked by the rendering's first pass, which finds
+    -- what needs rendering (see 'forceBuildThumbCaches').
   , ctxCleanProgress  :: !(TVar Progress)
   -- TODO: this really shouldn't be parametrised…
   , ctxSearchCache    :: !(TVar b)
@@ -623,12 +627,14 @@ newContext config logfn renderTools scanTools a b = do
   scanner <- newTVar Nothing
   scanProg <- newTVar def
   renderProg <- newTVar def
+  renderCheckProg <- newTVar def
   cleanProg <- newTVar def
   return $ Context { ctxConfig         = config
                    , ctxRepo           = ta
                    , ctxScanner        = scanner
                    , ctxScanProgress   = scanProg
                    , ctxRenderProgress = renderProg
+                   , ctxRenderCheckProgress = renderCheckProg
                    , ctxCleanProgress  = cleanProg
                    , ctxSearchCache    = tb
                    , ctxLogger         = logfn

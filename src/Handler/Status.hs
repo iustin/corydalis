@@ -208,6 +208,25 @@ workInProgress now work counter@Progress{..} WorkStart{..} kind =
           | otherwise = Just . utcToZonedTime (zonedTimeZone now)
                         . addUTCTime (realToFrac remaining) $ zonedTimeToUTC now
 
+-- | Whether the rendering is still in its first pass, checking which
+-- previews need rendering (see 'forceBuildThumbCaches'); its own
+-- progress only gets a goal once this is done.
+renderChecking :: Progress -> Bool
+renderChecking checked = pgDone checked < pgGoal checked
+
+-- | The first pass of the rendering, with the images checked so far.
+renderCheckInProgress :: ZonedTime -> Progress -> WorkStart -> Widget
+renderCheckInProgress now checked WorkStart{..} =
+  [whamlet|
+          <div .card-body>
+            <p .card-text>
+              Checking which previews need rendering: #
+              #{swissNum $ pgDone checked}/#{swissNum $ pgGoal checked} images.
+            <p .card-text>
+              #{rendering} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
+            ^{percentsBar WorkOnly checked}
+               |]
+
 workResults :: ZonedTime -> WorkResults -> Text -> Text -> ProgressKind -> Widget
 workResults now WorkResults{..} work item kind =
   [whamlet|
@@ -328,6 +347,7 @@ getStatusR = do
   -- transaction, and repo as well. [cleanup]
   scanProgress <- liftIO $ getProgress ctx
   renderProgress <- liftIO $ getRenderProgress ctx
+  renderCheckProgress <- liftIO . readTVarIO $ ctxRenderCheckProgress ctx
   cleanProgress <- liftIO $ getCleanProgress ctx
   now <- liftIO getZonedTime
   defaultLayout $ do

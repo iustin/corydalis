@@ -62,7 +62,10 @@
         $of RepoScanning {}
           ^{workIdle rendering}
         $of RepoRendering { rsRenderGoal = ws }
-          ^{workInProgress now rendering renderProgress ws WorkOnly}
+          $if renderChecking renderCheckProgress
+            ^{renderCheckInProgress now renderCheckProgress ws}
+          $else
+            ^{workInProgress now rendering renderProgress ws WorkOnly}
         $of RepoCleaning { rsRenderResults = rr }
           ^{workResults now rr rendering "images" WorkOnly}
         $of RepoFinished { rsRenderResults = rr }
