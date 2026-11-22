@@ -229,7 +229,7 @@ makeApplication foundation = do
     logWare <- makeLogWare foundation
     -- Create the WAI application and apply middlewares
     appPlain <- toWaiAppPlain foundation
-    return $ logWare $ appMiddlewares appPlain
+    return $ logWare $ appMiddlewares (appSettings foundation) appPlain
 
 -- | The middlewares applied on top of the plain application, except for
 -- logging.
@@ -240,13 +240,16 @@ makeApplication foundation = do
 -- the one we send, e.g. executing a file as a script. The referrer
 -- policy keeps our URLs (which contain folder and image names, and
 -- search terms) from being sent to other sites, e.g. when following a
--- link.
-appMiddlewares :: Middleware
-appMiddlewares =
-  addHeaders [ ("Content-Security-Policy", contentSecurityPolicy)
-             , ("X-Content-Type-Options", "nosniff")
-             , ("Referrer-Policy", "same-origin")
-             ] .
+-- link. The HSTS header, if enabled (see 'appStrictTransportSecurity'),
+-- makes browsers only use HTTPS for the site.
+appMiddlewares :: AppSettings -> Middleware
+appMiddlewares settings =
+  addHeaders ([ ("Content-Security-Policy", contentSecurityPolicy)
+              , ("X-Content-Type-Options", "nosniff")
+              , ("Referrer-Policy", "same-origin")
+              ] ++
+              [ ("Strict-Transport-Security", hstsHeaderValue)
+              | appStrictTransportSecurity settings ]) .
   defaultCacheControl .
   defaultMiddlewaresNoLogging
 

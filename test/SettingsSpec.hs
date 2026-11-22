@@ -52,6 +52,7 @@ spec :: Spec
 spec = do
   sessionMaxAgeSpec
   secureSessionsSpec
+  strictTransportSecuritySpec
   unixSocketSpec
   insecureApprootSpec
   storageDirsSpec
@@ -106,6 +107,24 @@ secureSessionsSpec = describe "secure-sessions" $ do
   it "is not forced on a Unix socket, which ignores https" $ do
     load True (Just False) (Just "/run/socket") `shouldReturn` False
     load True Nothing (Just "/run/socket") `shouldReturn` True
+
+strictTransportSecuritySpec :: Spec
+strictTransportSecuritySpec = describe "strict-transport-security" $ do
+  let load https hsts socket =
+        appStrictTransportSecurity <$> loadSettingsWith
+          [object [ "https" .= https
+                  , "strict-transport-security" .= (hsts :: Maybe Bool)
+                  , "unix-socket" .= (socket :: Maybe String)
+                  ]]
+  it "defaults to https, when serving it directly" $ do
+    load True Nothing Nothing `shouldReturn` True
+    load False Nothing Nothing `shouldReturn` False
+  it "defaults to off on a Unix socket, which ignores https" $
+    load True Nothing (Just "/run/socket") `shouldReturn` False
+  it "can be set explicitly" $ do
+    load True (Just False) Nothing `shouldReturn` False
+    load False (Just True) Nothing `shouldReturn` True
+    load True (Just True) (Just "/run/socket") `shouldReturn` True
 
 insecureApprootSpec :: Spec
 insecureApprootSpec = describe "insecureApprootWarning" $ do

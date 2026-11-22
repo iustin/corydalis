@@ -254,7 +254,7 @@ openTempAppWith change = do
     RepoFinished {} -> return ()
     status          -> E.throwIO . userError $ "The initial scan failed: " ++ show status
   logWare <- liftIO $ makeLogWare foundation
-  return (tempDir, (foundation, logWare . appMiddlewares))
+  return (tempDir, (foundation, logWare . appMiddlewares settings))
 
 -- | Runs an action with a temporary app.
 withApp' :: (TestApp App -> IO ())  -> IO ()
