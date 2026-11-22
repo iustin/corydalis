@@ -1251,14 +1251,18 @@ exifToolArgs paths = [
 -- kept in memory while exiftool runs. The file is in the cache's
 -- temporary directory (see 'cacheTempDir'), as the other temporary
 -- files: it is removed afterwards, and, if the application is killed
--- meanwhile, at the next start.
+-- meanwhile, at the next start. It is named after the end of the
+-- directory's path (its last 50 characters, at most 200 bytes, with
+-- slashes replaced), which shows which folder is being read, while
+-- leaving room for the rest of the name: the whole path could make the
+-- name too long.
 extractExifs :: LogFn -> ToolLimits -> Config -> FilePath -> [FilePath]
              -> IO (Either Text BS.ByteString)
 extractExifs logfn tools config dir paths =
   withToolSlot tools $ \slot -> do
     let tmpDir = cacheTempDir config
     createDirectoryIfMissing True tmpDir
-    withTempFile tmpDir "exiftool.json" $ \fpath fhandle -> do
+    withTempFile tmpDir (tmpName dir) $ \fpath fhandle -> do
       hClose fhandle
       let args = exifToolArgs paths
           pconfig =
@@ -1285,6 +1289,8 @@ extractExifs logfn tools config dir paths =
           logfn LevelDebug $ "extractExifs: read " <> toLogStr (show (BS.length bs)) <>
             " bytes"
           return $ Right bs
+  where tmpName = (++ "-exif.json") . reverse . take 50 . reverse
+                  . map (\c -> if c == '/' then '_' else c)
 
 parseExifs :: BS.ByteString -> Either Text [ERawExif]
 parseExifs bs =
