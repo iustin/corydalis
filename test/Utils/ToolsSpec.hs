@@ -62,6 +62,13 @@ spec = do
       -- The tool has been stopped (pgrep finds no such process).
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
+    it "gives what a stopped tool wrote to its error output" $ do
+      -- The tool writes it right away, well within the time limit.
+      tools <- atomically $ newToolLimits 1 1000000
+      result <- runIn tools $
+                  proc "sh" ["-c", "echo reading photo.jpg >&2; exec sleep 86416"]
+      result `shouldBeLeftWithMessage` "timed out"
+      result `shouldBeLeftWithMessage` "reading photo.jpg"
     it "stops the processes started by a tool" $ do
       tools <- atomically $ newToolLimits 1 200000
       let marker = "86415"
