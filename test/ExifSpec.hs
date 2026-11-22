@@ -258,7 +258,10 @@ spec = parallel $ do
       forM_ ["normal.jpg", "pipe.jpg"] $ \name -> do
         doesFileExist (exifPath config (dir </> name)) `shouldReturn` False
         doesFileExist (bExifPath config (dir </> name)) `shouldReturn` False
-      (_, retried) <- getExif noLog tools config dir ["normal.jpg"]
+      -- With the default limits: exiftool can take longer than the
+      -- short one above to start, e.g. when the machine is busy.
+      defaultTools <- testToolLimits
+      (_, retried) <- getExif noLog defaultTools config dir ["normal.jpg"]
       (isRight <$> lookup "normal.jpg" retried) `shouldBe` Just True
 
     it "waits for a slot of its limits" $ \config -> do
