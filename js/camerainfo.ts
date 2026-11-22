@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as Plotly from 'plotly.js-cartesian-dist';
 import 'bootstrap';
 import { loadBootJSON } from './boot';
-import { escapeTraces } from './plot-text';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
@@ -106,17 +105,17 @@ function onDataReceived(series: any) {
   };
   Plotly.newPlot(
     'lensFlApChart',
-    escapeTraces(series.lensapfl.lensflap),
+    series.lensapfl.lensflap,
     cameraLayout,
     config,
   );
   Plotly.newPlot(
     'cameraChart',
-    escapeTraces(series.trends.imagecount),
+    series.trends.imagecount,
     cameraLensLayout,
     config,
   );
-  Plotly.newPlot('trendsChart', escapeTraces(series.trends.trends), trendsLayout, config);
+  Plotly.newPlot('trendsChart', series.trends.trends, trendsLayout, config);
 }
 
 export function initCameraInfo(): void {

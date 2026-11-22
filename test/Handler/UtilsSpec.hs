@@ -24,10 +24,43 @@ module Handler.UtilsSpec (spec) where
 
 import           TestImport
 
-import           Handler.Utils (formatPeriod)
+import           Data.Aeson    (encode)
+import           Data.Default  (def)
+import qualified Data.ByteString.Lazy as BSL
+
+import           Handler.Utils (GraphData (..), PlotText (..), escapePlotText,
+                                formatPeriod, plotText)
 
 spec :: Spec
-spec = describe "formatPeriod" $ do
+spec = do
+  formatPeriodSpec
+  plotTextSpec
+
+plotTextSpec :: Spec
+plotTextSpec = describe "chart text" $ do
+  it "escapes the characters Plotly reads as markup" $ do
+    escapePlotText "<a href=\"https://evil.example\">Canon</a>"
+      `shouldBe` "&lt;a href=\"https://evil.example\"&gt;Canon&lt;/a&gt;"
+    -- Ampersands first, so that entities show as written.
+    escapePlotText "A&amp;B" `shouldBe` "A&amp;amp;B"
+  it "keeps quotes, which Plotly wouldn't decode as entities" $
+    escapePlotText "EF 70-200mm \"II\" 'L'" `shouldBe` "EF 70-200mm \"II\" 'L'"
+  it "is escaped in the charts' data, but not the trusted parts" $ do
+    let series = def { gdName = plotText "<b>Nikon</b>"
+                     , gdX = Just [plotText "<i>Z</i>"]
+                     , gdY = Just [1 :: Int]
+                     , gdText = Just [PlotText "a&b"]
+                     , gdExtra = [("hovertemplate", "%{label}<extra></extra>")]
+                     } :: GraphData PlotText Int Int
+        json = BSL.toStrict (encode series)
+    json `shouldSatisfy` ("&lt;b&gt;Nikon&lt;/b&gt;" `isInfixOf`)
+    json `shouldSatisfy` ("&lt;i&gt;Z&lt;/i&gt;" `isInfixOf`)
+    json `shouldSatisfy` ("a&amp;b" `isInfixOf`)
+    json `shouldSatisfy` ("%{label}<extra></extra>" `isInfixOf`)
+    json `shouldNotSatisfy` ("<b>" `isInfixOf`)
+
+formatPeriodSpec :: Spec
+formatPeriodSpec = describe "formatPeriod" $ do
   it "counts both days" $
     formatPeriod (fromGregorian 2024 3 5) (fromGregorian 2024 3 5)
       `shouldBe` "1 day"
