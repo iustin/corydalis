@@ -30,7 +30,7 @@ things. The other two are:
 - and the dedicated image viewer, designed for fast, sequential view
   of images.
 
-In the dedicated viewer, you see one image age the time. Available
+In the dedicated viewer, you see one image at a time. Available
 controls:
 
 - left/right (keyboard keys, or swipe for touchscreens): move backward
@@ -43,17 +43,30 @@ controls:
   browser allows it;
 - `r` (key), or tab: go to a random image in the whole library;
 - `u` (key): go back to the folder view;
+- `[`/`]` or `page up`/`page down` (keys): go to the previous,
+  respectively next, folder;
 - `p` (key): play the current movie (if any);
 - `home`/`end` (key): go to the first, respectively last, image in the
   current folder;
+- `+`/`=` and `-` (keys), or the mouse wheel: zoom in and out; `0`
+  goes back to fitting the image to the screen, `1` to `4` zoom to
+  100% to 400% of its actual size, and `z` toggles between fitting it
+  and 100%; when zoomed, drag the image, or use alt and the arrow keys
+  (with shift for larger steps), to pan;
+- `i` (key): show or hide the image information over the image;
+- `o` (key): open the image information page;
+- `D` (key): download the current image;
+- `x`/`n` (keys): flag the image for review, respectively un-flag it;
+- `b`, `l` and `L` (keys): switch to the image grid, the image list,
+  respectively the folder list, for the current search;
 - `backspace`/`delete`/ `<` (keys): navigate backwards in history (useful
   in full screen mode).
 - `>` (greater than): navigate forwards in history.
-- `m`: open the navigation menu (bottom right).
+- `m` or `.`: open the navigation menu (bottom right).
 - `?`/`h`: show shortcuts help.
 
 And that is it. The image advancing flows continuously from one folder
-to the next, so in theory you could go to the first every image in
+to the next, so in theory you could go to the very first image in
 your collection and keep scrolling through all of them.
 
 Note: some browsers prevent alphanumeric key entry in full screen mode.
@@ -155,8 +168,28 @@ The search atoms are:
 - folder (string): matches folder name
 - filename (string): matches image name (with any intermediate
   sub-paths)
-- flash-source: internal, external, none, or unknown
+- status (set): the image status, i.e. unprocessed, processed,
+  standalone or orphaned (see [Image status](#image-status))
+- folder-class (set): the folder class, i.e. empty, raw, unprocessed,
+  processed, standalone or mixed (see [Folders](#folders)); this only
+  matches folders, not images
+- rating (numeric): the picture's rating (e.g. stars, from 0 to 5)
+- people-count (numeric): the number of people tagged in the picture
+- keyword-count (numeric): the number of keywords of the picture
+- megapixels (numeric, e.g. `>20`): the picture's size in megapixels
+- flash-source: internal (or int), external (or ext), none, any (or
+  yes), or unknown
 - flash-mode (string): this is mostly descriptive
+- event (string): the name of the folder's event, of any kind (see
+  [Folder events](#folder-events))
+- generic-event, birthday, getaway, grand-vacation, work-trip
+  (string): the name or the people of a folder's event of that kind;
+  vacation matches both getaways and grand vacations
+- event-kind (set): the kind of the folder's event, i.e. generic,
+  birthday, getaway, grandvacation, worktrip, or noevent
+
+The event atoms only match folders, not images, for now: searching
+images by them finds nothing.
 
 Numeric atoms (e.g. year, ISO, shutter speed, etc.) allow:
 
@@ -306,6 +339,13 @@ be directly tried as:
 in effect skipping the discovery of which atoms would match for
 "Zürich" and directly using the province keyword.
 
+If the resulting filters can't find pictures (e.g. events), the
+search shows the matching folders, in the folder list.
+
+Quick searches are limited to 200 characters and 10 (distinct) words,
+as each word is checked against the whole repository. For anonymous
+visitors of a public site, they don't look at problems.
+
 Further tweaks to the search parameters can be done by modifying the
 URL directly, per the previous section.
 
@@ -319,7 +359,8 @@ status value, so this applies for searches as well.
 Depending on what kinds of files are present for an image, it will
 categorised as follows:
 
-- _raw_ if we only have a raw file for it (sidecars are optional)
+- _unprocessed_ if we only have a raw file for it (sidecars are
+  optional)
 - _processed_ if we have both raw and processed outputs (sidecars
   optional)
 - _standalone_ if we have a processed file but no raw file
@@ -375,6 +416,30 @@ perfect; for example, an _unprocessed_ folder can contain standalone
 files, but is not classified as mixed in order to simplify the
 work-flow.
 
+### Folder events
+
+This is work in progress, so its details may still change.
+
+A folder can be marked as an event, by putting a `corydalis.yaml` file
+in it (in any of the trees having that folder), for example:
+
+    name: Grandma's 80th
+    kind: birthday
+    people: [Grandma, Alice]
+
+The `name` is required; the `kind` is one of `generic` (the default),
+`birthday`, `getaway`, `grand vacation` or `work trip` (spaces, dashes,
+underscores and case don't matter); and `people` is optional. The file
+must be a regular file (not a symbolic link) of at most 64 KiB; one
+that can't be read or parsed is ignored, with a warning in the logs.
+
+Folders without such a file, whose pictures span more than two days,
+get an inferred event: a getaway, or a grand vacation from a week.
+
+Events are shown on the folder page, summarised on the home page, and
+folders can be searched by them (see the event atoms in the [full
+search API](#full-search-api)).
+
 ## File-system organisation
 
 If both the raw and processed files are stored in the same file-system
@@ -426,7 +491,7 @@ With a pure RAW workflow, things could look like this:
 - You start processing the files, and creating JPEG versions; the
   folder will become 'unprocessed' after the first JPEG file.
 - You finish processing, and all files have both RAW and JPEG
-  versions; the folder is not 'processed'.
+  versions; the folder is now 'processed'.
 
 At any stage, you can view the files, either based on the embedded
 preview in the RAW file, or on the processed JPEGs (Corydalis
@@ -483,11 +548,12 @@ In some cases, deletion of pictures results in folders that are empty
 but still present; Corydalis will flag this case to help delete these
 folders.
 
-However, it can be the case that only file types which are not
-supported by Corydalis exist in these folders (e.g. movies); currently
-Corydalis flags these folders incorrectly as 'empty', although it
-shows the files in the folder view; ideally there would be a separate
-'other' status for folders.
+However, it can be the case that only files which are not pictures
+(see [Folders](#folders)) exist in these folders; currently Corydalis
+classifies these folders as 'empty' too, although it lists the files
+on the folder page (a `type=unknown` search finds them); ideally there
+would be a separate 'other' status for folders. Folders with only
+movies are 'processed'.
 
 ### For files
 
