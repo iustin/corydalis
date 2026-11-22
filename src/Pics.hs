@@ -1535,9 +1535,12 @@ cleanupCache ctx repo alldirs = do
       cachePaths = map (cacheDir </>) alldirs
       handler = examineCacheFile cacheDir cleanProgress
                   (cacheFileEndings config) iset (ctxLogger ctx)
+  -- Reset before counting, which can take a while, so that the status
+  -- page doesn't show the previous cleaning's results meanwhile.
+  atomically $ writeTVar cleanProgress def
   ctxLogger ctx LevelInfo $ "Counting cache items under " <> toLogStr (show cachePaths)
   cachecount <- sum <$> mapConcurrently (countDirRaw config) cachePaths
-  atomically $ writeTVar cleanProgress (def { pgGoal = cachecount })
+  atomically . modifyTVar' cleanProgress $ \p -> p { pgGoal = cachecount }
   mapM_ (allPathFiles config cacheDir handler) alldirs
   atomically $ do
     modifyTVar' cleanProgress $ \p -> p { pgGoal = pgTotal p }
