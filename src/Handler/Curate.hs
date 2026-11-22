@@ -43,12 +43,13 @@ import           Import          hiding (Status)
 import           Indexer
 import           Pics
 
+-- | Data of a chart's series; the text shown is escaped (see 'PlotText').
 data XGraphData a b = XGraphData
-  { xgdName       :: ShortText
+  { xgdName       :: PlotText
   , xgdType       :: Text
   , xgdX          :: [a]
   , xgdY          :: [b]
-  , xgdText       :: Maybe [ShortText]
+  , xgdText       :: Maybe [PlotText]
 --  , gdYAxis :: Maybe Text
   , xgdMode       :: Maybe Text
   , xgdYaxis      :: Maybe Text
@@ -128,7 +129,7 @@ getCurateR = do
                        in top10
       top10c = buildTop10 bycamera 10
       json = foldl' (\a (cnt, sz, k) ->
-                       def { xgdName = k
+                       def { xgdName = plotText k
                            , xgdType = "scatter"
                            , xgdMode = Just "markers"
                            , xgdX = [fromIntegral cnt]
@@ -142,13 +143,13 @@ getCurateR = do
                            w' = filter (not . (`Set.member` hideLensWords)) w
                        in (a, b, Text.unwords w', d, t)) top10l
       jsonl = foldl' (\a (cnt, _, k, li, _) ->
-                        def { xgdName = lensShortName li
+                        def { xgdName = plotText (lensShortName li)
                             , xgdType = "bar"
                             , xgdMode = Just "markers"
-                            , xgdX = [k]
+                            , xgdX = [PlotText k]
                             , xgdY = [fromIntegral cnt]
                             }:a)
-              ([]::[XGraphData Text Int64]) top10l'
+              ([]::[XGraphData PlotText Int64]) top10l'
       perFolderStats = Map.foldl'
                        (\l f -> let stats = computeFolderStats f
                                 in (fromIntegral $ totalStatsSize stats,
@@ -160,7 +161,7 @@ getCurateR = do
                  , xgdMode = Just "markers"
                  , xgdX = xdata
                  , xgdY = ydata
-                 , xgdText = Just textdata
+                 , xgdText = Just (map plotText textdata)
                  }::XGraphData Int64 Int64
            ]
       perYearStats = let stats = Map.foldl'

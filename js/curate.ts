@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as Plotly from 'plotly.js-cartesian-dist';
 import 'bootstrap';
 import { loadBootJSON } from './boot';
-import { escapeTraces } from './plot-text';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onDataReceived(series: any) {
@@ -109,11 +108,11 @@ function onDataReceived(series: any) {
     modeBarButtonsToRemove: ['toImage' as const, 'sendChartToCloud' as const],
     responsive: true,
   };
-  Plotly.newPlot('cameraChart', escapeTraces(series.global), cameraLayout, config);
-  Plotly.newPlot('lensChart', escapeTraces(series.lenses), lensLayout, config);
-  Plotly.newPlot('folderChart', escapeTraces(series.folders), folderLayout, config);
-  Plotly.newPlot('yearChart', escapeTraces(series.years), yearLayout, config);
-  Plotly.newPlot('monthChart', escapeTraces(series.months), monthLayout, config);
+  Plotly.newPlot('cameraChart', series.global, cameraLayout, config);
+  Plotly.newPlot('lensChart', series.lenses, lensLayout, config);
+  Plotly.newPlot('folderChart', series.folders, folderLayout, config);
+  Plotly.newPlot('yearChart', series.years, yearLayout, config);
+  Plotly.newPlot('monthChart', series.months, monthLayout, config);
 }
 
 export function initCurate(): void {

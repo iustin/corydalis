@@ -354,13 +354,44 @@ setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)
 counterOne :: Int64
 counterOne = 1
 
+-- | Text shown on the charts, which may come from the pictures' metadata
+-- (e.g. camera and lens names), and so can't be trusted.
+--
+-- The charts' library (Plotly) reads a subset of HTML in the text it
+-- shows (links, styled spans, line breaks), and decodes HTML entities;
+-- the text is thus sent escaped, so that it shows as written. Only @&@,
+-- @<@ and @>@ are escaped: that is enough to keep Plotly from reading
+-- markup, and Yesod's HTML escaping (blaze's) can't be used, as it also
+-- turns @"@ into @&quot;@, which Plotly doesn't decode (it only knows a
+-- few named entities), so the quotes would show as @&quot;@.
+--
+-- Text known to be safe, and meant to be read as markup, isn't of this
+-- type (e.g. the hover templates).
+newtype PlotText = PlotText Text
+  deriving (Eq, Show)
+
+instance IsString PlotText where
+  fromString = PlotText . fromString
+
+instance ToJSON PlotText where
+  toJSON (PlotText t) = String (escapePlotText t)
+
+-- | Escapes the characters Plotly reads as markup (see 'PlotText').
+escapePlotText :: Text -> Text
+escapePlotText =
+  Text.replace ">" "&gt;" . Text.replace "<" "&lt;" . Text.replace "&" "&amp;"
+
+-- | Makes chart text from a name (e.g. from the pictures' metadata).
+plotText :: ShortText -> PlotText
+plotText = PlotText . TS.toText
+
 data GraphData a b c = GraphData
-  { gdName  :: ShortText
+  { gdName  :: PlotText
   , gdType  :: ShortText
   , gdX     :: Maybe [a]
   , gdY     :: Maybe [b]
   , gdZ     :: Maybe [c]
-  , gdText  :: Maybe [Text]
+  , gdText  :: Maybe [PlotText]
   , gdMode  :: Maybe Text
   , gdExtra :: [(Text, Value)]
   }
@@ -445,20 +476,20 @@ buildCamLensStats others n1 n2 nameFn1 nameFn2 stats =
   let top1 = buildTopNItems others stats n1
       top2 = buildTopNItems others stats n2
       jsonl = foldl' (\a (cnt, _, k, li, _) ->
-                        def { gdName = nameFn1 li
+                        def { gdName = plotText (nameFn1 li)
                             , gdType = "bar"
                             , gdMode = Just "markers"
-                            , gdX = Just [k]
+                            , gdX = Just [plotText k]
                             , gdY = Just [fromIntegral cnt]
                             , gdExtra = [("hovertemplate", "%{label}: %{y}<extra></extra>")]
                             }:a)
-              ([]::[GraphData ShortText Int64 Int64]) top1
+              ([]::[GraphData PlotText Int64 Int64]) top1
       jsont = foldl' (\a (_, _, _, li, tr) ->
                         let (d, c) = unzip $ Map.assocs tr
                             d' = map (uncurry $ sformat (int % "-" % int)) d
                             c' = map fromIntegral c
                         in
-                        def { gdName = nameFn2 li
+                        def { gdName = plotText (nameFn2 li)
                             , gdType = "bar"
                             , gdX = Just d'
                             , gdY = Just c'
