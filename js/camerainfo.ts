@@ -100,6 +100,9 @@ function onDataReceived(series: any) {
     showLink: false,
     sendData: false,
     displaylogo: false,
+    // Never render text as LaTeX (which would need MathJax): the
+    // charts show names from the pictures' metadata.
+    typesetMath: false,
     modeBarButtonsToRemove: ['toImage' as const, 'sendChartToCloud' as const],
     responsive: true,
   };
