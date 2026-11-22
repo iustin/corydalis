@@ -1854,6 +1854,64 @@ spec = parallel $ do
         pgGoal pg `shouldBe` 0
         pgDone pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
+    describe "imagePendingSizes" $ do
+      let noLog _ _ = return ()
+          rawFile ctx = (simpleFile "r.nef") { fileParent = mkSym (pack $ sourceDir ctx) }
+          rawImage ctx raw = mkImage (ctxConfig ctx) "r" "folder" (Just raw) Nothing []
+                               Nothing [] [] Nothing MediaImage def
+          movieFile ctx = (simpleFile "m.mov") { fileParent = mkSym (pack $ outputDir ctx) }
+          movieImage ctx m = mkImage (ctxConfig ctx) "m" "folder" Nothing Nothing []
+                               (Just m) [] [] Nothing MediaMovie def
+          pendingOf ctx img = imagePendingSizes noLog (ctxConfig ctx) img (autoSizeList ctx)
+          shouldPend ctx img expected = pendingOf ctx img >>= \case
+            Right sizes -> sizes `shouldBe` expected
+            Left err    -> expectationFailure $ "unexpected error: " ++ show err
+      it "leaves extracting a missing preview or frame to the build" $ \ctx -> do
+        let config = ctxConfig ctx
+            raw = rawFile ctx
+            movie = movieFile ctx
+        -- Neither is valid, so an extraction would fail; but none is
+        -- tried, and all the sizes are pending.
+        forM_ [ (raw, rawImage ctx raw), (movie, movieImage ctx movie) ] $ \(f, img) -> do
+          writeFile (fileFullPath f) ("not a picture" :: ByteString)
+          shouldPend ctx img (autoSizeList ctx)
+          doesFileExist (embeddedImagePath config (fileFullPath f)) `shouldReturn` False
+      it "checks the previews against an up to date extracted preview" $ \ctx -> do
+        let config = ctxConfig ctx
+            raw = rawFile ctx
+            path = fileFullPath raw
+            sizes = autoSizeList ctx
+        writeFile path ("raw" :: ByteString)
+        writeNonEmpty (embeddedImagePath config path)
+        shouldPend ctx (rawImage ctx raw) sizes
+        mapM_ (writeNonEmpty . scaledImagePath config path) sizes
+        shouldPend ctx (rawImage ctx raw) []
+      it "rebuilds everything from a stale extracted preview" $ \ctx -> do
+        let config = ctxConfig ctx
+            -- Changed after the extracted preview and previews below.
+            raw = (rawFile ctx) { fileMTime = 4e9 }
+            path = fileFullPath raw
+            sizes = autoSizeList ctx
+        writeFile path ("raw" :: ByteString)
+        writeNonEmpty (embeddedImagePath config path)
+        mapM_ (writeNonEmpty . scaledImagePath config path) sizes
+        shouldPend ctx (rawImage ctx raw) sizes
+      it "refuses an image without a viewable file" $ \ctx -> do
+        res <- pendingOf ctx (simpleUntrackedImage (ctxConfig ctx) "folder" "u")
+        case res of
+          Left ImageNotViewable -> return ()
+          other -> expectationFailure $ "expected ImageNotViewable, got " ++ show other
+      it "counts a failed extraction as an error of the build" $ \ctx -> do
+        repo <- getRepo ctx
+        let config = ctxConfig ctx
+            movie = movieFile ctx
+            dirs = addImageToRepo config (repoDirs repo) (movieImage ctx movie)
+            repo' = repo { repoDirs = dirs }
+        writeFile (fileFullPath movie) ("not a movie" :: ByteString)
+        pg <- forceBuildThumbCaches ctx repo'
+        pgGoal pg `shouldBe` length (autoSizeList ctx)
+        pgNoop pg `shouldBe` 0
+        pgNumErrors pg `shouldBe` length (autoSizeList ctx)
     describe "ensureStorageFile" $ do
       let isChangedError (ImageError msg) =
             "changed since the last scan" `isInfixOf` msg

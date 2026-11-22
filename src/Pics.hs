@@ -168,6 +168,7 @@ module Pics ( PicDir(..)
             , cacheFileEndings
             , isLiveCacheFile
             , scaledCacheNeedsBuild
+            , imagePendingSizes
             , splitPathExt
             , isKnownMediaInode
             , renderableImages
@@ -1671,27 +1672,28 @@ renderableImages =
 
 -- | Pre-render all auto image sizes, converting only stale caches.
 --
--- First classifies every image×size (stat the scaled cache, no
--- convert), then runs convert only for the stale ones. Render
--- progress 'pgGoal' is the pending work, not the classified total.
+-- First classifies every image×size, checking only the cache files
+-- (see 'imagePendingSizes'; no tool runs), then builds the stale ones,
+-- including any extraction they need. Render progress 'pgGoal' is the
+-- pending work, not the classified total.
 forceBuildThumbCaches :: Ctx -> Repository -> IO Progress
 forceBuildThumbCaches ctx repo = do
   checkRepoOwnership ctx repo
   let config = ctxConfig ctx
       renderProgress = ctxRenderProgress ctx
       images = renderableImages repo
-      sizes = cfgAutoImageSizes config
+      sizes = Set.toList (cfgAutoImageSizes config)
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
                          (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
-      classifySize (pend, n, es) i size = do
+      classifyImage (pend, n, es) i = do
         checkRepoOwnership ctx repo
-        res <- imageNeedsRender (ctxRenderToolLimits ctx) (ctxLogger ctx) config i size
+        res <- imagePendingSizes (ctxLogger ctx) config i sizes
         return $ case res of
           Left err ->
-            (pend, n, ProgressError (imageForError i size) (Text.pack $ show err):es)
-          Right False -> (pend, n + 1, es)
-          Right True  -> ((i, size):pend, n, es)
-      classifyImage acc i = foldM (`classifySize` i) acc sizes
+            let msg = Text.pack $ show err
+            in (pend, n, [ProgressError (imageForError i size) msg | size <- reverse sizes] ++ es)
+          Right stale ->
+            (map (i,) (reverse stale) ++ pend, n + length sizes - length stale, es)
   atomically $ writeTVar renderProgress def
   (pending, noops, errs) <- foldM classifyImage ([], 0, []) images
   atomically $ writeTVar renderProgress Progress
@@ -1878,16 +1880,29 @@ scaledCacheNeedsBuild config origPath mtime size =
     Nothing  -> return False
     Just res -> cacheFileNeedsBuild (scaledImagePath config origPath res) mtime
 
--- | Whether pre-rendering @size@ for this image would run convert.
+-- | The sizes, among the given ones, whose previews of this image need
+-- (re)building, checking only the cache files.
 --
--- Resolves the viewable original (cheap for JPEGs; may extract
--- embedded previews for RAW/movies), then delegates to
--- 'scaledCacheNeedsBuild'. Failures from that resolution are returned
--- as 'Left'.
-imageNeedsRender :: ToolLimits -> LogFn -> Config -> Image -> Int -> IO (Either ImageError Bool)
-imageNeedsRender tools logfn config img size = try $ do
-  (origFile, _, _, _, mtime) <- getViewableVersion tools logfn config img
-  scaledCacheNeedsBuild config (fileFullPath origFile) mtime (ImageSize size)
+-- No tool is run (hence no 'ToolLimits'): for a raw file or a movie
+-- whose viewable version must be extracted (see 'imageViewSource'), a
+-- missing or stale extracted file means all the sizes need building,
+-- and the extraction is left to the build. Otherwise, each size needs
+-- building if its preview is missing, or older than the viewable file.
+imagePendingSizes :: LogFn -> Config -> Image -> [Int] -> IO (Either ImageError [Int])
+imagePendingSizes logfn config img sizes = try $ do
+  (f, kind) <- maybe (throwIO ImageNotViewable) return $ imageViewSource config img
+  ensureStorageFile logfn config f
+  let path = fileFullPath f
+      staleSizes mtime =
+        filterM (scaledCacheNeedsBuild config path mtime . ImageSize) sizes
+  case kind of
+    ViewAsIs -> staleSizes (fileLastTouch f)
+    _ -> do
+      let epath = embeddedImagePath config path
+      needsExtraction <- cacheFileNeedsBuild epath (fileLastTouch f)
+      if needsExtraction
+        then return sizes
+        else staleSizes =<< filePathLastTouch epath
 
 -- | Generate a preview for an image.
 --
@@ -2425,49 +2440,52 @@ ensureStorageFile logfn config f = do
     throwIO $ ImageError
       "The file has changed since the last scan; a rescan will update it."
 
--- | Returns a viewable version of an image.
+-- | How the viewable version of an image is obtained from its file
+-- (see 'imageViewSource').
+data ViewKind
+  = ViewAsIs     -- ^ The file itself (a JPEG, or a viewable raw file).
+  | ViewEmbedded -- ^ A preview embedded in the (raw) file.
+  | ViewMovie    -- ^ A movie's embedded preview, or else its first frame.
+
+-- | The file an image is viewed from, and how its viewable version is
+-- obtained from it: a processed file is used directly; for a raw file,
+-- its embedded preview is extracted (unless browsers can show it as it
+-- is); for a movie, its embedded preview or first frame.
 --
--- For a processed file, return it directly; for a raw file, extract
--- the embedded image, if any; etc. Also returns the ImageMagick
--- decoder to use for the viewable file.
+-- This only picks the file; 'getViewableVersion' does the extraction,
+-- and 'imagePendingSizes' only checks what it would need.
+imageViewSource :: Config -> Image -> Maybe (File, ViewKind)
+imageViewSource config img
+  | j:_ <- imgJpegPath img = Just (j, ViewAsIs)
+  | Just j <- imgRawPath img,
+    True <- flagsSoftMaster (imgFlags img) = Just (j, ViewAsIs)
+  | Just r <- imgRawPath img =
+      Just (r, if fileName r `viewableAsIs` config then ViewAsIs else ViewEmbedded)
+  | Just m <- bestMovie img = Just (m, ViewMovie)
+  | otherwise = Nothing
+
+-- | Returns a viewable version of an image (see 'imageViewSource'),
+-- extracting it if needed. Also returns the ImageMagick decoder to use
+-- for the viewable file.
 getViewableVersion :: ToolLimits -> LogFn -> Config -> Image
                    -> IO (File, FilePath, Either Text String, MimeType, POSIXTime)
-getViewableVersion tools logfn config img
-  | j:_ <- imgJpegPath img = do
-      ensureStorageFile logfn config j
-      return (j, fileFullPath j, fileDecoder j, jpegMimeType j, fileLastTouch j)
-  | Just j <- imgRawPath img,
-    True <- flagsSoftMaster (imgFlags img) = do
-      ensureStorageFile logfn config j
-      return (j, fileFullPath j, fileDecoder j, jpegMimeType j, fileLastTouch j)
-  | Just r <- imgRawPath img = do
-      ensureStorageFile logfn config r
-      -- TODO: there should be some tests to check which version is returned.
-      viewable <- if fileName r `viewableAsIs` config
-                  then return $ Right (fileDecoder r, jpegMimeType r, fileFullPath r)
-                  else fmap (\(mime, path) -> (extractedDecoder, mime, path)) <$>
-                         bestEmbedded tools config (fileFullPath r) (fileLastTouch r)
-      case viewable of
-        Left msg -> throwIO $ ImageError msg
-        Right (decoder, mime, path) -> do
-          mtime <- filePathLastTouch path
-          return (r, path, decoder, mime, mtime)
-  | Just m <- bestMovie img = do
-      ensureStorageFile logfn config m
-      embedded <- bestEmbedded tools config (fileFullPath m) (fileLastTouch m)
-      case embedded of
-        Left _ -> do
-          firstFrame <- extractFirstFrame tools config (fileFullPath m) (fileLastTouch m)
-          case firstFrame of
-            Left msg' -> throwIO $ ImageError msg'
-            Right (mime, path) -> do
-              mtime <- filePathLastTouch path
-              return (m, path, extractedDecoder, mime, mtime)
-        Right (mime, path) -> do
-          mtime <- filePathLastTouch path
-          return (m, path, extractedDecoder, mime, mtime)
-  | otherwise = throwIO ImageNotViewable
-  where fileDecoder = imageDecoder config . fileFullPath
+getViewableVersion tools logfn config img = do
+  (f, kind) <- maybe (throwIO ImageNotViewable) return $ imageViewSource config img
+  ensureStorageFile logfn config f
+  let path = fileFullPath f
+      extracted = either (throwIO . ImageError) $ \(mime, epath) -> do
+        mtime <- filePathLastTouch epath
+        return (f, epath, extractedDecoder, mime, mtime)
+  case kind of
+    ViewAsIs ->
+      return (f, path, imageDecoder config path, jpegMimeType f, fileLastTouch f)
+    ViewEmbedded ->
+      extracted =<< bestEmbedded tools config path (fileLastTouch f)
+    ViewMovie -> do
+      embedded <- bestEmbedded tools config path (fileLastTouch f)
+      extracted =<< case embedded of
+        Left _  -> extractFirstFrame tools config path (fileLastTouch f)
+        Right e -> return (Right e)
 
 -- | Return the path (on the filesystem) to a specific size rendering of an image.
 --
