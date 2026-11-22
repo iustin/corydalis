@@ -136,7 +136,10 @@ config:
   autoimgsizes: [1920, 2560]
   # Other image sizes that will be generated and saved to cachedir,
   # but only on demand. If a value appears both here and in
-  # autoimgsizes, the entry here will have no effect.
+  # autoimgsizes, the entry here will have no effect. On a site
+  # anonymous visitors can browse (built with the public-site flag),
+  # anyone can request these for every picture, and fill the cache:
+  # consider an empty list ([]) there.
   demandimgsizes: [3840, 7680]
   # Page size to use when browsing images. Should be kept low to speed
   # up initial page load.
