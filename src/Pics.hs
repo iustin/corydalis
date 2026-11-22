@@ -1700,27 +1700,34 @@ forceBuildThumbCaches ctx repo = do
       renderProgress = ctxRenderProgress ctx
       checkProgress = ctxRenderCheckProgress ctx
       images = renderableImages repo
+      total = length images
       sizes = Set.toList (cfgAutoImageSizes config)
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
                          (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
-      classifyImage (pend, n, es) i = do
+      -- The last image is counted along with setting the rendering's
+      -- goal (below), so that the check is never complete before the
+      -- goal is set.
+      classifyImage (pend, n, es) (k, i) = do
         checkRepoOwnership ctx repo
         res <- imagePendingSizes (ctxLogger ctx) config i sizes
-        atomically $ modifyTVar' checkProgress incDone
+        when (k < total) . atomically $ modifyTVar' checkProgress incDone
         return $ case res of
           Left err ->
             let msg = Text.pack $ show err
             in (pend, n, [ProgressError (imageForError i size) msg | size <- reverse sizes] ++ es)
           Right stale ->
             (map (i,) (reverse stale) ++ pend, n + length sizes - length stale, es)
-  atomically . resetRenderProgress ctx $ length images
-  (pending, noops, errs) <- foldM classifyImage ([], 0, []) images
-  atomically $ writeTVar renderProgress Progress
-    { pgErrors = errs
-    , pgNoop = noops
-    , pgDone = 0
-    , pgGoal = length pending + length errs
-    }
+  atomically $ resetRenderProgress ctx total
+  (pending, noops, errs) <- foldM classifyImage ([], 0, []) (zip [1..] images)
+  -- The check is marked complete explicitly, not relying on its count.
+  atomically $ do
+    writeTVar renderProgress Progress
+      { pgErrors = errs
+      , pgNoop = noops
+      , pgDone = 0
+      , pgGoal = length pending + length errs
+      }
+    modifyTVar' checkProgress $ \p -> p { pgDone = pgGoal p }
   mapM_ (\(i, size) -> do
             checkRepoOwnership ctx repo
             res <- imageAtRes (ctxRenderToolLimits ctx) (ctxLogger ctx) config i . Just . ImageSize $ size
