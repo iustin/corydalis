@@ -1209,6 +1209,13 @@ spec = parallel $ do
                                _ -> False)
         entries (target config) `shouldReturn` []
         listDirectory (cacheTempDir config) `shouldReturn` []
+      it "writes a file whose name is near the length limit" $ \config -> do
+        -- 251 bytes: valid, but too long once the temporary file's
+        -- random part is added to it.
+        let long = cfgCacheDir config </> "sub" </> (replicate 245 'a' ++ ".jpg-64")
+        writeViaTempFile config long $ \tmp ->
+          writeFile tmp ("contents" :: ByteString)
+        readFile long `shouldReturn` ("contents" :: ByteString)
       it "keeps files of the same name, written at once, apart" $ \config -> do
         -- The temporary files of all the directories are in the same
         -- one, so files of the same name must still get their own.

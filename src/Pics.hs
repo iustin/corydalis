@@ -2116,6 +2116,12 @@ readFileStart path n =
 -- Both directories are created first, if needed; as the file is
 -- renamed, it must be on the cache directory's filesystem.
 --
+-- The temporary file is named after the start of the file's name (its
+-- first 50 characters, at most 200 bytes), which shows what is being
+-- written, while leaving room for the random part added to it: with
+-- the whole name, a file whose name is valid, but near the length
+-- limit, couldn't be written.
+--
 -- If the writing action fails, the temporary file is removed, and the
 -- exception is rethrown. The file gets the default permissions (subject
 -- to the umask), as a newly created file would; if it replaces an
@@ -2128,7 +2134,8 @@ writeViaTempFile config path write = do
   createDirectoryIfMissing True dir
   createDirectoryIfMissing True tmpDir
   bracketOnError
-    (do (tmpPath, h) <- System.IO.openTempFileWithDefaultPermissions tmpDir (name ++ ".tmp")
+    (do (tmpPath, h) <- System.IO.openTempFileWithDefaultPermissions tmpDir
+                          (take 50 name ++ ".tmp")
         System.IO.hClose h
         return tmpPath)
     (void . tryIO . removeFile)
