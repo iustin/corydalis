@@ -34,7 +34,9 @@ import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
 import qualified Control.Exception
 import           Control.Exception (AsyncException (ThreadKilled))
 import           Data.Time.Clock.POSIX (POSIXTime)
-import           System.Directory (createDirectoryIfMissing, doesFileExist,
+import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
+import           System.Directory (createDirectoryIfMissing,
+                                   doesDirectoryExist, doesFileExist,
                                    listDirectory, renameFile)
 import           System.Exit      (ExitCode (..))
 import           System.FilePath  (splitFileName, takeDirectory,
@@ -358,6 +360,29 @@ extractFirstFrameT config path mtime = do
   tools <- testToolLimits
   extractFirstFrame tools config path mtime
 
+-- | Runs something which runs a tool (given the limits to run it
+-- within), checking that it waits for a tool slot before creating any
+-- file: neither the given cache file's directory, nor a temporary file.
+-- Returns its result, once given the slot.
+waitsForSlotFirst :: Config -> FilePath -> (ToolLimits -> IO a)
+                  -> IO (Either SomeException a)
+waitsForSlotFirst config target run = do
+  tools <- atomically $ newToolLimits 1 defaultToolTimeout
+  -- Taking the only slot, as a running tool would.
+  atomically . waitTSem $ tlSlots tools
+  running <- async (run tools)
+  -- It does nothing else in STM, so it is then waiting for the slot.
+  waitUntilBlockedInSTM (asyncThreadId running)
+  doesDirectoryExist (takeDirectory target) `shouldReturn` False
+  tmpFiles <- doesDirectoryExist (cacheTempDir config) >>= \case
+    True -> listDirectory (cacheTempDir config)
+    False -> return []
+  tmpFiles `shouldBe` []
+  atomically . signalTSem $ tlSlots tools
+  -- With a last resort time limit, in case it never finishes.
+  timeout lastResort (waitCatch running) >>=
+    maybe (expectationFailure "The run never finished" >> error "unreachable") return
+
 spec :: Spec
 spec = parallel $ do
   describe "inode info" $ do
@@ -502,6 +527,7 @@ spec = parallel $ do
             -- No file is left behind either: neither the cache file nor
             -- the temporary one.
             listDirectory (takeDirectory target) `shouldReturn` []
+            listDirectory (cacheTempDir config) `shouldReturn` []
       it "caches the preview, if it is of the expected format" $ \config -> do
         (target, result) <- build config "printf '\\377\\330\\377rest'"
         result `shouldSatisfy` isRight
@@ -558,6 +584,16 @@ spec = parallel $ do
         -- No file is left behind: neither the cache file nor the
         -- temporary one.
         listDirectory (takeDirectory target) `shouldReturn` []
+        listDirectory (cacheTempDir config) `shouldReturn` []
+      it "waits for a slot before creating any file" $ \config -> do
+        let target = cfgCacheDir config </> "dir" </> "preview"
+            picture = cfgCacheDir config </> "picture"
+        writeFile picture ("the picture" :: ByteString)
+        result <- waitsForSlotFirst config target $ \tools ->
+          buildPreviewFile tools config PreviewScaled target picture $
+            proc "sh" ["-c", "printf '\\377\\330\\377rest'"]
+        result `shouldSatisfy` isRight
+        readFile target `shouldReturn` "\255\216\255rest"
       it "names a picture that can't be read" $ \config -> do
         tools <- testToolLimits
         let target = cfgCacheDir config </> "dir" </> "preview"
@@ -846,6 +882,14 @@ spec = parallel $ do
         blockCacheDir config path
         result <- extractEmbeddedT config path 0 "PreviewImage"
         result `shouldSatisfy` isLeft
+    it "waits for a slot before creating any file" $
+      withConfig' $ \config -> do
+        -- The picture doesn't exist, so the extraction fails once it
+        -- runs, whether exiftool is installed or not.
+        let path = cfgCacheDir config </> "photo.mie"
+        _ <- waitsForSlotFirst config (embeddedImagePath config path) $ \tools ->
+          extractEmbedded tools config path 0 "PreviewImage"
+        return ()
     it "fails if there is no embedded image" $
       withConfig' $ \config -> do
         requireExifTool
@@ -955,6 +999,13 @@ spec = parallel $ do
       blockOutput (embeddedImagePath config path)
       result <- extractFirstFrameT config path farFutureTime
       result `shouldSatisfy` isLeft
+    it "waits for a slot before creating any file" $ \config -> do
+      -- Whether ffmpeg is installed or not doesn't matter: the movie
+      -- doesn't exist, so the extraction fails once it runs.
+      let path = cfgCacheDir config </> "movie.mp4"
+      _ <- waitsForSlotFirst config (embeddedImagePath config path) $ \tools ->
+        extractFirstFrame tools config path 0
+      return ()
     it "refuses movies without a configured demuxer" $ \config -> do
       let path = cfgCacheDir config </> "movie.xyz"
       writeFile path ("whatever" :: ByteString)

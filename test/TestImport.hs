@@ -69,6 +69,10 @@ import           Data.Text.Short                (ShortText)
 import qualified Data.Text.Short                as TS
 import           Formatting
 import           Network.Wai.Test               (simpleHeaders)
+import           Control.Concurrent.STM.TSem    (waitTSem)
+import           GHC.Conc                       (BlockReason (..),
+                                                 ThreadId, ThreadStatus (..),
+                                                 threadStatus, yield)
 import           Settings                       (AppSettings (..),
                                                  newPreviewToolLimits)
 import           System.Directory               (createDirectory,
@@ -333,6 +337,29 @@ responseLocation = withResponse $ \response ->
 -- application's.
 testToolLimits :: IO ToolLimits
 testToolLimits = atomically $ newToolLimits defaultToolSlots defaultToolTimeout
+
+-- | Waits until the given thread is blocked in STM, e.g. waiting for a
+-- tool slot (see 'withToolSlot'), failing if it finishes first. There
+-- is a last resort time limit, in case it never blocks.
+waitUntilBlockedInSTM :: ThreadId -> IO ()
+waitUntilBlockedInSTM tid =
+  timeout (30 * 1000000) loop >>=
+    maybe (expectationFailure "The thread never blocked") return
+  where loop = do
+          status <- threadStatus tid
+          case status of
+            ThreadBlocked BlockedOnSTM -> return ()
+            ThreadFinished -> expectationFailure "The thread didn't block"
+            ThreadDied -> expectationFailure "The thread didn't block"
+            _ -> yield >> loop
+
+-- | Counts the free slots of the given tool limits, taking them all.
+takeFreeSlots :: ToolLimits -> IO Int
+takeFreeSlots tools = go 0
+  where go n = do
+          taken <- atomically $
+            (waitTSem (tlSlots tools) >> return True) `orElse` return False
+          if taken then go (n + 1 :: Int) else return n
 
 -- | Returns the CSRF token from the meta tag of the last page, as the
 -- frontend code does.

@@ -1924,6 +1924,10 @@ loadCachedOrBuild tools config origPath bytesPath decoder mime mtime size = do
 -- with the picture as its standard input, and its standard output going
 -- to a temporary file (see 'previewArgs').
 --
+-- The tool's slot is taken first (see 'withToolSlot'), so that the
+-- builds waiting for one hold neither the temporary file nor the
+-- picture open.
+--
 -- The temporary file is moved in place only if the tool succeeded and
 -- the file starts with the signature of the expected format (see
 -- 'checkPreviewImage'): a failed, empty or partial preview must not be
@@ -1942,12 +1946,12 @@ buildPreviewFile :: ToolLimits -> Config -> PreviewFormat
                  -> IO ()
 buildPreviewFile tools config kind fpath input pconfig =
   either (throwIO . toImageError) return =<<
-  tryAny (writeViaTempFile config fpath $ \tmpPath -> do
+  tryAny (withToolSlot tools $ \slot -> writeViaTempFile config fpath $ \tmpPath -> do
     let openInput = openRegularFile input `catchIO`
           (throwIO . ImageError . sformat ("Cannot read the image to scale: " % shown))
     (exitCode, err) <- either (throwIO . ImageError) return =<<
       bracket openInput System.IO.hClose (\h ->
-        runToolToFile tools tmpPath (setStdin (useHandleOpen h) pconfig))
+        runToolToFile slot tmpPath (setStdin (useHandleOpen h) pconfig))
     let output = Text.strip $ decodeToolOutput err
         withOutput msg | Text.null output = msg
                        | otherwise = msg <> ": " <> output
@@ -2263,12 +2267,13 @@ extractEmbedded tools config path mtime tag = do
             setStdin closed
             . setCloseFds True
             $ proc "exiftool" args
-      result <- tryImageError . writeViaTempFile config outputPath $ \tmpPath -> do
-        ran <- runToolToFile tools tmpPath pconfig
-        (exitCode, err) <- either (throwIO . ImageError) return ran
-        (size, start) <- readFileStart tmpPath (BSL.length jpegMagic)
-        either (throwIO . ImageError) return $
-          checkEmbeddedImage tag exitCode (fromIntegral size) start err
+      result <- tryImageError . withToolSlot tools $ \slot ->
+        writeViaTempFile config outputPath $ \tmpPath -> do
+          ran <- runToolToFile slot tmpPath pconfig
+          (exitCode, err) <- either (throwIO . ImageError) return ran
+          (size, start) <- readFileStart tmpPath (BSL.length jpegMagic)
+          either (throwIO . ImageError) return $
+            checkEmbeddedImage tag exitCode (fromIntegral size) start err
       return (const goodRet =<< result)
     else
       return goodRet
@@ -2334,17 +2339,18 @@ extractFirstFrame tools config path mtime =
           -- ffmpeg can leave a partial file behind when it fails (or is
           -- interrupted), so it writes to a temporary file, moved in
           -- place only on success.
-          result <- tryImageError . writeViaTempFile config outputPath $ \tmpPath -> do
-            let pconfig =
-                  setStdin closed
-                  . setCloseFds True
-                  $ proc "ffmpeg" (args tmpPath)
-            ran <- runTool tools pconfig
-            case ran of
-              Left msg -> throwIO $ ImageError msg
-              Right (exitCode, out, err) ->
-                unless (exitCode == ExitSuccess) .
-                  throwIO . ImageError . decodeToolOutput $ out `BSL.append` err
+          result <- tryImageError . withToolSlot tools $ \slot ->
+            writeViaTempFile config outputPath $ \tmpPath -> do
+              let pconfig =
+                    setStdin closed
+                    . setCloseFds True
+                    $ proc "ffmpeg" (args tmpPath)
+              ran <- runTool slot pconfig
+              case ran of
+                Left msg -> throwIO $ ImageError msg
+                Right (exitCode, out, err) ->
+                  unless (exitCode == ExitSuccess) .
+                    throwIO . ImageError . decodeToolOutput $ out `BSL.append` err
           return (const goodRet =<< result)
         else
           return goodRet
