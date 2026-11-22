@@ -91,19 +91,21 @@ tmpFilesWhileRunning config dir = do
   BS.writeFile (dir </> "normal.jpg") minimalJpeg
   let pipe = dir </> "pipe.jpg"
   createNamedPipe pipe 0o600
-  running <- async $ getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]
-  let writer = setStdin createPipe . setStdout createPipe $
-                 proc "sh" ["-c", "exec 3>\"$0\"; echo open; read x", pipe]
-  during <- withProcessWait writer $ \p -> do
-    -- With a last resort time limit, in case exiftool never opens it.
-    timeout (30 * 1000000) (System.IO.hGetLine (getStdout p)) `shouldReturn` Just "open"
-    files <- listDirectory (cacheTempDir config)
-    System.IO.hPutStrLn (getStdin p) "go on"
-    hClose (getStdin p)
-    return files
-  _ <- timeout (30 * 1000000) (wait running)
-  afterwards <- listDirectory (cacheTempDir config)
-  return (during, afterwards)
+  -- Stopped (with exiftool) if the test fails before it finishes.
+  withAsync (getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]) $ \running -> do
+    let writer = setStdin createPipe . setStdout createPipe $
+                   proc "sh" ["-c", "exec 3>\"$0\"; echo open; read x", pipe]
+    during <- withProcessWait writer $ \p -> do
+      -- With a last resort time limit, in case exiftool never opens it.
+      timeout (30 * 1000000) (System.IO.hGetLine (getStdout p)) `shouldReturn` Just "open"
+      files <- listDirectory (cacheTempDir config)
+      System.IO.hPutStrLn (getStdin p) "go on"
+      hClose (getStdin p)
+      return files
+    timeout (30 * 1000000) (wait running) >>=
+      maybe (expectationFailure "exiftool never finished") (const (return ()))
+    afterwards <- listDirectory (cacheTempDir config)
+    return (during, afterwards)
 
 -- Arbitrary instances for testing
 
@@ -323,16 +325,17 @@ spec = parallel $ do
       dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
       -- Taking the only slot, as a running exiftool would.
       atomically . waitTSem $ tlSlots tools
-      running <- async $ getExif noLog tools config dir ["normal.jpg"]
-      -- It does nothing else in STM, so it is then waiting for the slot.
-      waitUntilBlockedInSTM (asyncThreadId running)
-      doesFileExist (exifPath config (dir </> "normal.jpg")) `shouldReturn` False
-      atomically . signalTSem $ tlSlots tools
-      -- With a last resort time limit, in case it never finishes.
-      result <- timeout (30 * 1000000) (wait running)
-      case result of
-        Just (_, exifs) -> (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
-        Nothing -> expectationFailure "exiftool never finished"
+      -- Stopped if the test fails before it finishes.
+      withAsync (getExif noLog tools config dir ["normal.jpg"]) $ \running -> do
+        -- It does nothing else in STM, so it is then waiting for the slot.
+        waitUntilBlockedInSTM (asyncThreadId running)
+        doesFileExist (exifPath config (dir </> "normal.jpg")) `shouldReturn` False
+        atomically . signalTSem $ tlSlots tools
+        -- With a last resort time limit, in case it never finishes.
+        result <- timeout (30 * 1000000) (wait running)
+        case result of
+          Just (_, exifs) -> (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
+          Nothing -> expectationFailure "exiftool never finished"
 
   describe "NFData" $ do
     it "forces previously skipped exif fields" $ do
