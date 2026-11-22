@@ -40,6 +40,7 @@ module Settings
 
 import           ClassyPrelude.Yesod
 import           Data.Aeson                 (withObject, (.!=), (.:?))
+import           Data.Char                  (isDigit)
 import           Data.Aeson.Types           (Object, Parser, parseFail)
 import           Data.Time                  (NominalDiffTime)
 import           Database.Persist.Sqlite    (SqliteConf)
@@ -277,7 +278,19 @@ insecureApprootWarning settings = do
     isLocalHost :: Text -> Bool
     isLocalHost host =
       host == "localhost" || ".localhost" `isSuffixOf` host ||
-      "127." `isPrefixOf` host || host == "[::1]"
+      isIPv4Loopback host || host == "[::1]"
+    -- An IPv4 loopback address (127.0.0.0/8), written as four numbers,
+    -- and not just any name starting with "127." (e.g. 127.example.com).
+    isIPv4Loopback :: Text -> Bool
+    isIPv4Loopback host =
+      case map octet (splitElem '.' host) of
+        [Just 127, Just _, Just _, Just _] -> True
+        _ -> False
+    octet :: Text -> Maybe Int
+    octet t
+      | not (null t) && length t <= 3 && all isDigit t =
+          readMay t >>= \n -> if n <= 255 then Just n else Nothing
+      | otherwise = Nothing
 
 -- | Parses the Unix socket mode, which must be a (quoted) string: YAML
 -- doesn't agree on how to read unquoted numbers with a leading zero

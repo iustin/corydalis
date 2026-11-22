@@ -139,11 +139,15 @@ insecureApprootSpec = describe "insecureApprootWarning" $ do
     warns "http://photos.example.com"
     warns "http://photos.example.com:3000/"
     warns "HTTP://192.168.1.10:3000"
+  it "doesn't take names starting with 127 for localhost" $ do
+    warns "http://127.example.com"
+    warns "http://127.0.0.1.example.com"
+    warns "http://127.0.0.256"
   it "accepts an HTTPS root" $
     quiet (Just "https://photos.example.com") True
   it "accepts plain HTTP on localhost" $
     forM_ [ "http://localhost:3000", "http://localhost", "http://dev.localhost"
-          , "http://127.0.0.1:3000", "http://[::1]:3000/"] $ \root ->
+          , "http://127.0.0.1:3000", "http://127.1.2.3/", "http://[::1]:3000/"] $ \root ->
       quiet (Just root) True
   it "accepts plain HTTP without secure cookies" $
     quiet (Just "http://photos.example.com") False
