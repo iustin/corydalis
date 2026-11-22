@@ -24,8 +24,39 @@ module Handler.CurateSpec (spec) where
 
 import           TestImport
 
+import           Exif       (Exif (..))
+import           Pics       (Image (..))
+
+-- | A picture taken with a camera whose name contains markup.
+cameraWithMarkup :: Config -> Image
+cameraWithMarkup config =
+  let img = simpleRawImage config
+  in img { imgExif = (imgExif img) { exifCamera = Just (mkSym "<b>Nikon</b>") } }
+
+-- | Requests the given route's JSON (the charts' data).
+getJson :: Route App -> YesodExample App ()
+getJson route = request $ do
+  setUrl route
+  addRequestHeader ("Accept", "application/json")
+
 spec :: Spec
-spec = parallel $ withApp $
+spec = parallel $ withApp $ do
+  it "escapes the names shown on the charts" $ do
+    ctx <- appContext <$> getTestYesod
+    injectImages [cameraWithMarkup (ctxConfig ctx)]
+    login
+    getJson CurateR
+    statusIs 200
+    bodyContains "&lt;b&gt;Nikon&lt;/b&gt;"
+    bodyNotContains "<b>Nikon"
+  it "escapes the names shown on the camera statistics' charts" $ do
+    ctx <- appContext <$> getTestYesod
+    injectImages [cameraWithMarkup (ctxConfig ctx)]
+    login
+    getJson CameraStatsR
+    statusIs 200
+    bodyContains "&lt;b&gt;Nikon&lt;/b&gt;"
+    bodyNotContains "<b>Nikon"
   it "loads the empty curate page and checks it looks right" $ do
     login
     checkRoute CurateR
