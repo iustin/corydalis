@@ -885,8 +885,10 @@ spec = parallel $ do
         result `shouldSatisfy` isLeft
     it "waits for a slot before creating any file" $
       withConfig' $ \config -> do
-        -- The picture doesn't exist, so the extraction fails once it
-        -- runs, whether exiftool is installed or not.
+        -- What matters is that nothing is created while it waits for
+        -- the slot (see 'waitsForSlotFirst'), not its result: the
+        -- picture doesn't exist, so it fails once it runs, and needs
+        -- neither exiftool nor a real picture.
         let path = cfgCacheDir config </> "photo.mie"
         _ <- waitsForSlotFirst config (embeddedImagePath config path) $ \tools ->
           extractEmbedded tools config path 0 "PreviewImage"
@@ -1018,8 +1020,10 @@ spec = parallel $ do
       result <- extractFirstFrameT config path farFutureTime
       result `shouldSatisfy` isLeft
     it "waits for a slot before creating any file" $ \config -> do
-      -- Whether ffmpeg is installed or not doesn't matter: the movie
-      -- doesn't exist, so the extraction fails once it runs.
+      -- What matters is that nothing is created while it waits for the
+      -- slot (see 'waitsForSlotFirst'), not its result: the movie
+      -- doesn't exist, so it fails once it runs, and needs neither
+      -- ffmpeg nor a real movie.
       let path = cfgCacheDir config </> "movie.mp4"
       _ <- waitsForSlotFirst config (embeddedImagePath config path) $ \tools ->
         extractFirstFrame tools config path 0
