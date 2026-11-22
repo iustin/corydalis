@@ -44,7 +44,7 @@ import           Pics
 
 getListItemsR :: Symbol -> Handler Html
 getListItemsR atom = do
-  requireSymbolAccess atom
+  requireSymbolsAccess [atom]
   let description = atomTypeDescriptions atom
   pics <- getPics
   let items = getAtoms atom pics
