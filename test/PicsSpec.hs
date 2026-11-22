@@ -1769,7 +1769,10 @@ spec = parallel $ do
             launchScanFileSystem ctx
             repo <- waitForScan ctx
             case repoStatus repo of
-              RepoFinished {} -> return ()
+              RepoFinished { rsCleanResults = WorkResults { wrDone = cleaned } } ->
+                -- Its goal is what it processed, although the scan added
+                -- files (e.g. exif caches) after the cache was counted.
+                pgGoal cleaned `shouldBe` pgTotal cleaned
               status -> expectationFailure $ "The scan failed: " ++ show status
             -- With the path, to name the file in a failure.
             let present path = (,) path <$> doesFileExist path
