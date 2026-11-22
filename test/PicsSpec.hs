@@ -1901,6 +1901,21 @@ spec = parallel $ do
         case res of
           Left ImageNotViewable -> return ()
           other -> expectationFailure $ "expected ImageNotViewable, got " ++ show other
+      it "doesn't rebuild an up to date raw file" $ \ctx -> do
+        repo <- getRepo ctx
+        let config = ctxConfig ctx
+            raw = rawFile ctx
+            path = fileFullPath raw
+            sizes = autoSizeList ctx
+            dirs = addImageToRepo config (repoDirs repo) (rawImage ctx raw)
+            repo' = repo { repoDirs = dirs }
+        writeFile path ("raw" :: ByteString)
+        writeNonEmpty (embeddedImagePath config path)
+        mapM_ (writeNonEmpty . scaledImagePath config path) sizes
+        pg <- forceBuildThumbCaches ctx repo'
+        pgNoop pg `shouldBe` length sizes
+        pgGoal pg `shouldBe` 0
+        pgNumErrors pg `shouldBe` 0
       it "counts a failed extraction as an error of the build" $ \ctx -> do
         repo <- getRepo ctx
         let config = ctxConfig ctx
