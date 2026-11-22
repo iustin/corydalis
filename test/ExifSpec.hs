@@ -34,7 +34,8 @@ import qualified Data.ByteString     as BS
 import           Data.Either         (isLeft, isRight)
 import qualified Data.Map            as Map
 import           Data.Text.Arbitrary ()
-import           System.Directory    (doesFileExist, listDirectory)
+import           System.Directory    (createDirectory, doesFileExist,
+                                      listDirectory)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
 import           Cache               (cacheTempDir)
 import qualified System.IO
@@ -285,11 +286,23 @@ spec = parallel $ do
         timeout (30 * 1000000) (System.IO.hGetLine (getStdout p)) `shouldReturn` Just "open"
         tmpFiles <- listDirectory (cacheTempDir config)
         length tmpFiles `shouldBe` 1
+        -- Named after the folder, ending with "raw".
+        tmpFiles `shouldSatisfy` all ("_raw-exif" `isInfixOf`)
         System.IO.hPutStrLn (getStdin p) "go on"
         hClose (getStdin p)
       _ <- timeout (30 * 1000000) (wait running)
       -- And it is removed afterwards.
       listDirectory (cacheTempDir config) `shouldReturn` []
+    it "reads a folder whose path is near the length limit of a name" $ \config -> do
+      requireExifTool
+      tools <- testToolLimits
+      root <- populateSourceDir config []
+      -- The output file's name doesn't take the whole path.
+      let dir = root </> replicate 200 'd'
+      createDirectory dir
+      BS.writeFile (dir </> "normal.jpg") minimalJpeg
+      (_, exifs) <- getExif noLog tools config dir ["normal.jpg"]
+      (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
     it "waits for a slot of its limits" $ \config -> do
       requireExifTool
       tools <- atomically $ newToolLimits 1 defaultScanToolTimeout
