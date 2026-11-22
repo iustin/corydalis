@@ -29,6 +29,7 @@ import           Data.Default
 import           Data.Either      (isLeft, isRight)
 import qualified Data.Map         as Map
 import qualified Data.Set         as Set
+import qualified Data.Text.Short  as TS
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
 import qualified Control.Exception
@@ -1677,6 +1678,38 @@ spec = parallel $ do
         _ <- waitForScan ctx
         getSearchResults ctx m2 [] `shouldReturn` m2
   withUnscannedContext $ do
+    describe "scan tool limits" $ do
+      -- Scans a folder with a picture, with the given time limits for
+      -- the preview tools and the scan's exiftool runs, returning the
+      -- exif warnings of the picture.
+      let scanWith ctx0 previewTimeout scanTimeout = do
+            let config = ctxConfig ctx0
+            ctx <- atomically $ do
+              tools <- newToolLimits 1 previewTimeout
+              scanTools <- newToolLimits 1 scanTimeout
+              initContext config (ctxLogger ctx0) tools scanTools
+            case cfgOutputDirs config of
+              outRoot:_ -> do
+                -- Folders are two levels below the base directory, and
+                -- their names must match the folder pattern.
+                let dir = outRoot </> "2020" </> "2020-01-01-trip"
+                createDirectoryIfMissing True dir
+                writeRealJpeg (dir </> "a.jpg")
+                launchScanFileSystem ctx
+                repo <- waitForScan ctx
+                return [ map TS.toText . Set.toList . exifWarning $ fileExif f
+                       | f <- allRepoFiles repo, fileName f == "a.jpg" ]
+              [] -> expectationFailure "expected an output directory" >> return []
+          timedOut = any ("timed out" `isInfixOf`)
+      -- A microsecond is too short for any exiftool run.
+      it "runs exiftool within the scan's limits" $ \ctx0 -> do
+        requireExifTool
+        warnings <- scanWith ctx0 defaultToolTimeout 1
+        warnings `shouldSatisfy` (\ws -> not (null ws) && all timedOut ws)
+      it "doesn't run exiftool within the previews' limits" $ \ctx0 -> do
+        requireExifTool
+        warnings <- scanWith ctx0 1 defaultToolTimeout
+        warnings `shouldSatisfy` (\ws -> not (null ws) && not (any timedOut ws))
     describe "cache cleanup" $ do
       it "keeps only the cache files in use, and the files being written" $ \ctx -> do
         let config = ctxConfig ctx

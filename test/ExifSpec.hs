@@ -34,7 +34,9 @@ import qualified Data.ByteString     as BS
 import           Data.Either         (isLeft, isRight)
 import qualified Data.Map            as Map
 import           Data.Text.Arbitrary ()
-import           System.Directory    (listDirectory)
+import           System.Directory    (doesFileExist, listDirectory)
+import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
+import           System.Posix.Files  (createNamedPipe)
 import           Test.QuickCheck
 
 -- | A 1x1 pixel JPEG, which exiftool is able to rewrite.
@@ -205,9 +207,10 @@ spec = parallel $ do
   withConfig $ describe "exiftool file name handling" $ do
     it "does not interpret file names as options" $ \config -> do
       requireExifTool
+      tools <- testToolLimits
       let names = ["-Comment=x.jpg", "-Directory=moved.jpg", "normal.jpg"]
       dir <- populateSourceDir config $ map (, minimalJpeg) names
-      (readCount, exifs) <- getExif noLog config dir names
+      (readCount, exifs) <- getExif noLog tools config dir names
       -- Nothing was renamed, moved or backed-up by a write mode run.
       (sort <$> listDirectory dir) `shouldReturn` sort names
       forM_ names $ \name ->
@@ -218,22 +221,62 @@ spec = parallel $ do
 
     it "keys per-file errors by the real file name" $ \config -> do
       requireExifTool
+      tools <- testToolLimits
       let names = ["-empty.jpg", "normal.jpg"]
       dir <- populateSourceDir config
                [("-empty.jpg", BS.empty), ("normal.jpg", minimalJpeg)]
-      (_, exifs) <- getExif noLog config dir names
+      (_, exifs) <- getExif noLog tools config dir names
       Map.keys exifs `shouldBe` map pack (sort names)
       (isLeft <$> lookup "-empty.jpg" exifs) `shouldBe` Just True
       (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
 
     it "stores the real file name in the raw exif cache" $ \config -> do
       requireExifTool
+      tools <- testToolLimits
       dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
-      _ <- getExif noLog config dir ["normal.jpg"]
+      _ <- getExif noLog tools config dir ["normal.jpg"]
       rawCache <- BS.readFile (exifPath config (dir </> "normal.jpg"))
       let source = decodeStrict' rawCache >>=
                      parseMaybe (withObject "cached exif" (.: "SourceFile"))
       source `shouldBe` Just ("normal.jpg" :: Text)
+
+    it "fails a batch which runs for too long, for all its files" $ \config -> do
+      requireExifTool
+      tools <- atomically $ newToolLimits 1 200000
+      -- exiftool waits forever to read a pipe with no writer.
+      dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+      createNamedPipe (dir </> "pipe.jpg") 0o600
+      -- With a last resort time limit, in case it isn't stopped.
+      result <- timeout (30 * 1000000) $
+                  getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]
+      case result of
+        Nothing -> expectationFailure "exiftool wasn't stopped"
+        Just (_, exifs) -> do
+          Map.keys exifs `shouldBe` ["normal.jpg", "pipe.jpg"]
+          forM_ exifs $ \e -> e `shouldBeLeftWithMessage` "timed out"
+      -- The error isn't cached, and the next scan tries again.
+      forM_ ["normal.jpg", "pipe.jpg"] $ \name -> do
+        doesFileExist (exifPath config (dir </> name)) `shouldReturn` False
+        doesFileExist (bExifPath config (dir </> name)) `shouldReturn` False
+      (_, retried) <- getExif noLog tools config dir ["normal.jpg"]
+      (isRight <$> lookup "normal.jpg" retried) `shouldBe` Just True
+
+    it "waits for a slot of its limits" $ \config -> do
+      requireExifTool
+      tools <- atomically $ newToolLimits 1 defaultScanToolTimeout
+      dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+      -- Taking the only slot, as a running exiftool would.
+      atomically . waitTSem $ tlSlots tools
+      running <- async $ getExif noLog tools config dir ["normal.jpg"]
+      -- It does nothing else in STM, so it is then waiting for the slot.
+      waitUntilBlockedInSTM (asyncThreadId running)
+      doesFileExist (exifPath config (dir </> "normal.jpg")) `shouldReturn` False
+      atomically . signalTSem $ tlSlots tools
+      -- With a last resort time limit, in case it never finishes.
+      result <- timeout (30 * 1000000) (wait running)
+      case result of
+        Just (_, exifs) -> (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
+        Nothing -> expectationFailure "exiftool never finished"
 
   describe "NFData" $ do
     it "forces previously skipped exif fields" $ do

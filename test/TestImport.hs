@@ -74,7 +74,8 @@ import           GHC.Conc                       (BlockReason (..),
                                                  ThreadId, ThreadStatus (..),
                                                  threadStatus, yield)
 import           Settings                       (AppSettings (..),
-                                                 newPreviewToolLimits)
+                                                 newPreviewToolLimits,
+                                                 newScanToolLimits)
 import           System.Directory               (createDirectory,
                                                  createDirectoryIfMissing,
                                                  findExecutable,
@@ -182,12 +183,19 @@ withTestLogFn settings action =
           (rmLoggerSet . loggerSet)
           (action . makeLogFn (appLogLevel settings))
 
+-- | Creates a context, with the configured tool limits.
+newTestContext :: AppSettings -> Config -> LogFn -> STM Ctx
+newTestContext settings config logfn = do
+  tools <- newPreviewToolLimits settings
+  scanTools <- newScanToolLimits settings
+  initContext config logfn tools scanTools
+
 -- | Builds and returns a valid context.
 openTempContext :: AppSettings -> LogFn -> IO (FilePath, Ctx)
 openTempContext settings logfn = do
   tempDir <- setTempDir
   config <- updateConfig tempDir settings
-  ctx <- atomically $ newPreviewToolLimits settings >>= initContext config logfn
+  ctx <- atomically $ newTestContext settings config logfn
   launchScanFileSystem ctx
   _ <- waitForScan ctx
   return (tempDir, ctx)
@@ -207,7 +215,7 @@ openUnscannedContext :: AppSettings -> LogFn -> IO (FilePath, Ctx)
 openUnscannedContext settings logfn = do
   tempDir <- setTempDir
   config <- updateConfig tempDir settings
-  ctx <- atomically $ newPreviewToolLimits settings >>= initContext config logfn
+  ctx <- atomically $ newTestContext settings config logfn
   return (tempDir, ctx)
 
 withUnscannedContext' :: (Ctx -> IO ()) -> IO ()
