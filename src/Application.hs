@@ -191,9 +191,9 @@ makeFoundation appSettings = do
       return
 
     appContext <- atomically $ do
-      tools <- newPreviewToolLimits appSettings
+      renderTools <- newRenderToolLimits appSettings
       scanTools <- newScanToolLimits appSettings
-      initContext config logfn tools scanTools
+      initContext config logfn renderTools scanTools
     -- The user to check unknown users' passwords against, at login.
     appDummyLoginUser <- makeDummyLoginUser
 

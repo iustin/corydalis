@@ -81,10 +81,10 @@ spec = do
       found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
     it "allows at least one tool to run" $ do
-      tools <- atomically $ newToolLimits 0 defaultToolTimeout
+      tools <- atomically $ newToolLimits 0 defaultRenderToolTimeout
       runIn tools (proc "true" []) >>= (`shouldBe` Right (ExitSuccess, "", ""))
     it "waits for a free slot" $ do
-      tools <- atomically $ newToolLimits 1 defaultToolTimeout
+      tools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
       let run = runIn tools (proc "true" [])
       -- Taking the only slot, as a running tool would.
       atomically . waitTSem $ tlSlots tools
@@ -108,7 +108,7 @@ spec = do
       fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
   describe "withToolSlot" $ do
     it "frees the slot when the action fails" $ do
-      tools <- atomically $ newToolLimits 1 defaultToolTimeout
+      tools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
       withToolSlot tools (\_ -> throwIO (userError "failed"))
         `shouldThrow` anyIOException
       -- Taking it doesn't wait (and would fail, not hang, otherwise).

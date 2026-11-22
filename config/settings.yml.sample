@@ -50,17 +50,17 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # How many external tools (ImageMagick, ffmpeg, exiftool) may run at
 # once to build previews; further previews wait. Defaults to the number
 # of processors the application uses.
-# preview-tool-slots: 4
+# render-tool-slots: 4
 # How long, in seconds, such a tool may run before it is stopped, and
 # the preview fails. Defaults to five minutes.
-# preview-tool-timeout: 300
+# render-tool-timeout: 300
 
 # The same limits, separately, for the scan's exiftool runs, which read
 # the metadata of batches of files: how many runs at once (defaults to
 # the number of processors the application uses), and for how long, in
 # seconds, before a run is stopped and the metadata of all the files of
 # its batch fails (defaults to ten minutes). The previews the scan
-# renders afterwards use the preview-tool-* limits.
+# renders afterwards use the render-tool-* limits.
 # scan-tool-slots: 4
 # scan-tool-timeout: 600
 

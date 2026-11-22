@@ -31,9 +31,9 @@ benchmark config logger = do
     let logfn _ str = logger $ toLogStr str
 
     ctx <- atomically $ do
-      tools <- newToolLimits defaultToolSlots defaultToolTimeout
+      renderTools <- newToolLimits defaultToolSlots defaultRenderToolTimeout
       scanTools <- newToolLimits defaultToolSlots defaultScanToolTimeout
-      initContext config logfn tools scanTools
+      initContext config logfn renderTools scanTools
     -- Scan repository
     t1m <- getTime Monotonic
     t1p <- getTime ProcessCPUTime

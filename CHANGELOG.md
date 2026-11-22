@@ -122,12 +122,12 @@ built yet wait for their turn. Previously, many such requests at once
 crawler) could run any number of ImageMagick or ffmpeg processes at
 once.
 
-Both limits can be changed, with the new `preview-tool-timeout` (in
-seconds) and `preview-tool-slots` settings.
+Both limits can be changed, with the new `render-tool-timeout` (in
+seconds) and `render-tool-slots` settings.
 
 The scan's exiftool runs, which read the metadata of the files in
 batches, have the same kind of limits, separately (the previews the
-scan renders use the preview ones): a run is stopped after ten
+scan renders use the render ones): a run is stopped after ten
 minutes, and all the files of its batch then get the error (again at
 each scan, if one of them makes exiftool hang); and at most as many
 runs happen at once as the application uses processors. Previously, a

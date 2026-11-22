@@ -290,7 +290,7 @@ getImageBytesR folder iname = do
   res <- getResParam
   ctx <- getContext
   let logfn = ctxLogger ctx
-  imgbytes <- liftIO $ imageAtRes (ctxToolLimits ctx) logfn config img res
+  imgbytes <- liftIO $ imageAtRes (ctxRenderToolLimits ctx) logfn config img res
   case imgbytes of
     Left ImageNotViewable ->
       sendResponse imageNotViewable

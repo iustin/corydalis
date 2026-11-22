@@ -125,11 +125,11 @@ spec = do
   it "gives the previews and the scan their configured tool limits" $
     bracket setTempDir cleanupTempDir $ \tempDir -> do
       settings <- loadSettings >>= updateSettings tempDir
-      foundation <- makeFoundation settings { appPreviewToolTimeout = 7000000
+      foundation <- makeFoundation settings { appRenderToolTimeout = 7000000
                                             , appScanToolTimeout = 11000000
                                             }
       let ctx = appContext foundation
-      tlTimeout (ctxToolLimits ctx) `shouldBe` 7000000
+      tlTimeout (ctxRenderToolLimits ctx) `shouldBe` 7000000
       tlTimeout (ctxScanToolLimits ctx) `shouldBe` 11000000
  describe "request logging" $ do
   it "doesn't log the password in the detailed format" $ do

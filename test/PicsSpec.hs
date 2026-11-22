@@ -368,7 +368,7 @@ extractFirstFrameT config path mtime = do
 waitsForSlotFirst :: Config -> FilePath -> (ToolLimits -> IO a)
                   -> IO (Either SomeException a)
 waitsForSlotFirst config target run = do
-  tools <- atomically $ newToolLimits 1 defaultToolTimeout
+  tools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
   -- Taking the only slot, as a running tool would.
   atomically . waitTSem $ tlSlots tools
   running <- async (run tools)
@@ -1703,12 +1703,12 @@ spec = parallel $ do
       -- Scans a folder with a picture, with the given time limits for
       -- the preview tools and the scan's exiftool runs, returning the
       -- exif warnings of the picture.
-      let scanWith ctx0 previewTimeout scanTimeout = do
+      let scanWith ctx0 renderTimeout scanTimeout = do
             let config = ctxConfig ctx0
             ctx <- atomically $ do
-              tools <- newToolLimits 1 previewTimeout
+              renderTools <- newToolLimits 1 renderTimeout
               scanTools <- newToolLimits 1 scanTimeout
-              initContext config (ctxLogger ctx0) tools scanTools
+              initContext config (ctxLogger ctx0) renderTools scanTools
             case cfgOutputDirs config of
               outRoot:_ -> do
                 -- Folders are two levels below the base directory, and
@@ -1725,11 +1725,11 @@ spec = parallel $ do
       -- A microsecond is too short for any exiftool run.
       it "runs exiftool within the scan's limits" $ \ctx0 -> do
         requireExifTool
-        warnings <- scanWith ctx0 defaultToolTimeout 1
+        warnings <- scanWith ctx0 defaultRenderToolTimeout 1
         warnings `shouldSatisfy` (\ws -> not (null ws) && all timedOut ws)
       it "doesn't run exiftool within the previews' limits" $ \ctx0 -> do
         requireExifTool
-        warnings <- scanWith ctx0 1 defaultToolTimeout
+        warnings <- scanWith ctx0 1 defaultRenderToolTimeout
         warnings `shouldSatisfy` (\ws -> not (null ws) && not (any timedOut ws))
     describe "cache cleanup" $ do
       it "keeps only the cache files in use, and the files being written" $ \ctx -> do

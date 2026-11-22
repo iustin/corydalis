@@ -28,7 +28,7 @@ import           Yesod.Default.Config2 (loadYamlSettings, useEnv)
 
 import           Settings              (AppSettings (..),
                                         insecureApprootWarning,
-                                        newPreviewToolLimits,
+                                        newRenderToolLimits,
                                         newScanToolLimits)
 import           TestImport
 
@@ -55,7 +55,7 @@ spec = do
   unixSocketSpec
   insecureApprootSpec
   storageDirsSpec
-  previewToolsSpec
+  renderToolsSpec
   scanToolsSpec
 
 unixSocketSpec :: Spec
@@ -167,8 +167,8 @@ sessionMaxAgeSpec = describe "session-max-age" $ do
     loadSettingsWith [object ["session-max-age" .= (-1 :: Int)]]
       `shouldThrow` anyException
 
-previewToolsSpec :: Spec
-previewToolsSpec = describe "preview tool limits" $ do
+renderToolsSpec :: Spec
+renderToolsSpec = describe "render tool limits" $ do
   -- The error names the setting and the offending value.
   let refused setting value =
         loadSettingsWith [object [fromString setting .= value]] `shouldThrow` \e ->
@@ -176,24 +176,24 @@ previewToolsSpec = describe "preview tool limits" $ do
           in all (`isInfixOf` msg) [setting, show value]
   it "default to one tool per processor, for five minutes" $ do
     settings <- loadSettingsWith []
-    appPreviewToolSlots settings `shouldBe` defaultToolSlots
-    appPreviewToolTimeout settings `shouldBe` defaultToolTimeout
-    appPreviewToolTimeout settings `shouldBe` 300 * 1000000
+    appRenderToolSlots settings `shouldBe` defaultToolSlots
+    appRenderToolTimeout settings `shouldBe` defaultRenderToolTimeout
+    appRenderToolTimeout settings `shouldBe` 300 * 1000000
   it "can be configured, with the timeout in seconds" $ do
-    settings <- loadSettingsWith [object [ "preview-tool-slots" .= (2 :: Int)
-                                         , "preview-tool-timeout" .= (60 :: Int)
+    settings <- loadSettingsWith [object [ "render-tool-slots" .= (2 :: Int)
+                                         , "render-tool-timeout" .= (60 :: Int)
                                          ]]
-    appPreviewToolSlots settings `shouldBe` 2
-    appPreviewToolTimeout settings `shouldBe` 60 * 1000000
-    limits <- atomically $ newPreviewToolLimits settings
+    appRenderToolSlots settings `shouldBe` 2
+    appRenderToolTimeout settings `shouldBe` 60 * 1000000
+    limits <- atomically $ newRenderToolLimits settings
     tlTimeout limits `shouldBe` 60 * 1000000
   it "must be positive" $ do
-    refused "preview-tool-slots" (0 :: Int)
-    refused "preview-tool-slots" (-1 :: Int)
-    refused "preview-tool-timeout" (0 :: Int)
-    refused "preview-tool-timeout" (-5 :: Int)
+    refused "render-tool-slots" (0 :: Int)
+    refused "render-tool-slots" (-1 :: Int)
+    refused "render-tool-timeout" (0 :: Int)
+    refused "render-tool-timeout" (-5 :: Int)
   it "refuses a timeout which doesn't fit in microseconds" $
-    refused "preview-tool-timeout" (maxBound :: Int)
+    refused "render-tool-timeout" (maxBound :: Int)
 
 scanToolsSpec :: Spec
 scanToolsSpec = describe "scan tool limits" $ do
@@ -213,8 +213,8 @@ scanToolsSpec = describe "scan tool limits" $ do
                                          ]]
     appScanToolSlots settings `shouldBe` 3
     appScanToolTimeout settings `shouldBe` 90 * 1000000
-    appPreviewToolSlots settings `shouldBe` defaultToolSlots
-    appPreviewToolTimeout settings `shouldBe` defaultToolTimeout
+    appRenderToolSlots settings `shouldBe` defaultToolSlots
+    appRenderToolTimeout settings `shouldBe` defaultRenderToolTimeout
     limits <- atomically $ newScanToolLimits settings
     tlTimeout limits `shouldBe` 90 * 1000000
     takeFreeSlots limits `shouldReturn` 3
