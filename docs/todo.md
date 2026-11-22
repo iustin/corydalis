@@ -95,6 +95,11 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
   with the wrong type (PNG vs. JPEG) until it is rebuilt. Naming cache
   files by format, or checking the signature when serving, would fix
   it.
+- The output of the external tools (`runToolWith`: their error output,
+  and the output of those not writing to a file) is kept in memory in
+  full while they run, with no limit: a tool writing a lot (e.g. many
+  warnings, for a crafted file) uses as much memory. Keeping only its
+  start and end, past a limit, would bound it.
 - A convert stopped on timeout (it is killed) can't remove its own
   temporary files, e.g. the pixel cache of a large image. Giving each
   run a private temporary directory (`MAGICK_TEMPORARY_PATH`), removed
