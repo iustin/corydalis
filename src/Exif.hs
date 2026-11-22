@@ -1252,33 +1252,33 @@ extractExifs :: LogFn -> ToolLimits -> FilePath -> [FilePath]
              -> IO (Either Text BS.ByteString)
 extractExifs logfn tools dir paths =
   withToolSlot tools $ \slot ->
-  withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
-  hClose fhandle
-  let args = exifToolArgs paths
-      pconfig =
-        setStdin closed
-        . setCloseFds True
-        . setWorkingDir dir
-        $ proc "exiftool" args
-  logfn LevelDebug $ "extractExifs: spawning exiftool on " <>
-    toLogStr (show (length paths)) <> " files in " <> toLogStr dir <>
-    " -> " <> toLogStr fpath
-  ran <- runToolToFile slot fpath pconfig
-  case ran of
-    Left msg -> return $ Left msg
-    -- Note: exiftool exits with non-zero exit code if errors happened,
-    -- but still generates valid JSON output. So we ignore the exit code
-    -- completely, as we can't attribute the error to a specific
-    -- file. That should be rather done via 'Error' entry in the object.
-    Right (_, err) -> do
-      unless (BSL.null err) . logfn LevelDebug $
-        "extractExifs: exiftool messages for " <> toLogStr dir <> ": " <>
-        toLogStr (decodeToolOutput err)
-      logfn LevelDebug $ "extractExifs: exiftool exited, reading " <> toLogStr fpath
-      bs <- BS.readFile fpath
-      logfn LevelDebug $ "extractExifs: read " <> toLogStr (show (BS.length bs)) <>
-        " bytes"
-      return $ Right bs
+    withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
+      hClose fhandle
+      let args = exifToolArgs paths
+          pconfig =
+            setStdin closed
+            . setCloseFds True
+            . setWorkingDir dir
+            $ proc "exiftool" args
+      logfn LevelDebug $ "extractExifs: spawning exiftool on " <>
+        toLogStr (show (length paths)) <> " files in " <> toLogStr dir <>
+        " -> " <> toLogStr fpath
+      ran <- runToolToFile slot fpath pconfig
+      case ran of
+        Left msg -> return $ Left msg
+        -- Note: exiftool exits with non-zero exit code if errors happened,
+        -- but still generates valid JSON output. So we ignore the exit code
+        -- completely, as we can't attribute the error to a specific
+        -- file. That should be rather done via 'Error' entry in the object.
+        Right (_, err) -> do
+          unless (BSL.null err) . logfn LevelDebug $
+            "extractExifs: exiftool messages for " <> toLogStr dir <> ": " <>
+            toLogStr (decodeToolOutput err)
+          logfn LevelDebug $ "extractExifs: exiftool exited, reading " <> toLogStr fpath
+          bs <- BS.readFile fpath
+          logfn LevelDebug $ "extractExifs: read " <> toLogStr (show (BS.length bs)) <>
+            " bytes"
+          return $ Right bs
 
 parseExifs :: BS.ByteString -> Either Text [ERawExif]
 parseExifs bs =
