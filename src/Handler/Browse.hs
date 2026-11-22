@@ -41,13 +41,14 @@ getBrowseImagesR page = do
   elems' <- liftIO $ Map.elems . fst <$> searchImages ctx atom pics
   let pageSize = cfgPageSize config
       -- Computed as an Integer, as it can be past the largest Int
-      -- (for a crafted page number); a page past the last image is
-      -- empty, as any other page past the end (which also keeps
-      -- fromInteger below from wrapping around).
+      -- (for a crafted page number). A page past the last image is
+      -- empty, as any other page past the end: past the largest Int
+      -- (which fromInteger would wrap around), directly; otherwise, as
+      -- drop then leaves nothing.
       currentIdx = toInteger page * toInteger pageSize
       currentStart = currentIdx + 1
       (elems, remElems)
-        | currentIdx >= toInteger (length elems') = ([], [])
+        | currentIdx > toInteger (maxBound :: Int) = ([], [])
         | otherwise = splitAt pageSize . drop (fromInteger currentIdx) $ elems'
       imagesize = cfgBrowsingSize config
       nextPage = page + 1
