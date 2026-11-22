@@ -169,6 +169,7 @@ library:
     - Utils.Session
     - Utils.Socket
     - Utils.Storage
+    - Utils.Tools
     - Utils.Yaml
   other-modules:
     - Compat.Orphans
