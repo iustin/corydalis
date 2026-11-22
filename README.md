@@ -60,4 +60,4 @@ me on [ko-fi](https://ko-fi.com/iustin).
 
 [![Continuous Integration](https://github.com/iustin/corydalis/actions/workflows/ci.yml/badge.svg)](https://github.com/iustin/corydalis/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/iustin/corydalis)](https://codecov.io/gh/iustin/corydalis)
-[![Documentation Status](https://readthedocs.org/projects/corydalis/badge/?version=latest)](https://corydalis.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://img.shields.io/readthedocs/corydalis/latest)](https://corydalis.readthedocs.io/en/latest/?badge=latest)
