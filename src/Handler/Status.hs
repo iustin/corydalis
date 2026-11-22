@@ -134,43 +134,95 @@ countedItems WorkOnly       = pgWork
 remainingItems :: ProgressKind -> Progress -> Int
 remainingItems kind p = max 0 $ pgGoal p - countedItems kind p
 
-progressDetails :: ProgressKind -> Progress -> Widget
-progressDetails kind counter =
+-- | How a phase's progress is described: each phrase is given in the
+-- singular and the plural (also used for none), as it follows a count.
+data PhaseLabels = PhaseLabels
+  { plWork      :: !Text            -- ^ The phase's name (e.g. "Scanning").
+  , plKind      :: !ProgressKind
+  , plUnit      :: !(Text, Text)    -- ^ What it processes (e.g. "file").
+  , plNoop      :: !(Text, Text)    -- ^ The items with nothing to do.
+  , plDone      :: !(Text, Text)    -- ^ The items processed.
+  , plErrors    :: !(Text, Text)    -- ^ The items that failed.
+  , plRemaining :: !(Text, Text)    -- ^ The items left.
+  }
+
+scanLabels :: PhaseLabels
+scanLabels = PhaseLabels
+  { plWork      = scanning
+  , plKind      = InvestigateAll
+  , plUnit      = ("file", "files")
+  , plNoop      = ( "file had its metadata already cached"
+                  , "files had their metadata already cached")
+  , plDone      = ("file had its metadata read", "files had their metadata read")
+  , plErrors    = ("file had issues", "files had issues")
+  , plRemaining = ("file left to scan", "files left to scan")
+  }
+
+renderLabels :: PhaseLabels
+renderLabels = PhaseLabels
+  { plWork      = rendering
+  , plKind      = WorkOnly
+  , plUnit      = ("preview", "previews")
+  , plNoop      = ("preview was already up to date", "previews were already up to date")
+  , plDone      = ("preview was built", "previews were built")
+  , plErrors    = ("preview failed", "previews failed")
+  , plRemaining = ("preview left to build", "previews left to build")
+  }
+
+cleanLabels :: PhaseLabels
+cleanLabels = PhaseLabels
+  { plWork      = cleaning
+  , plKind      = InvestigateAll
+  , plUnit      = ("file", "files")
+  , plNoop      = ( "file belongs to a picture or its previews"
+                  , "files belong to pictures and their previews")
+  , plDone      = ("obsolete file was deleted", "obsolete files were deleted")
+  , plErrors    = ("file could not be deleted", "files could not be deleted")
+  , plRemaining = ("file left to check", "files left to check")
+  }
+
+-- | The singular or the plural of a phrase, for a count.
+forCount :: Int -> (Text, Text) -> Text
+forCount 1 (one, _) = one
+forCount _ (_, others) = others
+
+-- | A count and its phrase (e.g. "no files left to scan").
+countPhrase :: Int -> (Text, Text) -> Text
+countPhrase n phrase = swissNumOrNone n <> " " <> forCount n phrase
+
+progressDetails :: PhaseLabels -> Progress -> Widget
+progressDetails PhaseLabels{..} counter =
   toWidget [hamlet|
                 <ul>
-                  <li>#{swissNumOrNone $ pgNoop counter} items were already up-to-date.
-                  <li>#{swissNumOrNone $ pgDone counter} items needed processing.
+                  <li>#{countPhrase (pgNoop counter) plNoop}.
+                  <li>#{countPhrase (pgDone counter) plDone}.
                   <li>
-                    #{swissNumOrNone $ pgNumErrors counter} items had #
-                    <a href=@{StatusErrorsR}>
-                      issues
-                    \ during processing.
-                  <li>#{swissNumOrNone $ remainingItems kind counter} #{remainingLabel}
+                    #{swissNumOrNone errors} #
+                    <a href=@{StatusErrorsR}>#{forCount errors plErrors}</a>.
+                  <li>#{countPhrase (remainingItems plKind counter) plRemaining}.
                   |]
-  where remainingLabel = case kind of
-          InvestigateAll -> "items left to investigate." :: Text
-          WorkOnly       -> "items left to process."
+  where errors = pgNumErrors counter
 
-progressThroughput :: ProgressKind -> Progress -> NominalDiffTime -> Widget
-progressThroughput InvestigateAll counter delta =
+progressThroughput :: PhaseLabels -> Progress -> NominalDiffTime -> Widget
+progressThroughput PhaseLabels{plKind = InvestigateAll, plUnit = (_, units)} counter delta =
   toWidget [hamlet|
             <p .card-text>
-              Throughput: #{showThroughput $ throughput (pgTotal counter) delta} files/s overall,
-              #{showThroughput $ throughput (pgWork counter) delta} files/s for actual work.
+              Throughput: #{showThroughput $ throughput (pgTotal counter) delta} #{units}/s overall,
+              #{showThroughput $ throughput (pgWork counter) delta} #{units}/s for actual work.
               |]
-progressThroughput WorkOnly counter delta =
+progressThroughput PhaseLabels{plKind = WorkOnly, plUnit = (_, units)} counter delta =
   toWidget [hamlet|
             <p .card-text>
-              Throughput: #{showThroughput $ throughput (pgWork counter) delta} files/s.
+              Throughput: #{showThroughput $ throughput (pgWork counter) delta} #{units}/s.
               |]
 
-workInProgress :: ZonedTime -> Text -> Progress -> WorkStart -> ProgressKind -> Widget
-workInProgress now work counter@Progress{..} WorkStart{..} kind =
+workInProgress :: ZonedTime -> PhaseLabels -> Progress -> WorkStart -> Widget
+workInProgress now labels counter@Progress{..} WorkStart{..} =
   [whamlet|
           <div .card-body>
             <p .card-text>
-               #{work} progress: #{swissNum $ countedItems kind counter}/#{swissNum pgGoal}:
-            ^{progressDetails kind counter}
+               #{work} progress: #{swissNum $ countedItems kind counter}/#{swissNum pgGoal} #{snd (plUnit labels)}:
+            ^{progressDetails labels counter}
             <p .card-text>
                #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
                ETA: #
@@ -178,10 +230,12 @@ workInProgress now work counter@Progress{..} WorkStart{..} kind =
                  <abbr title="At #{show at}">#{relTime True remaining}</abbr>.
                $nothing
                  #{relTime True remaining}.
-            ^{progressThroughput kind counter delta}
+            ^{progressThroughput labels counter delta}
             ^{percentsBar kind counter}
                |]
-  where doneitems = pgWork counter
+  where work = plWork labels
+        kind = plKind labels
+        doneitems = pgWork counter
         -- Tricky: if we actually did work, estimate on (goal - noop)
         -- / actual work. If not, then fall back to goal /
         -- work. Otherwise, with the former we'd never get an ETA for
@@ -229,20 +283,23 @@ renderCheckInProgress now checked WorkStart{..} =
             ^{percentsBar WorkOnly checked}
                |]
 
-workResults :: ZonedTime -> WorkResults -> Text -> Text -> ProgressKind -> Widget
-workResults now WorkResults{..} work item kind =
+workResults :: ZonedTime -> WorkResults -> PhaseLabels -> Widget
+workResults now WorkResults{..} labels =
   [whamlet|
           <div .card-body>
             <p .card-text>
-              #{work} finished, #{swissNum $ countedItems kind wrDone} #{item} processed:
-                 ^{progressDetails kind wrDone}
+              #{work} finished, #{swissNum processed} #{forCount processed (plUnit labels)} processed:
+                 ^{progressDetails labels wrDone}
             <p .card-text>
               #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
               and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
-            ^{progressThroughput kind wrDone delta}
+            ^{progressThroughput labels wrDone delta}
             ^{percentsBar kind wrDone}
               |]
   where delta = diffZ wrEnd wrStart
+        work = plWork labels
+        kind = plKind labels
+        processed = countedItems kind wrDone
 
 workIdle :: Text -> Widget
 workIdle work =

@@ -112,8 +112,32 @@ spec = parallel $ withApp $ describe "the status page" $ do
     -- More files examined than counted in advance.
     let overcounted now = (done now) { wrDone = def { pgGoal = 1, pgNoop = 3 } }
     setRepoStatus $ \now -> RepoFinished (done now) (done now) (overcounted now)
-    checkStatusPage ["no items left to investigate."] 3
-    bodyNotContains "-2 items"
+    checkStatusPage ["no files left to check."] 3
+    bodyNotContains "-2 files"
+  it "describes the work of each phase in its own words" $ do
+    let results now p = (done now) { wrDone = p }
+    setRepoStatus $ \now ->
+      RepoFinished (results now def { pgGoal = 3, pgNoop = 2, pgDone = 1 })
+                   (results now def { pgGoal = 2, pgNoop = 1, pgDone = 2 })
+                   (results now def { pgGoal = 4, pgNoop = 3, pgDone = 1 })
+    checkStatusPage [ -- The scan.
+                      "Scanning finished, 3 files processed:"
+                    , "2 files had their metadata already cached."
+                    , "1 file had its metadata read."
+                    , "no files left to scan."
+                      -- The rendering.
+                    , "Rendering finished, 2 previews processed:"
+                    , "1 preview was already up to date."
+                    , "2 previews were built."
+                    , "no previews left to build."
+                      -- The cleaning.
+                    , "Cleaning finished, 4 files processed:"
+                    , "3 files belong to pictures and their previews."
+                    , "1 obsolete file was deleted."
+                    , "no files left to check."
+                    ] 3
+    bodyContains "files could not be deleted</a>."
+    bodyNotContains "items"
   it "shows a failed scan" $ do
     setRepoStatus . const $ RepoError "disk on fire"
     checkStatusPage [ "Repository scanning failed", "disk on fire"] 0
