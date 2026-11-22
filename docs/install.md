@@ -182,7 +182,8 @@ remove it.
 Connecting to a Unix socket requires write permission on it. By
 default, the socket belongs to the application's user and primary
 group, and its permissions come from the umask (e.g. `0755` with the
-usual `022`), so only the application's own user can connect. To let a
+usual `022`, or `0700` with the sample systemd unit's `UMask=0077`), so
+only the application's own user can connect. To let a
 proxy running as another user (e.g. `www-data` for nginx) connect, set:
 
 - `unix-socket-group` to a group of which both the proxy's user and the
@@ -416,9 +417,12 @@ than one minute:
 Corydalis as its own user, and uses systemd's sandboxing to limit what
 Corydalis and the tools it runs (ImageMagick, ffmpeg and exiftool) can
 do, should a crafted picture or movie exploit one of them (see
-[Picture and cache directories](#picture-and-cache-directories)). Its
-comments explain what to adjust (the paths, the socket settings) and
-the sandboxing options, some of which are not yet tested with
+[Picture and cache directories](#picture-and-cache-directories)). The
+files Corydalis creates are only readable by its user (`UMask=0077`),
+and, when it listens on a Unix socket, it can be cut off from the
+network entirely, as it makes no outgoing connections. Its comments
+explain what to adjust (the paths, the socket settings, the network)
+and the sandboxing options, some of which are not yet tested with
 Corydalis.
 
 ### Note about the session key
