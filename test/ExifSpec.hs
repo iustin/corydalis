@@ -36,7 +36,11 @@ import qualified Data.Map            as Map
 import           Data.Text.Arbitrary ()
 import           System.Directory    (doesFileExist, listDirectory)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
+import           Cache               (cacheTempDir)
+import qualified System.IO
 import           System.Posix.Files  (createNamedPipe)
+import           System.Process.Typed (createPipe, getStdin, getStdout, proc,
+                                       setStdin, setStdout, withProcessWait)
 import           Test.QuickCheck
 
 -- | A 1x1 pixel JPEG, which exiftool is able to rewrite.
@@ -264,6 +268,28 @@ spec = parallel $ do
       (_, retried) <- getExif noLog defaultTools config dir ["normal.jpg"]
       (isRight <$> lookup "normal.jpg" retried) `shouldBe` Just True
 
+    it "writes exiftool's output in the cache's temporary directory" $ \config -> do
+      requireExifTool
+      tools <- testToolLimits
+      dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+      let pipe = dir </> "pipe.jpg"
+      createNamedPipe pipe 0o600
+      running <- async $ getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]
+      -- A shell opens the pipe for writing, which waits until exiftool
+      -- opens it for reading, says so, and keeps it open until told to
+      -- go on; exiftool is running meanwhile.
+      let writer = setStdin createPipe . setStdout createPipe $
+                     proc "sh" ["-c", "exec 3>\"$0\"; echo open; read x", pipe]
+      withProcessWait writer $ \p -> do
+        -- With a last resort time limit, in case exiftool never opens it.
+        timeout (30 * 1000000) (System.IO.hGetLine (getStdout p)) `shouldReturn` Just "open"
+        tmpFiles <- listDirectory (cacheTempDir config)
+        length tmpFiles `shouldBe` 1
+        System.IO.hPutStrLn (getStdin p) "go on"
+        hClose (getStdin p)
+      _ <- timeout (30 * 1000000) (wait running)
+      -- And it is removed afterwards.
+      listDirectory (cacheTempDir config) `shouldReturn` []
     it "waits for a slot of its limits" $ \config -> do
       requireExifTool
       tools <- atomically $ newToolLimits 1 defaultScanToolTimeout

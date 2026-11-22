@@ -501,7 +501,8 @@ Each instance of the application needs its own cache directory: the
 cache cleanup deletes the files that aren't for a picture in its
 library or a size it uses, and the previews and extracted images being
 written are kept in the `.tmp` directory at its root, which is emptied
-at startup. They are then moved into place by renaming them, so the
+at startup (as is the output of the scan's exiftool runs, written
+there too). They are then moved into place by renaming them, so the
 cache directory must be a single filesystem (with no other filesystem
 mounted inside it).
 

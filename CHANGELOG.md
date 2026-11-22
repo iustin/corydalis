@@ -582,10 +582,11 @@ including under systemd's `PrivateDevices`).
 The cache files being written (previews, and images extracted from raw
 pictures and movies) are now kept in a `.tmp` directory at the root of
 the cache directory, emptied at startup, and moved into place once
-complete. The cache directory must thus be a single filesystem, and
-each instance of the application needs its own: it can no longer be
-shared between a production and a development build either (see
-below).
+complete; the scan's exiftool runs also write their output there,
+instead of the system's temporary directory. The cache directory must
+thus be a single filesystem, and each instance of the application
+needs its own: it can no longer be shared between a production and a
+development build either (see below).
 
 The secure sessions setting will no longer enforce also an
 [HSTS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security)

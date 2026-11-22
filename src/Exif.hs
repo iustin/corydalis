@@ -85,6 +85,7 @@ import qualified Data.Text.Read            as Text
 import qualified Data.Text.Short           as TS
 import           Data.Time.Format
 import           Data.Time.LocalTime
+import           System.Directory          (createDirectoryIfMissing)
 import           System.Log.FastLogger     (toLogStr)
 import           System.Process.Typed
 
@@ -1202,7 +1203,7 @@ runExifToolBatch logfn tools config dir acc batch = do
   -- solutions. See
   -- https://github.com/yesodweb/wai/issues/351 for
   -- example.
-  exifs <- (extractExifs logfn tools dir batch >>=
+  exifs <- (extractExifs logfn tools config dir batch >>=
               either failed (return . parseExifs)) `catch`
     (\e -> failed $ sformat shown (e :: SomeException))
   case exifs of
@@ -1247,12 +1248,17 @@ exifToolArgs paths = [
 --
 -- The slot is taken first, so that the runs waiting for one don't hold
 -- a temporary file. The output goes to that file, rather than being
--- kept in memory while exiftool runs.
-extractExifs :: LogFn -> ToolLimits -> FilePath -> [FilePath]
+-- kept in memory while exiftool runs. The file is in the cache's
+-- temporary directory (see 'cacheTempDir'), as the other temporary
+-- files: it is removed afterwards, and, if the application is killed
+-- meanwhile, at the next start.
+extractExifs :: LogFn -> ToolLimits -> Config -> FilePath -> [FilePath]
              -> IO (Either Text BS.ByteString)
-extractExifs logfn tools dir paths =
-  withToolSlot tools $ \slot ->
-    withSystemTempFile "corydalis-exif" $ \fpath fhandle -> do
+extractExifs logfn tools config dir paths =
+  withToolSlot tools $ \slot -> do
+    let tmpDir = cacheTempDir config
+    createDirectoryIfMissing True tmpDir
+    withTempFile tmpDir "exiftool.json" $ \fpath fhandle -> do
       hClose fhandle
       let args = exifToolArgs paths
           pconfig =
