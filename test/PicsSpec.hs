@@ -992,6 +992,23 @@ spec = parallel $ do
       let (outDir, _) = splitFileName (embeddedImagePath config path)
       outputs <- listDirectory outDir
       outputs `shouldSatisfy` all (\f -> not ("broken.mp4-" `isPrefixOf` f))
+      listDirectory (cacheTempDir config) `shouldReturn` []
+    it "reports only ffmpeg's errors" $ \config -> do
+      requireFfmpeg
+      let path = cfgCacheDir config </> "broken.mp4"
+      writeFile path ("not a movie" :: ByteString)
+      result <- extractFirstFrameT config path 0
+      case result of
+        -- Without its banner (which starts with "ffmpeg version").
+        Left msg -> do
+          msg `shouldSatisfy` (not . null)
+          msg `shouldSatisfy` (not . ("ffmpeg version" `isInfixOf`))
+        Right _ -> expectationFailure "A broken movie was accepted"
+    it "asks ffmpeg for errors only, reading the movie as a local file" $ \_ -> do
+      let args = firstFrameArgs "mov" "/p/a:b.mov" "/c/out"
+      args `shouldSatisfy` (["-loglevel", "error"] `isInfixOf`)
+      args `shouldSatisfy` (["-f", "mov", "-i", "file:/p/a:b.mov"] `isInfixOf`)
+      lastMay args `shouldBe` Just "/c/out"
     it "returns an error if the frame can't be written" $ \config -> do
       requireFfmpeg
       let path = cfgCacheDir config </> "blocked" </> "movie.mp4"

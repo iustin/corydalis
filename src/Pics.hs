@@ -123,6 +123,7 @@ module Pics ( PicDir(..)
             , extractEmbedded
             , embeddedArgs
             , extractFirstFrame
+            , firstFrameArgs
             , mkImage
             , buildTimeSort
             , buildGroupExif
@@ -2299,6 +2300,41 @@ viewableAsIs :: ShortText -> Config -> Bool
 viewableAsIs (TS.toText -> path) (cfgViewableImages -> exts)  =
   any (`Text.isSuffixOf` path) exts
 
+-- | The ffmpeg arguments for extracting the first frame of a movie, as
+-- a JPEG.
+--
+-- The demuxer is passed explicitly, since otherwise ffmpeg guesses the
+-- format from the file contents, and some formats (e.g. playlists, or
+-- concat scripts) make it read other files; it also only reads local
+-- files, and the "file:" prefix ensures the path is read as a file
+-- name, even if it contains a colon.
+firstFrameArgs :: String    -- ^ The demuxer (see 'movieDemuxer').
+               -> FilePath  -- ^ The movie.
+               -> FilePath  -- ^ The output file.
+               -> [String]
+firstFrameArgs demuxer path output = [
+  "-nostdin",
+  -- Only errors in its output, which is shown when the extraction
+  -- fails: by default, ffmpeg also writes its banner, the details of
+  -- the streams, and its progress.
+  "-loglevel", "error",
+  "-y",
+  "-protocol_whitelist", "file",
+  "-f", demuxer,
+  "-i", "file:" ++ path,
+  "-r", "1",
+  "-frames", "1",
+  "-f", "image2",
+  -- Use the output name as given, not as a pattern (e.g. if it
+  -- contains '%').
+  "-update", "1",
+  -- The output file has no extension, so ffmpeg would use the default
+  -- codec of the muxer, which happens to be mjpeg; set it explicitly
+  -- instead.
+  "-c:v", "mjpeg",
+  output
+  ]
+
 -- | Extracts and saves the first frame from a movie, as a JPEG.
 --
 -- As for embedded images, a previously extracted frame is reused,
@@ -2310,30 +2346,6 @@ extractFirstFrame tools config path mtime =
     Left msg -> return $ Left msg
     Right demuxer -> do
       let outputPath = embeddedImagePath config path
-          -- The demuxer is passed explicitly, since otherwise ffmpeg
-          -- guesses the format from the file contents, and some
-          -- formats (e.g. playlists, or concat scripts) make it read
-          -- other files; it also only reads local files, and the
-          -- "file:" prefix ensures the path is read as a file name,
-          -- even if it contains a colon.
-          args tmpPath = [
-            "-nostdin",
-            "-y",
-            "-protocol_whitelist", "file",
-            "-f", demuxer,
-            "-i", "file:" ++ path,
-            "-r", "1",
-            "-frames", "1",
-            "-f", "image2",
-            -- Use the output name as given, not as a pattern (e.g. if
-            -- it contains '%').
-            "-update", "1",
-            -- The output file has no extension, so ffmpeg would use
-            -- the default codec of the muxer, which happens to be
-            -- mjpeg; set it explicitly instead.
-            "-c:v", "mjpeg",
-            tmpPath
-            ]
           mime = "image/jpeg"
           goodRet = Right (mime, outputPath)
       needsBuild <- cacheFileNeedsBuild outputPath mtime
@@ -2347,7 +2359,7 @@ extractFirstFrame tools config path mtime =
               let pconfig =
                     setStdin closed
                     . setCloseFds True
-                    $ proc "ffmpeg" (args tmpPath)
+                    $ proc "ffmpeg" (firstFrameArgs demuxer path tmpPath)
               ran <- runTool slot pconfig
               case ran of
                 Left msg -> throwIO $ ImageError msg

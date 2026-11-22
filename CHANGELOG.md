@@ -136,6 +136,10 @@ directory directly under the picture directories (e.g. one per year).
 They can be changed with the new `scan-tool-timeout` (in seconds) and
 `scan-tool-slots` settings.
 
+When extracting the first frame of a movie fails, the error now only
+has ffmpeg's error messages, instead of also its banner and the details
+of the movie's streams.
+
 ### Fixed bugs
 
 The static files directory still had links to libraries that are now
