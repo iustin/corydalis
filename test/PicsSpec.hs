@@ -31,7 +31,6 @@ import qualified Data.Map         as Map
 import qualified Data.Set         as Set
 import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
                                    utc)
-import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
 import qualified Control.Exception
 import           Control.Exception (AsyncException (ThreadKilled))
 import           Data.Time.Clock.POSIX (POSIXTime)
@@ -54,6 +53,7 @@ import           AtomTypes
 import           Cache              (cacheTempDir, cachedBasename)
 import           Exif
 import           Pics
+import           Utils.Tools        (decodeToolOutput, readToolProcess)
 import           Utils.Yaml         (maxYamlSize)
 import           TestImport
 
@@ -986,66 +986,6 @@ spec = parallel $ do
       bestMovie (withMovies config [] (Just master)) `shouldBe` Just master
     it "returns nothing for images without movies" $ \config ->
       bestMovie (withMovies config [] Nothing) `shouldBe` Nothing
-  describe "external tools" $ do
-    it "returns an error if a tool cannot be run" $ \_ -> do
-      result <- readToolProcess (proc "corydalis-no-such-tool" [])
-      -- The error names the tool, to make the failure easy to diagnose.
-      result `shouldSatisfy` either ("corydalis-no-such-tool" `isInfixOf`) (const False)
-    it "decodes invalid UTF-8 in tool output without failing" $ \_ -> do
-      -- 0xff is never valid in UTF-8; forcing the text must not throw.
-      text <- evaluate . force $ decodeToolOutput "bad \xff name: no such file"
-      text `shouldBe` "bad \xfffd name: no such file"
-    it "returns the exit code and output of a tool" $ \_ -> do
-      result <- readToolProcess (proc "sh" ["-c", "echo out; echo err >&2; exit 3"])
-      result `shouldBe` Right (ExitFailure 3, "out\n", "err\n")
-  describe "runTool" $ do
-    it "returns the result of a tool within the time limit" $ \_ -> do
-      tools <- testToolLimits
-      result <- runTool tools (proc "sh" ["-c", "echo out; exit 2"])
-      result `shouldBe` Right (ExitFailure 2, "out\n", "")
-    it "stops a tool running for too long" $ \_ -> do
-      tools <- atomically $ newToolLimits 1 200000
-      -- A distinctive argument, to find the process afterwards.
-      let marker = "86413"
-      result <- runTool tools (proc "sleep" [marker])
-      result `shouldBeLeftWithMessage` "timed out after 1 second"
-      -- The tool has been stopped (pgrep finds no such process).
-      found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
-      fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
-    it "stops the processes started by a tool" $ \_ -> do
-      tools <- atomically $ newToolLimits 1 200000
-      let marker = "86415"
-      -- The shell starts sleep, which keeps the output pipes open: if
-      -- only the shell were killed, the run would wait for sleep to
-      -- finish (and couldn't be interrupted, even by a timeout here).
-      result <- runTool tools $
-                  proc "sh" ["-c", "sleep " ++ marker ++ " & wait"]
-      result `shouldBeLeftWithMessage` "timed out"
-      found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
-      fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
-    it "allows at least one tool to run" $ \_ -> do
-      tools <- atomically $ newToolLimits 0 defaultToolTimeout
-      runTool tools (proc "true" []) >>= (`shouldBe` Right (ExitSuccess, "", ""))
-    it "waits for a free slot" $ \_ -> do
-      tools <- atomically $ newToolLimits 1 defaultToolTimeout
-      let run = runTool tools (proc "true" [])
-      -- Taking the only slot, as a running tool would.
-      atomically . waitTSem $ tlSlots tools
-      -- The run can't start, and doesn't complete.
-      timeout 200000 run >>= (`shouldBe` Nothing)
-      atomically . signalTSem $ tlSlots tools
-      run >>= (`shouldBe` Right (ExitSuccess, "", ""))
-      -- The slot is free again, even after the interrupted run.
-      run >>= (`shouldBe` Right (ExitSuccess, "", ""))
-    it "stops a tool when interrupted" $ \_ -> do
-      tools <- testToolLimits
-      let marker = "86414"
-      -- E.g. as when the request is cancelled; this would wait for
-      -- the tool to finish by itself if it weren't stopped.
-      result <- timeout 200000 $ runTool tools (proc "sleep" [marker])
-      result `shouldBe` Nothing
-      found <- readToolProcess (proc "pgrep" ["-x", "-f", "sleep " ++ marker])
-      fmap (\(code, _, _) -> code) found `shouldBe` Right (ExitFailure 1)
   describe "build file from inode" $ do
     it "builds a file from an inode with no subdirs" $ \_ -> do
       let ii = InodeInfo "file.jpg" [] False 0 0 0
