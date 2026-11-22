@@ -1945,15 +1945,19 @@ buildPreviewFile tools kind fpath input pconfig =
 -- otherwise wait for a writer, with no time limit (e.g. if a picture
 -- was replaced by one after the scan). Its type is then checked on the
 -- open file itself, so that it can't be replaced in between.
+--
+-- The handle is in binary mode, as 'fdToHandle' makes it. Asynchronous
+-- exceptions are masked throughout, so that the file descriptor is
+-- closed exactly once: here if the handle wasn't made, and otherwise by
+-- the handle, which owns it. (Opening and checking the file are system
+-- calls, which can't be interrupted anyway, and don't wait.)
 openRegularFile :: FilePath -> IO System.IO.Handle
-openRegularFile path = do
+openRegularFile path = mask_ $ do
   fd <- openFd path ReadOnly defaultFileFlags { nonBlock = True, cloexec = True }
   (do status <- getFdStatus fd
       unless (isRegularFile status) . throwIO . ImageError $
         sformat ("Cannot read the image to scale: " % string % " is not a regular file") path
-      h <- fdToHandle fd
-      System.IO.hSetBinaryMode h True
-      return h) `onException` closeFd fd
+      fdToHandle fd) `onException` closeFd fd
 
 -- | The kinds of previews built by convert.
 data PreviewFormat
