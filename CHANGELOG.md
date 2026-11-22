@@ -378,6 +378,15 @@ visitors now get a generic message, while logged in users still see the
 details in the error image. In both cases, the error and its details are
 now always logged (previously, most of them weren't logged at all).
 
+Security: on public sites, the problems of the pictures (the errors and
+warnings from reading their metadata, e.g. those of `exiftool`, which
+can name paths on the server) were shown to anonymous visitors: on the
+home and curate pages, in the problems list, as the warnings on the
+image page, and in the results of searches by problem. They are now
+only shown to logged in users: anonymous visitors don't see them, a
+search using the `problem` atom is refused, and quick searches don't
+look at problems.
+
 Security: the repository status shown at the top of all pages, including
 the error message of a failed scan (which can contain e.g. paths on the
 server), was also shown to anonymous visitors, on the login page and the

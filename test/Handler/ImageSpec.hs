@@ -24,6 +24,8 @@ module Handler.ImageSpec (spec) where
 
 import           TestImport
 
+import           Handler.Image (getImageR)
+
 spec :: Spec
 spec = parallel $ withApp $ do
   it "loads an image page and checks it looks right" $ do
@@ -36,3 +38,15 @@ spec = parallel $ withApp $ do
     statusIs 200
     bodyContains $ dir </> "a.jpg"
     bodyContains "imgName"
+  it "shows the exif warnings to logged in users" $ do
+    injectProblemImage
+    login
+    get $ ImageR "test" "a"
+    statusIs 200
+    bodyContains problemWarning
+  it "doesn't show the exif warnings to anonymous users" $ do
+    injectProblemImage
+    page <- anonymousPage [] (getImageR "test" "a")
+    liftIO $ do
+      page `shouldNotSatisfy` (problemWarning `isInfixOf`)
+      page `shouldSatisfy` ("MIME type" `isInfixOf`)

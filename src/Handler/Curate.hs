@@ -238,6 +238,7 @@ getCurateR = do
       exifstats = repoExif pics
       imageFilter s = (ListImagesR, atomToParams (Status s))
       folderFilter cs = (ListFoldersR, atomToParams (Any (map FClass cs)))
+  allowed <- getSymbolAccess
   let html = do
         setTitle "Corydalis: curate"
         mtok <- reqToken <$> getRequest

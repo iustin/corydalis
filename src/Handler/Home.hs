@@ -96,6 +96,7 @@ getHomeR = do
   (allImages, _) <- liftIO $ searchImages ctx ConstTrue pics
   randomImage <- liftIO $ randomPick allImages
   homeMessage <- appHomeMessage . appSettings <$> getYesod
+  allowed <- getSymbolAccess
   defaultLayout $ do
     setHtmlTitle "home"
     $(widgetFile "homepage")

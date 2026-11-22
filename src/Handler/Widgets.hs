@@ -182,6 +182,8 @@ showExif Exif {..} = do
         (Nothing, Just h)  -> sformat ("width missing, " % int % " high") h
         (Just w, Just h)   -> sformat (int % "×" % int) w h
       megapixels = maybe "unknown" (sformat (f1 % " MP")) exifMegapixels
+  -- The warnings are the image's problems.
+  allowed <- handlerToWidget getSymbolAccess
   $(widgetFile "exif")
 
 showMaybeField :: Text -> Maybe Text -> Widget
