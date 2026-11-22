@@ -513,6 +513,12 @@ there too). They are then moved into place by renaming them, so the
 cache directory must be a single filesystem (with no other filesystem
 mounted inside it).
 
+On a site built with the `public-site` flag, where anonymous visitors
+can browse, anyone can request the on-demand sizes (`demandimgsizes`)
+of every picture, and so fill the cache directory with large previews:
+set `demandimgsizes: []` there, or put the cache directory on a
+filesystem limited in size (or with a quota).
+
 The contents: pictures and movies often come from elsewhere (downloads,
 or files received from others), and a crafted file can try to exploit
 the tools that read it. The application therefore restricts how these
