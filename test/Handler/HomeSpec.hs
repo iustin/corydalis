@@ -24,6 +24,8 @@ module Handler.HomeSpec (spec) where
 
 import           TestImport
 
+import           Handler.Home (getHomeR)
+
 spec :: Spec
 spec = parallel $ withApp $ do
   describe "Homepage" $ do
@@ -56,3 +58,13 @@ spec = parallel $ withApp $ do
       login
       checkRoute AboutR
       bodyContains "About Corydalis"
+  describe "Problems" $ do
+    it "are linked for logged in users" $ do
+      login
+      checkRoute HomeR
+      bodyContains "/list/problems"
+    it "are not linked for anonymous users" $ do
+      page <- anonymousPage [] getHomeR
+      liftIO $ do
+        page `shouldNotSatisfy` ("/list/problems" `isInfixOf`)
+        page `shouldSatisfy` ("/list/cameras" `isInfixOf`)

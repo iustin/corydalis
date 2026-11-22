@@ -25,6 +25,7 @@ module Handler.CurateSpec (spec) where
 import           TestImport
 
 import           Exif       (Exif (..))
+import           Handler.Curate (getCurateR)
 import           Pics       (Image (..))
 
 -- | A picture taken with a camera whose name contains markup.
@@ -63,3 +64,16 @@ spec = parallel $ withApp $ do
     htmlAllContain "h1" "Corydalis"
     htmlCount "div#images" 0
     htmlNoneContain "div#images" "contains 0 images"
+  it "shows the problems to logged in users" $ do
+    injectProblemImage
+    login
+    checkRoute CurateR
+    bodyContains problemWarning
+  it "doesn't show the problems to anonymous users" $ do
+    injectProblemImage
+    page <- anonymousPage [] getCurateR
+    liftIO $ do
+      page `shouldNotSatisfy` (problemWarning `isInfixOf`)
+      page `shouldNotSatisfy` ("/list/problems" `isInfixOf`)
+      page `shouldNotSatisfy` ("No pictures with problems" `isInfixOf`)
+      page `shouldSatisfy` ("Flash mode" `isInfixOf`)

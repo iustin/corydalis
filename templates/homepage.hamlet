@@ -31,7 +31,7 @@ $maybe msg <- homeMessage
         <span .fa-solid .fa-layer-group>
         Specialised views
       <div .card-body>
-        $forall t <- specialViews
+        $forall t <- filter allowed specialViews
             <a href="@{ListItemsR t}" .btn .btn-light .py-1 .my-1 .text-start>
               <span class="#{atomIcon t}">
               #{symbolPlCap t}
@@ -43,7 +43,7 @@ $maybe msg <- homeMessage
           <span .fa-solid .fa-crosshairs>
           Debug views
         <div .card-body>
-          $forall t <- debugViews
+          $forall t <- filter allowed debugViews
               <a href="@{ListItemsR t}" .btn .btn-light .py-1 .my-1 .text-start>
                 <span class="#{atomIcon t}">
                 #{symbolPlCap t}

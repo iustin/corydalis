@@ -65,4 +65,5 @@ $with smf <- showMaybeSymItem "?"
   <tr>
     <td>MIME type
     <td>^{showMaybeSymItem "unknown" exifMimeType}
-  ^{showListWithHeader "Warnings" (Set.toList exifWarning)}
+  $if allowed TProblem
+    ^{showListWithHeader "Warnings" (Set.toList exifWarning)}
