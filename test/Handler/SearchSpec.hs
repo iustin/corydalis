@@ -26,7 +26,11 @@ import qualified Data.Map        as Map
 import qualified Data.Text       as Text
 import           Formatting
 import           Handler.Cookies
-import           Handler.Search   (skippedMessage)
+import           Handler.Browse   (getBrowseImagesR)
+import           Handler.List     (getListFoldersR, getListImagesR)
+import           Handler.Search   (getQuickSearchR, getSearchR,
+                                   getSearchViewR, skippedMessage)
+import           Handler.View     (getRandomImageInfoR)
 import           Indexer         (Atom (..), StrOp (..),
                                   maxQuickSearchLength)
 import           Pics            (getSearchResults, launchScanFileSystem,
@@ -80,6 +84,60 @@ spec = parallel $ withApp $ do
       login
       get (QuickSearchR, [("q", "1900")])
       checkRedirect
+  describe "problems" $ do
+    it "searches by them for logged in users" $ do
+      injectProblemImage
+      login
+      get (ListImagesR, [("problem", "~bad format")])
+      statusIs 200
+      htmlAllContain "h1" "Listing images"
+      bodyNotContains "Nothing found"
+    it "refuses searches using them to anonymous users" $ do
+      injectProblemImage
+      forM_ [ [("problem", "~bad format")]
+            , [("no-problem", "")]
+            , [("country", "Spain"), ("problem", "~bad"), ("not", ""), ("or", "")]
+            ] $ \params -> do
+        r <- runAnonymousHandler params getListImagesR
+        liftIO $ void r `shouldSatisfy` isPermissionDenied "problem"
+      page <- anonymousPage [("country", "Spain")] getListImagesR
+      liftIO $ page `shouldSatisfy` ("Listing images" `isInfixOf`)
+    it "refuses them in all searches for anonymous users" $ do
+      injectProblemImage
+      let params = [("problem", "~bad format")]
+      results <- sequence
+        [ void <$> runAnonymousHandler params getListFoldersR
+        , void <$> runAnonymousHandler params getListImagesR
+        , void <$> runAnonymousHandler params (getBrowseImagesR 0)
+        , void <$> runAnonymousHandler params getSearchR
+        , void <$> runAnonymousHandler params getSearchViewR
+        , void <$> runAnonymousHandler params getRandomImageInfoR
+        ]
+      liftIO $ forM_ results (`shouldSatisfy` isPermissionDenied "problem")
+    it "quick searches by them for logged in users" $ do
+      injectProblemImage
+      login
+      get (QuickSearchR, [("q", "format")])
+      statusIs 303
+      location <- responseLocation
+      liftIO $ location `shouldSatisfy` maybe False ("problem=" `isInfixOf`)
+      -- And it finds the picture.
+      followRedirectOK
+      bodyNotContains "Nothing found"
+    it "doesn't quick search by them for anonymous users" $ do
+      injectProblemImage
+      forM_ ["format", "problem:format"] $ \q -> do
+        r <- runAnonymousHandler [("q", q)] getQuickSearchR
+        liftIO $ do
+          redirectTarget r `shouldSatisfy`
+            maybe False (not . ("problem=" `isInfixOf`))
+          -- The other symbols are still searched.
+          redirectTarget r `shouldSatisfy` maybe False ("folder=" `isInfixOf`)
+      -- And the allowed ones as prefixes.
+      r <- runAnonymousHandler [("q", "country:Spain")] getQuickSearchR
+      liftIO $ redirectTarget r `shouldSatisfy`
+        maybe False (\l -> "country=" `isInfixOf` l && not ("folder=" `isInfixOf` l))
+
   describe "Search" $ do
     forM_ [ListFoldersR, ListImagesR, BrowseImagesR 0] $ \route -> do
       it (formatToString ("checks redirect for route " % shown) route) $ do

@@ -191,6 +191,10 @@ populatedRepo :: Repository
 populatedRepo = testRepo
   [spainDir, blankDir, getawayDir, grandDir, workDir, genericDir]
 
+-- | Allows quick searches by all symbols.
+allSymbols :: Symbol -> Bool
+allSymbols = const True
+
 spec :: Spec
 spec = parallel $ do
   describe "Symbol" $ do
@@ -285,6 +289,32 @@ spec = parallel $ do
       let atom = And (Country (OpEqual "Spain")) (Year (OpEq 2020))
       atomDescContains atom "country is Spain"
       atomDescContains atom  "taken in the year 2020"
+
+  describe "atomSymbols" $ do
+    it "names the symbol of each simple atom" $
+      forM_ [minBound .. maxBound] $ \s -> do
+        let atom = case buildMissingAtom s of
+              Just a -> a
+              Nothing -> case s of
+                TFolder   -> Folder (OpEqual "f")
+                TFileName -> FileName (OpEqual "f")
+                TStatus   -> Status ImageProcessed
+                TFClass   -> FClass FolderRaw
+                TPplCnt   -> PplCnt (OpEq 1)
+                TKwdCnt   -> KwdCnt (OpEq 1)
+                _         -> error ("no atom for " <> show s)
+        atomSymbols atom `shouldBe` [s]
+    it "names the symbols of all sub-atoms" $ do
+      let country = Country (OpEqual "Spain")
+          problem = Problem OpMissing
+          year = Year (OpEq 2020)
+      atomSymbols ConstTrue `shouldBe` []
+      atomSymbols (Not problem) `shouldBe` [TProblem]
+      atomSymbols (And country (Or year (Not problem)))
+        `shouldBe` [TCountry, TYear, TProblem]
+      atomSymbols (All [country, Any [year, problem]])
+        `shouldBe` [TCountry, TYear, TProblem]
+      atomSymbols (Any []) `shouldBe` []
 
   describe "atomFindsFiles" $ do
     it "returns True for most atoms" $ do
@@ -928,42 +958,67 @@ spec = parallel $ do
 
     it "limits the quick search length" $ do
       let atMost = Text.replicate maxQuickSearchLength "x"
-      genQuickSearchParams populatedRepo atMost `shouldSatisfy` isRight
-      genQuickSearchParams populatedRepo (atMost <> "x")
+      genQuickSearchParams allSymbols populatedRepo atMost `shouldSatisfy` isRight
+      genQuickSearchParams allSymbols populatedRepo (atMost <> "x")
         `shouldBeLeftWithMessage` "too long"
 
     it "limits the number of quick search words" $ do
       let manyWords n = Text.unwords [ "w" <> tshow i | i <- [1..n :: Int] ]
-      genQuickSearchParams populatedRepo (manyWords maxQuickSearchWords)
+      genQuickSearchParams allSymbols populatedRepo (manyWords maxQuickSearchWords)
         `shouldSatisfy` isRight
-      genQuickSearchParams populatedRepo (manyWords (maxQuickSearchWords + 1))
+      genQuickSearchParams allSymbols populatedRepo (manyWords (maxQuickSearchWords + 1))
         `shouldBeLeftWithMessage` "too many words"
       -- Repeated words count once.
-      genQuickSearchParams populatedRepo
+      genQuickSearchParams allSymbols populatedRepo
         (Text.unwords (replicate (maxQuickSearchWords + 1) "spain"))
         `shouldSatisfy` isRight
 
     it "generates quick search params" $ do
-      genQuickSearchParams populatedRepo ""
+      genQuickSearchParams allSymbols populatedRepo ""
         `shouldBeLeftWithMessage` "Empty search parameter"
-      case genQuickSearchParams populatedRepo "country:Spain" of
+      case genQuickSearchParams allSymbols populatedRepo "country:Spain" of
         Right (_, Just atom) -> imageSearchFunction atom richImg `shouldBe` True
         other -> expectationFailure ("expected a country search, got " <> show other)
-      case genQuickSearchParams populatedRepo "year:2020" of
+      case genQuickSearchParams allSymbols populatedRepo "year:2020" of
         Right (_, Just atom) -> imageSearchFunction atom richImg `shouldBe` True
         other -> expectationFailure ("expected a year search, got " <> show other)
-      case genQuickSearchParams populatedRepo "Spain" of
+      case genQuickSearchParams allSymbols populatedRepo "Spain" of
         Right (_, Just atom) -> folderSearchFunction atom spainDir `shouldBe` True
         other -> expectationFailure ("expected a hit for Spain, got " <> show other)
-      case genQuickSearchParams populatedRepo "zzznomatch" of
+      case genQuickSearchParams allSymbols populatedRepo "zzznomatch" of
         Right (_, Just atom) -> atomFindsFiles atom `shouldBe` True
         other -> expectationFailure ("expected a fruitless atom, got " <> show other)
-      case genQuickSearchParams populatedRepo "2020 Spain" of
+      case genQuickSearchParams allSymbols populatedRepo "2020 Spain" of
         Right (_, Just atom) -> do
           folderSearchFunction atom spainDir `shouldBe` True
         other -> expectationFailure ("expected a combined search, got " <> show other)
-      case genQuickSearchParams populatedRepo "andalusia" of
+      case genQuickSearchParams allSymbols populatedRepo "andalusia" of
         Right (_, Just atom) -> do
           folderSearchFunction atom spainDir `shouldBe` True
           atom `shouldBe` Province (OpFuzzy (makeFuzzy "andalusia"))
         other -> expectationFailure ("expected a combined search, got " <> show other)
+
+    it "uses only the allowed symbols in quick searches" $ do
+      let noProblems = (/= TProblem)
+          usesProblems = elem TProblem . atomSymbols
+          atomsOf (skipped, atom) = maybe skipped (:skipped) atom
+          queries = ["trunc", "problem:trunc", "problem:trunc Spain"]
+      -- The image in Spain has a problem matching these.
+      forM_ queries $ \q -> do
+        case genQuickSearchParams allSymbols populatedRepo q of
+          Right (_, Just atom) -> do
+            atom `shouldSatisfy` usesProblems
+            imageSearchFunction atom richImg `shouldBe` True
+          other -> expectationFailure ("expected a problem search, got " <> show other)
+        case genQuickSearchParams noProblems populatedRepo q of
+          Right r -> atomsOf r `shouldSatisfy` not . any usesProblems
+          Left err -> expectationFailure ("quick search failed: " <> show err)
+      -- A refused symbol is like an unknown one: the whole word is
+      -- searched for, with the other symbols.
+      case genQuickSearchParams noProblems populatedRepo "problem:trunc" of
+        Right (_, Just (Any as)) ->
+          as `shouldSatisfy` elem (Folder (OpFuzzy (makeFuzzy "problem:trunc")))
+        other -> expectationFailure ("expected a fruitless search, got " <> show other)
+      -- The allowed symbols still work as prefixes.
+      genQuickSearchParams noProblems populatedRepo "country:Spain"
+        `shouldBe` genQuickSearchParams allSymbols populatedRepo "country:Spain"

@@ -304,13 +304,35 @@ countItems =
 getParams :: Handler [(Text, Text)]
 getParams = reqGetParams <$> getRequest
 
+-- | Returns the function telling whether the current user can search
+-- by a symbol, and see its values.
+--
+-- Problems need access to storage paths (see
+-- 'hasAccessToStoragePaths'): they hold the messages of the tools
+-- reading the files, which can name paths on the server.
+getSymbolAccess :: Handler (Symbol -> Bool)
+getSymbolAccess = do
+  access <- hasAccessToStoragePaths
+  return $ \s -> access || s /= TProblem
+
+-- | Returns the search in the request's parameters, refusing those
+-- using symbols the user can't search by (see 'getSymbolAccess').
 getAtomParams :: Handler (UrlParams, Atom)
 getAtomParams = do
   params <- getParams
   atom <- case parseAtomParams params of
             Right v  -> return v
             Left msg -> invalidArgs [msg]
+  mapM_ requireSymbolAccess (atomSymbols atom)
   return (params, atom)
+
+-- | Refuses the request if the user can't search by a symbol (see
+-- 'getSymbolAccess').
+requireSymbolAccess :: Symbol -> Handler ()
+requireSymbolAccess s = do
+  allowed <- getSymbolAccess
+  unless (allowed s) . permissionDenied $
+    "Searching by " <> symbolName s <> " needs a login"
 
 getAtomAndSearch :: Handler (UrlParams, Atom, SearchResults)
 getAtomAndSearch = do
