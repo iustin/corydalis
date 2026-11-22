@@ -345,9 +345,10 @@ could see:
   next item, instead of replaying it.
 - The logout button logs out directly, without an intermediate page.
 - The rendering phase of the scan now first classifies what is already
-  rendered and what is pending, then renders the pending items, so the
-  remaining count and ETA are more accurate; the status page also
-  shows the estimated end time (as a tooltip).
+  rendered and what is pending, checking only the cache files, then
+  renders the pending items (extracting the previews of raw files and
+  movies as needed), so the remaining count and ETA are more accurate;
+  the status page also shows the estimated end time (as a tooltip).
 - Many icons changed, so that different things no longer share one.
 - Usage periods in the camera and lens statistics are computed in
   calendar years and months (e.g. a full year is "1 year", not "1 year
