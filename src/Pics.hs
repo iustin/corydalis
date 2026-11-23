@@ -280,7 +280,8 @@ maxRangeExpansion = 1024
 -- copies, only the last component of the path is matched.
 expandRangeFile :: Config -> FilePath -> [Text]
 expandRangeFile cfg path =
-  let withDir = Text.pack . replaceFileName path . Text.unpack
+  -- The directory part, with its trailing separator (empty if none).
+  let dir = Text.pack $ replaceFileName path ""
   in case TDFA.match (reRegex $ cfgRangeRegex cfg) (Text.pack $ takeFileName path) of
        [[_, root, begin, end]] -> let ib = parseDecimal begin::Either Text Int
                                       ie = parseDecimal end
@@ -290,7 +291,7 @@ expandRangeFile cfg path =
                                          | let n = toInteger e - toInteger b + 1
                                          , n >= 1
                                          , n <= toInteger maxRangeExpansion ->
-                                             [withDir (root <> formatPadded i) | i <- [b..e]]
+                                             [dir <> root <> formatPadded i | i <- [b..e]]
                                        _ -> []
        _ -> []
 
