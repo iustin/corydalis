@@ -30,6 +30,8 @@
                     <span .monolight>#{quoteMarkup dir}
           <li>directory match regex:
             <span .monolight>#{quoteMarkup $ reString $ cfgDirRegex config}
+          <li>looking for matching directories down to depth
+            <span .monolight>#{cfgMaxFolderDepth config}
           $if null (cfgBlacklistedDirs config)
             <li>not ignoring any subdirectories
           $else

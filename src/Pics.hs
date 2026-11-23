@@ -1152,7 +1152,7 @@ skippedErrors root =
 data DirKind = PictureFolder  -- ^ A picture folder, loaded whole.
              | ContainerDir   -- ^ A directory searched for picture folders.
              | TooDeepDir     -- ^ A directory not searched, as too deep.
-               deriving (Show, Eq)
+               deriving (Eq)
 
 -- | Classifies a directory found while looking for picture folders,
 -- given its depth below the source or output directory (1 for that

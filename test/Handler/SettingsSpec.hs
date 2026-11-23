@@ -25,8 +25,12 @@ module Handler.SettingsSpec (spec) where
 import           TestImport
 
 spec :: Spec
-spec = parallel $ withApp $
+spec = parallel $ withApp $ do
   it "loads the settings page and checks it looks right" $ do
     login
     checkRoute SettingsR
     htmlAllContain "h1" "Settings"
+  it "shows the maximum folder depth" $ do
+    login
+    checkRoute SettingsR
+    bodyContains "looking for matching directories down to depth"
