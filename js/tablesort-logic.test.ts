@@ -314,6 +314,9 @@ describe('makeFilter', () => {
     assert.ok(matches(digit, '!=0', '3'));
     assert.ok(matches(percent, '<50%', '45.3%'));
     assert.ok(!matches(percent, '<50', '50%'));
+    assert.ok(matches(digit, '<=5', '5'));
+    assert.ok(matches(digit, '≤5', '5'));
+    assert.ok(!matches(digit, '≤5', '6'));
   });
 
   it('never matches cells without a number, even with !=', () => {
