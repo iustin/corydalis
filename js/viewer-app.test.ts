@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import assert from 'node:assert/strict';
-import { describe, it, type TestContext } from 'node:test';
+import { afterEach, describe, it, type TestContext } from 'node:test';
 
 import { JSDOM, VirtualConsole } from 'jsdom';
 
@@ -173,6 +173,17 @@ type SetupOptions = {
   defaultNavigate?: boolean;
 };
 
+/** The windows created by setup, closed after each test. */
+const windows: { close(): void }[] = [];
+
+// Closing the windows cancels their timers (e.g. hiding the messages),
+// which would otherwise keep the test run going until they fire.
+afterEach(() => {
+  for (const win of windows.splice(0)) {
+    win.close();
+  }
+});
+
 /**
  * Starts the viewer in a page with fake browser parts (canvas, media,
  * requests, full screen), returning the means to drive and inspect it.
@@ -191,6 +202,7 @@ function setup(options: SetupOptions = {}) {
     url: info?.current.view ?? `${BASE}/view/x`,
     virtualConsole,
   });
+  windows.push(dom.window);
   const win = dom.window as unknown as ViewerWindow;
   const doc = win.document;
   const boot = doc.getElementById('boot');
