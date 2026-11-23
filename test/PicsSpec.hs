@@ -1770,8 +1770,8 @@ spec = parallel $ do
             repo <- waitForScan ctx
             case repoStatus repo of
               RepoFinished { rsCleanResults = WorkResults { wrDone = cleaned } } ->
-                -- Its goal is what it processed, although the scan added
-                -- files (e.g. exif caches) after the cache was counted.
+                -- Its goal is what it processed, so that the results add
+                -- up even if the cache changes while it is cleaned.
                 pgGoal cleaned `shouldBe` pgTotal cleaned
               status -> expectationFailure $ "The scan failed: " ++ show status
             -- With the path, to name the file in a failure.
@@ -1883,6 +1883,19 @@ spec = parallel $ do
         pgGoal pg `shouldBe` 0
         pgDone pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
+    describe "upToDateCacheFile" $ do
+      it "gives the time of an up to date cache file, from one look" $ \ctx -> do
+        let path = cfgCacheDir (ctxConfig ctx) </> "cached"
+        upToDateCacheFile path 0 `shouldReturn` Nothing
+        writeFile path ("" :: ByteString)
+        -- Empty files are never valid images.
+        upToDateCacheFile path 0 `shouldReturn` Nothing
+        writeNonEmpty path
+        upToDateCacheFile path 0 >>= \case
+          Just t  -> t `shouldSatisfy` (> 0)
+          Nothing -> expectationFailure "expected the cache file to be up to date"
+        -- Older than its source.
+        upToDateCacheFile path 4e9 `shouldReturn` Nothing
     describe "imageViewSource" $ do
       it "picks the file an image is viewed from, and how" $ \ctx -> do
         let config = ctxConfig ctx

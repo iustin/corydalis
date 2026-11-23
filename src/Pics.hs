@@ -164,6 +164,7 @@ module Pics ( PicDir(..)
             , runScanAction
             , scaledImagePath
             , cacheFileNeedsBuild
+            , upToDateCacheFile
             , writeViaTempFile
             , cacheFileEndings
             , isLiveCacheFile
@@ -1692,7 +1693,8 @@ renderableImages =
 resetRenderProgress :: Ctx -> Int -> STM ()
 resetRenderProgress ctx images = do
   writeTVar (ctxRenderProgress ctx) def
-  writeTVar (ctxRenderCheckProgress ctx) def { pgGoal = images }
+  -- Strict, so that a status request doesn't do the count.
+  writeTVar (ctxRenderCheckProgress ctx) $! def { pgGoal = images }
 
 -- | Pre-render all auto image sizes, converting only stale caches.
 --
@@ -1895,12 +1897,20 @@ scaledImagePath config path res =
 -- that the build reports the problem, the way its callers report
 -- errors, instead of the check throwing.
 cacheFileNeedsBuild :: FilePath -> POSIXTime -> IO Bool
-cacheFileNeedsBuild fpath mtime = do
+cacheFileNeedsBuild fpath mtime = isNothing <$> upToDateCacheFile fpath mtime
+
+-- | The last time an up to date cache file was touched (see
+-- 'filePathLastTouch'), or 'Nothing' if it needs building (see
+-- 'cacheFileNeedsBuild'), from a single look at the file, so that it
+-- can't change in between.
+upToDateCacheFile :: FilePath -> POSIXTime -> IO (Maybe POSIXTime)
+upToDateCacheFile fpath mtime = do
   stat <- tryIO $ getFileStatus fpath
   return $ case stat of
-    Left _   -> True
-    Right st -> modificationTimeHiRes st < mtime ||
-                System.Posix.Files.fileSize st == 0
+    Right st | modificationTimeHiRes st >= mtime,
+               System.Posix.Files.fileSize st /= 0 ->
+      Just $ modificationTimeHiRes st `max` statusChangeTimeHiRes st
+    _ -> Nothing
 
 -- | Whether a scaled preview for this request size needs generating.
 --
@@ -1932,12 +1942,8 @@ imagePendingSizes logfn config img sizes = try $ do
         filterM (scaledCacheNeedsBuild config path mtime . ImageSize) sizes
   case kind of
     ViewAsIs -> staleSizes (fileLastTouch f)
-    _ -> do
-      let epath = embeddedImagePath config path
-      needsExtraction <- cacheFileNeedsBuild epath (fileLastTouch f)
-      if needsExtraction
-        then return sizes
-        else staleSizes =<< filePathLastTouch epath
+    _ -> upToDateCacheFile (embeddedImagePath config path) (fileLastTouch f)
+           >>= maybe (return sizes) staleSizes
 
 -- | Generate a preview for an image.
 --
@@ -2510,7 +2516,10 @@ getViewableVersion tools logfn config img = do
   ensureStorageFile logfn config f
   let path = fileFullPath f
       extracted = either (throwIO . ImageError) $ \(mime, epath) -> do
-        mtime <- filePathLastTouch epath
+        -- The file can disappear meanwhile (e.g. removed from the cache
+        -- directory by hand): a failure for this image only.
+        mtime <- either (const . throwIO $ ImageError "The extracted preview vanished") return
+                   =<< tryIO (filePathLastTouch epath)
         return (f, epath, extractedDecoder, mime, mtime)
   case kind of
     ViewAsIs ->

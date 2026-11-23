@@ -178,6 +178,11 @@ spec = parallel $ do
       pgWorkProgress pgone `shouldBe` Just 0
       pgWorkProgress pgdone `shouldBe` Just 1
       pgWorkProgress (incNoop pgzero) `shouldBe` Just 1
+    it "caps the progress at the whole when the goal is exceeded" $ do
+      -- Goals counted in advance can be exceeded.
+      let over = (def::Progress) { pgGoal = 1, pgDone = 2, pgNoop = 1 }
+      pgProgress over `shouldBe` Just 1
+      pgWorkProgress over `shouldBe` Just 1
     prop "incError construction" $ \item err ->
       let pg = incErrors item err def
       in case pgErrors pg of

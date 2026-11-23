@@ -465,7 +465,10 @@ Searches and pages:
   a negative number of items left), as the cache was counted before the
   scan, which then added files to it; it is now counted just before the
   cleaning, and the finished results use the number of files actually
-  examined. The number of items left is also never shown as negative.
+  examined. More generally, when the work exceeds a goal counted in
+  advance (e.g. files added during a scan), the number of items left is
+  no longer shown as negative, the estimated end time as past, nor the
+  progress bars beyond their range.
 
 The viewer and the image grid:
 
