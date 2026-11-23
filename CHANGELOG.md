@@ -10,6 +10,12 @@
   small entry points; they are now tested, raising the TypeScript test
   coverage from about 30% to 96% (the rest being mostly the entry
   points).
+- The Haskell tests now cover the image viewer's navigation data, the
+  camera and lens pages, the exiftool output parsing, the repository
+  cache and more of the handlers and helpers, raising the Haskell test
+  coverage from about 85% to 92% (the rest being mostly records, class
+  instances and the application's entry points); the camera and lens
+  pages now share their image counting code.
 
 ## v2026.48.0 - "Security hardening"
 
