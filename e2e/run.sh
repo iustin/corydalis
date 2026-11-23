@@ -73,8 +73,12 @@ start() {
   local name=$1 bin=$2 port=$3
   PORT=$port APPROOT=http://localhost:$port \
     "$bin/corydalis" "$WORK/$name/settings.yml" > "$WORK/$name/server.log" 2>&1 &
-  PIDS+=($!)
+  local pid=$!
+  PIDS+=("$pid")
   for _ in $(seq 1 60); do
+    # Checked first, so that another server already on the port (whose
+    # answers the curl would get) is reported, not used.
+    if ! kill -0 "$pid" 2>/dev/null; then break; fi
     if curl -sf -o /dev/null "http://localhost:$port/auth/login"; then return; fi
     sleep 1
   done
@@ -103,7 +107,9 @@ export CORYDALIS_URL=http://localhost:3000
 export CORYDALIS_PASSWORD_FILE=$WORK/normal/password
 check smoke node e2e/smoke.cjs "$WORK/out/smoke"
 check verify node e2e/verify.cjs "$WORK/out/verify"
-check pages node e2e/pages.cjs "$WORK/out/pages"
+# pages.cjs and shots.cjs only record (reports and screenshots, for a
+# person to look at); they fail only if they crash or miss an element.
+check "pages (records only)" node e2e/pages.cjs "$WORK/out/pages"
 # plots.cjs only records; comparing a report with itself fails only if
 # the run had console errors.
 check plots bash -c 'node e2e/plots.cjs "$0" && node e2e/plots.cjs --compare "$0" "$0"' \
@@ -113,7 +119,15 @@ export CORYDALIS_URL=http://localhost:3001
 export CORYDALIS_PASSWORD_FILE=$WORK/public/password
 check public-site node e2e/public-site.cjs "$WORK/public"
 # shots.cjs needs a library with problems, so it uses the public one.
-check shots node e2e/shots.cjs "$WORK/out/shots"
+check "shots (records only)" node e2e/shots.cjs "$WORK/out/shots"
+
+for name in normal public; do
+  if ! kill -0 "${PIDS[0]}" 2>/dev/null; then
+    echo "The $name server died during the run; see $WORK/$name/server.log"
+    FAILED+=("$name server")
+  fi
+  PIDS=("${PIDS[@]:1}")
+done
 
 if [ ${#FAILED[@]} -gt 0 ]; then
   echo "Failed: ${FAILED[*]} (output in $WORK/out, server logs in $WORK/*/server.log)"
