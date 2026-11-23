@@ -2384,17 +2384,34 @@ spec = parallel $ do
         map pdName dirs `shouldBe` ["2024-01-01-ok"]
         errs <- map peItem . pgErrors <$> getProgress ctx
         errs `shouldBe` [pack $ root </> "a" </> "b"]
+      it "looks for folders down to depth 4 by default" $ \ctx -> do
+        let root = sourceDir ctx
+        touchFile (root </> "a" </> "b" </> "c" </> "2024-01-01-ok" </> "a.nef")
+        touchFile (root </> "a" </> "b" </> "c" </> "d" </> "2024-01-02-deep" </> "a.nef")
+        dirs <- scanBaseDir ctx root True
+        map pdName dirs `shouldBe` ["2024-01-01-ok"]
+        errs <- map peItem . pgErrors <$> getProgress ctx
+        errs `shouldBe` [pack $ root </> "a" </> "b" </> "c" </> "d"]
       it "names the setting's value for a directory too deep" $ \ctx' -> do
-        let ctx = ctx' { ctxConfig = (ctxConfig ctx') { cfgMaxFolderDepth = 1 } }
+        let ctx = ctx' { ctxConfig = (ctxConfig ctx') { cfgMaxFolderDepth = 3 } }
             root = sourceDir ctx
-        createDirectoryIfMissing True (root </> "2024")
+        createDirectoryIfMissing True (root </> "a" </> "b" </> "c")
         _ <- scanBaseDir ctx root True
         errs <- map peError . pgErrors <$> getProgress ctx
         case errs of
           [e] -> do
             e `shouldSatisfy` ("maximum folder depth" `isInfixOf`)
-            e `shouldSatisfy` ("1" `isInfixOf`)
+            e `shouldSatisfy` ("3" `isInfixOf`)
           _ -> expectationFailure $ "Expected one error, got: " ++ show errs
+      it "doesn't search or report blacklisted directories" $ \ctx' -> do
+        let ctx = ctx' { ctxConfig = (ctxConfig ctx') { cfgMaxFolderDepth = 2 } }
+            root = sourceDir ctx
+        touchFile (root </> ".thumbnails" </> "2024-01-01-x" </> "a.nef")
+        touchFile (root </> "2024" </> ".thumbnails" </> "a.nef")
+        dirs <- scanBaseDir ctx root True
+        map pdName dirs `shouldBe` []
+        errs <- map peItem . pgErrors <$> getProgress ctx
+        errs `shouldBe` []
       it "reports symbolic links to folders as scan errors" $ \ctx -> do
         let level1 = sourceDir ctx </> "level1"
         touchFile (level1 </> "2024-01-01-trip" </> "a.nef")

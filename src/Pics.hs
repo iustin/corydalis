@@ -1155,8 +1155,8 @@ data DirKind = PictureFolder  -- ^ A picture folder, loaded whole.
                deriving (Show, Eq)
 
 -- | Classifies a directory found while looking for picture folders,
--- given its depth below the source or output directory (1 for the
--- latter's own sub-directories).
+-- given its depth below the source or output directory (1 for that
+-- directory's own sub-directories).
 --
 -- A directory whose name matches the directory regex is a picture
 -- folder; any other directory is searched for picture folders, unless

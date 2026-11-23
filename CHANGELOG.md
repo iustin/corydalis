@@ -6,15 +6,17 @@
 
 - The source and output directories no longer need a fixed two-level
   structure (e.g. `year/folder`): any directory whose name matches the
-  `dirregex` setting is a folder, at any depth, and other directories
-  are searched for folders, down to the new `maxfolderdepth` setting
-  (4 by default); directories at that depth that aren't folders are
-  listed as errors on the status page. The trees also don't need to
-  have the same structure, as folders are still matched by name.
-  Note that directories directly below a source or output directory
-  whose names match `dirregex` are now folders, and that directories
-  at the second level whose names don't match are now searched for
-  folders, instead of being ignored.
+  `dirregex` setting is a folder (with all its sub-directories, as
+  before), and other directories are searched for folders, down to
+  the new `maxfolderdepth` setting (4 by default); directories at that
+  depth that aren't folders are listed as errors on the status page.
+  The trees also don't need to have the same structure, as folders
+  are still matched by name. Note two changes for existing trees: a
+  directory directly below a source or output directory whose name
+  matches `dirregex` is now a folder, so any date-named directories
+  inside it are no longer separate folders; and directories at the
+  second level whose names don't match are now searched for folders,
+  instead of being ignored.
 
 ### Fixed bugs
 
