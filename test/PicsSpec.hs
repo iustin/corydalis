@@ -1767,9 +1767,9 @@ spec = parallel $ do
             in ( Map.fromList [((imgParent i, imageTimeKey i), i) | i <- imgs]
                , Map.fromList [(imgParent i, i) | i <- fldrs])
           names = fmap (\i -> (imgParent i, imgName i))
-          namesOf n = ( names (Just (inFirst n)), names (inPrevFolder n)
-                      , names (inPrev n), names (inNext n)
-                      , names (inNextFolder n), names (Just (inLast n)))
+          namesOf n = ( names (Just (nbFirst n)), names (nbPrevFolder n)
+                      , names (nbPrev n), names (nbNext n)
+                      , names (nbNextFolder n), names (Just (nbLast n)))
       it "finds all neighbours of an image in the middle" $ \ctx -> do
         let config = ctxConfig ctx
             img = simpleUntrackedImage config "b" "2"
@@ -1780,8 +1780,8 @@ spec = parallel $ do
         let config = ctxConfig ctx
             n = imageNeighbours (results config) (simpleUntrackedImage config "b" "1")
             n' = imageNeighbours (results config) (simpleUntrackedImage config "b" "3")
-        names (inPrev n) `shouldBe` Just ("a", "1")
-        names (inNext n') `shouldBe` Just ("c", "1")
+        names (nbPrev n) `shouldBe` Just ("a", "1")
+        names (nbNext n') `shouldBe` Just ("c", "1")
       it "has no previous items for the first image" $ \ctx -> do
         let config = ctxConfig ctx
             img = simpleUntrackedImage config "a" "1"
@@ -1794,6 +1794,23 @@ spec = parallel $ do
         namesOf (imageNeighbours (results config) img) `shouldBe`
           ( Just ("a", "1"), Just ("b", "1"), Just ("b", "3"), Nothing
           , Nothing, Just ("c", "1"))
+      it "orders the images of a folder by date, then by name" $ \ctx -> do
+        let config = ctxConfig ctx
+            dated name y = exifImage config "d" name (\e -> e { exifCreateDate = fmap (\y' -> exifDate y' 1 1) y })
+            -- Names in the opposite order of the dates; undated first.
+            imgs = [dated "1" (Just 2021), dated "2" (Just 2020), dated "3" Nothing]
+            res = (Map.fromList [((imgParent i, imageTimeKey i), i) | i <- imgs], Map.empty)
+            n = imageNeighbours res (dated "2" (Just 2020))
+        names (nbPrev n) `shouldBe` Just ("d", "3")
+        names (nbNext n) `shouldBe` Just ("d", "1")
+        names (Just (nbFirst n)) `shouldBe` Just ("d", "3")
+        names (Just (nbLast n)) `shouldBe` Just ("d", "1")
+      it "finds the neighbours of an image missing from the results" $ \ctx -> do
+        let config = ctxConfig ctx
+            n = imageNeighbours (results config) (simpleUntrackedImage config "b" "15")
+        namesOf n `shouldBe`
+          ( Just ("a", "1"), Just ("a", "1"), Just ("b", "1"), Just ("b", "2")
+          , Just ("c", "1"), Just ("c", "1"))
       it "uses the image itself as first and last for a single result" $ \ctx -> do
         let img = simpleUntrackedImage (ctxConfig ctx) "a" "1"
             single = ( Map.singleton (imgParent img, imageTimeKey img) img

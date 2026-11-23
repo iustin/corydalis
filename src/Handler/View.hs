@@ -335,8 +335,8 @@ viewInfoForImage params (images, folders) folder iname = do
       folder (render (FolderR folder) params)
       (render ListFoldersR params)
       (imgName img) (render (ImageR folder (imgName img)) params)
-      (mk inFirst) (mk <$> inPrevFolder) (mk <$> inPrev) (mk img)
-      (mk <$> inNext) (mk <$> inNextFolder) (mk inLast)
+      (mk nbFirst) (mk <$> nbPrevFolder) (mk <$> nbPrev) (mk img)
+      (mk <$> nbNext) (mk <$> nbNextFolder) (mk nbLast)
 
 -- | Get the image information for a given image.
 getImageInfoR :: ShortText -> ImageName -> Handler Value

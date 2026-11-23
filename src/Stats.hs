@@ -120,9 +120,12 @@ data CameraInfo = CameraInfo
 
 instance Store CameraInfo
 
--- | The keeper rate of a camera: the share of the shots taken (as
--- given by the range of shutter counts) that are present in the
--- repository, if the shutter counts are known.
+-- | The keeper rate of a camera, if its shutter counts are known: its
+-- number of images divided by the number of shots in its range of
+-- shutter counts (both ends included).
+--
+-- All its images are counted, including those without a shutter count,
+-- so this is an approximation, which can exceed 1.
 keeperRate :: Occurrence CameraInfo -> Maybe Double
 keeperRate Occurrence{..} =
   case ciShutterCount ocData of

@@ -876,29 +876,30 @@ getSearchResults ctx lazy key =
 -- | The images around a given image in search results, as used for
 -- navigating between them.
 data ImageNeighbours = ImageNeighbours
-  { inFirst      :: Image         -- ^ The first image in the results.
-  , inPrevFolder :: Maybe Image   -- ^ The image of the previous folder.
-  , inPrev       :: Maybe Image   -- ^ The previous image.
-  , inNext       :: Maybe Image   -- ^ The next image.
-  , inNextFolder :: Maybe Image   -- ^ The image of the next folder.
-  , inLast       :: Image         -- ^ The last image in the results.
+  { nbFirst      :: Image         -- ^ The first image in the results.
+  , nbPrevFolder :: Maybe Image   -- ^ The first image of the previous folder.
+  , nbPrev       :: Maybe Image   -- ^ The previous image.
+  , nbNext       :: Maybe Image   -- ^ The next image.
+  , nbNextFolder :: Maybe Image   -- ^ The first image of the next folder.
+  , nbLast       :: Image         -- ^ The last image in the results.
   } deriving (Show, Eq)
 
 -- | Computes the neighbours of an image in the given search results.
 --
--- Images are ordered by folder, then by their time key, and folders by
--- name. The image itself should be part of the results; if it is not
--- (so the results might be empty), the first and last images are the
--- image itself.
+-- Images are ordered by folder, then by their time key (date, then
+-- name, so images without a date come first in their folder), and
+-- folders by name. The image need not be part of the results: the
+-- previous and next items are found by its position in that order. If
+-- the results are empty, the first and last images are the image itself.
 imageNeighbours :: SearchResults -> Image -> ImageNeighbours
 imageNeighbours (images, folders) img =
   ImageNeighbours
-    { inFirst      = maybe img snd $ Map.lookupMin images
-    , inPrevFolder = snd <$> Map.lookupLT folder folders
-    , inPrev       = snd <$> Map.lookupLT key images
-    , inNext       = snd <$> Map.lookupGT key images
-    , inNextFolder = snd <$> Map.lookupGT folder folders
-    , inLast       = maybe img snd $ Map.lookupMax images
+    { nbFirst      = maybe img snd $ Map.lookupMin images
+    , nbPrevFolder = snd <$> Map.lookupLT folder folders
+    , nbPrev       = snd <$> Map.lookupLT key images
+    , nbNext       = snd <$> Map.lookupGT key images
+    , nbNextFolder = snd <$> Map.lookupGT folder folders
+    , nbLast       = maybe img snd $ Map.lookupMax images
     }
   where folder = imgParent img
         key = (folder, imageTimeKey img)
@@ -1881,7 +1882,7 @@ countImagesBy attr =
 -- | The earliest and the latest of the images with a creation date,
 -- each with its date and the given attribute.
 --
--- Images with the same date are ordered by the attribute.
+-- Images with the same creation time are ordered by the attribute.
 imageDateRange :: Ord a => (Image -> a) -> [Image]
                -> Maybe ((ExifTime, a), (ExifTime, a))
 imageDateRange attr images =

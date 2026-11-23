@@ -279,8 +279,13 @@ spec = parallel $ do
         statusIs 200
         v <- responseJson
         -- The search limits the images to the folder.
-        jsonShouldBe v ["first", "name"] "1"
+        jsonShouldBe v ["first", "info"]
+          "http://localhost:3000/image/info/nav-b/1?folder=nav-b"
+        jsonShouldBe v ["prev", "info"]
+          "http://localhost:3000/image/info/nav-b/1?folder=nav-b"
         jsonShouldBe v ["prevfolder"] Null
+        jsonShouldBe v ["next"] Null
+        jsonShouldBe v ["nextfolder"] Null
         jsonShouldBe v ["current", "info"]
           "http://localhost:3000/image/info/nav-b/2?folder=nav-b"
         -- Raw contents don't depend on the search.
