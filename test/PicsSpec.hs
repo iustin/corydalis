@@ -2349,24 +2349,62 @@ spec = parallel $ do
         touchFile (folder </> "solo.xmp")
         pic <- loadFolder ctx "2024-03-03-xmp" folder True
         imgStatus (pdImages pic Map.! "solo") `shouldBe` ImageOrphaned
-    describe "scanSubDir" $ do
-      it "loads date-named folders and skips others" $ \ctx -> do
-        let level1 = sourceDir ctx </> "level1"
-        touchFile (level1 </> "2024-01-01-trip" </> "a.nef")
-        touchFile (level1 </> "not-a-date" </> "a.nef")
-        dirs <- scanSubDir ctx level1 True
-        map pdName dirs `shouldMatchList` ["2024-01-01-trip"]
+    describe "scanBaseDir" $ do
+      it "loads date-named folders at any depth" $ \ctx -> do
+        let root = sourceDir ctx
+        touchFile (root </> "2024-01-01-top" </> "a.nef")
+        touchFile (root </> "2024" </> "2024-01-02-year" </> "a.nef")
+        touchFile (root </> "2024" </> "trips" </> "2024-01-03-deep" </> "a.nef")
+        touchFile (root </> "2024" </> "not-a-date" </> "a.nef")
+        touchFile (root </> "2024" </> "stray.nef")
+        dirs <- scanBaseDir ctx root True
+        map (pdName &&& pdMainPath) dirs `shouldMatchList`
+          [ ("2024-01-01-top", fromString $ root </> "2024-01-01-top")
+          , ("2024-01-02-year", fromString $ root </> "2024" </> "2024-01-02-year")
+          , ("2024-01-03-deep", fromString $
+                root </> "2024" </> "trips" </> "2024-01-03-deep")
+          ]
+        errs <- map peItem . pgErrors <$> getProgress ctx
+        errs `shouldBe` []
+      it "doesn't look for folders inside a folder" $ \ctx -> do
+        let folder = sourceDir ctx </> "2024" </> "2024-01-01-trip"
+        touchFile (folder </> "a.nef")
+        touchFile (folder </> "2024-01-02-day" </> "b.nef")
+        dirs <- scanBaseDir ctx (sourceDir ctx) True
+        map pdName dirs `shouldBe` ["2024-01-01-trip"]
+        -- The image names are not checked, as the copy regex of the
+        -- test settings mangles the nested one.
+        sum (map (Map.size . pdImages) dirs) `shouldBe` 2
+      it "stops at the maximum folder depth and reports it" $ \ctx' -> do
+        let ctx = ctx' { ctxConfig = (ctxConfig ctx') { cfgMaxFolderDepth = 2 } }
+            root = sourceDir ctx
+        touchFile (root </> "a" </> "2024-01-01-ok" </> "a.nef")
+        touchFile (root </> "a" </> "b" </> "2024-01-02-deep" </> "a.nef")
+        dirs <- scanBaseDir ctx root True
+        map pdName dirs `shouldBe` ["2024-01-01-ok"]
+        errs <- map peItem . pgErrors <$> getProgress ctx
+        errs `shouldBe` [pack $ root </> "a" </> "b"]
+      it "names the setting's value for a directory too deep" $ \ctx' -> do
+        let ctx = ctx' { ctxConfig = (ctxConfig ctx') { cfgMaxFolderDepth = 1 } }
+            root = sourceDir ctx
+        createDirectoryIfMissing True (root </> "2024")
+        _ <- scanBaseDir ctx root True
+        errs <- map peError . pgErrors <$> getProgress ctx
+        case errs of
+          [e] -> do
+            e `shouldSatisfy` ("maximum folder depth" `isInfixOf`)
+            e `shouldSatisfy` ("1" `isInfixOf`)
+          _ -> expectationFailure $ "Expected one error, got: " ++ show errs
       it "reports symbolic links to folders as scan errors" $ \ctx -> do
         let level1 = sourceDir ctx </> "level1"
         touchFile (level1 </> "2024-01-01-trip" </> "a.nef")
         createSymbolicLink (level1 </> "2024-01-01-trip")
           (level1 </> "2024-01-02-link")
-        dirs <- scanSubDir ctx level1 True
+        dirs <- scanBaseDir ctx (sourceDir ctx) True
         map pdName dirs `shouldMatchList` ["2024-01-01-trip"]
         errs <- map (peItem &&& peError) . pgErrors <$> getProgress ctx
         errs `shouldBe`
           [(pack $ level1 </> "2024-01-02-link", "symbolic link, not followed")]
-    describe "scanBaseDir" $ do
       it "merges source raw and output jpeg of the same image" $ \ctx -> do
         let config = ctxConfig ctx
             rawRoot = sourceDir ctx
@@ -2380,3 +2418,31 @@ spec = parallel $ do
         imgStatus img `shouldBe` ImageProcessed
         isJust (imgRawPath img) `shouldBe` True
         null (imgJpegPath img) `shouldBe` False
+      it "merges folders found at different depths" $ \ctx -> do
+        let config = ctxConfig ctx
+        touchFile (sourceDir ctx </> "2024" </> "trips" </> "2024-01-01-trip" </> "a.nef")
+        touchFile (outputDir ctx </> "2024-01-01-trip" </> "a.jpg")
+        rawPics <- scanBaseDir ctx (sourceDir ctx) True
+        jpgPics <- scanBaseDir ctx (outputDir ctx) False
+        let merged = foldl' (flip (addDirToRepo config)) Map.empty (rawPics ++ jpgPics)
+        Map.keys merged `shouldBe` ["2024-01-01-trip"]
+        imgStatus (pdImages (merged Map.! "2024-01-01-trip") Map.! "a")
+          `shouldBe` ImageProcessed
+    describe "countDir" $ do
+      it "counts what the scan finds" $ \ctx' -> do
+        let ctx = ctx' { ctxConfig = (ctxConfig ctx') { cfgMaxFolderDepth = 3 } }
+            config = ctxConfig ctx
+            root = sourceDir ctx
+        touchFile (root </> "2024-01-01-top" </> "a.nef")
+        touchFile (root </> "2024-01-01-top" </> "sub" </> "b.nef")
+        touchFile (root </> "2024" </> "2024-01-02-year" </> "a.nef")
+        touchFile (root </> "2024" </> "x" </> "2024-01-03-deep" </> "a.nef")
+        touchFile (root </> "2024" </> "x" </> "too-deep" </> "a.nef")
+        touchFile (root </> "2024" </> "stray.nef")
+        createSymbolicLink "/etc/passwd" (root </> "2024" </> "link")
+        items <- countDir config root
+        _ <- scanBaseDir ctx root True
+        pg <- getProgress ctx
+        -- The four files in folders, the link and the too deep directory.
+        items `shouldBe` 6
+        pgNoop pg + pgDone pg + length (pgErrors pg) `shouldBe` items

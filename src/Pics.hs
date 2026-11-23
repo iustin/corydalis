@@ -144,8 +144,8 @@ module Pics ( PicDir(..)
             , folderYamlFile
             , getDirContents
             , recursiveScanPath
-            , scanSubDir
             , scanBaseDir
+            , countDir
             , dropCopySuffix
             , expandRangeFile
             , maxRangeExpansion
@@ -1148,46 +1148,82 @@ skippedErrors :: FilePath -> [(FilePath, Text)] -> [ProgressError]
 skippedErrors root =
   map (\(path, reason) -> ProgressError (Text.pack $ root </> path) reason)
 
+-- | How a directory is handled when looking for picture folders.
+data DirKind = PictureFolder  -- ^ A picture folder, loaded whole.
+             | ContainerDir   -- ^ A directory searched for picture folders.
+             | TooDeepDir     -- ^ A directory not searched, as too deep.
+               deriving (Show, Eq)
+
+-- | Classifies a directory found while looking for picture folders,
+-- given its depth below the source or output directory (1 for the
+-- latter's own sub-directories).
+--
+-- A directory whose name matches the directory regex is a picture
+-- folder; any other directory is searched for picture folders, unless
+-- at the maximum folder depth.
+dirKind :: Config -> Int -> FilePath -> DirKind
+dirKind config depth name
+  | isOKDir config name = PictureFolder
+  | depth < cfgMaxFolderDepth config = ContainerDir
+  | otherwise = TooDeepDir
+
+-- | The reason a directory is not searched for picture folders, if it
+-- is too deep (see 'dirKind').
+tooDeepReason :: Config -> Text
+tooDeepReason config =
+  "not a picture folder, and at the maximum folder depth (" <>
+  tshow (cfgMaxFolderDepth config) <> "), so not searched"
+
 -- | Scans one of the directories defined in the configuration.
 scanBaseDir :: Ctx
-            -> String
+            -> FilePath
             -> Bool
             -> IO [PicDir]
-scanBaseDir ctx root isSource = do
-  (dirs, _, skipped) <- getDirContents (ctxConfig ctx) root
-  reportSkipped ctx root skipped
-  concat <$> mapConcurrently (\p -> scanSubDir ctx (root </> p) isSource) dirs
+scanBaseDir ctx = scanContainer ctx 0
 
--- | Scans a directory one level below a base dir. The actual
--- subdirectory name is currently discarded and will not appear in the
--- final folder names.
-scanSubDir :: Ctx
-           -> String
-           -> Bool
-           -> IO [PicDir]
-scanSubDir ctx path isSource = do
+-- | Scans a directory for picture folders, at any depth down to the
+-- maximum folder depth (see 'dirKind'). The names of the directories
+-- above the picture folders are discarded and will not appear in the
+-- final folder names; files directly in them are ignored.
+scanContainer :: Ctx
+              -> Int       -- ^ The directory's depth below the base dir.
+              -> FilePath  -- ^ The directory to scan.
+              -> Bool      -- ^ Whether it is under a source directory.
+              -> IO [PicDir]
+scanContainer ctx depth path isSource = do
   let config = ctxConfig ctx
-  (dirpaths, _, skipped) <- getDirContents config path
-  reportSkipped ctx path skipped
-  let allpaths' = filter (isOKDir config) dirpaths
-  mapM (\s -> loadFolder ctx s (path </> s) isSource) allpaths'
+      kind = dirKind config (depth + 1)
+      ofKind k = filter ((== k) . kind)
+  (dirs, _, skipped) <- getDirContents config path
+  reportSkipped ctx path $
+    skipped ++ map (, tooDeepReason config) (ofKind TooDeepDir dirs)
+  -- Picture folders are loaded one at a time, but concurrently with
+  -- the other directories.
+  (folders, subdirs) <- concurrently
+    (mapM (\d -> loadFolder ctx d (path </> d) isSource)
+       (ofKind PictureFolder dirs))
+    (mapConcurrently (\d -> scanContainer ctx (depth + 1) (path </> d) isSource)
+       (ofKind ContainerDir dirs))
+  return $ folders ++ concat subdirs
 
--- | Recursively count number of items (images) under a directory.
---
--- The skipped entries are counted at all levels, as they are reported
--- as scan errors.
-countDir :: Config -> Int -> String -> IO Int
-countDir config level path = do
-  (dirpaths, iinfo, skipped) <- getDirContents config path
-  -- TODO: This level thinig is ugly; the two-level hierarchy is rigid
-  -- and thus needs hardcoding here and there. Urgh!
-  let allpaths = if level == 2
-                 then filter (isOKDir config) dirpaths
-                 else dirpaths
-  subdirs <- mapConcurrently (\p -> countDir config (level+1) (path </> p)) allpaths
-  let total = sum subdirs + length skipped +
-              if level > 2 then length iinfo else 0
-  return $!! total
+-- | Counts the items under a source or output directory, as
+-- 'scanBaseDir' would scan them: the files in picture folders, and
+-- the entries reported as scan errors at all levels.
+countDir :: Config -> FilePath -> IO Int
+countDir config = countContainer 0
+  where
+    countContainer depth path = do
+      (dirs, _, skipped) <- getDirContents config path
+      subdirs <- mapConcurrently (\d -> case dirKind config (depth + 1) d of
+                                     PictureFolder -> countFolder (path </> d)
+                                     ContainerDir  -> countContainer (depth + 1) (path </> d)
+                                     TooDeepDir    -> return 1
+                                 ) dirs
+      return $!! sum subdirs + length skipped
+    countFolder path = do
+      (dirs, files, skipped) <- getDirContents config path
+      subdirs <- mapConcurrently (countFolder . (path </>)) dirs
+      return $!! sum subdirs + length files + length skipped
 
 -- | Recursively count number of all files and directories under a directory.
 --
@@ -1647,7 +1683,7 @@ scanFilesystem ctx newrepo = do
       alldirs = map fst $ srcdirs ++ outdirs
       alldirsAsRelative = map makeRel alldirs
   logfn LevelInfo $ "Counting images under " <> toLogStr (show alldirs)
-  itemcounts <- mapConcurrently (countDir config 1) alldirs
+  itemcounts <- mapConcurrently (countDir config) alldirs
   let cachePaths = map (cfgCacheDir config </>) alldirsAsRelative
   -- Ensure cache top dirs are created if missing (likely only during
   -- bootstrap, but better to always redo during scanning).

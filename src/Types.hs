@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Types ( Config(..)
              , defaultImageDecoders
+             , defaultMaxFolderDepth
              , parseImageDecoders
              , defaultMovieDemuxers
              , safeMovieDemuxers
@@ -201,6 +202,8 @@ data Config = Config
                                           -- (lower-case) extension.
     , cfgMagickPolicyDir :: Maybe FilePath -- ^ Directory holding the
                                            -- ImageMagick policy to use.
+    , cfgMaxFolderDepth  :: Int  -- ^ How deep below a source or output
+                                 -- directory picture folders are looked for.
     } deriving (Eq, Show, Generic)
 
 instance Store Config
@@ -282,6 +285,11 @@ positiveSetting :: MonadFail m => String -> Int -> m Int
 positiveSetting setting n
   | n > 0 = return n
   | otherwise = fail $ "The " <> setting <> " setting must be positive, but is " <> show n
+
+-- | The default depth, below a source or output directory, down to
+-- which picture folders are looked for (see 'cfgMaxFolderDepth').
+defaultMaxFolderDepth :: Int
+defaultMaxFolderDepth = 4
 
 -- | Parses and validates the extension to ImageMagick decoder map.
 parseImageDecoders :: MonadFail m => Map Text Text -> m (Map Text Text)
@@ -365,7 +373,9 @@ instance FromJSON Config where
          viewableimageslist     <*>
          imagedecoders          <*>
          moviedemuxers          <*>
-         v .:? "magickpolicydir"
+         v .:? "magickpolicydir" <*>
+         (v .:? "maxfolderdepth" .!= defaultMaxFolderDepth >>=
+            positiveSetting "maxfolderdepth")
 
 data ImageStatus = ImageOrphaned
                  | ImageStandalone

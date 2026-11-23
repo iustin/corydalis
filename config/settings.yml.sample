@@ -202,8 +202,13 @@ config:
   # the installation documentation). If set, the application refuses to
   # start unless ImageMagick actually loads the policy from there.
   magickpolicydir: "config/magick"
-  # Valid directory pattern (groups are ignored):
+  # Valid directory pattern (groups are ignored): a directory whose
+  # name matches is a picture folder, and other directories are
+  # searched for picture folders:
   dirregex: "([0-9]{4}-[0-9]{2}-[0-9]{2})(.*)"
+  # How deep below the source and output directories picture folders
+  # are looked for; the default is 4:
+  # maxfolderdepth: 4
   # Regex denoting the name of a picture composed from other
   # pictures, e.g. panoramas; exactly three groups are expected, in
   # order: base filename, start index, end index.
