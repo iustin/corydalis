@@ -207,11 +207,6 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
     win.alert('Cannot fully initialise the application, aborting!');
     return null;
   }
-  // The functions below need '!' for some of the elements checked above
-  // (e.g. context, waitingBar): function declarations are hoisted, and
-  // could be called before the null checks, so TypeScript doesn't apply
-  // them there. canvas doesn't, since it's declared with a type
-  // assertion (as HTMLCanvasElement), which already excludes null.
   const helpModal = deps.helpModal(helpDiv);
 
   // Now that the base setup has been done, store the current image state,
@@ -220,6 +215,12 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
   // image, drawImage will not save state as it is as the initial (same)
   // URL.
   history.replaceState(cory.info.current, '');
+
+  // The functions below need '!' for some of the elements checked above
+  // (e.g. context, waitingBar): function declarations are hoisted, and
+  // could be called before the null checks, so TypeScript doesn't apply
+  // them there. canvas doesn't, since it's declared with a type
+  // assertion (as HTMLCanvasElement), which already excludes null.
 
   // Draws an already-loaded image into a give image element.
   function drawImage(
