@@ -56,21 +56,12 @@ getLensInfoR lensname = do
             Nothing  -> notFound
             Just occ -> return $ ocData occ
   let images = filterImagesBy (\i -> (liName . exifLens . imgExif) i == lensSymbol) pics
-      cameras = foldl' (\m i -> case exifCamera (imgExif i) of
-                                  Nothing -> m
-                                  Just c  ->  Map.insertWith (+) (deSymbolizeItem' c::ShortText) counterOne m) Map.empty images
       cameraCounts =
-        (sortBy (comparing Down) . map (\(a, b) -> (b, a)) . Map.toList) cameras
-      numCameras = Map.size cameras
-      imgTopBot = let cds =
-                        sort .
-                        foldl' (\a i -> let e = imgExif i
-                                            cd = exifCreateDate e
-                                            cam = fromMaybe unknown $ maybeDesymbolizeItem' $ exifCamera e
-                                        in case cd of
-                                             Nothing  -> a
-                                             Just cd' -> (cd', cam):a) [] $ images
-                  in fromNullable cds >>= (\nn -> Just (head nn, last nn))
+        countImagesBy (fmap (deSymbolizeItem' :: SymbolizedItem -> ShortText) .
+                       exifCamera . imgExif) images
+      numCameras = length cameraCounts
+      imgTopBot = imageDateRange (fromMaybe unknown . maybeDesymbolizeItem' .
+                                  exifCamera . imgExif) images
       lensapflobj = buildLensApFL images
       -- timeline stats
       camerapicstats = computeImagesStats images

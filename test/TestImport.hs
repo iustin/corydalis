@@ -35,7 +35,7 @@ import           ClassyPrelude                  as X hiding (Handler, delete,
 import           Database.Persist               as X hiding (get)
 import           Database.Persist.Sql           (SqlPersistM,
                                                  runSqlPersistMPool)
-import           Exif                           (Exif (..))
+import           Exif                           (Exif (..), ExifTime (..))
 import           Foundation                     as X
 import           Model                          as X
 import           Pics                           (Ctx, File (..), Image (..),
@@ -69,6 +69,10 @@ import qualified Data.Map                       as Map
 import qualified Data.Set                       as Set
 import qualified Data.Text                      as Text
 import           Data.Text.Short                (ShortText)
+import           Data.Time                      (LocalTime (..),
+                                                 ZonedTime (..),
+                                                 midnight,
+                                                 utc)
 import qualified Data.Text.Short                as TS
 import           Formatting
 import           Network.Wai.Test               (simpleHeaders)
@@ -532,6 +536,24 @@ simpleUntrackedImage config (TS.fromText -> parent) name =
   in mkImage config (ImageName (TS.fromText name)) parent Nothing Nothing []
              Nothing [] [untracked] Nothing MediaImage def
 
+-- | A simple unprocessed (raw) image, whose raw file has the given exif
+-- information (as changes to the default one).
+--
+-- The exif information is the raw file's, as the image's own is
+-- computed from it again when folders are merged (e.g. in
+-- 'injectImages').
+exifImage :: Config -> Text -> Text -> (Exif -> Exif) -> Image
+exifImage config parent name change =
+  let raw = File { fileName = TS.fromText (name <> ".nef"), fileCTime = 0
+                 , fileMTime = 0, fileSize = 0, fileParent = mkSym parent
+                 , fileDirs = mkSym "", fileExif = change def }
+  in mkImage config (ImageName (TS.fromText name)) (TS.fromText parent)
+             (Just raw) Nothing [] Nothing [] [] Nothing MediaImage def
+
+-- | The exif time of midnight (UTC) on the given date.
+exifDate :: Integer -> Int -> Int -> ExifTime
+exifDate y m d = ExifTime (ZonedTime (LocalTime (fromGregorian y m d) midnight) utc)
+
 simpleRawImage :: Config -> Image
 simpleRawImage config =
   let f = File { fileName = "a.nef", fileCTime = 0, fileMTime = 0, fileSize = 0, fileParent = mkSym "test", fileDirs = mkSym "", fileExif = def }
@@ -620,6 +642,16 @@ injectImages images = do
                        , repoSerial = repoSerial repo + 1
                        }
     writeTVar (ctxRepo ctx) newRepo
+
+-- | Injects images after a full scan, so that neither the initial scan
+-- nor a running one replaces the repository holding them.
+injectImagesAfterScan :: [Image] -> YesodExample App ()
+injectImagesAfterScan images = do
+  ctx <- appContext <$> getTestYesod
+  liftIO $ do
+    launchScanFileSystem ctx
+    void $ waitForScan ctx
+  injectImages images
 
 -- | Helper to add a single image to a test folder in RepoDirs
 addImageToRepo :: Config -> RepoDirs -> Image -> RepoDirs

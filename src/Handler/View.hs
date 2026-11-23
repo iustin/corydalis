@@ -326,17 +326,7 @@ viewInfoForImage params (images, folders) folder iname = do
   picdir <- getFolder folder
   render <- getUrlRenderParams
   img <- locateCurrentImage folder iname images
-  let -- since we have an image, it follows that min/max must exist
-      -- (they might be the same), hence we can use the non-total
-      -- functions findMin/findMax until newer containers package
-      -- reaches LTS
-      tkey = imageTimeKey img
-      imgFirst = snd  $  Map.findMin images
-      imgPrev  = snd <$> Map.lookupLT (folder, tkey) images
-      imgNext  = snd <$> Map.lookupGT (folder, tkey) images
-      imgLast  = snd  $  Map.findMax images
-      fldPrev  = snd <$> Map.lookupLT folder folders
-      fldNext  = snd <$> Map.lookupGT folder folders
+  let ImageNeighbours {..} = imageNeighbours (images, folders) img
       mk i = mkImageInfo i render params
       y = maybe "?" (Text.pack . show) $ pdYear picdir
       yurl = maybe SearchFoldersNoYearR (SearchFoldersByYearR . sformat int) $ pdYear picdir
@@ -345,8 +335,8 @@ viewInfoForImage params (images, folders) folder iname = do
       folder (render (FolderR folder) params)
       (render ListFoldersR params)
       (imgName img) (render (ImageR folder (imgName img)) params)
-      (mk imgFirst) (mk <$> fldPrev) (mk <$> imgPrev) (mk img)
-      (mk <$> imgNext) (mk <$> fldNext)(mk imgLast)
+      (mk inFirst) (mk <$> inPrevFolder) (mk <$> inPrev) (mk img)
+      (mk <$> inNext) (mk <$> inNextFolder) (mk inLast)
 
 -- | Get the image information for a given image.
 getImageInfoR :: ShortText -> ImageName -> Handler Value

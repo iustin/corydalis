@@ -247,6 +247,17 @@ spec = parallel $ do
         cam1 `shouldBe` cam2
         cam1 `shouldNotBe` cam3
 
+  describe "keeperRate" $ do
+    let withCamera cam = (def :: Occurrence CameraInfo) { ocFiles = 50, ocData = cam }
+    it "is unknown without shutter counts" $
+      keeperRate (withCamera (CameraInfo (makeSI "Test") Nothing)) `shouldBe` Nothing
+    it "is the share of the shots taken that are kept" $
+      keeperRate (withCamera (CameraInfo (makeSI "Test") (Just (101, 200))))
+        `shouldBe` Just 0.5
+    it "counts both ends of the shutter count range" $
+      keeperRate (withCamera (CameraInfo (makeSI "Test") (Just (7, 7))))
+        `shouldBe` Just 50
+
   describe "Type aliases and helper types" $ do
     it "creates DateRange correctly" $ do
       let start = mkLocalTime 2023 1 1 10 0 0

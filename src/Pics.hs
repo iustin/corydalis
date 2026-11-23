@@ -75,6 +75,8 @@ module Pics ( PicDir(..)
             , numProcessedPics
             , filterImagesByClass
             , filterImagesBy
+            , countImagesBy
+            , imageDateRange
             , filterFoldersBy
             , computeRepoStats
             , repoGlobalExif
@@ -101,6 +103,8 @@ module Pics ( PicDir(..)
             , SearchResults
             , SearchResultsPics
             , getSearchResults
+            , ImageNeighbours(..)
+            , imageNeighbours
             , SearchCache
             , imgProblems
             , pdProblems
@@ -867,6 +871,36 @@ getSearchResults ctx lazy key =
     fromMaybe
       (force lazy `seq` (lazy, LRU.insert key lazy oldCache))
       (LRU.lookup key oldCache)
+
+-- | The images around a given image in search results, as used for
+-- navigating between them.
+data ImageNeighbours = ImageNeighbours
+  { inFirst      :: Image         -- ^ The first image in the results.
+  , inPrevFolder :: Maybe Image   -- ^ The image of the previous folder.
+  , inPrev       :: Maybe Image   -- ^ The previous image.
+  , inNext       :: Maybe Image   -- ^ The next image.
+  , inNextFolder :: Maybe Image   -- ^ The image of the next folder.
+  , inLast       :: Image         -- ^ The last image in the results.
+  } deriving (Show, Eq)
+
+-- | Computes the neighbours of an image in the given search results.
+--
+-- Images are ordered by folder, then by their time key, and folders by
+-- name. The image itself should be part of the results; if it is not
+-- (so the results might be empty), the first and last images are the
+-- image itself.
+imageNeighbours :: SearchResults -> Image -> ImageNeighbours
+imageNeighbours (images, folders) img =
+  ImageNeighbours
+    { inFirst      = maybe img snd $ Map.lookupMin images
+    , inPrevFolder = snd <$> Map.lookupLT folder folders
+    , inPrev       = snd <$> Map.lookupLT key images
+    , inNext       = snd <$> Map.lookupGT key images
+    , inNextFolder = snd <$> Map.lookupGT folder folders
+    , inLast       = maybe img snd $ Map.lookupMax images
+    }
+  where folder = imgParent img
+        key = (folder, imageTimeKey img)
 
 flushSearchCache :: TVar SearchCache -> STM ()
 flushSearchCache = flip writeTVar emptySearchCache
@@ -1833,6 +1867,26 @@ filterImagesBy flt =
                                   then img:l
                                   else l) pics (pdImages folder)
          ) [] . Map.elems . repoDirs
+
+-- | Counts images by an attribute, skipping the images without it.
+--
+-- Returns the counts and their attributes, the most frequent first (and,
+-- for equal counts, the attributes in descending order).
+countImagesBy :: Ord a => (Image -> Maybe a) -> [Image] -> [(Int64, a)]
+countImagesBy attr =
+  sortBy (comparing Down) . map (\(a, b) -> (b, a)) . Map.toList .
+  foldl' (\m i -> maybe m (\a -> Map.insertWith (+) a 1 m) (attr i)) Map.empty
+
+-- | The earliest and the latest of the images with a creation date,
+-- each with its date and the given attribute.
+--
+-- Images with the same date are ordered by the attribute.
+imageDateRange :: Ord a => (Image -> a) -> [Image]
+               -> Maybe ((ExifTime, a), (ExifTime, a))
+imageDateRange attr images =
+  let dated = sort [ (cd, attr i) | i <- images
+                                  , Just cd <- [exifCreateDate (imgExif i)] ]
+  in fromNullable dated >>= (\nn -> Just (head nn, last nn))
 
 filterFoldersBy :: (PicDir -> Bool) -> Repository -> RepoDirs
 filterFoldersBy flt = Map.filter flt . repoDirs

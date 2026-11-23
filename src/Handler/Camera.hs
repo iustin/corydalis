@@ -38,26 +38,14 @@ import           Handler.Utils
 import           Import
 import           Indexer
 import           Pics
+import           Stats               (keeperRate)
 
 import qualified Data.Map            as Map
-import qualified Data.Text.Lazy      as LT
 import           Data.Time.Calendar
 import           Data.Time.LocalTime
 
 getByCamera :: Repository -> Map SymbolizedItem (Occurrence CameraInfo)
 getByCamera = sByCamera . rsPicStats . repoStats
-
-keeperRate :: Occurrence CameraInfo -> Maybe Double
-keeperRate Occurrence{..} =
-  case ciShutterCount ocData of
-    Nothing -> Nothing
-    Just (scMin, scMax) ->
-      let numImgs = fromIntegral ocFiles
-          delta = fromIntegral $ scMax - scMin + 1
-      in Just $ numImgs / delta
-
-formatKeeperRate :: Double -> LT.Text
-formatKeeperRate = format (fixed 2 % "%") . (* 100)
 
 getCameraInfoR :: ShortText -> Handler TypedContent
 getCameraInfoR cameraname = do
@@ -72,21 +60,10 @@ getCameraInfoR cameraname = do
                    else Just cameraname
       cameraExif' = mkSymbolizedItem <$> cameraExif
       images = filterImagesBy (\i -> (exifCamera . imgExif) i == cameraExif') pics
-      lenses = foldl' (\m i -> Map.insertWith (+)
-                               (liName . exifLens . imgExif $ i)
-                               counterOne m) Map.empty images
-      lensCounts =
-        (sortBy (comparing Down) . map (\(a, b) -> (b, a)) . Map.toList) lenses
-      numLenses = Map.size lenses
-      imgTopBot = let cds =
-                        sort .
-                        foldl' (\a i -> let e = imgExif i
-                                            cd = exifCreateDate e
-                                            lens = liName $ exifLens e
-                                        in case cd of
-                                             Nothing  -> a
-                                             Just cd' -> (cd', lens):a) [] $ images
-                  in fromNullable cds >>= (\nn -> Just (head nn, last nn))
+      lensName = liName . exifLens . imgExif
+      lensCounts = countImagesBy (Just . lensName) images
+      numLenses = length lensCounts
+      imgTopBot = imageDateRange lensName images
       keepR = formatKeeperRate <$> keeperRate camera
       lensapflobj = buildLensApFL images
       -- timeline stats

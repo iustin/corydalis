@@ -375,6 +375,10 @@ lensInfoRoute li = LensInfoR (deSymbolizeItem' $ liName li)
 setHtmlTitle :: Text -> Widget
 setHtmlTitle = setTitle . toHtml . ("Corydalis: " <>)
 
+-- | Formats a keeper rate (see 'keeperRate') as a percentage.
+formatKeeperRate :: Double -> TL.Text
+formatKeeperRate = format (fixed 2 % "%") . (* 100)
+
 counterOne :: Int64
 counterOne = 1
 

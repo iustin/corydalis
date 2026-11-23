@@ -29,6 +29,7 @@ module Stats ( DateRange
              , Trends
              , ocFromSize
              , CameraInfo(..)
+             , keeperRate
              , mergeMinMaxPair
 )  where
 
@@ -118,6 +119,18 @@ data CameraInfo = CameraInfo
   } deriving (Eq, Show, Ord, Generic)
 
 instance Store CameraInfo
+
+-- | The keeper rate of a camera: the share of the shots taken (as
+-- given by the range of shutter counts) that are present in the
+-- repository, if the shutter counts are known.
+keeperRate :: Occurrence CameraInfo -> Maybe Double
+keeperRate Occurrence{..} =
+  case ciShutterCount ocData of
+    Nothing -> Nothing
+    Just (scMin, scMax) ->
+      let numImgs = fromIntegral ocFiles
+          delta = fromIntegral $ scMax - scMin + 1
+      in Just $ numImgs / delta
 
 instance NFData CameraInfo where
   rnf CameraInfo{..} = rnf ciName `seq`

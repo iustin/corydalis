@@ -22,7 +22,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.LensSpec (spec) where
 
+import           Exif      (Exif (..), LensInfo (..), unknownLens)
 import           TestImport
+
+-- | Adds pictures taken with lens @TestLens@ (on two cameras, and once
+-- without a camera), after the initial scan (which would otherwise
+-- drop them).
+addLensImages :: YesodExample App ()
+addLensImages = do
+  config <- ctxConfig . appContext <$> getTestYesod
+  let shot folder name camera date =
+        exifImage config folder name $ \e ->
+          e { exifCamera = mkSym <$> camera
+            , exifLens = unknownLens { liName = mkSym "TestLens"
+                                     , liSpec = mkSym "TestSpec" }
+            , exifCreateDate = date
+            }
+  injectImagesAfterScan
+    [ shot "lens" "a" (Just "CamA") (Just (exifDate 2020 1 2))
+    , shot "lens" "b" (Just "CamA") Nothing
+    , shot "lens" "c" (Just "CamB") (Just (exifDate 2018 7 8))
+    , shot "lens" "d" Nothing (Just (exifDate 2022 9 10))
+    ]
 
 spec :: Spec
 spec = parallel $ withApp $ do
@@ -33,5 +54,27 @@ spec = parallel $ withApp $ do
   it "loads a wrong lens info page and returns not found" $ do
     login
     checkNotFound $ LensInfoR "foo"
-  it "load a lens info page and checks it looks right" $
-    const pending
+  it "load a lens info page and checks it looks right" $ do
+    addLensImages
+    login
+    checkRoute $ LensInfoR "TestLens"
+    htmlAllContain "h1" "Lens statistics"
+    htmlAnyContain "td" "TestSpec"
+    -- Images without a camera are not counted as a camera.
+    htmlAnyContain "th" "Camera (2 in total)"
+    htmlAnyContain "td" "CamA"
+    htmlAnyContain "td" "CamB"
+    -- But their dates are used, with an unknown camera.
+    htmlAnyContain "td" "2018-07-08"
+    htmlAnyContain "td" "(CamB)"
+    htmlAnyContain "td" "2022-09-10"
+    htmlAnyContain "td" "(unknown)"
+  it "returns the lens info charts' data" $ do
+    addLensImages
+    login
+    request $ do
+      setUrl $ LensInfoR "TestLens"
+      addRequestHeader ("Accept", "application/json")
+    statusIs 200
+    bodyContains "\"lensapfl\""
+    bodyContains "\"trends\""
