@@ -278,8 +278,9 @@ maxRangeExpansion = 1024
 expandRangeFile :: Config -> Text -> [Text]
 expandRangeFile cfg path =
   -- As for copies, only the last component of the path is matched.
-  let (dir, name) = Text.breakOnEnd "/" path
-  in case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
+  let spath = Text.unpack path
+      withDir = Text.pack . replaceFileName spath . Text.unpack
+  in case TDFA.match (reRegex $ cfgRangeRegex cfg) (Text.pack $ takeFileName spath) of
        [[_, root, begin, end]] -> let ib = parseDecimal begin::Either Text Int
                                       ie = parseDecimal end
                                       formatPadded = sformat (left (length begin) '0' %. int)
@@ -288,7 +289,7 @@ expandRangeFile cfg path =
                                          | let n = toInteger e - toInteger b + 1
                                          , n >= 1
                                          , n <= toInteger maxRangeExpansion ->
-                                             [dir <> root <> formatPadded i | i <- [b..e]]
+                                             [withDir (root <> formatPadded i) | i <- [b..e]]
                                        _ -> []
        _ -> []
 
