@@ -1285,7 +1285,7 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
       case 'D':
         triggerImageDownload();
         break;
-      case 'UpArrow':
+      case 'ArrowUp':
         toggleFullScreen();
         break;
       case 'ArrowLeft':

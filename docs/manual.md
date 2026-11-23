@@ -39,8 +39,8 @@ controls:
 - space key: move forward (next picture), or play movie (if the current
   picture is a movie); in case of playing a movie, if the end was
   already reached, it will also advance to the next item;
-- `f` (key), or tap the image with two fingers: go full-screen, if the
-  browser allows it;
+- `f` or up arrow (keys), or tap the image with two fingers: go
+  full-screen, if the browser allows it;
 - `r` (key), or tab: go to a random image in the whole library;
 - `u` (key): go back to the folder view;
 - `[`/`]` or `page up`/`page down` (keys): go to the previous,

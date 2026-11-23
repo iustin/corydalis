@@ -2,6 +2,12 @@
 
 ## vNext
 
+### Fixed bugs
+
+- In the image viewer, the up arrow key now toggles the full screen
+  state, as intended; the key was bound under a wrong name, so it did
+  nothing.
+
 ### Internal changes
 
 - The image viewer, the chart pages and the image grid are split into
