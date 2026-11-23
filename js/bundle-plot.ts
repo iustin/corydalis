@@ -15,43 +15,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+// PagePlot bundle: the statistics pages, with charts (see js/charts.ts)
+// and sortable tables.
+import * as Plotly from 'plotly.js-cartesian-dist';
 import 'bootstrap';
+import { showPageCharts } from './charts';
+import { whenReady } from './ready';
 import { setupSortableTables } from './tablesort';
 
-// Import page initializers
-import { initCameraStats } from './camerastats';
-import { initLensStats } from './lensstats';
-import { initCameraInfo } from './camerainfo';
-import { initLensInfo } from './lensinfo';
-import { initCurate } from './curate';
-
-// Create a mapping of initializer functions
-const initializers = {
-  'camera-stats': initCameraStats,
-  'camera-info': initCameraInfo,
-  'lens-stats': initLensStats,
-  'lens-info': initLensInfo,
-  curate: initCurate,
-};
-
-function runInitializers() {
-  // Look for boot element with data-init attribute
-  const bootElement = document.getElementById('boot');
-  if (bootElement && bootElement.hasAttribute('data-init')) {
-    const initType = bootElement.getAttribute('data-init');
-    if (initType && initializers[initType]) {
-      initializers[initType]();
-    }
-  }
-}
-
-// Initialize on DOM ready.
-if (document.readyState === 'loading') {
-  // Document still loading, add event listener
-  document.addEventListener('DOMContentLoaded', runInitializers);
-} else {
-  // Document already loaded, run the function
-  runInitializers();
-}
+whenReady(() => {
+  void showPageCharts(Plotly.newPlot);
+});
 
 setupSortableTables();
