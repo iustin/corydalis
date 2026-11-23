@@ -210,7 +210,7 @@ config:
   # are looked for (1 means only their direct sub-directories); must
   # be positive, and the default is 4. Previous versions of Corydalis
   # only looked at depth 2 (a fixed `year/folder` structure), which
-  # setting this to 2 comes closest to:
+  # is close to, but not exactly the same as setting this to 2.
   # maxfolderdepth: 4
   # Regex denoting the name of a picture composed from other
   # pictures, e.g. panoramas; exactly three groups are expected, in
