@@ -452,11 +452,23 @@ for example:
 - jpeg files in `/jpeg` (`/year/date`)
 
 In this case, Corydalis will match a given directory across all trees
-it it watching based on its name, which has to be consistent. Note
-that the depth of the tree is important: Corydalis expects a
-three-level
-`toplevel/intermediate-that-is-ignored/directory-that-is-tracked`
-structure.
+it is watching based on its name, which has to be consistent.
+
+Which directories are tracked (as folders) is decided by their name:
+a directory whose name matches the `dirregex` setting (by default,
+one containing a date such as `2024-05-01`) is a folder; any other
+directory is searched for folders in turn, and its name is ignored.
+So the trees can be organised as deep as needed (e.g. `/year/date`,
+`/year/trips/date`, or just `/date`), and they don't need to have the
+same structure: `/raw/2024/2024-05-01-trip` and
+`/jpeg/2024-05-01-trip` are the same folder. Files directly in the
+ignored directories are not used.
+
+Folders are looked for down to a maximum depth below each configured
+directory, set by the `maxfolderdepth` setting (4 by default, i.e.
+`/raw/a/b/c/2024-05-01-trip` is still found); a directory at that
+depth whose name doesn't match is not searched, and is listed as an
+error on the status page.
 
 In a given directory (that it tracks), pictures can be organised
 either flat (all in that directory) or across subdirectories. If
@@ -467,7 +479,7 @@ path will be displayed in the interface.
 Symbolic links below the configured directories are not followed, and
 neither are other special files (pipes, sockets or devices) used: they
 are skipped and listed as errors on the status page. This applies at
-all levels, including year and folder directories; to keep pictures on
+all levels, including the directories above the folders; to keep pictures on
 another disk, add that disk's directory to the configured source or
 output directories instead. The configured directories themselves can
 be symbolic links.

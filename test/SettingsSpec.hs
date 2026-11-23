@@ -184,6 +184,17 @@ storageDirsSpec = describe "storage directories" $ do
       loadWithConfig ["pagesize" .= size] `shouldThrow` \e ->
         let msg = show (e :: SomeException)
         in all (`isInfixOf` msg) ["pagesize", show size]
+  it "defaults the maximum folder depth" $ do
+    settings <- loadWithConfig []
+    cfgMaxFolderDepth (appConfig settings) `shouldBe` defaultMaxFolderDepth
+  it "accepts a maximum folder depth" $ do
+    settings <- loadWithConfig ["maxfolderdepth" .= (7 :: Int)]
+    cfgMaxFolderDepth (appConfig settings) `shouldBe` 7
+  it "refuses a maximum folder depth which isn't positive" $
+    forM_ [0, -2 :: Int] $ \depth ->
+      loadWithConfig ["maxfolderdepth" .= depth] `shouldThrow` \e ->
+        let msg = show (e :: SomeException)
+        in all (`isInfixOf` msg) ["maxfolderdepth", show depth]
 
 sessionMaxAgeSpec :: Spec
 sessionMaxAgeSpec = describe "session-max-age" $ do
