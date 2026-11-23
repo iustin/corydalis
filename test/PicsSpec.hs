@@ -1344,6 +1344,15 @@ spec = parallel $ do
         dropCopySuffix config "IMG_1234-1" `shouldBe` "IMG_1234"
         dropCopySuffix config "IMG_1234-Edit" `shouldBe` "IMG_1234"
         dropCopySuffix config "IMG_1234" `shouldBe` "IMG_1234"
+      it "drops copy suffixes only from the file name" $ \config -> do
+        dropCopySuffix config "sub/IMG_1234-1" `shouldBe` "sub/IMG_1234"
+        dropCopySuffix config "2024-01-02-day/b" `shouldBe` "2024-01-02-day/b"
+        dropCopySuffix config "a-1/b-Edit" `shouldBe` "a-1/b"
+      it "drops copy suffixes only at the end of the name" $ \config ->
+        dropCopySuffix config "IMG-20240101_1234" `shouldBe` "IMG-20240101_1234"
+      it "expands ranges only from the file name" $ \config -> do
+        expandRangeFile config "sub/img_1-2" `shouldBe` ["sub/img_1", "sub/img_2"]
+        expandRangeFile config "img_1-2/b" `shouldBe` []
       it "expands padded range names" $ \config -> do
         expandRangeFile config "img_01-03" `shouldBe` ["img_01", "img_02", "img_03"]
         expandRangeFile config "img_1-3" `shouldBe` ["img_1", "img_2", "img_3"]
@@ -2372,9 +2381,8 @@ spec = parallel $ do
         touchFile (folder </> "2024-01-02-day" </> "b.nef")
         dirs <- scanBaseDir ctx (sourceDir ctx) True
         map pdName dirs `shouldBe` ["2024-01-01-trip"]
-        -- The image names are not checked, as the copy regex of the
-        -- test settings mangles the nested one.
-        sum (map (Map.size . pdImages) dirs) `shouldBe` 2
+        concatMap (Map.keys . pdImages) dirs `shouldMatchList`
+          ["a", "2024-01-02-day/b"]
       it "stops at the maximum folder depth and reports it" $ \ctx' -> do
         let ctx = ctx' { ctxConfig = (ctxConfig ctx') { cfgMaxFolderDepth = 2 } }
             root = sourceDir ctx

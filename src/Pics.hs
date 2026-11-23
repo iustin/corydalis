@@ -254,11 +254,15 @@ blacklistedDirs config = neverRecurseDirs ++ cfgBlacklistedDirs config
 isOKDir :: Config -> String -> Bool
 isOKDir cfg = TDFA.match (reRegex $ cfgDirRegex cfg)
 
+-- | Drops the copy suffix (as matched by the copy regex) from a name,
+-- which can be a path relative to its folder: only its last component
+-- is matched, so that the regex never applies to directory names.
 dropCopySuffix :: Config -> String -> String
-dropCopySuffix cfg name =
-  case TDFA.match (reRegex $ cfgCopyRegex cfg) name of
-    [_:b:_] -> b
-    _       -> name
+dropCopySuffix cfg path =
+  let name = takeFileName path
+  in case TDFA.match (reRegex $ cfgCopyRegex cfg) name of
+       [_:b:_] -> replaceFileName path b
+       _       -> path
 
 -- | Makes a path "absolute" by dropping prefix slashes.
 makeRel :: FilePath -> FilePath
@@ -272,19 +276,21 @@ maxRangeExpansion :: Int
 maxRangeExpansion = 1024
 
 expandRangeFile :: Config -> Text -> [Text]
-expandRangeFile cfg name =
-  case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
-    [[_, root, begin, end]] -> let ib = parseDecimal begin::Either Text Int
-                                   ie = parseDecimal end
-                                   formatPadded = sformat (left (length begin) '0' %. int)
-                               in case (ib, ie) of
-                                    (Right b, Right e)
-                                      | let n = toInteger e - toInteger b + 1
-                                      , n >= 1
-                                      , n <= toInteger maxRangeExpansion ->
-                                          [root `Text.append` formatPadded i | i <- [b..e]]
-                                    _ -> []
-    _ -> []
+expandRangeFile cfg path =
+  -- As for copies, only the last component of the path is matched.
+  let (dir, name) = Text.breakOnEnd "/" path
+  in case TDFA.match (reRegex $ cfgRangeRegex cfg) name of
+       [[_, root, begin, end]] -> let ib = parseDecimal begin::Either Text Int
+                                      ie = parseDecimal end
+                                      formatPadded = sformat (left (length begin) '0' %. int)
+                                  in case (ib, ie) of
+                                       (Right b, Right e)
+                                         | let n = toInteger e - toInteger b + 1
+                                         , n >= 1
+                                         , n <= toInteger maxRangeExpansion ->
+                                             [dir <> root <> formatPadded i | i <- [b..e]]
+                                       _ -> []
+       _ -> []
 
 -- Readability alias.
 type MimeType = Text

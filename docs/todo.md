@@ -192,8 +192,3 @@ Workarounds for upstream bugs, to drop once fixed there:
    e.g. with '-' as separator, pic.xxx, pic-a.xxx, pic-a-b.xxx will
    lead to bad outcomes.
 
-2. The copy regex handling is across the full "file path",
-   i.e. including any subdirs under its parent folder. If the regex
-   doesn't explicitly exclude slashes and if it also can catch dirs
-   (e.g. '-' as separator, and subdirs that include dashes), it will
-   lead to so broken behaviour that it is funny.
