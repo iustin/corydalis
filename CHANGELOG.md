@@ -1,6 +1,8 @@
 # Changelog
 
-## vNext
+## v2026.48.0 - "Security hardening"
+
+Released: _Mon, 23 Nov 2026_.
 
 This release started with a few features planned and under way: the
 reworked view modes, more camera and lens statistics, and folder
@@ -30,6 +32,17 @@ readable by the other users of the machine. Four issues found along the
 way were also reported to upstream libraries: two to Yesod, one to
 yesod-auth-hashdb, and one to wai-logger, already fixed there (in
 version 2.5.1).
+
+In a way, this feels like a first real production release, given how
+many gaps were filled.
+
+The security analyses, and the fixes, were done with a combination of
+Claude Opus 5.5, Claude Fable 5.2, Gemini 4 Neon, and Grok 4.7, with code
+reviews done internally (e.g. Claude's pr-review-toolkit), by GitHub
+Copilot, and across agents (Opus writing code, Neon reviewing it on top of
+Copilot). I still read most code - all backend code, and to a large extent
+the frontend. Since agents are diligent at writing tests, test coverage
+went up significantly as well.
 
 As a lot changed since v2025.21.0, read the upgrade notes first.
 
@@ -130,7 +143,7 @@ Optional clean-ups:
 
 ### Security
 
-These were found by security reviews of the code.
+These were found by security reviews of the code, using AI tools.
 
 #### Files in the picture folders
 
