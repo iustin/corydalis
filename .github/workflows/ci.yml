@@ -149,6 +149,7 @@ jobs:
   e2e:
     name: End-to-end checks
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -162,8 +163,10 @@ jobs:
           enable-stack: true
           stack-version: 'latest'
 
-      - name: Cache Haskell dependencies
-        uses: actions/cache@v6
+      # Only restores the build job's cache: saving it from here could
+      # store one without the test dependencies and hlint under its key.
+      - name: Restore the Haskell dependencies
+        uses: actions/cache/restore@v6
         with:
           path: ~/.stack
           key: v3-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
@@ -217,7 +220,7 @@ jobs:
           path: |
             _run/e2e/out/
             _run/e2e/*/server.log
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
   release:
     name: Build ${{ matrix.name }}

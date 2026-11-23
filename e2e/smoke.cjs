@@ -81,6 +81,10 @@ const PAGES = [
     try {
       const resp = await page.goto(BASE + url, { waitUntil: 'networkidle' });
       if (!resp || !resp.ok()) problems.push(`status ${resp && resp.status()}`);
+      // The login page has a navigation bar too, so check that we were
+      // not sent there (e.g. after losing the session).
+      if (new URL(page.url()).pathname.startsWith('/auth/'))
+        problems.push(`redirected to ${page.url()}`);
       if ((await page.locator('nav.navbar').count()) === 0)
         problems.push('no navigation bar');
     } catch (e) {
@@ -95,7 +99,7 @@ const PAGES = [
       const name = url.replace(/[^A-Za-z0-9]+/g, '_');
       await page
         .screenshot({ path: path.join(out, `${name}.png`) })
-        .catch(() => {});
+        .catch((e) => console.log(`  (no screenshot: ${e.message})`));
     } else {
       console.log(`ok   ${url}`);
     }
@@ -109,7 +113,10 @@ const PAGES = [
     await page.goto(BASE + list);
     const href = await page
       .getAttribute(`a[href*="${prefix}"]`, 'href')
-      .catch(() => null);
+      .catch((e) => {
+        console.log(`  (${list}: ${e.message.split('\n')[0]})`);
+        return null;
+      });
     if (href) {
       await visit(new URL(href, BASE).pathname);
     } else {
