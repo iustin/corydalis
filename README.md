@@ -15,8 +15,8 @@ missing).
 
 Is it for you? If you need/could use:
 
-* help in understanding a large collection of pictures, or
-* an image/movie viewer for browsing the pictures stored on your NAS
+- help in understanding a large collection of pictures, or
+- an image/movie viewer for browsing the pictures stored on your NAS
   from various web and mobile clients,
 
 Then maybe yes. Although this is very much a work in progress, and has
