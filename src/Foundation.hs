@@ -157,19 +157,10 @@ data PageStyle
   | PagePlot   -- ^ A page with plotly and tableviewer.
   | PageGrid   -- ^ A page with infinitescroll.
 
-pageCSSResources :: PageStyle -> Widget
-pageCSSResources PageBasic =
-  $(combineStylesheets 'StaticR
-     [ bootstrap_css_bootstrap_css
-     , font_awesome_css_fontawesome_css
-     , font_awesome_css_regular_css
-     , font_awesome_css_solid_css
-     , corydalis_css_basic_css
-     ])
-
-pageCSSResources PageView  = pageCSSResources PageBasic
-pageCSSResources PagePlot  = pageCSSResources PageBasic
-pageCSSResources PageGrid  = pageCSSResources PageBasic
+-- | The style sheet of all the pages: Bootstrap, Font Awesome and ours,
+-- bundled by esbuild (see @css/bundle.css@).
+pageCSSResources :: Widget
+pageCSSResources = addStylesheet $ StaticR corydalis_css_bundle_css
 
 pageJSResources :: PageStyle -> StaticRoute
 pageJSResources PageBasic = corydalis_js_bundle_basic_js
@@ -293,15 +284,13 @@ instance Yesod App where
         forM_ (route >>= viewMode) (setViewMode secureCookies)
 
         pc <- widgetToPageContent $ do
-          -- Compute and ship the page-specific CSS and JS
-          -- resources. In production mode, these will be even
-          -- combined, so one CSS and one JS bundle.
+          -- Ship the CSS bundle and the page-specific JS bundle.
           case route of
             Nothing -> return ()
             Just r -> do
               let style = routeStyle r
                   js_entrypoint = StaticR $ pageJSResources style
-              pageCSSResources style
+              pageCSSResources
               addScriptAttrs js_entrypoint [("type", "module")]
           $(widgetFile "default-layout")
 

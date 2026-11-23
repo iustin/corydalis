@@ -53,11 +53,9 @@ regen-git-version: clean-git-version git-version
 bootstrap:
 	@echo Installing npm dependencies...
 	npm ci
-	@echo Fixing font-awesome CSS files...
-	bash build/patch-font-awesome
 	@echo One-shot checking of TypeScript syntax...
 	npm run type-check-oneshot
-	@echo One-shot converting typescript to JS...
+	@echo One-shot bundling the TypeScript and CSS...
 	npm run build
 
 # Checks that the files in static/ are all used, and no link is broken
@@ -83,12 +81,7 @@ release: clean lint doc regen-git-version bootstrap check-static
 	stack --work-dir .stack-release build --pedantic $(RELEASE_FLAG) $(FLAGS)
 	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG) $(FLAGS)
 	mkdir dist/static
-	cp -aL static/combined dist/static/
-	mkdir -p dist/static/font-awesome/
-	cp -aL static/font-awesome/webfonts dist/static/font-awesome/
-	mkdir -p dist/static/corydalis/
-	cp -a static/corydalis/manifest.json dist/static/corydalis/
-	cp -a static/corydalis/js dist/static/corydalis
+	cp -a static/corydalis dist/static/
 	mkdir dist/static/tmp/
 
 .PHONY: demo-release
@@ -108,7 +101,7 @@ haddock:
 
 clean:
 	rm -rf site/ dist/
-	rm -f static/tmp/* static/combined/*
+	rm -f static/tmp/*
 
 .PHONY: really-clean
 really-clean: clean
@@ -154,7 +147,7 @@ lint:
 	  src/ test/
 
 lentil:
-	lentil src static/corydalis templates test
+	lentil src js css templates test
 
 .PHONY: build devel profiling view release doc haddock clean test dist coverage coverage-hs coverage-ts
 .INTERMEDIATE: %.ps

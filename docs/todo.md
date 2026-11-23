@@ -142,11 +142,6 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 
 ## Build and static files
 
-- Bundle the CSS (Bootstrap, Font Awesome and ours) with esbuild too,
-  including the fonts it refers to; this removes the remaining links in
-  `static/`, `build/patch-font-awesome`, `combineStylesheets'` and
-  `static/combined`, and simplifies `build/check-static`. (Making the
-  CSS and fonts smaller is not worth it, next to the images.)
 - Stale URL hashes of static files (see "Static files" in
   [devel](devel.md)): generate a stamp file with a hash of the names and
   contents of all the files in `static/` (outside `static/`, not
@@ -156,7 +151,7 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
   embedding.
 - Embed the static files in the binary (`Yesod.EmbeddedStatic`): a
   single binary to deploy, with the files' hashes and contents always
-  matching it, and precompressed. Best after the two items above; then
+  matching it, and precompressed. Best after the item above; then
   drop the `static-dir` setting and the copying of the files in
   `make release` and the installation instructions.
 

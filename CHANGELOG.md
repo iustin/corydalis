@@ -55,6 +55,13 @@
   coverage from about 85% to 92% (the rest being mostly records, class
   instances and the application's entry points); the camera and lens
   pages now share their image counting code.
+- The style sheets (Bootstrap, Font Awesome and ours) are bundled by
+  `esbuild` into one minified file, as the TypeScript code is, with
+  the fonts it uses; this replaces the links into `node_modules` in
+  `static/`, the patching of the Font Awesome style sheets, and the
+  combining of the style sheets by the Haskell build in
+  `static/combined`. Installations copying the `static` directory get
+  the new files as before.
 
 ## v2026.48.0 - "Security hardening"
 

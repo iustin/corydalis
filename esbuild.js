@@ -1,6 +1,6 @@
 // build.js
 import * as esbuild from 'esbuild';
-import { watch as watchFiles } from 'node:fs';
+import { rmSync, watch as watchFiles } from 'node:fs';
 
 const isDev = process.env.NODE_ENV === 'development';
 const watch = process.argv.includes('--watch');
@@ -27,9 +27,20 @@ const esbuildProblemMatcherPlugin = {
   },
 };
 
+/** The output directory of the style sheets and of their fonts. */
+const cssOutdir = 'static/corydalis';
+
 async function runBuild() {
-  // Create a build context
-  const ctx = await esbuild.context({
+  // The style sheets' output is entirely generated, so remove it first:
+  // the fonts' names include a hash of their contents, and the old
+  // copies would otherwise stay around after an update.
+  for (const dir of ['css', 'fonts']) {
+    rmSync(`${cssOutdir}/${dir}`, { recursive: true, force: true });
+  }
+
+  // Create the build contexts: one for the scripts and one for the
+  // style sheets, which have different output directories.
+  const jsCtx = await esbuild.context({
     entryPoints: [
       'js/bundle-plot.ts',
       'js/bundle-basic.ts',
@@ -48,6 +59,23 @@ async function runBuild() {
     logLevel: 'info', // Show rebuild info in the console
     plugins: [esbuildProblemMatcherPlugin],
   });
+  const cssCtx = await esbuild.context({
+    entryPoints: ['css/bundle.css'],
+    bundle: true,
+    minify: !isDev,
+    outdir: cssOutdir,
+    entryNames: 'css/[name]',
+    // The fonts are copied next to the style sheet, which refers to them
+    // by a relative URL; the hash in their names makes browsers fetch
+    // them again when they change (their URLs have no etag parameter).
+    loader: { '.woff2': 'file' },
+    assetNames: 'fonts/[name]-[hash]',
+    sourcemap: isDev,
+    logLevel: 'info',
+    plugins: [esbuildProblemMatcherPlugin],
+  });
+  const contexts = [jsCtx, cssCtx];
+  const rebuildAll = () => Promise.all(contexts.map((ctx) => ctx.rebuild()));
 
   if (watch) {
     // esbuild's own watch mode polls every 100ms, even when idle. Instead,
@@ -55,7 +83,7 @@ async function runBuild() {
     // in the dependencies.
     const rebuild = async (reason) => {
       console.log(`[watch] build started${reason}`);
-      await ctx.rebuild().catch(() => {}); // errors are already printed
+      await rebuildAll().catch(() => {}); // errors are already printed
       console.log('[watch] build finished');
     };
     await rebuild('');
@@ -66,9 +94,11 @@ async function runBuild() {
       clearTimeout(timer);
       timer = setTimeout(() => rebuild(` (change: "${file}")`), 50);
     };
-    watchFiles('js', { recursive: true }, (_event, file) => {
-      scheduleRebuild(`js/${file}`);
-    });
+    for (const dir of ['js', 'css']) {
+      watchFiles(dir, { recursive: true }, (_event, file) => {
+        scheduleRebuild(`${dir}/${file}`);
+      });
+    }
     // `npm install` updates package-lock.json once node_modules is in
     // place. Watch the directory rather than the file itself, since a
     // file watch stops working if the file gets replaced via a rename.
@@ -78,15 +108,13 @@ async function runBuild() {
       }
     });
     console.log(
-      'Watching js/ and package-lock.json for changes. Press Ctrl+C to stop.',
+      'Watching js/, css/ and package-lock.json for changes. Press Ctrl+C to stop.',
     );
   } else {
     // Just do a single build
-    const result = await ctx.rebuild();
-    console.log(
-      `Build complete! Processed ${result?.outputFiles?.length || 'unknown number of'} files.`,
-    );
-    await ctx.dispose();
+    await rebuildAll();
+    console.log('Build complete!');
+    await Promise.all(contexts.map((ctx) => ctx.dispose()));
   }
 }
 
