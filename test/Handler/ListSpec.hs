@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.ListSpec (spec) where
 
+import           Exif      (Exif (..))
 import           TestImport
 
 import           Handler.List (getListItemsR)
@@ -39,6 +40,30 @@ spec = parallel $ withApp $ do
     login
     checkRoute ListFoldersR
     bodyContains "Nothing found"
+  it "lists folders with their details" $ do
+    config <- ctxConfig . appContext <$> getTestYesod
+    injectImagesAfterScan
+      [ exifImage config "list-a" "1" $ \e ->
+          e { exifCountry = Just (mkSym "Ruritania")
+            , exifCity = Just (mkSym "Strelsau")
+            , exifPeople = setFromList [mkSym "Rudolf"] }
+      , exifImage config "list-a" "2" id
+      , exifImage config "list-b" "1" id
+      ]
+    login
+    checkRoute ListFoldersR
+    bodyNotContains "Nothing found"
+    bodyContains "list-a"
+    bodyContains "list-b"
+    bodyContains "Ruritania"
+    bodyContains "Strelsau"
+    bodyContains "Rudolf"
+  it "lists images" $ do
+    config <- ctxConfig . appContext <$> getTestYesod
+    injectImagesAfterScan [exifImage config "list-a" "img1" id]
+    login
+    checkRoute ListImagesR
+    bodyContains "img1"
   describe "checks that wrong filter image list shows search impossible" $
     forM_ [minBound..maxBound] $ \fclass ->
       it ("validates folder class " ++ show fclass) $ do

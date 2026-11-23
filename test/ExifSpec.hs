@@ -29,7 +29,7 @@ import           TestImport
 
 import           ClassyPrelude.Yesod
 import           Data.Aeson
-import           Data.Aeson.Types    (parseMaybe)
+import           Data.Aeson.Types    (Parser, parseMaybe)
 import qualified Data.ByteString     as BS
 import           Data.Either         (isLeft, isRight)
 import qualified Data.Map            as Map
@@ -117,6 +117,67 @@ instance Arbitrary FlashSource where
 
 spec :: Spec
 spec = parallel $ do
+  describe "ISO parsing" $ do
+    let iso = parseMaybe parseValOrList
+    it "parses numbers" $
+      iso (Number 100) `shouldBe` Just 100
+    it "parses single-element lists" $ do
+      iso (toJSON [200 :: Int]) `shouldBe` Just 200
+      parseMaybe (parseSingletonList :: Value -> Parser Int) (toJSON [1, 2 :: Int])
+        `shouldBe` Nothing
+    it "parses the string formats" $ do
+      iso (String "400") `shouldBe` Just 400
+      iso (String "ISO 800") `shouldBe` Just 800
+      -- As written by some old Android versions.
+      iso (String "1600, 0, 0") `shouldBe` Just 1600
+    it "rejects other strings" $ do
+      iso (String "fast") `shouldBe` Nothing
+      iso (String "100x") `shouldBe` Nothing
+      iso (String "a b c") `shouldBe` Nothing
+      iso (String "") `shouldBe` Nothing
+    it "rejects other values" $
+      iso (Bool True) `shouldBe` Nothing
+    it "reads integers without leftovers" $ do
+      parseMaybe readInt "42" `shouldBe` Just 42
+      parseMaybe readInt "42a" `shouldBe` Nothing
+      parseMaybe readInt "a" `shouldBe` Nothing
+      parseMaybe parseIsoString (Number 1) `shouldBe` Nothing
+
+  describe "JSON encoding" $ do
+    it "encodes focal lengths" $ do
+      toJSON (Prime 50) `shouldBe` object ["type" .= ("prime" :: Text), "focal" .= (50 :: Double)]
+      toJSON (Zoom 24 70) `shouldBe`
+        object [ "type" .= ("zoom" :: Text), "minFocal" .= (24 :: Double)
+               , "maxFocal" .= (70 :: Double)]
+    it "encodes apertures" $ do
+      toJSON (FixedAperture 2) `shouldBe`
+        object ["type" .= ("fixed" :: Text), "aperture" .= (2 :: Double)]
+      toJSON (VariableAperture 3.5 5.6) `shouldBe`
+        object [ "type" .= ("variable" :: Text), "minAperture" .= (3.5 :: Double)
+               , "maxAperture" .= (5.6 :: Double)]
+    it "encodes lens information" $ do
+      let lens = unknownLens { liFL = Just (Prime 50), liSerial = Just (mkSym "123") }
+          field k = parseMaybe (withObject "lens" (.: k)) (toJSON lens) :: Maybe Value
+      field "name" `shouldBe` Just "unknown"
+      field "focalLength" `shouldBe` Just (toJSON (Prime 50))
+      field "aperture" `shouldBe` Just Null
+      field "serial" `shouldBe` Just "123"
+    it "encodes flash information" $
+      toJSON (FlashInfo (Just FlashSourceInternal) (Just (mkSym "auto"))) `shouldBe`
+        object ["source" .= (2 :: Int), "mode" .= ("auto" :: Text)]
+    it "encodes exif times" $
+      toJSON (exifDate 2024 3 5) `shouldBe` String "2024-03-05 00:00:00+0000"
+    it "encodes exif information" $ do
+      let exif = (def :: Exif) { exifCamera = Just (mkSym "Nikon")
+                               , exifISO = Just 100
+                               , exifCreateDate = Just (exifDate 2024 3 5) }
+          field k = parseMaybe (withObject "exif" (.: k)) (toJSON exif) :: Maybe Value
+      field "camera" `shouldBe` Just "Nikon"
+      field "iso" `shouldBe` Just (Number 100)
+      field "createDate" `shouldBe` Just "2024-03-05 00:00:00+0000"
+      field "title" `shouldBe` Just Null
+      field "lens" `shouldBe` Just (toJSON unknownLens)
+
   describe "Orientation JSON roundtrip" $ do
     -- Orientation has both ToJSON and FromJSON
     prop "toJSON/fromJSON roundtrip" $ \orientation ->

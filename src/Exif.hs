@@ -61,6 +61,10 @@ module Exif ( Exif(..)
             , exifToolArgs
             , exifPath
             , bExifPath
+            , parseValOrList
+            , parseIsoString
+            , readInt
+            , parseSingletonList
 #endif
             ) where
 
