@@ -313,8 +313,10 @@ describe('layoutImage', () => {
       lastScale: 1,
       devicePixelRatio: 2,
     });
-    layoutImage(state, d(800, 600), 0, d(0, 0));
-    assertDims(state.panOffsets, 400, 300);
+    layoutImage(state, d(800, 600), 0, d(100, 50));
+    // (100, 50) is (200, 100) in canvas pixels, i.e. (-200, -200) from
+    // the centre, which moves out twice as far.
+    assertDims(state.panOffsets, 200, 200);
   });
 });
 

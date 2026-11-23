@@ -323,8 +323,9 @@ export function drawCharts(charts: Chart[], newPlot: NewPlot): void {
 
 /**
  * Draws the charts of the page, as named by its boot data, once their
- * data is loaded. Does nothing on pages without charts. Never fails, see
- * loadBootJSON.
+ * data is loaded. Does nothing on pages without charts. Failures to get
+ * the data are logged (see loadBootJSON), but errors while drawing (e.g.
+ * on unexpected data) reject the returned promise.
  */
 export function showPageCharts(
   newPlot: NewPlot,

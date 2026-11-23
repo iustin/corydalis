@@ -380,8 +380,8 @@ export function layoutImage(
   state.scale11 = imgRotated.dividedBy(contextSize).longest();
   /** The image scale, taking into account any zooming */
   const scale = state.scale11 / state.scale;
-  // Note: target* must be in original coordinate system, not
-  // rotated! So using img.width, not imgW. This is because from
+  // Note: the target size must be in the original coordinate system,
+  // not rotated! So using imgSize, not imgRotated. This is because from
   // the point of view of the image, it's drawn straight, not
   // rotated. Sigh, head hurts.
   /** The image target size, after scaling */
@@ -587,7 +587,7 @@ export function classifyPointerUp(
     if (Math.abs(delta.x) > Math.abs(delta.y)) {
       return delta.x > 0 ? 'previous' : 'next';
     }
-    // This is a no movement, or vertical movement swipe.
+    // A (mostly) vertical swipe.
     return 'vertical-swipe';
   }
   return sinceLastTap < DOUBLE_TAP_THRESHOLD ? 'double-tap' : 'tap';

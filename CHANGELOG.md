@@ -8,7 +8,8 @@
   modules that the unit tests can load, with the browser-only libraries
   (Bootstrap, Plotly, screenfull, Masonry, Infinite Scroll) passed in by
   small entry points; they are now tested, raising the TypeScript test
-  coverage from about 30% to 96% (the rest being the entry points).
+  coverage from about 30% to 96% (the rest being mostly the entry
+  points).
 
 ## v2026.48.0 - "Security hardening"
 
