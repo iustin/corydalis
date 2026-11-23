@@ -27,6 +27,7 @@ import           TestImport
 import           Data.Default        (def)
 import           Data.Time.LocalTime (ZonedTime, getZonedTime)
 
+import           Handler.Status      (ProgressKind (..), remainingTime)
 import           Pics                (RepoStatus (..), Repository (..))
 
 -- | Sets the state of the repository, as shown by the status page.
@@ -56,7 +57,24 @@ checkStatusPage texts finished = do
   htmlCount ".card.border-success" finished
 
 spec :: Spec
-spec = parallel $ withApp $ describe "the status page" $ do
+spec = do
+  remainingTimeSpec
+  pageSpec
+
+remainingTimeSpec :: Spec
+remainingTimeSpec = describe "remainingTime" $ do
+  it "estimates from the work done" $
+    remainingTime InvestigateAll def { pgGoal = 4, pgDone = 2 } 60 `shouldBe` 60
+  it "is never negative, even if the goal is exceeded" $ do
+    -- More files examined than counted in advance.
+    remainingTime InvestigateAll def { pgGoal = 1, pgNoop = 3 } 60 `shouldBe` 0
+    remainingTime WorkOnly def { pgGoal = 1, pgDone = 3 } 60 `shouldBe` 0
+  it "is unknown with nothing to go by, and infinite at the start" $ do
+    remainingTime InvestigateAll def 60 `shouldSatisfy` isNaN
+    remainingTime WorkOnly def { pgGoal = 5 } 60 `shouldSatisfy` isInfinite
+
+pageSpec :: Spec
+pageSpec = parallel $ withApp $ describe "the status page" $ do
   it "shows a finished scan" $
     -- The state left by the initial scan.
     checkStatusPage ["all done", "All work completed."] 3

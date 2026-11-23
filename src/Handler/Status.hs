@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.Status
   ( getStatusR
   , getStatusErrorsR
+  , ProgressKind(..)
+  , remainingTime
   ) where
 
 import           Data.Time.Clock
@@ -234,7 +236,26 @@ workInProgress now labels counter@Progress{..} WorkStart{..} =
                |]
   where work = plWork labels
         kind = plKind labels
-        doneitems = pgWork counter
+        remaining = remainingTime kind counter . realToFrac $ diffZ now wsStart
+        delta = diffZ now wsStart
+        -- The estimated end time; none while the estimate is unknown
+        -- (NaN) or infinite, e.g. at the start.
+        eta
+          | isNaN remaining || isInfinite remaining = Nothing
+          | otherwise = Just . utcToZonedTime (zonedTimeZone now)
+                        . addUTCTime (realToFrac remaining) $ zonedTimeToUTC now
+
+-- | The estimated time left for work in progress, in seconds, from its
+-- progress and the time elapsed: NaN while unknown (e.g. nothing done
+-- yet), infinite at the start of work with a known goal, and never
+-- negative, as goals counted in advance (e.g. of the files to scan)
+-- can be exceeded.
+remainingTime :: ProgressKind -> Progress -> Double -> Double
+remainingTime kind counter@Progress{..} elapsed =
+  -- In this order, as max keeps its first argument when they don't
+  -- compare: NaN stays unknown.
+  max remaining 0
+  where doneitems = pgWork counter
         -- Tricky: if we actually did work, estimate on (goal - noop)
         -- / actual work. If not, then fall back to goal /
         -- work. Otherwise, with the former we'd never get an ETA for
@@ -252,16 +273,7 @@ workInProgress now labels counter@Progress{..} WorkStart{..} =
             if doneitems > 0
             then fromIntegral pgGoal / fromIntegral doneitems
             else if pgGoal == 0 then 1 else 1/0
-        elapsed = realToFrac $ diffZ now wsStart
-        totaltime = elapsed * multiplier
-        remaining = totaltime - elapsed
-        delta = diffZ now wsStart
-        -- The estimated end time; none while the estimate is unknown
-        -- (NaN) or infinite, e.g. at the start.
-        eta
-          | isNaN remaining || isInfinite remaining = Nothing
-          | otherwise = Just . utcToZonedTime (zonedTimeZone now)
-                        . addUTCTime (realToFrac remaining) $ zonedTimeToUTC now
+        remaining = elapsed * multiplier - elapsed
 
 -- | Whether the rendering is still in its first pass, checking which
 -- previews need rendering (see 'forceBuildThumbCaches'); its own
