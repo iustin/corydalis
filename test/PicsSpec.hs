@@ -1366,6 +1366,7 @@ spec = parallel $ do
       it "expands ranges only from the file name" $ \config' -> do
         let config = withUnanchoredNameRegexes config'
         expandRangeFile config "sub/img_1-2" `shouldBe` ["sub/img_1", "sub/img_2"]
+        expandRangeFile config "a/b/img_1-2" `shouldBe` ["a/b/img_1", "a/b/img_2"]
         expandRangeFile config "img_1-2/b" `shouldBe` []
       it "expands padded range names" $ \config -> do
         expandRangeFile config "img_01-03" `shouldBe` ["img_01", "img_02", "img_03"]
