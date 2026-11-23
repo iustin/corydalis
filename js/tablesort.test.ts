@@ -277,11 +277,18 @@ describe('setupSortableTables', () => {
     );
 
   it('waits for the DOM while the page is loading', async () => {
-    const doc = twoTables();
+    // A document reopened with document.open() is loading again, as a
+    // page still being parsed, until document.close() ends it (firing
+    // DOMContentLoaded); a newly created document may already be past
+    // loading (it is, since jsdom 31).
+    const doc = page('');
+    doc.open();
+    doc.write(FOLDERS + FOLDERS.replace('class="sortable"', ''));
     assert.equal(doc.readyState, 'loading');
     const ready = loaded(doc);
     setupSortableTables(doc);
     assert.deepEqual(buttons(doc), [0, 0]);
+    doc.close();
     await ready;
     assert.deepEqual(buttons(doc), [5, 0], 'only the sortable table');
   });
