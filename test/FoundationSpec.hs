@@ -31,6 +31,7 @@ import           Test.QuickCheck       (Gen, arbitrary, forAll, (==>))
 import           Text.HTML.DOM         (parseLBS)
 import           Text.XML.Cursor       (attribute, fromDocument)
 import           Web.Cookie
+import           Yesod.Core            (breadcrumb)
 import           Yesod.Auth.HashDB     (defaultStrength, setPassword,
                                         validatePass)
 import           Yesod.Auth.Util.PasswordStore (passwordStrength)
@@ -159,6 +160,22 @@ spec = do
   loginAgeSpec
   sessionGenerationSpec
   appSpec
+  breadcrumbSpec
+
+-- | Checks the breadcrumbs of the routes not otherwise visited.
+breadcrumbSpec :: Spec
+breadcrumbSpec = withApp $ describe "breadcrumbs" $
+  forM_ [ (FaviconR, ("Favicon", Nothing))
+        , (RobotsR, ("Robots", Nothing))
+        , (SearchFoldersByYearR "2020", ("2020", Nothing))
+        , (SearchR, ("Search redirector", Nothing))
+        , (FlaggedImagesListR, ("Flagged images list", Just FlaggedImagesR))
+        , (StatusErrorsR, ("Errors", Just StatusR))
+        , (FolderR "missing", ("missing", Just SearchFoldersNoYearR))
+        ] $ \(route, expected) ->
+    it ("has a breadcrumb for " ++ show route) $ do
+      crumb <- runHandler (breadcrumb route)
+      liftIO $ crumb `shouldBe` expected
 
 -- | Checks which pages always require authentication.
 --

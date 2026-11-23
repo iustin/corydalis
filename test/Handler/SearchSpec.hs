@@ -29,7 +29,8 @@ import           Handler.Cookies
 import           Handler.Browse   (getBrowseImagesR)
 import           Handler.List     (getListFoldersR, getListImagesR)
 import           Handler.Search   (getQuickSearchR, getSearchR,
-                                   getSearchViewR, skippedMessage)
+                                   getSearchViewR, skippedMessage,
+                                   getBestHandler)
 import           Handler.View     (getRandomImageInfoR)
 import           Indexer         (Atom (..), StrOp (..),
                                   maxQuickSearchLength)
@@ -44,7 +45,24 @@ checkRedirAndHeader = do
   htmlAllContain "h1" "Listing folders"
 
 spec :: Spec
-spec = parallel $ withApp $ do
+spec = do
+  bestHandlerSpec
+  handlerSpec
+
+bestHandlerSpec :: Spec
+bestHandlerSpec = describe "getBestHandler" $ do
+  it "shows folders as a list" $
+    forM_ (Nothing : map Just [minBound .. maxBound]) $ \mode ->
+      getBestHandler mode False `shouldBe` ListFoldersR
+  it "shows images in the last view mode, as a grid by default" $ do
+    getBestHandler Nothing True `shouldBe` BrowseImagesR 0
+    getBestHandler (Just ViewImagesGrid) True `shouldBe` BrowseImagesR 0
+    getBestHandler (Just ViewImagesList) True `shouldBe` ListImagesR
+    getBestHandler (Just ViewSingleImage) True `shouldBe` SearchViewR
+    getBestHandler (Just ViewFoldersList) True `shouldBe` ListFoldersR
+
+handlerSpec :: Spec
+handlerSpec = parallel $ withApp $ do
   describe "SearchYears" $ do
     it "loads the folders no year page and checks it looks right" $ do
       login

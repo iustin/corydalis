@@ -137,6 +137,7 @@ module Pics ( PicDir(..)
             , mkFileFromInode
             , implicitEventFromDateRange
             , startupRepository
+            , writeDiskCache
             , loadImage
             , buildFolderFromInodes
             , loadFolder
