@@ -20,6 +20,16 @@
 
 ### Fixed bugs
 
+- The copy and range regexes are now matched against the file name
+  only, not against its path relative to the folder: previously, a
+  picture in a sub-directory whose name the regex matched (e.g.
+  `2024-01-02-day/b.jpg`, with the sample copy regex) got a truncated
+  name (`2024-01`), and could be merged with unrelated pictures.
+- The sample settings anchor the copy and range regexes (`^…$`), as
+  otherwise they also match in the middle of names, e.g. the sample
+  copy regex turned `IMG-20240101_1234` into `IMG`. If your settings
+  were copied from the sample, consider anchoring them too; note that
+  this can change some picture names, and thus how they are grouped.
 - In the image viewer, the up arrow key now toggles the full screen
   state, as intended; the key was bound under a wrong name, so it did
   nothing.

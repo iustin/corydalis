@@ -215,10 +215,10 @@ config:
   # Regex denoting the name of a picture composed from other
   # pictures, e.g. panoramas; exactly three groups are expected, in
   # order: base filename, start index, end index.
-  rangeregex: "(.*_)([0-9]+)-([0-9]+)"
+  rangeregex: "^(.*_)([0-9]+)-([0-9]+)$"
   # Copy regex: the first group is the base filename, any other
   # groups are ignored:
-  copyregex: "(.*)(-([0-9]|Edit))"
+  copyregex: "^(.*)(-([0-9]|Edit))$"
   # Prefix in Hierarchical Subject keywords that denote entries
   # underneath it represent people. This keyword itself will be
   # ignored. Additionally, the tag 'PeopleInImage' will also be used,
