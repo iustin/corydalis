@@ -35,6 +35,7 @@ import           Data.Either         (isLeft, isRight)
 import qualified Data.Map            as Map
 import           Data.Text.Arbitrary ()
 import           Data.Time           (LocalTime (..), TimeOfDay (..),
+                                      ZonedTime (..), TimeZone (..),
                                       zonedTimeToLocalTime)
 import           System.Directory    (createDirectory, doesFileExist,
                                       listDirectory)
@@ -226,7 +227,10 @@ spec = parallel $ do
           liFL (exifLens e) `shouldBe` Just (Prime 50)
           liAp (exifLens e) `shouldBe` Just (VariableAperture 1.8 2)
           liSerial (exifLens e) `shouldBe` Just (sym "98765")
-          isJust (exifCreateDate e) `shouldBe` True
+          fmap (zonedTimeToLocalTime . etTime) (exifCreateDate e) `shouldBe`
+            Just (LocalTime (fromGregorian 2024 3 5) (TimeOfDay 10 11 12.5))
+          fmap (timeZoneMinutes . zonedTimeZone . etTime) (exifCreateDate e)
+            `shouldBe` Just 120
           exifISO e `shouldBe` Just 100
     it "reports the errors from exiftool" $ \config ->
       parse config "[{\"SourceFile\": \"b.jpg\", \"Error\": {\"val\": \"File not found\"}}]"

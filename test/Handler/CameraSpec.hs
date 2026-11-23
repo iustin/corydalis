@@ -70,7 +70,8 @@ spec = parallel $ withApp $ do
     login
     checkRoute $ CameraInfoR "TestCam"
     htmlAllContain "h1" "Camera statistics"
-    -- Shutter count range and keeper rate: 4 images in 4 shots.
+    -- Shutter count range and keeper rate: 4 TestCam images over the
+    -- shutter counts 100-103 (only two of them have one).
     htmlAnyContain "td" "100 - 103"
     htmlAnyContain "td" "100.00%"
     htmlAnyContain "th" "Lens (2 in total)"

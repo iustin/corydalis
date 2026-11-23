@@ -539,9 +539,10 @@ simpleUntrackedImage config (TS.fromText -> parent) name =
 -- | A simple unprocessed (raw) image, whose raw file has the given exif
 -- information (as changes to the default one).
 --
--- The exif information is the raw file's, as the image's own is
--- computed from it again when folders are merged (e.g. in
--- 'injectImages').
+-- The exif information is set on the raw file, since the image's own
+-- is derived from its files (by 'mkImage', and again when
+-- 'injectImages' adds more images to the same folder), so a direct
+-- change would be lost.
 exifImage :: Config -> Text -> Text -> (Exif -> Exif) -> Image
 exifImage config parent name change =
   let raw = File { fileName = TS.fromText (name <> ".nef"), fileCTime = 0
@@ -643,8 +644,9 @@ injectImages images = do
                        }
     writeTVar (ctxRepo ctx) newRepo
 
--- | Injects images after a full scan, so that neither the initial scan
--- nor a running one replaces the repository holding them.
+-- | Runs a new scan (cancelling any running one, e.g. the initial one),
+-- waits for it, then injects the images, so that no scan replaces the
+-- repository holding them. Images injected earlier are lost.
 injectImagesAfterScan :: [Image] -> YesodExample App ()
 injectImagesAfterScan images = do
   ctx <- appContext <$> getTestYesod

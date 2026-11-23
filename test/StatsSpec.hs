@@ -255,8 +255,8 @@ spec = parallel $ do
       keeperRate (withCamera (CameraInfo (makeSI "Test") (Just (101, 200))))
         `shouldBe` Just 0.5
     it "counts both ends of the shutter count range" $
-      keeperRate (withCamera (CameraInfo (makeSI "Test") (Just (7, 7))))
-        `shouldBe` Just 50
+      keeperRate ((withCamera (CameraInfo (makeSI "Test") (Just (7, 7)))) { ocFiles = 1 })
+        `shouldBe` Just 1
 
   describe "Type aliases and helper types" $ do
     it "creates DateRange correctly" $ do
