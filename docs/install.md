@@ -49,7 +49,7 @@ Using stack:
     echo build the backend
     stack build --flag corydalis:-dev
     stack install --flag corydalis:-dev --local-bin-path /path/to/target
-    cp -aL static /path/to/target/
+    cp -a static /path/to/target/
 
 The `dev` flag is on by default, for development and the tests, and
 disables the executables, so a build for installing must turn it off

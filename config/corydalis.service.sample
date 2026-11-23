@@ -45,8 +45,8 @@ ProtectSystem=strict
 ProtectHome=true
 # The pictures are only read.
 ReadOnlyPaths=/srv/pictures
-# The database, the cache, and the generated (combined) style sheets
-# and scripts are written.
+# The database, the cache, and the generated style sheets and scripts
+# (in static/tmp) are written.
 ReadWritePaths=/srv/corydalis/db /srv/corydalis/cache /usr/local/corydalis/static/tmp
 PrivateTmp=true
 PrivateDevices=true

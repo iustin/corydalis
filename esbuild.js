@@ -1,4 +1,4 @@
-// build.js
+// esbuild.js
 import * as esbuild from 'esbuild';
 import { rmSync, watch as watchFiles } from 'node:fs';
 
@@ -27,15 +27,16 @@ const esbuildProblemMatcherPlugin = {
   },
 };
 
-/** The output directory of the style sheets and of their fonts. */
-const cssOutdir = 'static/corydalis';
+/** The output directory of the bundles and of the fonts. */
+const outdir = 'static/corydalis';
 
 async function runBuild() {
-  // The style sheets' output is entirely generated, so remove it first:
-  // the fonts' names include a hash of their contents, and the old
-  // copies would otherwise stay around after an update.
-  for (const dir of ['css', 'fonts']) {
-    rmSync(`${cssOutdir}/${dir}`, { recursive: true, force: true });
+  // The output is entirely generated, so remove it first: old files
+  // would otherwise stay around, e.g. the fonts after an update (their
+  // names include a hash of their contents), or the source maps of a
+  // development build in a production one.
+  for (const dir of ['css', 'fonts', 'js']) {
+    rmSync(`${outdir}/${dir}`, { recursive: true, force: true });
   }
 
   // Create the build contexts: one for the scripts and one for the
@@ -50,7 +51,7 @@ async function runBuild() {
     bundle: true,
     minify: !isDev,
     format: 'esm',
-    outdir: 'static/corydalis/js',
+    outdir: `${outdir}/js`,
     target: 'es2021',
     sourcemap: isDev,
     define: {
@@ -63,7 +64,7 @@ async function runBuild() {
     entryPoints: ['css/bundle.css'],
     bundle: true,
     minify: !isDev,
-    outdir: cssOutdir,
+    outdir,
     entryNames: 'css/[name]',
     // The fonts are copied next to the style sheet, which refers to them
     // by a relative URL; the hash in their names makes browsers fetch
@@ -72,10 +73,22 @@ async function runBuild() {
     assetNames: 'fonts/[name]-[hash]',
     sourcemap: isDev,
     logLevel: 'info',
+    // esbuild only warns about invalid CSS, which would ship as is.
+    logOverride: { 'css-syntax-error': 'error' },
     plugins: [esbuildProblemMatcherPlugin],
   });
   const contexts = [jsCtx, cssCtx];
-  const rebuildAll = () => Promise.all(contexts.map((ctx) => ctx.rebuild()));
+  // Let all the builds finish (and print their errors), then fail if any
+  // of them failed.
+  const rebuildAll = async () => {
+    const results = await Promise.allSettled(
+      contexts.map((ctx) => ctx.rebuild()),
+    );
+    const failed = results.find((r) => r.status === 'rejected');
+    if (failed) {
+      throw failed.reason;
+    }
+  };
 
   if (watch) {
     // esbuild's own watch mode polls every 100ms, even when idle. Instead,
