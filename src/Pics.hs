@@ -275,12 +275,13 @@ makeRel = dropWhile (== pathSeparator)
 maxRangeExpansion :: Int
 maxRangeExpansion = 1024
 
-expandRangeFile :: Config -> Text -> [Text]
+-- | Expands a range file's name (which can be a path relative to its
+-- folder) into the names of the images it is composed from. As for
+-- copies, only the last component of the path is matched.
+expandRangeFile :: Config -> FilePath -> [Text]
 expandRangeFile cfg path =
-  -- As for copies, only the last component of the path is matched.
-  let spath = Text.unpack path
-      withDir = Text.pack . replaceFileName spath . Text.unpack
-  in case TDFA.match (reRegex $ cfgRangeRegex cfg) (Text.pack $ takeFileName spath) of
+  let withDir = Text.pack . replaceFileName path . Text.unpack
+  in case TDFA.match (reRegex $ cfgRangeRegex cfg) (Text.pack $ takeFileName path) of
        [[_, root, begin, end]] -> let ib = parseDecimal begin::Either Text Int
                                       ie = parseDecimal end
                                       formatPadded = sformat (left (length begin) '0' %. int)
@@ -1376,7 +1377,7 @@ loadImage config tname parent isSource lcache ii =
                 else Nothing
       jpeg_file = [file_obj | is_jpeg && not isSource]
       p_mov = [file_obj | is_mov && not isSource]
-      snames = expandRangeFile config base_name_text
+      snames = expandRangeFile config base_name
       range = case fromNullable snames of
                 Nothing -> Nothing
                 Just s  -> Just (ImageName . TS.fromText . head $ s, ImageName . TS.fromText . last $ s)
