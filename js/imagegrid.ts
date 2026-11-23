@@ -14,82 +14,26 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+
+// The image grid's entry point: sets up the grid (js/grid.ts) with its
+// libraries, once the page is ready.
+
 import Masonry from 'masonry-layout';
 import InfiniteScroll from 'infinite-scroll';
 import imagesLoaded from 'imagesloaded';
+import { setupImageGrid } from './grid';
+import { whenReady } from './ready';
 
-function initImageGrid(): void {
-  const bootdiv = document.getElementById('boot');
-  if (!bootdiv) return;
-  const pathurl = bootdiv.dataset.pathUrl || '';
-  const pageindex = parseInt(bootdiv.dataset.pageIndex || '0', 10);
-  let count = parseInt(bootdiv.dataset.initialCount || '0', 10);
-  const debug = bootdiv.dataset.debug === 'true';
-  const howmany = document.getElementById('howmany');
-  // init Packery
-  const gridElement = document.querySelector('.grid');
-  if (!gridElement) return;
-
-  const msnry: Masonry = new Masonry(gridElement, {
-    itemSelector: '.grid-item',
-    columnWidth: '.grid-sizer',
-    percentPosition: true,
-    horizontalOrder: false,
-  });
-  const imgLoad = imagesLoaded(gridElement);
-  // Layout Masonry after each image loads
-  imgLoad.on('progress', () => {
-    msnry.layout?.();
-  });
-
-  // make imagesLoaded available for InfiniteScroll
-  // TODO: update the upstream type definitions, when I have time.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (InfiniteScroll as any).imagesLoaded = imagesLoaded;
-
-  // infinite scrolling
-  const infScroll = new InfiniteScroll(gridElement, {
-    // options
-    // path: '.pagination-next',
-    path: pathurl.replace('/0?', '/{{#}}?'),
-    append: '.grid-item',
-    outlayer: msnry,
-    history: 'replace',
-    checkLastPage: '.pagination-next',
-    // prefill (disabled): when enabled, loads further pages right away
-    // until the content fills the window, instead of only on scrolling.
-    // Without it, if the first page doesn't fill a (very tall) window,
-    // there's nothing to scroll and no further pages load, as the
-    // pagination links are hidden (hideNav). Not seen in practice so
-    // far. The option exists in infinite-scroll (page-load.js), but not
-    // in its type definitions (@types/infinite-scroll), so enabling it
-    // would need a cast, like imagesLoaded above.
-    // prefill: true,
-    hideNav: '.pagination',
-    // Shows the loading, last page and error messages from the template.
-    status: '.page-load-status',
-    debug: debug,
-  });
-  // Failed page loads are reported via this event (the library catches
-  // the errors itself, so the loading promises never reject).
-  infScroll.on('error', (error, path) => {
-    console.error('Failed to load more images from', path, error);
-  });
-  // Handle appended items
-  infScroll.on('append', (response, path, items) => {
-    count = count + items.length;
-    if (howmany) {
-      howmany.textContent = count.toString();
-    }
-    console.log('now viewing', count);
-  });
-
-  infScroll.pageIndex = pageindex;
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initImageGrid);
-} else {
-  // Document already loaded, run the function directly.
-  initImageGrid();
-}
+whenReady(() =>
+  setupImageGrid({
+    masonry: (element, options) => new Masonry(element, options),
+    imagesLoaded: (element) => imagesLoaded(element),
+    infiniteScroll: (element, options) => {
+      // make imagesLoaded available for InfiniteScroll
+      // TODO: update the upstream type definitions, when I have time.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (InfiniteScroll as any).imagesLoaded = imagesLoaded;
+      return new InfiniteScroll(element, options);
+    },
+  }),
+);
