@@ -85,7 +85,9 @@ describe('loadBootJSON', () => {
     const got: unknown[] = [];
     await loadBootJSON(
       'stats-url',
-      (d) => got.push(d),
+      (d) => {
+        got.push(d);
+      },
       page('data-stats-url="/stats"'),
       env(fetch),
     );
@@ -101,13 +103,56 @@ describe('loadBootJSON', () => {
     const got: unknown[] = [];
     await loadBootJSON(
       'stats-url',
-      (d) => got.push(d),
+      (d) => {
+        got.push(d);
+      },
       page('data-stats-url="/stats"'),
       env(fetch),
     );
     assert.deepEqual(got, []);
     assert.equal(mock.callCount(), 1);
     assert.match(String(mock.calls[0].arguments[0]), /\/stats/);
+  });
+
+  it("waits for the callback's promise", async () => {
+    const { fetch } = fakeFetch(() => Promise.resolve(new Response('1')));
+    let done = false;
+    await loadBootJSON(
+      'stats-url',
+      () =>
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            done = true;
+            resolve();
+          }, 0),
+        ),
+      page('data-stats-url="/stats"'),
+      env(fetch),
+    );
+    assert.ok(done);
+  });
+
+  it('passes on errors from the callback, without logging', async (t) => {
+    const mock = errors(t);
+    const { fetch } = fakeFetch(() => Promise.resolve(new Response('1')));
+    const thrown = new RangeError('bad data');
+    for (const callback of [
+      () => {
+        throw thrown;
+      },
+      () => Promise.reject(thrown),
+    ]) {
+      await assert.rejects(
+        loadBootJSON(
+          'stats-url',
+          callback,
+          page('data-stats-url="/stats"'),
+          env(fetch),
+        ),
+        (err) => err === thrown,
+      );
+    }
+    assert.equal(mock.callCount(), 0);
   });
 
   it('logs a missing URL, without a request', async (t) => {

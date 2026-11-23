@@ -7,6 +7,10 @@
 - In the image viewer, the up arrow key now toggles the full screen
   state, as intended; the key was bound under a wrong name, so it did
   nothing.
+- On the statistics pages, a chart that fails to draw no longer stops
+  the charts after it from being drawn; such failures, chart data of an
+  unexpected shape, and an unknown chart page are now logged to the
+  browser console instead of passing silently.
 
 ### Internal changes
 
