@@ -48,12 +48,14 @@ export function bootJSON<T>(
 
 /**
  * Gets the JSON document at the URL in the boot element's `data-<name>`
- * attribute, and passes it to the callback. Failures (including a
- * missing attribute) are logged to the console. Never fails.
+ * attribute, and passes it to the callback, waiting for the promise the
+ * callback returns, if any. Failures to get the document (including a
+ * missing attribute) are logged to the console; only errors from the
+ * callback reject the returned promise.
  */
 export function loadBootJSON<T>(
   name: string,
-  onData: (data: T) => void,
+  onData: (data: T) => void | Promise<void>,
   doc: Pick<Document, 'getElementById'> = document,
   env: RequestEnv = {},
 ): Promise<void> {

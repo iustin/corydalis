@@ -142,10 +142,10 @@ describe('statistics pages', () => {
 });
 
 describe('information pages', () => {
-  const trendsX = {
+  const trendsX = (text: string) => ({
     ...TRENDS,
-    xaxis: { title: { text: 'Per lens timeline stats' } },
-  };
+    xaxis: { title: { text } },
+  });
 
   it("shows a camera's information", () => {
     const charts = cameraInfoCharts(info);
@@ -159,7 +159,7 @@ describe('information pages', () => {
       yaxis: IMAGE_COUNT_Y,
       xaxis: { automargin: true, title: { text: 'Per lens total images' } },
     });
-    assert.deepEqual(charts[2].layout, trendsX);
+    assert.deepEqual(charts[2].layout, trendsX('Per lens timeline stats'));
   });
 
   it("shows a lens's information", () => {
@@ -174,7 +174,7 @@ describe('information pages', () => {
       yaxis: IMAGE_COUNT_Y,
       xaxis: { automargin: true, title: { text: 'Per camera total images' } },
     });
-    assert.deepEqual(charts[2].layout, trendsX);
+    assert.deepEqual(charts[2].layout, trendsX('Per lens timeline stats'));
   });
 });
 
@@ -259,6 +259,14 @@ describe('curate page', () => {
   });
 });
 
+const curateData: CurateSeries = {
+  global: data('global'),
+  lenses: data('lenses'),
+  folders: data('folders'),
+  years: data('years'),
+  months: data('months'),
+};
+
 /** A fake Plotly.newPlot, recording the charts drawn. */
 function fakePlot() {
   const drawn: Chart[] = [];
@@ -272,12 +280,77 @@ function fakePlot() {
 }
 
 describe('drawCharts', () => {
-  it('draws each chart, with the shared configuration', () => {
+  it('draws each chart, with the shared configuration', async () => {
     const { drawn, configs, newPlot } = fakePlot();
     const charts = cameraStatsCharts(stats);
-    drawCharts(charts, newPlot);
+    await drawCharts(charts, newPlot);
     assert.deepEqual(drawn, charts);
     assert.deepEqual(configs, [plotConfig, plotConfig]);
+  });
+
+  it('waits for the charts to be drawn', async () => {
+    const done: string[] = [];
+    const newPlot: NewPlot = (id) =>
+      new Promise<void>((resolve) =>
+        setTimeout(() => {
+          done.push(id);
+          resolve();
+        }, 0),
+      );
+    await drawCharts(cameraStatsCharts(stats), newPlot);
+    assert.deepEqual(done, ['cameraChart', 'trendsChart']);
+  });
+
+  it('logs failing charts, and draws the others', async (t: TestContext) => {
+    const errors = t.mock.method(console, 'error', () => {}).mock;
+    const { drawn, newPlot } = fakePlot();
+    const failing: NewPlot = (id, data, layout, config) => {
+      if (id === 'cameraChart') {
+        throw new TypeError('no element');
+      }
+      if (id === 'lensChart') {
+        return Promise.reject(new RangeError('bad data'));
+      }
+      return newPlot(id, data, layout, config);
+    };
+    const charts = curateCharts(curateData);
+    await drawCharts(charts, failing);
+    assert.deepEqual(
+      drawn.map((c) => c.id),
+      ['folderChart', 'yearChart', 'monthChart'],
+    );
+    assert.equal(errors.callCount(), 2);
+    const [first, second] = errors.calls.map((c) => c.arguments as unknown[]);
+    assert.match(String(first[0]), /cameraChart/);
+    assert.ok(first[1] instanceof TypeError);
+    assert.match(String(second[0]), /lensChart/);
+    assert.ok(second[1] instanceof RangeError);
+  });
+
+  it('accepts a newPlot not returning a promise', async () => {
+    const drawn: string[] = [];
+    await drawCharts(cameraStatsCharts(stats), (id) => {
+      drawn.push(id);
+      return undefined;
+    });
+    assert.deepEqual(drawn, ['cameraChart', 'trendsChart']);
+  });
+
+  it('logs charts whose data is not a list', async (t: TestContext) => {
+    const errors = t.mock.method(console, 'error', () => {}).mock;
+    const { drawn, newPlot } = fakePlot();
+    const charts = cameraStatsCharts({
+      imagecount: undefined,
+      trends: [],
+    } as unknown as StatsSeries);
+    await drawCharts(charts, newPlot);
+    assert.deepEqual(
+      drawn.map((c) => c.id),
+      ['trendsChart'],
+    );
+    assert.equal(errors.callCount(), 1);
+    assert.match(String(errors.calls[0].arguments[0]), /cameraChart/);
+    assert.ok(errors.calls[0].arguments[1] instanceof TypeError);
   });
 });
 
@@ -315,20 +388,13 @@ describe('showPageCharts', () => {
     );
   });
 
-  const curate: CurateSeries = {
-    global: data('global'),
-    lenses: data('lenses'),
-    folders: data('folders'),
-    years: data('years'),
-    months: data('months'),
-  };
   // Each page, with its data and the charts expected from it.
   for (const [name, series, charts] of [
     ['camera-stats', stats, cameraStatsCharts(stats)],
     ['lens-stats', stats, lensStatsCharts(stats)],
     ['camera-info', info, cameraInfoCharts(info)],
     ['lens-info', info, lensInfoCharts(info)],
-    ['curate', curate, curateCharts(curate)],
+    ['curate', curateData, curateCharts(curateData)],
   ] as const) {
     it(`draws the ${name} charts`, async () => {
       const url = CHART_PAGES[name].url;
@@ -344,22 +410,106 @@ describe('showPageCharts', () => {
     });
   }
 
-  for (const attrs of ['', 'data-init=""', 'data-init="other"']) {
-    it(`does nothing for ${JSON.stringify(attrs)}`, async () => {
+  it('does nothing on pages without charts', async (t: TestContext) => {
+    const errors = t.mock.method(console, 'error', () => {}).mock;
+    const { urls, env } = server({});
+    const { drawn, newPlot } = fakePlot();
+    await showPageCharts(newPlot, page(''), env);
+    assert.deepEqual(urls, []);
+    assert.deepEqual(drawn, []);
+    assert.equal(errors.callCount(), 0);
+  });
+
+  // Unknown names, including inherited properties of the page map.
+  for (const name of ['', 'other', 'toString']) {
+    it(`logs the unknown page ${JSON.stringify(name)}`, async (t: TestContext) => {
+      const errors = t.mock.method(console, 'error', () => {}).mock;
       const { urls, env } = server({});
       const { drawn, newPlot } = fakePlot();
-      await showPageCharts(newPlot, page(attrs), env);
+      await showPageCharts(newPlot, page(`data-init="${name}"`), env);
       assert.deepEqual(urls, []);
       assert.deepEqual(drawn, []);
+      assert.equal(errors.callCount(), 1);
+      assert.ok(
+        String(errors.calls[0].arguments[0]).includes(JSON.stringify(name)),
+      );
     });
   }
 
-  it('ignores inherited names', async () => {
-    const { urls, env } = server({});
+  it('logs data the charts cannot be built from', async (t: TestContext) => {
+    const errors = t.mock.method(console, 'error', () => {}).mock;
+    const { env } = server(null);
     const { drawn, newPlot } = fakePlot();
-    await showPageCharts(newPlot, page('data-init="toString"'), env);
-    assert.deepEqual(urls, []);
+    await showPageCharts(
+      newPlot,
+      page('data-init="curate" data-curate-url="/data"'),
+      env,
+    );
     assert.deepEqual(drawn, []);
+    assert.equal(errors.callCount(), 1);
+    assert.match(String(errors.calls[0].arguments[0]), /curate/);
+    assert.ok(errors.calls[0].arguments[1] instanceof TypeError);
+  });
+
+  // Data of the wrong shape, giving charts without a list of traces.
+  for (const value of [{}, 5, 'x']) {
+    it(`logs the unexpected data ${JSON.stringify(value)}`, async (t: TestContext) => {
+      const errors = t.mock.method(console, 'error', () => {}).mock;
+      const { env } = server(value);
+      const { drawn, newPlot } = fakePlot();
+      await showPageCharts(
+        newPlot,
+        page('data-init="curate" data-curate-url="/data"'),
+        env,
+      );
+      assert.deepEqual(drawn, []);
+      assert.equal(errors.callCount(), 5);
+    });
+  }
+
+  it('waits for the charts to be drawn', async (t: TestContext) => {
+    const errors = t.mock.method(console, 'error', () => {}).mock;
+    const { env } = server(stats);
+    const done: string[] = [];
+    const slow: NewPlot = (id) =>
+      new Promise<void>((resolve, reject) =>
+        setTimeout(() => {
+          if (id === 'cameraChart') {
+            reject(new Error('no'));
+          } else {
+            done.push(id);
+            resolve();
+          }
+        }, 0),
+      );
+    await showPageCharts(
+      slow,
+      page('data-init="camera-stats" data-camerastats-url="/data"'),
+      env,
+    );
+    assert.deepEqual(done, ['trendsChart']);
+    assert.equal(errors.callCount(), 1);
+  });
+
+  it('logs charts failing to draw, and draws the others', async (t: TestContext) => {
+    const errors = t.mock.method(console, 'error', () => {}).mock;
+    const { env } = server(stats);
+    const { drawn, newPlot } = fakePlot();
+    const failing: NewPlot = (id, ...rest) =>
+      id === 'cameraChart'
+        ? Promise.reject(new Error('no'))
+        : newPlot(id, ...rest);
+    await showPageCharts(
+      failing,
+      page('data-init="camera-stats" data-camerastats-url="/data"'),
+      env,
+    );
+    assert.deepEqual(
+      drawn.map((c) => c.id),
+      ['trendsChart'],
+    );
+    assert.equal(errors.callCount(), 1);
+    assert.match(String(errors.calls[0].arguments[0]), /cameraChart/);
   });
 
   it('logs a missing data URL', async (t: TestContext) => {

@@ -314,18 +314,40 @@ export const CHART_PAGES: Record<string, ChartPage> = {
   curate: { url: 'curate-url', charts: curateCharts },
 };
 
-/** Draws the charts, with the shared configuration. */
-export function drawCharts(charts: Chart[], newPlot: NewPlot): void {
-  for (const chart of charts) {
-    void newPlot(chart.id, chart.data, chart.layout, plotConfig);
-  }
+/**
+ * Draws the charts, with the shared configuration. A chart that fails
+ * to draw (by throwing, or by rejecting), or whose data is not a list
+ * of traces, is logged, and doesn't stop the others. The returned
+ * promise resolves once all are drawn, and never rejects.
+ */
+export function drawCharts(charts: Chart[], newPlot: NewPlot): Promise<void> {
+  const draws = charts.map(({ id, data, layout }) => {
+    const logFailure = (err: unknown) => {
+      console.error(`Failed to draw chart ${id}:`, err);
+    };
+    if (!Array.isArray(data)) {
+      logFailure(new TypeError(`Chart data is not a list: ${typeof data}`));
+      return Promise.resolve();
+    }
+    try {
+      return Promise.resolve(newPlot(id, data, layout, plotConfig)).then(
+        () => {},
+        logFailure,
+      );
+    } catch (err) {
+      logFailure(err);
+      return Promise.resolve();
+    }
+  });
+  return Promise.all(draws).then(() => {});
 }
 
 /**
  * Draws the charts of the page, as named by its boot data, once their
- * data is loaded. Does nothing on pages without charts. Failures to get
- * the data are logged (see loadBootJSON), but errors while drawing (e.g.
- * on unexpected data) reject the returned promise.
+ * data is loaded. Does nothing on pages without charts (no `data-init`).
+ * Never fails: an unknown page name, failures to get the data (see
+ * loadBootJSON), unexpected data, and charts failing to draw (see
+ * drawCharts) are logged to the console.
  */
 export function showPageCharts(
   newPlot: NewPlot,
@@ -333,16 +355,23 @@ export function showPageCharts(
   env: RequestEnv = {},
 ): Promise<void> {
   const name = bootData('init', doc);
-  if (
-    name === null ||
-    !Object.prototype.hasOwnProperty.call(CHART_PAGES, name)
-  ) {
+  if (name === null) {
+    return Promise.resolve();
+  }
+  if (!Object.prototype.hasOwnProperty.call(CHART_PAGES, name)) {
+    console.error(`Unknown chart page: ${JSON.stringify(name)}`);
     return Promise.resolve();
   }
   const page = CHART_PAGES[name];
   return loadBootJSON<never>(
     page.url,
-    (series) => drawCharts(page.charts(series), newPlot),
+    (series) => {
+      try {
+        return drawCharts(page.charts(series), newPlot);
+      } catch (err) {
+        console.error(`Unexpected data for the ${name} charts:`, err);
+      }
+    },
     doc,
     env,
   );
