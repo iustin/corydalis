@@ -50,8 +50,8 @@ route_name() {
 }
 
 # Files that the server serves; static/tmp is written at runtime, and
-# the fonts are written by esbuild, only for those that the CSS bundle
-# uses (which refers to them by relative URLs, not route names).
+# static/corydalis/fonts is written by esbuild, with only the fonts the
+# CSS bundle uses, which it refers to by relative URLs, not route names.
 while IFS= read -r file; do
   rel=${file#static/}
   name=$(route_name "$rel")

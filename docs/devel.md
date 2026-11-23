@@ -64,7 +64,7 @@ Then continue with next section.
 
 This is for normal, incremental work. See below for version upgrades.
 
-You need up to two terminals, depending on which code you edit:
+You need up to three terminals, depending on which code you edit:
 
 - one terminal for the Haskell part, in which you run `make devel`; this will
   rebuild Haskell sources and reload the development site.
@@ -103,7 +103,7 @@ Note that the route names include a hash of each file's contents, as
 the `etag` parameter of the URLs, so that browsers can cache the files
 for long. This hash is computed when `Settings/StaticFiles.hs` is
 compiled, but GHC doesn't know that the module depends on the static
-files: after changing only them (e.g. the JavaScript bundles), neither
+files: after changing only them (e.g. the JavaScript or CSS bundles), neither
 `stack build` nor touching the module recompiles it (GHC compares the
 contents of the sources), and the URLs keep the old hash, so browsers
 may keep using their cached copies. `make release`, which starts from a
@@ -175,8 +175,8 @@ the process is:
 - now build/run/test the code.
 
 After each package change, run `make bootstrap` as a one-shot to rebuild the
-javascript outputs, or run `make ts-watch` for continuous rebuild (although this
-might be tricky during typescript updates/etc.).
+JavaScript and CSS bundles, or run `npm run watch` for continuous rebuild
+(although this might be tricky during typescript updates/etc.).
 
 ## Releasing a new version
 
