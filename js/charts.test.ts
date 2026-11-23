@@ -174,7 +174,7 @@ describe('information pages', () => {
       yaxis: IMAGE_COUNT_Y,
       xaxis: { automargin: true, title: { text: 'Per camera total images' } },
     });
-    assert.deepEqual(charts[2].layout, trendsX('Per lens timeline stats'));
+    assert.deepEqual(charts[2].layout, trendsX('Per camera timeline stats'));
   });
 });
 
