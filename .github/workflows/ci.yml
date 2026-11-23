@@ -146,6 +146,79 @@ jobs:
       - name: Build documentation
         run: make doc
 
+  e2e:
+    name: End-to-end checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Haskell
+        uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Haskell dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.stack
+          key: v3-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
+          restore-keys: |
+            v3-haskell-deps-${{ runner.os }}-store-
+            v3-haskell-deps-
+            v2-haskell-deps-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install exiftool and ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libimage-exiftool-perl imagemagick
+
+      - name: Create git-version
+        run: make git-version
+
+      - name: Bootstrap npm/typescript code
+        run: make bootstrap
+
+      # Playwright is not a project dependency (see e2e/README.md), so
+      # install it outside the project.
+      - name: Cache the Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: v1-playwright-${{ runner.os }}-1.63.0
+
+      - name: Install Playwright with Chromium
+        run: |
+          mkdir -p ~/playwright
+          npm install --prefix ~/playwright --no-save --no-package-lock playwright@1.63.0
+          ~/playwright/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Setup GHC for the resolver
+        run: stack setup --no-terminal
+
+      - name: Run the e2e checks
+        run: NODE_PATH=$HOME/playwright/node_modules make e2e
+
+      - name: Upload the e2e output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-output
+          path: |
+            _run/e2e/out/
+            _run/e2e/*/server.log
+          if-no-files-found: ignore
+
   release:
     name: Build ${{ matrix.name }}
     # Releases take long to build, so don't build them for pull requests
