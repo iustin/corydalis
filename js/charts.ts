@@ -196,7 +196,7 @@ export function lensInfoCharts(series: InfoSeries): Chart[] {
     {
       id: 'trendsChart',
       data: series.trends.trends,
-      layout: trendsLayout('Per lens timeline stats'),
+      layout: trendsLayout('Per camera timeline stats'),
     },
   ];
 }

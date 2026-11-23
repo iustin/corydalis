@@ -11,6 +11,9 @@
   the charts after it from being drawn; such failures, chart data of an
   unexpected shape, and an unknown chart page are now logged to the
   browser console instead of passing silently.
+- On a lens's page, the timeline chart's axis now says "Per camera
+  timeline stats", as it shows the lens's use per camera, instead of
+  "Per lens timeline stats".
 
 ### Internal changes
 
