@@ -73,6 +73,10 @@ const dataRows = (table: HTMLTableElement) =>
 const names = (table: HTMLTableElement) =>
   dataRows(table).map((r) => r.cells[1].textContent?.trim());
 
+/** The first column texts of the shown rows, in order. */
+const firstColumn = (table: HTMLTableElement) =>
+  dataRows(table).map((r) => r.cells[0].textContent?.trim());
+
 /** The texts of the group header rows, in order. */
 const groups = (table: HTMLTableElement) =>
   [...table.querySelectorAll('tr.group-header')].map((r) =>
@@ -240,6 +244,29 @@ describe('enhanceTable', () => {
     const option = table.querySelectorAll('option')[1];
     assert.equal(option.textContent, '<img src=x onerror=alert(1)>');
     assert.equal(option.childElementCount, 0);
+  });
+
+  it('labels select options by data-text for empty cells', () => {
+    const table = enhanced(`
+      <table class="sortable"><thead><tr>
+        <th>Name</th><th class="filter-select">Status</th>
+      </tr></thead><tbody>
+        <tr><td>a</td><td data-text="Raw"></td></tr>
+        <tr><td>b</td></tr>
+      </tbody></table>`);
+    const options = [...table.querySelectorAll('option')].map((o) => [
+      o.value,
+      o.textContent,
+    ]);
+    // The row without the cell has no value to filter by.
+    assert.deepEqual(options, [
+      ['', ''],
+      ['raw', 'Raw'],
+    ]);
+    const select = table.querySelector('select')!;
+    select.value = 'raw';
+    select.dispatchEvent(new select.ownerDocument.defaultView!.Event('change'));
+    assert.deepEqual(firstColumn(table), ['a']);
   });
 
   it('leaves the footer alone', () => {

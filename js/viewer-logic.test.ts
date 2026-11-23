@@ -178,7 +178,10 @@ describe('Cory', () => {
     const ids = [cory.prev, cory.next, cory.state.img].map(
       (i) => (i as unknown as { id: number }).id,
     );
-    assert.deepEqual(ids.sort((x, y) => x - y), [0, 1, 2]);
+    assert.deepEqual(
+      ids.sort((x, y) => x - y),
+      [0, 1, 2],
+    );
   });
 
   it('pans within the limits, scaled by the pixel ratio', () => {

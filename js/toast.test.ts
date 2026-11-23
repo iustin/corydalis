@@ -18,12 +18,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { JSDOM } from 'jsdom';
+
 import {
   TOAST_DELAY,
   TOAST_STYLES,
   type ToastKind,
   parseToastKind,
+  TOAST_CONTAINER_ID,
   removeWhenHidden,
+  showToast,
   toastClasses,
   toastOptions,
 } from './toast.ts';
@@ -106,5 +110,89 @@ describe('removeWhenHidden', () => {
     toast.dispatchEvent(new Event('hidden.bs.toast'));
     toast.dispatchEvent(new Event('hidden.bs.toast'));
     assert.deepEqual(toast.calls, ['dispose', 'remove']);
+  });
+});
+
+describe('showToast', () => {
+  /** Shows a notification in a page, with a fake Bootstrap Toast. */
+  function show(kind: ToastKind, text: string, body: string) {
+    const doc = new JSDOM(body).window.document;
+    const made: { element: Element; options: object; shown: number }[] = [];
+    let disposed = 0;
+    showToast(
+      (element, options) => {
+        const toast = { element, options, shown: 0 };
+        made.push(toast);
+        return {
+          show: () => {
+            toast.shown++;
+          },
+          dispose: () => {
+            disposed++;
+          },
+        };
+      },
+      text,
+      kind,
+      doc,
+    );
+    assert.equal(made.length, 1);
+    return { doc, ...made[0], disposed: () => disposed };
+  }
+  const CONTAINER = `<div id="${TOAST_CONTAINER_ID}"></div>`;
+
+  it('shows the text in the container', () => {
+    const { doc, element, options, shown } = show(
+      'success',
+      '<b>done</b>',
+      CONTAINER,
+    );
+    assert.equal(element.parentElement?.id, TOAST_CONTAINER_ID);
+    assert.deepEqual([...element.classList], toastClasses('success'));
+    // As text, not HTML.
+    assert.equal(
+      element.querySelector('.toast-body')?.textContent,
+      '<b>done</b>',
+    );
+    assert.equal(element.querySelector('b'), null);
+    assert.deepEqual(options, toastOptions('success'));
+    assert.equal(shown, 1);
+    assert.equal(element.getAttribute('role'), 'status');
+    assert.equal(element.getAttribute('aria-live'), 'polite');
+    assert.equal(element.getAttribute('aria-atomic'), 'true');
+    assert.equal(doc.querySelectorAll('.toast').length, 1);
+  });
+
+  it('makes errors interrupt screen readers', () => {
+    const { element } = show('danger', 'failed', CONTAINER);
+    assert.equal(element.getAttribute('role'), 'alert');
+    assert.equal(element.getAttribute('aria-live'), 'assertive');
+  });
+
+  for (const kind of ['success', 'info', 'warning', 'danger'] as const) {
+    it(`styles the close button of ${kind} notifications`, () => {
+      const { element } = show(kind, 'x', CONTAINER);
+      const close = element.querySelector('button');
+      assert.ok(close);
+      assert.equal(close.type, 'button');
+      assert.equal(close.getAttribute('data-bs-dismiss'), 'toast');
+      assert.ok(close.getAttribute('aria-label'));
+      assert.equal(
+        close.classList.contains('btn-close-white'),
+        TOAST_STYLES[kind].lightCloseButton,
+      );
+    });
+  }
+
+  it('falls back to the body without a container', () => {
+    const { doc, element } = show('info', 'x', '<p></p>');
+    assert.equal(element.parentElement, doc.body);
+  });
+
+  it('removes the notification once hidden', () => {
+    const { doc, element, disposed } = show('info', 'x', CONTAINER);
+    element.dispatchEvent(new doc.defaultView!.Event('hidden.bs.toast'));
+    assert.equal(disposed(), 1);
+    assert.equal(element.isConnected, false);
   });
 });

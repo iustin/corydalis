@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { JSDOM } from 'jsdom';
+
 import { CSRF_HEADER } from './csrf.ts';
 import {
   RequestError,
@@ -136,6 +138,35 @@ describe('requestJSON', () => {
       kind: 'error',
       details: 'Failed to fetch',
     });
+  });
+
+  it('fails with status 0 if fetch fails with a non-error', async () => {
+    const fetch = (() =>
+      Promise.reject('offline')) as unknown as typeof globalThis.fetch;
+    await assert.rejects(
+      getJSON('/x', { fetch, pageUrl: PAGE }),
+      (err) =>
+        err instanceof RequestError &&
+        err.status === 0 &&
+        err.message === 'offline',
+    );
+  });
+
+  it("defaults to the page's token and the browser's fetch", async (t) => {
+    const doc = new JSDOM('<meta name="csrf-token" content="t1">', {
+      url: PAGE,
+    }).window.document;
+    const { fetch, sent } = fakeFetch(() => json({}));
+    t.mock.method(globalThis, 'fetch', fetch);
+    const global = globalThis as { document?: Document };
+    global.document = doc;
+    try {
+      await requestJSON('PUT', '/x');
+    } finally {
+      delete global.document;
+    }
+    assert.equal(sent.length, 1);
+    assert.equal(headers(sent[0])[CSRF_HEADER], 't1');
   });
 
   it('fails with a parser error if the reply is not JSON', async () => {
