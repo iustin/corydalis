@@ -1891,9 +1891,9 @@ spec = parallel $ do
         -- Empty files are never valid images.
         upToDateCacheFile path 0 `shouldReturn` Nothing
         writeNonEmpty path
-        upToDateCacheFile path 0 >>= \case
-          Just t  -> t `shouldSatisfy` (> 0)
-          Nothing -> expectationFailure "expected the cache file to be up to date"
+        -- The time of its last change (as filePathLastTouch).
+        touched <- filePathLastTouch path
+        upToDateCacheFile path 0 `shouldReturn` Just touched
         -- Older than its source.
         upToDateCacheFile path 4e9 `shouldReturn` Nothing
     describe "imageViewSource" $ do
