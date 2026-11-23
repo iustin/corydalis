@@ -30,8 +30,9 @@ import           Data.Either      (isLeft, isRight)
 import qualified Data.Map         as Map
 import qualified Data.Set         as Set
 import qualified Data.Text.Short  as TS
-import           Data.Time        (LocalTime (..), ZonedTime (..), midnight,
-                                   utc)
+import           Data.Time        (LocalTime (..), ZonedTime (..),
+                                   midnight, utc,
+                                   zonedTimeToLocalTime)
 import qualified Control.Exception
 import           Control.Exception (AsyncException (ThreadKilled))
 import           Data.Time.Clock.POSIX (POSIXTime)
@@ -1702,6 +1703,97 @@ spec = parallel $ do
         launchScanFileSystem ctx
         _ <- waitForScan ctx
         getSearchResults ctx m2 [] `shouldReturn` m2
+    describe "countImagesBy" $ do
+      it "counts images by attribute, the most frequent first" $ \ctx -> do
+        let config = ctxConfig ctx
+            imgs = [ simpleUntrackedImage config f n
+                   | (f, n) <- [("a", "1"), ("b", "1"), ("b", "2"), ("c", "1")
+                               , ("c", "2"), ("c", "3")] ]
+        countImagesBy (Just . imgParent) imgs `shouldBe`
+          [(3, "c"), (2, "b"), (1, "a")]
+      it "orders equal counts by descending attribute" $ \ctx -> do
+        let config = ctxConfig ctx
+            imgs = map (simpleUntrackedImage config "f") ["x", "y", "z"]
+        countImagesBy (Just . imgName) imgs `shouldBe`
+          [(1, "z"), (1, "y"), (1, "x")]
+      it "skips images without the attribute" $ \ctx -> do
+        let config = ctxConfig ctx
+            imgs = map (simpleUntrackedImage config "f") ["x", "y"]
+            attr i = if imgName i == "x" then Nothing else Just (imgName i)
+        countImagesBy attr imgs `shouldBe` [(1, "y")]
+        countImagesBy (const (Nothing :: Maybe Int)) imgs `shouldBe` []
+    describe "imageDateRange" $ do
+      let dated config name date =
+            exifImage config "f" name (\e -> e { exifCreateDate = date })
+          day = localDay . zonedTimeToLocalTime . etTime
+          dates = fmap (\((d1, a1), (d2, a2)) -> (day d1, a1, day d2, a2))
+      it "finds the earliest and the latest dated images" $ \ctx -> do
+        let config = ctxConfig ctx
+            imgs = [ dated config "b" (Just (exifDate 2021 1 1))
+                   , dated config "a" (Just (exifDate 2019 1 1))
+                   , dated config "n" Nothing
+                   , dated config "c" (Just (exifDate 2020 1 1))
+                   ]
+        dates (imageDateRange imgName imgs) `shouldBe`
+          Just (fromGregorian 2019 1 1, "a", fromGregorian 2021 1 1, "b")
+      it "orders images with the same date by attribute" $ \ctx -> do
+        let config = ctxConfig ctx
+            imgs = [ dated config n (Just (exifDate 2021 1 1)) | n <- ["y", "x", "z"] ]
+        fmap (\((_, a1), (_, a2)) -> (a1, a2)) (imageDateRange imgName imgs)
+          `shouldBe` Just ("x", "z")
+      it "is the same image for a single dated image" $ \ctx -> do
+        let imgs = [dated (ctxConfig ctx) "x" (Just (exifDate 2021 1 1))]
+        fmap (\((_, a1), (_, a2)) -> (a1, a2)) (imageDateRange imgName imgs)
+          `shouldBe` Just ("x", "x")
+      it "is nothing without dated images" $ \ctx -> do
+        let imgs = [dated (ctxConfig ctx) "x" Nothing]
+        dates (imageDateRange imgName imgs) `shouldBe` Nothing
+        dates (imageDateRange imgName []) `shouldBe` Nothing
+    describe "imageNeighbours" $ do
+      let results config =
+            let mk (f, n) = simpleUntrackedImage config f n
+                imgs = map mk [("a", "1"), ("b", "1"), ("b", "2"), ("b", "3"), ("c", "1")]
+                fldrs = map mk [("a", "1"), ("b", "1"), ("c", "1")]
+            in ( Map.fromList [((imgParent i, imageTimeKey i), i) | i <- imgs]
+               , Map.fromList [(imgParent i, i) | i <- fldrs])
+          names = fmap (\i -> (imgParent i, imgName i))
+          namesOf n = ( names (Just (inFirst n)), names (inPrevFolder n)
+                      , names (inPrev n), names (inNext n)
+                      , names (inNextFolder n), names (Just (inLast n)))
+      it "finds all neighbours of an image in the middle" $ \ctx -> do
+        let config = ctxConfig ctx
+            img = simpleUntrackedImage config "b" "2"
+        namesOf (imageNeighbours (results config) img) `shouldBe`
+          ( Just ("a", "1"), Just ("a", "1"), Just ("b", "1"), Just ("b", "3")
+          , Just ("c", "1"), Just ("c", "1"))
+      it "crosses folder boundaries for the previous and next images" $ \ctx -> do
+        let config = ctxConfig ctx
+            n = imageNeighbours (results config) (simpleUntrackedImage config "b" "1")
+            n' = imageNeighbours (results config) (simpleUntrackedImage config "b" "3")
+        names (inPrev n) `shouldBe` Just ("a", "1")
+        names (inNext n') `shouldBe` Just ("c", "1")
+      it "has no previous items for the first image" $ \ctx -> do
+        let config = ctxConfig ctx
+            img = simpleUntrackedImage config "a" "1"
+        namesOf (imageNeighbours (results config) img) `shouldBe`
+          ( Just ("a", "1"), Nothing, Nothing, Just ("b", "1")
+          , Just ("b", "1"), Just ("c", "1"))
+      it "has no next items for the last image" $ \ctx -> do
+        let config = ctxConfig ctx
+            img = simpleUntrackedImage config "c" "1"
+        namesOf (imageNeighbours (results config) img) `shouldBe`
+          ( Just ("a", "1"), Just ("b", "1"), Just ("b", "3"), Nothing
+          , Nothing, Just ("c", "1"))
+      it "uses the image itself as first and last for a single result" $ \ctx -> do
+        let img = simpleUntrackedImage (ctxConfig ctx) "a" "1"
+            single = ( Map.singleton (imgParent img, imageTimeKey img) img
+                     , Map.singleton (imgParent img) img)
+        imageNeighbours single img `shouldBe`
+          ImageNeighbours img Nothing Nothing Nothing Nothing img
+      it "uses the image itself as first and last for empty results" $ \ctx -> do
+        let img = simpleUntrackedImage (ctxConfig ctx) "a" "1"
+        imageNeighbours (Map.empty, Map.empty) img `shouldBe`
+          ImageNeighbours img Nothing Nothing Nothing Nothing img
   withUnscannedContext $ do
     describe "scan tool limits" $ do
       -- Scans a folder with a picture, with the given time limits for

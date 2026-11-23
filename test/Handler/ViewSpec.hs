@@ -27,6 +27,8 @@ import           Pics
 import           TestImport
 
 import           Data.Aeson
+import qualified Data.Aeson                     as Aeson (Key)
+import           Data.Aeson.Types               (parseMaybe)
 import qualified Data.ByteString                as BS
 import qualified Data.Text.Short                as TS
 import           Network.HTTP.Types.Header      (HeaderName)
@@ -140,6 +142,34 @@ checkRawContents ctype = do
   liftIO $ policies `shouldSatisfy` elem "sandbox"
   checkPrivateNoCache
 
+-- | Looks up a path of keys in a JSON value.
+jsonAt :: [Aeson.Key] -> Value -> Maybe Value
+jsonAt []     v = Just v
+jsonAt (k:ks) v = parseMaybe (withObject "object" (.: k)) v >>= jsonAt ks
+
+-- | Decodes the body of the last response as JSON.
+responseJson :: YesodExample App Value
+responseJson = withResponse $ \response ->
+  case eitherDecode (simpleBody response) of
+    Left err -> liftIO (expectationFailure ("Invalid JSON: " ++ err)) >> return Null
+    Right v  -> return v
+
+-- | Checks the value at the given path in a JSON value.
+jsonShouldBe :: Value -> [Aeson.Key] -> Value -> YesodExample App ()
+jsonShouldBe v path expected = liftIO $ jsonAt path v `shouldBe` Just expected
+
+-- | Adds the images used by the navigation tests, after the initial
+-- scan (which would otherwise drop them): folder @nav-a@ with image
+-- @1@, and folder @nav-b@ with images @1@ and @2@.
+addNavigationImages :: YesodExample App ()
+addNavigationImages = do
+  config <- ctxConfig . appContext <$> getTestYesod
+  injectImagesAfterScan
+               [ exifImage config "nav-a" "1" id
+               , exifImage config "nav-b" "1" id
+               , exifImage config "nav-b" "2" id
+               ]
+
 spec :: Spec
 spec = parallel $ do
   describe "Internal functionality" $ do
@@ -189,8 +219,82 @@ spec = parallel $ do
          login
          checkNotFound route
     describe "checks the view page" $ do
-      it "loads the view page and checks it looks right" $
-        const pending
+      it "loads the view page and checks it looks right" $ do
+        addNavigationImages
+        login
+        get $ ViewR "nav-b" "1"
+        statusIs 200
+        htmlAnyContain "title" "image nav-b/1"
+        -- The navigation information is embedded in the page.
+        bodyContains "/image/info/nav-b/1"
+        bodyContains "/image/info/nav-b/2"
+      it "returns 404 for an image filtered out by the search" $ do
+        addNavigationImages
+        login
+        request $ do
+          setUrl $ ViewR "nav-b" "1"
+          addGetParam "folder" "nav-a"
+        statusIs 404
+    describe "image information" $ do
+      it "returns the navigation information for an image" $ do
+        addNavigationImages
+        login
+        get $ ImageInfoR "nav-b" "1"
+        statusIs 200
+        v <- responseJson
+        jsonShouldBe v ["folder"] "nav-b"
+        jsonShouldBe v ["image"] "1"
+        jsonShouldBe v ["year"] "?"
+        jsonShouldBe v ["current", "name"] "1"
+        jsonShouldBe v ["current", "info"] "http://localhost:3000/image/info/nav-b/1?all=0"
+        jsonShouldBe v ["current", "view"] "http://localhost:3000/view/nav-b/1?all=0"
+        jsonShouldBe v ["current", "bytes"] "http://localhost:3000/image/bytes/nav-b/1"
+        jsonShouldBe v ["current", "movie"] Null
+        jsonShouldBe v ["first", "info"] "http://localhost:3000/image/info/nav-a/1?all=0"
+        jsonShouldBe v ["prev", "info"] "http://localhost:3000/image/info/nav-a/1?all=0"
+        jsonShouldBe v ["next", "info"] "http://localhost:3000/image/info/nav-b/2?all=0"
+        jsonShouldBe v ["last", "info"] "http://localhost:3000/image/info/nav-b/2?all=0"
+        jsonShouldBe v ["prevfolder", "info"] "http://localhost:3000/image/info/nav-a/1?all=0"
+        jsonShouldBe v ["nextfolder"] Null
+      it "renders the image's exif information" $ do
+        addNavigationImages
+        login
+        get $ ImageInfoR "nav-a" "1"
+        statusIs 200
+        v <- responseJson
+        case jsonAt ["current", "exifhtml"] v of
+          Just (String html) -> liftIO $ do
+            html `shouldSatisfy` ("<b>Camera:</b>" `isInfixOf`)
+            html `shouldSatisfy` ("unknown" `isInfixOf`)
+          other -> liftIO $ expectationFailure $ "Unexpected exifhtml: " ++ show other
+        jsonShouldBe v ["prev"] Null
+        jsonShouldBe v ["prevfolder"] Null
+        jsonShouldBe v ["nextfolder", "info"] "http://localhost:3000/image/info/nav-b/1?all=0"
+      it "keeps the search parameters in the navigation links" $ do
+        addNavigationImages
+        login
+        request $ do
+          setUrl $ ImageInfoR "nav-b" "2"
+          addGetParam "folder" "nav-b"
+        statusIs 200
+        v <- responseJson
+        -- The search limits the images to the folder.
+        jsonShouldBe v ["first", "name"] "1"
+        jsonShouldBe v ["prevfolder"] Null
+        jsonShouldBe v ["current", "info"]
+          "http://localhost:3000/image/info/nav-b/2?folder=nav-b"
+        -- Raw contents don't depend on the search.
+        jsonShouldBe v ["current", "bytes"] "http://localhost:3000/image/bytes/nav-b/2"
+      it "returns the information of a random image" $ do
+        config <- ctxConfig . appContext <$> getTestYesod
+        injectImagesAfterScan [exifImage config "nav-a" "1" id]
+        login
+        get RandomImageInfoR
+        statusIs 200
+        v <- responseJson
+        -- The random image is linked within all images.
+        jsonShouldBe v ["current", "info"]
+          "http://localhost:3000/image/info/nav-a/1?all=0"
     describe "returns correct error on non-viewable items" $
       forM_ [("ImageBytesR", ImageBytesR), ("MovieBytesR", MovieBytesR)] $ \(routeName, route) ->
         it ("checks route" ++ routeName) $ do
