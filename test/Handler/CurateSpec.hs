@@ -60,7 +60,7 @@ spec = parallel $ withApp $ do
     bodyNotContains "<b>Nikon"
   it "groups the cameras past the top ten as others" $ do
     config <- ctxConfig . appContext <$> getTestYesod
-    injectImagesAfterScan
+    injectImages
       [ exifImage config "curate" (tshow n) $ \e ->
           e { exifCamera = Just (mkSym ("Camera" <> tshow n)) }
       | n <- [1 .. 12 :: Int] ]

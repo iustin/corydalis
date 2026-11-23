@@ -30,7 +30,7 @@ lensNamed :: Text -> LensInfo
 lensNamed name = unknownLens { liName = mkSym name }
 
 -- | Adds pictures taken with camera @TestCam@ (and one without a
--- camera), after the initial scan (which would otherwise drop them).
+-- camera).
 addCameraImages :: YesodExample App ()
 addCameraImages = do
   config <- ctxConfig . appContext <$> getTestYesod
@@ -41,7 +41,7 @@ addCameraImages = do
             , exifCreateDate = date
             , exifShutterCount = shutter
             }
-  injectImagesAfterScan
+  injectImages
     [ shot "cam" "a" "LensA" (Just (exifDate 2020 1 2)) (Just 100)
     , shot "cam" "b" "LensA" (Just (exifDate 2021 3 4)) (Just 103)
     , shot "cam" "c" "LensB" (Just (exifDate 2019 5 6)) Nothing

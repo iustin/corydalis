@@ -26,8 +26,7 @@ import           Exif      (Exif (..), LensInfo (..), unknownLens)
 import           TestImport
 
 -- | Adds pictures taken with lens @TestLens@ (on two cameras, and once
--- without a camera), after the initial scan (which would otherwise
--- drop them).
+-- without a camera).
 addLensImages :: YesodExample App ()
 addLensImages = do
   config <- ctxConfig . appContext <$> getTestYesod
@@ -38,7 +37,7 @@ addLensImages = do
                                      , liSpec = mkSym "TestSpec" }
             , exifCreateDate = date
             }
-  injectImagesAfterScan
+  injectImages
     [ shot "lens" "a" (Just "CamA") (Just (exifDate 2020 1 2))
     , shot "lens" "b" (Just "CamA") Nothing
     , shot "lens" "c" (Just "CamB") (Just (exifDate 2018 7 8))
