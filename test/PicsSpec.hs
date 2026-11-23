@@ -30,7 +30,7 @@ import           Data.Either      (isLeft, isRight)
 import qualified Data.Map         as Map
 import qualified Data.Set         as Set
 import qualified Data.Text.Short  as TS
-import           Data.Time        (LocalTime (..), ZonedTime (..),
+import           Data.Time        (LocalTime (..), ZonedTime (..), getZonedTime,
                                    midnight, utc,
                                    zonedTimeToLocalTime)
 import qualified Control.Exception
@@ -386,6 +386,16 @@ waitsForSlotFirst config target run = do
     -- With a last resort time limit, in case it never finishes.
     timeout lastResort (waitCatch running) >>=
       maybe (expectationFailure "The run never finished" >> error "unreachable") return
+
+-- | Whether a repository is (re)starting a scan.
+isStarting :: RepoStatus -> Bool
+isStarting RepoStarting = True
+isStarting _            = False
+
+-- | Whether a repository has finished its scan.
+isFinished :: RepoStatus -> Bool
+isFinished RepoFinished {} = True
+isFinished _               = False
 
 spec :: Spec
 spec = parallel $ do
@@ -1795,6 +1805,43 @@ spec = parallel $ do
         imageNeighbours (Map.empty, Map.empty) img `shouldBe`
           ImageNeighbours img Nothing Nothing Nothing Nothing img
   withUnscannedContext $ do
+    describe "loading the repository cache" $ do
+      let cached status = startupRepository { repoStatus = status, repoSerial = 5 }
+          finished now = RepoFinished (done now) (done now) (done now)
+          done now = WorkResults now now def
+      it "scans the file system without a cache" $ \ctx -> do
+        repo <- scanAll ctx
+        repoStatus repo `shouldSatisfy` isStarting
+        void $ waitForScan ctx
+      it "uses a finished cached repository, without scanning" $ \ctx -> do
+        now <- getZonedTime
+        writeDiskCache (ctxConfig ctx) (cached (finished now))
+        repo <- scanAll ctx
+        repoSerial repo `shouldBe` 5
+        repoStatus repo `shouldSatisfy` isFinished
+        current <- getRepo ctx
+        repoSerial current `shouldBe` 5
+      it "scans again after an unfinished cached repository" $ \ctx -> do
+        now <- getZonedTime
+        writeDiskCache (ctxConfig ctx) (cached (RepoScanning (WorkStart now)))
+        repo <- scanAll ctx
+        repoStatus repo `shouldSatisfy` isStarting
+        final <- waitForScan ctx
+        repoStatus final `shouldSatisfy` isFinished
+      it "ignores a cache from another configuration" $ \ctx -> do
+        now <- getZonedTime
+        let other = (ctxConfig ctx) { cfgThumbnailSize = cfgThumbnailSize (ctxConfig ctx) + 1 }
+        writeDiskCache other (cached (finished now))
+        repo <- scanAll ctx
+        repoStatus repo `shouldSatisfy` isStarting
+        void $ waitForScan ctx
+      it "doesn't load the cache again once loaded" $ \ctx -> do
+        now <- getZonedTime
+        writeDiskCache (ctxConfig ctx) (cached (finished now))
+        _ <- scanAll ctx
+        writeDiskCache (ctxConfig ctx) (cached (RepoScanning (WorkStart now)))
+        repo <- scanAll ctx
+        repoStatus repo `shouldSatisfy` isFinished
     describe "scan tool limits" $ do
       -- Scans a folder with a picture, with the given time limits for
       -- the preview tools and the scan's exiftool runs, returning the

@@ -24,9 +24,11 @@ module SettingsSpec (spec) where
 
 import           Data.Aeson            (Value (..), encode, object, (.=))
 import qualified Data.ByteString.Lazy  as BSL
+import           Control.Monad.Logger  (LogLevel (..))
 import           Yesod.Default.Config2 (loadYamlSettings, useEnv)
 
 import           Settings              (AppSettings (..),
+                                        RequestLogging (..),
                                         insecureApprootWarning,
                                         newRenderToolLimits,
                                         newScanToolLimits)
@@ -51,6 +53,7 @@ loadSettingsWith values =
 spec :: Spec
 spec = do
   sessionMaxAgeSpec
+  loggingSpec
   secureSessionsSpec
   strictTransportSecuritySpec
   unixSocketSpec
@@ -194,6 +197,26 @@ sessionMaxAgeSpec = describe "session-max-age" $ do
     loadSettingsWith [object ["session-max-age" .= (0 :: Int)]]
       `shouldThrow` anyException
     loadSettingsWith [object ["session-max-age" .= (-1 :: Int)]]
+      `shouldThrow` anyException
+
+loggingSpec :: Spec
+loggingSpec = describe "logging" $ do
+  it "reads the log level" $
+    forM_ [ ("debug", LevelDebug), ("info", LevelInfo), ("warn", LevelWarn)
+          , ("error", LevelError) ] $ \(name, level) -> do
+      settings <- loadSettingsWith [object ["log-level" .= (name :: Text)]]
+      appLogLevel settings `shouldBe` level
+  it "refuses an invalid log level" $
+    loadSettingsWith [object ["log-level" .= ("loud" :: Text)]]
+      `shouldThrow` anyException
+  it "reads the request logging type" $
+    forM_ [ ("disabled", RequestLoggingDisabled)
+          , ("apache", RequestLoggingApache)
+          , ("detailed", RequestLoggingDetailed) ] $ \(name, kind) -> do
+      settings <- loadSettingsWith [object ["request-logging" .= (name :: Text)]]
+      appRequestLogging settings `shouldBe` kind
+  it "refuses an invalid request logging type" $
+    loadSettingsWith [object ["request-logging" .= ("verbose" :: Text)]]
       `shouldThrow` anyException
 
 renderToolsSpec :: Spec

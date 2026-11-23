@@ -58,6 +58,19 @@ spec = parallel $ withApp $ do
     statusIs 200
     bodyContains "&lt;b&gt;Nikon&lt;/b&gt;"
     bodyNotContains "<b>Nikon"
+  it "groups the cameras past the top ten as others" $ do
+    config <- ctxConfig . appContext <$> getTestYesod
+    injectImagesAfterScan
+      [ exifImage config "curate" (tshow n) $ \e ->
+          e { exifCamera = Just (mkSym ("Camera" <> tshow n)) }
+      | n <- [1 .. 12 :: Int] ]
+    login
+    getJson CurateR
+    statusIs 200
+    bodyContains "\"Others\""
+    getJson CameraStatsR
+    statusIs 200
+    bodyContains "\"others\""
   it "loads the empty curate page and checks it looks right" $ do
     login
     checkRoute CurateR

@@ -65,6 +65,9 @@ module Exif ( Exif(..)
             , parseIsoString
             , readInt
             , parseSingletonList
+            , parseExifs
+            , exifFromRaw
+            , FailRExif(..)
 #endif
             ) where
 

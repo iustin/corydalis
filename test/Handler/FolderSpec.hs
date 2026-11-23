@@ -22,11 +22,44 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Handler.FolderSpec (spec) where
 
-import           Handler.Utils (getStoragePathRenderer)
+import qualified Data.ByteString as BS
+import           Pics            (launchScanFileSystem, waitForScan)
+
+import           Handler.Utils   (getStoragePathRenderer)
 import           TestImport
+
+-- | Adds a folder with an image and the given @corydalis.yaml@.
+addEventFolder :: ShortText -> ByteString -> YesodExample App FilePath
+addEventFolder name yaml = do
+  dir <- addScannedFolder name ["a.jpg"]
+  ctx <- appContext <$> getTestYesod
+  liftIO $ do
+    BS.writeFile (dir </> "corydalis.yaml") yaml
+    launchScanFileSystem ctx
+    void $ waitForScan ctx
+  return dir
 
 spec :: Spec
 spec = parallel $ withApp $ do
+  describe "folder events" $ do
+    forM_ [ ("generic" :: Text, "Event"), ("birthday", "Birthday"), ("getaway", "Getaway" :: Text)
+          , ("grandvacation", "Grand vacation"), ("worktrip", "Work trip") ] $
+      \(kind, label) -> it ("shows " <> unpack kind <> " events") $ do
+        _ <- addEventFolder "2020-02-02-event" $
+               "name: The event\nkind: " <> encodeUtf8 kind <> "\npeople: [Ann]\n"
+        login
+        get $ FolderR "2020-02-02-event"
+        statusIs 200
+        bodyContains (unpack label <> ":")
+        bodyContains "The event"
+        bodyContains "Ann"
+        bodyContains "This event was explicitly defined in"
+    it "shows events without people" $ do
+      _ <- addEventFolder "2020-02-02-event" "name: Alone\nkind: generic\n"
+      login
+      get $ FolderR "2020-02-02-event"
+      statusIs 200
+      bodyContains "No people annotated for this event."
   it "loads a folder page and checks it looks right" $ do
     login
     checkNotFound $ FolderR "foo"

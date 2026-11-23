@@ -170,3 +170,53 @@ pageSpec = parallel $ withApp $ describe "the status page" $ do
   it "shows a failed scan" $ do
     setRepoStatus . const $ RepoError "disk on fire"
     checkStatusPage [ "Repository scanning failed", "disk on fire"] 0
+  errorsSpec
+
+-- | Work finished at the given time, with the given errors.
+doneWithErrors :: [ProgressError] -> ZonedTime -> WorkResults
+doneWithErrors errs now = (done now) { wrDone = def { pgErrors = errs } }
+
+-- | Checks the errors page: its texts.
+checkErrorsPage :: [Text] -> YesodExample App ()
+checkErrorsPage texts = do
+  login
+  checkRoute StatusErrorsR
+  htmlAllContain "h1" "repository scanning error details"
+  forM_ texts $ bodyContains . unpack
+
+errorsSpec :: SpecWith (TestApp App)
+errorsSpec = describe "error details" $ do
+  it "lists the errors of a finished scan" $ do
+    setRepoStatus $ \now ->
+      RepoFinished (doneWithErrors [ProgressError "a.jpg" "bad scan"] now)
+                   (doneWithErrors [ProgressError "b.jpg" "bad render"] now)
+                   (doneWithErrors [ProgressError "c.jpg" "bad clean"] now)
+    checkErrorsPage [ "There are 3 errors.", "the error list should be final"
+                    , "a.jpg", "bad scan", "b.jpg", "bad render"
+                    , "c.jpg", "bad clean" ]
+  it "lists the errors so far while cleaning" $ do
+    setRepoStatus $ \now ->
+      RepoCleaning (doneWithErrors [ProgressError "a.jpg" "bad scan"] now)
+                   (done now) (WorkStart now)
+    ctx <- appContext <$> getTestYesod
+    liftIO . atomically . writeTVar (ctxCleanProgress ctx) $
+      def { pgErrors = [ProgressError "c.jpg" "bad clean"] }
+    checkErrorsPage [ "There are 2 errors.", "the error list is partial"
+                    , "bad scan", "bad clean" ]
+  it "lists the errors so far while rendering" $ do
+    setRepoStatus $ \now ->
+      RepoRendering (doneWithErrors [ProgressError "a.jpg" "bad scan"] now)
+                    (WorkStart now)
+    ctx <- appContext <$> getTestYesod
+    liftIO . atomically . writeTVar (ctxRenderProgress ctx) $
+      def { pgErrors = [ProgressError "b.jpg" "bad render"] }
+    checkErrorsPage [ "There are 2 errors.", "bad scan", "bad render" ]
+  it "lists the errors so far while scanning" $ do
+    setRepoStatus $ \now -> RepoScanning (WorkStart now)
+    ctx <- appContext <$> getTestYesod
+    liftIO . atomically . writeTVar (ctxScanProgress ctx) $
+      def { pgErrors = [ProgressError "a.jpg" "bad scan"] }
+    checkErrorsPage [ "There are 1 errors.", "bad scan" ]
+  it "has no errors without a scan" $ do
+    setRepoStatus . const $ RepoError "disk on fire"
+    checkErrorsPage [ "There are 0 errors." ]

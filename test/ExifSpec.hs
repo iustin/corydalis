@@ -34,6 +34,8 @@ import qualified Data.ByteString     as BS
 import           Data.Either         (isLeft, isRight)
 import qualified Data.Map            as Map
 import           Data.Text.Arbitrary ()
+import           Data.Time           (LocalTime (..), TimeOfDay (..),
+                                      zonedTimeToLocalTime)
 import           System.Directory    (createDirectory, doesFileExist,
                                       listDirectory)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
@@ -142,6 +144,103 @@ spec = parallel $ do
       parseMaybe readInt "42a" `shouldBe` Nothing
       parseMaybe readInt "a" `shouldBe` Nothing
       parseMaybe parseIsoString (Number 1) `shouldBe` Nothing
+
+  withConfig $ describe "parsing exiftool output" $ do
+    let parse config json = case parseExifs json of
+          Left err -> Left ("invalid JSON: " <> err)
+          Right [Right raw] -> Right (exifFromRaw config raw)
+          Right [Left fre] -> Left (freMessage fre)
+          Right other -> Left ("unexpected results: " <> tshow (length other))
+        sym = mkSym
+        localDate = fmap (zonedTimeToLocalTime . etTime) . exifCreateDate
+    it "parses the exif information" $ \config -> do
+      let json = "[{\"SourceFile\": \"a.nef\",\
+                 \ \"Model\": {\"val\": \"D850\"},\
+                 \ \"SerialNumber\": {\"val\": 1234},\
+                 \ \"LensID\": {\"val\": \"AF-S 24-70\"},\
+                 \ \"LensSpec\": {\"val\": \"24-70mm f/2.8\"},\
+                 \ \"MinFocalLength\": {\"val\": \"24.0 mm\", \"num\": 24},\
+                 \ \"MaxFocalLength\": {\"val\": \"70.0 mm\", \"num\": 70},\
+                 \ \"MaxApertureAtMinFocal\": {\"num\": 2.8},\
+                 \ \"MaxApertureAtMaxFocal\": {\"num\": 2.8},\
+                 \ \"LensSerialNumber\": {\"val\": \"\"},\
+                 \ \"HierarchicalSubject\": {\"val\": [\"_People|Ann\", \"Places|Paris\", \"_Ignored|x\"]},\
+                 \ \"PersonInImage\": {\"val\": [\"Bob\"]},\
+                 \ \"Country\": {\"val\": \"France\"},\
+                 \ \"State\": {\"val\": \"IdF\"},\
+                 \ \"City\": {\"val\": \"\"},\
+                 \ \"Location\": {\"val\": \"Louvre\"},\
+                 \ \"DateTimeOriginal\": {\"val\": \"2024:03:05 10:11:12\"},\
+                 \ \"ISO\": {\"val\": \"200, 0, 0\"},\
+                 \ \"ShutterSpeed\": {\"val\": \"1/100\", \"num\": 0.01},\
+                 \ \"ShutterCount\": {\"val\": 20000000},\
+                 \ \"Orientation\": {\"num\": 6},\
+                 \ \"ImageWidth\": {\"num\": 0}\
+                 \}]"
+      case parse config json of
+        Left err -> expectationFailure (unpack err)
+        Right e -> do
+          exifCamera e `shouldBe` Just (sym "D850 (#1234)")
+          exifSerial e `shouldBe` Just (sym "1234")
+          liName (exifLens e) `shouldBe` sym "AF-S 24-70"
+          liSpec (exifLens e) `shouldBe` sym "24-70mm f/2.8"
+          liFL (exifLens e) `shouldBe` Just (Zoom 24 70)
+          liAp (exifLens e) `shouldBe` Just (FixedAperture 2.8)
+          liSerial (exifLens e) `shouldBe` Nothing
+          exifPeople e `shouldBe` setFromList [sym "Ann", sym "Bob"]
+          exifKeywords e `shouldBe` setFromList [sym "Places", sym "Paris", sym "x"]
+          exifCountry e `shouldBe` Just (sym "France")
+          exifProvince e `shouldBe` Just (sym "IdF")
+          exifCity e `shouldBe` Nothing
+          exifLocation e `shouldBe` Just (sym "Louvre")
+          localDate e `shouldBe`
+            Just (LocalTime (fromGregorian 2024 3 5) (TimeOfDay 10 11 12))
+          exifISO e `shouldBe` Just 200
+          exifSSpeedDesc e `shouldBe` Just (sym "1/100")
+          exifSSpeedVal e `shouldBe` Just 0.01
+          exifShutterCount e `shouldBe` Nothing
+          exifOrientation e `shouldBe` OrientationRightTop
+          exifWidth e `shouldBe` Nothing
+          exifWarning e `shouldBe` setFromList
+            [ "Empty city information"
+            , "Unlikely shutter count: 20000000"
+            , "Invalid (Exif) image width 0"
+            ]
+    it "parses prime lenses, and serial numbers without a model" $ \config -> do
+      let json = "[{\"SourceFile\": \"a.nef\",\
+                 \ \"SerialNumber\": {\"val\": \"S1\"},\
+                 \ \"LensModel\": {\"val\": \"50mm\"},\
+                 \ \"MinFocalLength\": {\"num\": 50},\
+                 \ \"MaxFocalLength\": {\"num\": 50},\
+                 \ \"MaxApertureAtMinFocal\": {\"num\": 1.8},\
+                 \ \"MaxApertureAtMaxFocal\": {\"num\": 2},\
+                 \ \"LensSerialNumber\": {\"val\": 98765},\
+                 \ \"CreateDate\": {\"val\": \"2024:03:05 10:11:12.5+02:00\"},\
+                 \ \"ISO\": {\"val\": [100]}\
+                 \}]"
+      case parse config json of
+        Left err -> expectationFailure (unpack err)
+        Right e -> do
+          exifCamera e `shouldBe` Just (sym "#S1")
+          liName (exifLens e) `shouldBe` sym "50mm"
+          liFL (exifLens e) `shouldBe` Just (Prime 50)
+          liAp (exifLens e) `shouldBe` Just (VariableAperture 1.8 2)
+          liSerial (exifLens e) `shouldBe` Just (sym "98765")
+          isJust (exifCreateDate e) `shouldBe` True
+          exifISO e `shouldBe` Just 100
+    it "reports the errors from exiftool" $ \config ->
+      parse config "[{\"SourceFile\": \"b.jpg\", \"Error\": {\"val\": \"File not found\"}}]"
+        `shouldBe` Left "File not found"
+    it "reports invalid values" $ \config -> do
+      parse config "[{\"SourceFile\": \"b.jpg\", \"Orientation\": {\"num\": 9}}]"
+        `shouldSatisfy` isLeft
+      parse config "[{\"SourceFile\": \"b.jpg\", \"Orientation\": {\"num\": 1.5}}]"
+        `shouldSatisfy` isLeft
+    it "skips results without a file name" $ \config ->
+      parse config "[{\"Model\": {\"val\": \"D850\"}}]"
+        `shouldBe` Left "unexpected results: 0"
+    it "reports invalid JSON" $ \config ->
+      parse config "not json" `shouldSatisfy` isLeft
 
   describe "JSON encoding" $ do
     it "encodes focal lengths" $ do

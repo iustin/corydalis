@@ -29,6 +29,7 @@ module Handler.Search ( getQuickSearchR
                       , getSearchR
                       , getSearchViewR
                       , skippedMessage
+                      , getBestHandler
                       ) where
 
 import qualified Data.Map        as Map
