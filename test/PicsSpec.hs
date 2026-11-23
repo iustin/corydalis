@@ -100,6 +100,18 @@ withProdNameRegexes config =
         mkRegex "^(.*)(-(close_view|copy_|publish|published|aspect_change))$"
     }
 
+-- | Uses unanchored copy and range regexes (as in older sample
+-- settings), which also match across directory names: these check that
+-- only the file name is matched.
+withUnanchoredNameRegexes :: Config -> Config
+withUnanchoredNameRegexes config =
+  config
+    { cfgRangeRegex = fromMaybe (error "Invalid range regex") $
+        mkRegex "(.*_)([0-9]+)-([0-9]+)"
+    , cfgCopyRegex = fromMaybe (error "Invalid copy regex") $
+        mkRegex "(.*)(-([0-9]|Edit))"
+    }
+
 datedExif :: Integer -> Int -> Int -> Exif
 datedExif y m d =
   def { exifCreateDate = Just (ExifTime (ZonedTime (LocalTime (fromGregorian y m d) midnight) utc)) }
@@ -1344,13 +1356,15 @@ spec = parallel $ do
         dropCopySuffix config "IMG_1234-1" `shouldBe` "IMG_1234"
         dropCopySuffix config "IMG_1234-Edit" `shouldBe` "IMG_1234"
         dropCopySuffix config "IMG_1234" `shouldBe` "IMG_1234"
-      it "drops copy suffixes only from the file name" $ \config -> do
+      it "drops copy suffixes only from the file name" $ \config' -> do
+        let config = withUnanchoredNameRegexes config'
         dropCopySuffix config "sub/IMG_1234-1" `shouldBe` "sub/IMG_1234"
         dropCopySuffix config "2024-01-02-day/b" `shouldBe` "2024-01-02-day/b"
         dropCopySuffix config "a-1/b-Edit" `shouldBe` "a-1/b"
       it "drops copy suffixes only at the end of the name" $ \config ->
         dropCopySuffix config "IMG-20240101_1234" `shouldBe` "IMG-20240101_1234"
-      it "expands ranges only from the file name" $ \config -> do
+      it "expands ranges only from the file name" $ \config' -> do
+        let config = withUnanchoredNameRegexes config'
         expandRangeFile config "sub/img_1-2" `shouldBe` ["sub/img_1", "sub/img_2"]
         expandRangeFile config "img_1-2/b" `shouldBe` []
       it "expands padded range names" $ \config -> do
@@ -2375,8 +2389,11 @@ spec = parallel $ do
           ]
         errs <- map peItem . pgErrors <$> getProgress ctx
         errs `shouldBe` []
-      it "doesn't look for folders inside a folder" $ \ctx -> do
-        let folder = sourceDir ctx </> "2024" </> "2024-01-01-trip"
+      it "doesn't look for folders inside a folder" $ \ctx' -> do
+        -- The unanchored regexes check that the nested directory's name
+        -- doesn't mangle the image's name.
+        let ctx = ctx' { ctxConfig = withUnanchoredNameRegexes (ctxConfig ctx') }
+            folder = sourceDir ctx </> "2024" </> "2024-01-01-trip"
         touchFile (folder </> "a.nef")
         touchFile (folder </> "2024-01-02-day" </> "b.nef")
         dirs <- scanBaseDir ctx (sourceDir ctx) True
