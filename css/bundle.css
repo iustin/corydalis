@@ -1,0 +1,9 @@
+/* The style sheets of all the pages, bundled by esbuild (see esbuild.js)
+ * into static/corydalis/css/bundle.css, with the fonts they refer to
+ * copied into static/corydalis/fonts. */
+
+@import 'bootstrap/dist/css/bootstrap.css';
+@import '@fortawesome/fontawesome-free/css/fontawesome.css';
+@import '@fortawesome/fontawesome-free/css/regular.css';
+@import '@fortawesome/fontawesome-free/css/solid.css';
+@import './basic.css';

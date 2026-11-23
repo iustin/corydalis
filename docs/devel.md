@@ -69,37 +69,35 @@ You need up to two terminals, depending on which code you edit:
 - one terminal for the Haskell part, in which you run `make devel`; this will
   rebuild Haskell sources and reload the development site.
 - one terminal for the Typescript parts, in which you run `make ts-watch`; this
-  will simply update the `static/corydalis` directory, which is referred to by
-  the server part.
+  will continuously type-check the TypeScript code.
+- if you edit the TypeScript code or the style sheets (in `css/`), one more
+  terminal in which you run `npm run watch`; this will rebuild the esbuild
+  bundles in `static/corydalis`, which are referred to by the server part.
 
 ## Static files
 
 The server serves the files in `static/` (in production, from the
-directory set by `static-dir`). There are three kinds of files there:
+directory set by `static-dir`). Apart from our committed
+`static/corydalis/manifest.json`, they are all generated, not committed:
 
-- our own files, committed: `static/corydalis/css/basic.css` and
-  `static/corydalis/manifest.json`;
-- symbolic links into `node_modules`, committed, for the library files
-  that are served as they are: the Bootstrap and Font Awesome style
-  sheets, and the Font Awesome fonts; they work once the npm dependencies
-  are installed (`make bootstrap`);
-- generated files, not committed: the esbuild bundles in
-  `static/corydalis/js` (`npm run build`), the Font Awesome
-  `regular.css` and `solid.css` (`build/patch-font-awesome`, run by
-  `make bootstrap`), the combined style sheets in `static/combined`
-  (written by the Haskell build) and `static/tmp` (written at runtime).
+- the esbuild bundles (`npm run build`, also run by `make bootstrap`):
+  the scripts in `static/corydalis/js`, from the TypeScript code in
+  `js/`; and the style sheet `static/corydalis/css/bundle.css`, from
+  `css/bundle.css`, which imports the Bootstrap and Font Awesome style
+  sheets and ours (`css/basic.css`), with the Font Awesome fonts copied
+  to `static/corydalis/fonts` (their names include a hash of their
+  contents, since the style sheet refers to them by relative URLs,
+  which have no `etag`, see below);
+- `static/tmp`, written at runtime.
 
 When compiling `Settings/StaticFiles.hs`, `staticFiles` creates a route
 name for each file (e.g. `corydalis_js_viewer_js` for
-`static/corydalis/js/viewer.js`), which the code and templates use; the
-style sheets refer to the fonts by their `/static/` path instead.
+`static/corydalis/js/viewer.js`), which the code and templates use.
 
-JavaScript libraries are imported by our TypeScript code and bundled by
-esbuild, so they need no link in `static/`. Add a link only for a file
-that the server sends as it is, and remove it (and its uses) when the
-library is no longer needed, or gets bundled instead. `make
+Libraries, both JavaScript and CSS, are imported by our code and
+bundled by esbuild, so they need no link in `static/`. `make
 check-static` (also run by `make release` and CI) fails if a file in
-`static/` is not used, or if a link is broken.
+`static/` is not used, or is a symbolic link.
 
 Note that the route names include a hash of each file's contents, as
 the `etag` parameter of the URLs, so that browsers can cache the files

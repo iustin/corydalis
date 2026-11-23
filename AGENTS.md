@@ -8,7 +8,8 @@ toolchain for each; do not mix them.
 - Haskell (Yesod backend): `src/`, `app/`, `test/`, `templates/`,
   `package.yaml`, `stack.yaml`
 - TypeScript (frontend): `js/`, `package.json`, bundled with esbuild into
-  `static/`
+  `static/`, as are the style sheets (`css/`, importing Bootstrap and Font
+  Awesome)
 
 ## Haskell
 
@@ -57,13 +58,12 @@ Add tests for any new TypeScript code as well.
 ## Static files
 
 The server serves the files in `static/` (see "Static files" in
-`docs/devel.md`). JavaScript libraries are imported by the TypeScript
-code and bundled by esbuild: don't add links for them in `static/`. A
-link into `node_modules` there is only for a file that the server sends
-as it is, and must be removed, with its uses, when the library is
-dropped or gets bundled. `make check-static` (run by CI and `make
-release`, after `make bootstrap`) fails on unused files and broken
-links.
+`docs/devel.md`), which are generated (except for
+`static/corydalis/manifest.json`). JavaScript and CSS libraries are
+imported by our code (`js/`, `css/bundle.css`) and bundled by esbuild:
+don't add links for them in `static/`. `make check-static` (run by CI
+and `make release`, after `make bootstrap`) fails on unused files and on
+symbolic links.
 
 ## Documentation
 

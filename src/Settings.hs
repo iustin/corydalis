@@ -34,8 +34,6 @@ module Settings
   , newRenderToolLimits
   , newScanToolLimits
   , widgetFile
-  , combineStylesheets
-  , combineScripts
   ) where
 
 import           ClassyPrelude.Yesod
@@ -44,7 +42,7 @@ import           Data.Char                  (isDigit)
 import           Data.Aeson.Types           (Object, Parser, parseFail)
 import           Data.Time                  (NominalDiffTime)
 import           Database.Persist.Sqlite    (SqliteConf)
-import           Language.Haskell.TH.Syntax (Exp, Name, Q)
+import           Language.Haskell.TH.Syntax (Exp, Q)
 import           Network.Wai.Handler.Warp   (HostPreference)
 import           System.Posix.Types         (FileMode)
 import           Yesod.Default.Util
@@ -310,10 +308,6 @@ parseSocketModeValue _ =
 widgetFileSettings :: WidgetFileSettings
 widgetFileSettings = def
 
--- | How static files should be combined.
-combineSettings :: CombineSettings
-combineSettings = def
-
 -- The rest of this file contains settings which rarely need changing by a
 -- user.
 
@@ -325,17 +319,3 @@ widgetFile =
   widgetFileNoReload
 #endif
     widgetFileSettings
-
--- The following two functions can be used to combine multiple CSS or JS files
--- at compile time to decrease the number of http requests.
--- Sample usage (inside a Widget):
---
--- > $(combineStylesheets 'StaticR [style1_css, style2_css])
-
-combineStylesheets :: Name -> [Route Static] -> Q Exp
-combineStylesheets =
-  combineStylesheets' isDevel combineSettings
-
-combineScripts :: Name -> [Route Static] -> Q Exp
-combineScripts =
-  combineScripts' isDevel combineSettings
