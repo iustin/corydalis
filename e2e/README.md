@@ -21,7 +21,16 @@ The table logic itself is tested by `npm test` (see
 `js/tablesort-logic.test.ts` and `js/tablesort.test.ts`), which is fast
 and doesn't need a server or a browser.
 
+**Experiment:** `make e2e` (`run.sh`) runs them all from scratch, and
+the CI workflow runs it in its own job, to see how long it takes and
+how reliable it is there. The limitations above still apply.
+
 ## Files
+
+- `run.sh`: runs all the checks from scratch (see "Running all the
+  checks" below);
+- `smoke.cjs`: loads every page as a logged in user, and fails on an
+  error status, a missing navigation bar or a browser console error;
 
 - `setup.sh`: creates a work directory with a sample photo library (20
   folders, 120 small JPEG images with EXIF data), a `settings.yml` for
@@ -71,7 +80,21 @@ and doesn't need a server or a browser.
   and then run the scripts with `NODE_PATH` pointing at that
   directory's `node_modules`, if needed.
 
-## Running
+## Running all the checks
+
+    npm run build
+    make e2e    # or: e2e/run.sh WORKDIR (default _run/e2e)
+
+This builds the binaries (normal and public site, without
+optimisation, in `.stack-e2e` and `.stack-e2e-public`), makes the two
+libraries, starts a server for each (on ports 3000 and 3001), runs
+`smoke.cjs`, `verify.cjs`, `pages.cjs` and `plots.cjs` on the normal
+one and `public-site.cjs` and `shots.cjs` on the public one, then stops
+the servers. It exits with an error if any script failed. Set
+`NODE_PATH` if Playwright is installed elsewhere, and `STACK_ARGS` for
+extra stack options (e.g. `--ghc-build tinfo6`).
+
+## Running the scripts by hand
 
 From the root of the repository:
 

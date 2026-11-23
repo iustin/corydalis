@@ -118,6 +118,12 @@ coverage-hs:
 coverage-ts:
 	npm run coverage
 
+# End-to-end browser checks against a real server (see e2e/README.md);
+# needs Playwright with Chromium, and the frontend bundles built.
+.PHONY: e2e
+e2e:
+	e2e/run.sh
+
 # Fast tests with ghc options from
 # https://rybczak.net/2016/03/26/how-to-reduce-compilation-times-of-haskell-projects/
 test:
