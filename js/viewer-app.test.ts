@@ -1091,6 +1091,16 @@ describe('full screen', () => {
     assert.equal(v.canvas.width, 1000);
   });
 
+  it('toggles the full screen with the up arrow', () => {
+    const v = loaded({ fullScreen: { isEnabled: true } });
+    assert.ok(v.key('ArrowUp'));
+    assert.deepEqual(v.fsCalls, ['request']);
+    const w = loaded({ fullScreen: { isEnabled: true, isFullscreen: true } });
+    w.cory!.state.fullscreen = true;
+    assert.ok(w.key('ArrowUp'));
+    assert.deepEqual(w.fsCalls, ['exit']);
+  });
+
   it('leaves the full screen', () => {
     const v = loaded({ fullScreen: { isEnabled: true, isFullscreen: true } });
     v.cory!.state.fullscreen = true;
