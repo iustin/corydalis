@@ -121,12 +121,12 @@ check public-site node e2e/public-site.cjs "$WORK/public"
 # shots.cjs needs a library with problems, so it uses the public one.
 check "shots (records only)" node e2e/shots.cjs "$WORK/out/shots"
 
-for name in normal public; do
-  if ! kill -0 "${PIDS[0]}" 2>/dev/null; then
-    echo "The $name server died during the run; see $WORK/$name/server.log"
-    FAILED+=("$name server")
+names=(normal public)
+for i in "${!names[@]}"; do
+  if ! kill -0 "${PIDS[$i]}" 2>/dev/null; then
+    echo "The ${names[$i]} server died during the run; see $WORK/${names[$i]}/server.log"
+    FAILED+=("${names[$i]} server")
   fi
-  PIDS=("${PIDS[@]:1}")
 done
 
 if [ ${#FAILED[@]} -gt 0 ]; then
