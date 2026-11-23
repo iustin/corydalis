@@ -77,7 +77,6 @@ export function setupImageGrid(libs: GridLibs, doc: Document = document): void {
   const settings = gridSettings(bootdiv);
   let count = settings.initialCount;
   const howmany = doc.getElementById('howmany');
-  // init Packery
   const gridElement = doc.querySelector('.grid');
   if (!gridElement) return;
 

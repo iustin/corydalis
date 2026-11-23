@@ -77,7 +77,7 @@ function viewInfo(
   };
 }
 
-/** The viewer's page, as rendered by the server (templates/browse.hamlet). */
+/** The viewer's page, as rendered by the server (templates/view.hamlet). */
 const PAGE = `
   <nav id="nav">
     <a id="navlink1"><span id="navtext1"></span></a>
@@ -413,11 +413,22 @@ function loaded(options: SetupOptions = {}): Viewer {
   return v;
 }
 
+/** Checks that the viewer says it's loading the named image. */
+function assertLoading(v: Viewer, name: string) {
+  assert.match(v.message() ?? '', /[Ll]oading/);
+  assert.match(v.message() ?? '', new RegExp(`\\b${name}\\b`));
+}
+
 /** Lets pending promises (e.g. replies to requests) settle. */
 async function settle() {
   for (let i = 0; i < 5; i++) {
     await new Promise((resolve) => setImmediate(resolve));
   }
+}
+
+/** Compares dimensions by value (-0 being 0). */
+function assertDims(actual: { x: number; y: number }, x: number, y: number) {
+  assert.deepEqual({ x: actual.x + 0, y: actual.y + 0 }, { x, y });
 }
 
 /** Silences console.error, returning its mock (to read its calls). */
@@ -541,6 +552,23 @@ describe('startViewer setup', () => {
     assert.equal(v.byId('persistBox').textContent, '');
   });
 
+  it('draws rotated images', () => {
+    const v = setup({
+      info: viewInfo(
+        image('a', { transform: [90, true, false], matrix: [0, 1, -1, 0] }),
+      ),
+    });
+    v.load(v.imageFor(`${BASE}/bytes/a?`));
+    // Rotated, the 1600×1200 image is 1200×1600: fitting in 800×600 is
+    // 3/8 of its size; the draw size is in the image's own coordinates.
+    assert.deepEqual(v.ctx.lastDraw().slice(3), [600, 450]);
+    const transforms = v.ctx.calls.filter((c) => c.name === 'transform');
+    assert.deepEqual(
+      transforms[transforms.length - 1].args,
+      [0, 1, -1, 0, 400, 300],
+    );
+  });
+
   it('pre-renders the neighbours off-screen', () => {
     const v = setup();
     const next = v.imageFor(`${BASE}/bytes/n?`);
@@ -555,6 +583,31 @@ describe('startViewer setup', () => {
     assert.equal(v.alerts.length, 1);
     assert.match(v.alerts[0], /load/);
     assert.equal(v.waiting(), false);
+  });
+
+  it('alerts on failed loads of other images', () => {
+    const v = loaded({
+      info: viewInfo(image('a'), { next: image('n'), nextfolder: image('f') }),
+    });
+    const fail = (img: HTMLImageElement) =>
+      img.onerror?.call(img, new v.win.Event('error'));
+    // The next image, still loading when shown.
+    v.key('ArrowRight');
+    assert.ok(v.waiting());
+    fail(v.imageFor(`${BASE}/bytes/n?`));
+    assert.equal(v.alerts.length, 1);
+    assert.equal(v.waiting(), false);
+    // Another folder's image.
+    v.key(']');
+    fail(v.imageFor(`${BASE}/bytes/f?`));
+    assert.equal(v.alerts.length, 2);
+    // The full resolution image.
+    const w = loaded();
+    w.key('+');
+    const full = w.cory!.state.img;
+    full.onerror?.call(full, new w.win.Event('error'));
+    assert.equal(w.alerts.length, 1);
+    assert.equal(w.waiting(), false);
   });
 
   it('logs in debug mode', (t) => {
@@ -618,7 +671,7 @@ describe('image navigation', () => {
     v.key('ArrowRight');
     assert.equal(v.ctx.draws().length, draws);
     assert.ok(v.waiting());
-    assert.equal(v.message(), 'Loading n');
+    assertLoading(v, 'n');
     const next = v.imageFor(`${BASE}/bytes/n?`);
     v.load(next);
     assert.equal(v.ctx.lastDraw()[0], next);
@@ -663,7 +716,7 @@ describe('image navigation', () => {
       routes: { [`${BASE}/info/nf`]: json(folderInfo) },
     });
     v.key(']');
-    assert.equal(v.message(), 'Loading nf...');
+    assertLoading(v, 'nf');
     assert.ok(v.waiting());
     v.load(v.imageFor(`${BASE}/bytes/nf?`));
     assert.equal(v.win.location.href, `${BASE}/view/nf`);
@@ -698,7 +751,7 @@ describe('image navigation', () => {
     v.key('r');
     assert.ok(v.waiting());
     await settle();
-    assert.equal(v.message(), 'Loading r...');
+    assertLoading(v, 'r');
     v.load(v.imageFor(`${BASE}/bytes/r?`));
     assert.equal(v.win.location.href, `${BASE}/view/r`);
     v.click('imageRand');
@@ -773,9 +826,9 @@ describe('image navigation', () => {
   it('uses the image buttons', () => {
     const v = loaded();
     v.click('imageNext');
-    assert.equal(v.message(), 'Loading n');
+    assertLoading(v, 'n');
     v.click('imagePrev');
-    assert.equal(v.message(), 'Loading p');
+    assertLoading(v, 'p');
   });
 
   it('downloads the image', () => {
@@ -970,8 +1023,15 @@ describe('zooming', () => {
     assert.equal(v.cory!.state.scale, 4);
     v.key('z');
     assert.equal(v.cory!.state.scale, 1);
+    // The button zooms around the centre, not the mouse position.
+    v.pointer('pointermove', 1, 10, 10);
     v.click('imageZoom');
     assert.equal(v.cory!.state.scale, 4);
+    assertDims(v.cory!.state.panOffsets, 0, 0);
+    // While the key zooms around the mouse position.
+    v.key('z');
+    v.key('z');
+    assertDims(v.cory!.state.panOffsets, 1170, 870);
   });
 
   it('pans zoomed images with alt and the arrows', () => {
@@ -1011,9 +1071,12 @@ describe('full screen', () => {
       value: v.byId('main'),
       configurable: true,
     });
+    v.rect.width = 1000;
     v.doc.dispatchEvent(new v.win.Event('fullscreenchange'));
     assert.ok(icon(v).contains('fa-minimize'));
     assert.ok(v.cory!.state.fullscreen);
+    // The canvas follows its new size.
+    assert.equal(v.canvas.width, 1000);
   });
 
   it('leaves the full screen', () => {
@@ -1067,10 +1130,14 @@ describe('full screen', () => {
 
   it('emulates the full screen without the API', () => {
     const v = loaded();
+    v.rect.width = 1000;
     v.click('imageFull');
     assert.ok(v.byId('main').classList.contains('fake-fullscreen'));
-    v.key('UpArrow');
+    assert.equal(v.canvas.width, 1000);
+    v.rect.width = 800;
+    v.key('f');
     assert.equal(v.byId('main').classList.contains('fake-fullscreen'), false);
+    assert.equal(v.canvas.width, 800);
     assert.deepEqual(v.fsCalls, []);
   });
 });
@@ -1103,6 +1170,14 @@ describe('resizing', () => {
     v.win.dispatchEvent(new v.win.Event('resize'));
     assert.equal(v.canvas.height, 300);
     assert.equal(v.ctx.draws().length, draws + 1);
+    // Including the pixel ratio (e.g. when moving to another screen).
+    Object.defineProperty(v.win, 'devicePixelRatio', {
+      value: 2,
+      configurable: true,
+    });
+    v.win.dispatchEvent(new v.win.Event('resize'));
+    assert.equal(v.canvas.height, 600);
+    assert.equal(v.cory!.state.devicePixelRatio, 2);
   });
 
   it('assumes a size if the canvas has none', () => {
@@ -1155,6 +1230,15 @@ describe('movies', () => {
     v.click('moviePlay');
     assert.equal(v.media(v.video).paused, true);
     assert.ok(playIcon(v).contains('fa-play'));
+  });
+
+  it('shows the movie hint again on redraws', () => {
+    const v = movie();
+    v.key('p');
+    assert.equal(v.persistent(), '');
+    v.rect.width = 400;
+    v.win.dispatchEvent(new v.win.Event('resize'));
+    assert.equal(v.persistent(), MOVIE_MESSAGE);
   });
 
   it('shows the movie once it can play', () => {
@@ -1213,9 +1297,11 @@ describe('movies', () => {
     v.key('p');
     v.load(v.imageFor(`${BASE}/bytes/n?`));
     v.key('ArrowRight');
-    // The video is dropped with the move.
+    // The video is dropped with the move, stopping its loading.
     assert.equal(v.doc.querySelector('video'), null);
     assert.equal(v.cory!.state.video, null);
+    assert.equal(v.video.getAttribute('src'), '');
+    assert.equal(v.media(v.video).paused, true);
     fail(new DOMException('blocked', 'NotAllowedError'));
     await settle();
     assert.ok(playIcon(v).contains('fa-pause'));
@@ -1229,7 +1315,7 @@ describe('movies', () => {
     assert.equal(v.media(v.video).paused, true);
     v.media(v.video).currentTime = 20;
     v.key(' ');
-    assert.equal(v.message(), 'Loading n');
+    assertLoading(v, 'n');
   });
 
   it('plays with a tap', (t) => {
@@ -1256,10 +1342,15 @@ describe('movies', () => {
   it('moves to the next image with space for images', () => {
     const v = loaded();
     v.key(' ');
-    assert.equal(v.message(), 'Loading n');
-    // No video: nothing to play.
-    v.key('p');
-    assert.equal(v.message(), 'Loading n');
+    assertLoading(v, 'n');
+  });
+
+  it('plays nothing for images', () => {
+    const v = loaded();
+    assert.equal(v.key('p'), true);
+    assert.equal(v.message(), 'a');
+    assert.deepEqual(v.requests, []);
+    assert.equal(v.win.location.href, `${BASE}/view/a`);
   });
 });
 
@@ -1297,9 +1388,9 @@ describe('pointer gestures', () => {
   it('moves between images with swipes', (t) => {
     const v = timed(t);
     swipe(t, v, [500, 300], [300, 300]);
-    assert.equal(v.message(), 'Loading n');
+    assertLoading(v, 'n');
     swipe(t, v, [300, 300], [500, 310]);
-    assert.equal(v.message(), 'Loading p');
+    assertLoading(v, 'p');
   });
 
   it('ignores vertical swipes, slow gestures and swipes when zoomed', (t) => {
@@ -1311,17 +1402,20 @@ describe('pointer gestures', () => {
     assert.equal(v.message(), 'a');
   });
 
-  it('zooms with double taps', (t) => {
+  it('zooms with double taps, around the tap', (t) => {
     const v = timed(t);
-    swipe(t, v, [100, 100], [100, 100]);
-    t.mock.timers.tick(100);
-    swipe(t, v, [100, 100], [100, 100]);
+    swipe(t, v, [100, 100], [100, 100], 10);
+    t.mock.timers.tick(10);
+    swipe(t, v, [100, 100], [100, 100], 10);
     assert.equal(v.cory!.state.img.dataset.fullres, 'true');
     v.load(v.cory!.state.img, 3200, 2400);
     assert.equal(v.cory!.state.scale, 4);
-    // A third tap is a single one.
-    t.mock.timers.tick(100);
-    swipe(t, v, [100, 100], [100, 100]);
+    // The tapped point stays in place: (100, 100) is (-300, -200) from
+    // the centre, moved 3 times further out by the 4 times zoom.
+    assertDims(v.cory!.state.panOffsets, 900, 600);
+    // A third tap, even shortly after the first, is a single one.
+    t.mock.timers.tick(10);
+    swipe(t, v, [100, 100], [100, 100], 10);
     assert.equal(v.cory!.state.scale, 4);
   });
 
@@ -1335,7 +1429,7 @@ describe('pointer gestures', () => {
     v.pointer('pointerdown', 1, 500, 300);
     v.pointer('pointercancel', 2, 500, 300);
     v.pointer('pointerup', 1, 300, 300);
-    assert.equal(v.message(), 'Loading n');
+    assertLoading(v, 'n');
   });
 
   it('prevents the browser touch handling', () => {
@@ -1385,6 +1479,11 @@ describe('pointer gestures', () => {
     assert.ok(e.defaultPrevented);
     // Twice the distance between the fingers.
     assert.ok(Math.abs(v.cory!.state.scale - 2 * scale) < 1e-9);
+    // Around the centre between them, at (300, 100).
+    assertDims(v.cory!.state.panOffsets, 180, 260);
+    // Pinching further zooms relative to the last move.
+    v.pointer('pointermove', 2, 700, 100);
+    assert.ok(Math.abs(v.cory!.state.scale - 3 * scale) < 1e-9);
   });
 
   it('pans by moving two fingers', () => {
@@ -1439,6 +1538,9 @@ describe('pointer gestures', () => {
     wheel(0, 10);
     assert.equal(v.cory!.state.scale, 1.1);
     v.load(v.cory!.state.img, 3200, 2400);
+    // Around the wheel's position, (10, 10): (-390, -290) from the
+    // centre, moving out by a tenth.
+    assertDims(v.cory!.state.panOffsets, 39, 29);
     wheel(0, -10);
     assert.ok(Math.abs(v.cory!.state.scale - 1) < 1e-9);
   });

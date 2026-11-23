@@ -24,6 +24,7 @@ import type { Data } from 'plotly.js';
 import {
   CHART_PAGES,
   type Chart,
+  type CurateSeries,
   type InfoSeries,
   type NewPlot,
   type StatsSeries,
@@ -260,22 +261,23 @@ describe('curate page', () => {
 
 /** A fake Plotly.newPlot, recording the charts drawn. */
 function fakePlot() {
-  const drawn: { id: string; config: unknown }[] = [];
-  const newPlot: NewPlot = (id, _data, _layout, config) => {
-    drawn.push({ id, config });
+  const drawn: Chart[] = [];
+  const configs: unknown[] = [];
+  const newPlot: NewPlot = (id, data, layout, config) => {
+    drawn.push({ id, data, layout });
+    configs.push(config);
     return Promise.resolve();
   };
-  return { drawn, newPlot };
+  return { drawn, configs, newPlot };
 }
 
 describe('drawCharts', () => {
   it('draws each chart, with the shared configuration', () => {
-    const { drawn, newPlot } = fakePlot();
-    drawCharts(cameraStatsCharts(stats), newPlot);
-    assert.deepEqual(drawn, [
-      { id: 'cameraChart', config: plotConfig },
-      { id: 'trendsChart', config: plotConfig },
-    ]);
+    const { drawn, configs, newPlot } = fakePlot();
+    const charts = cameraStatsCharts(stats);
+    drawCharts(charts, newPlot);
+    assert.deepEqual(drawn, charts);
+    assert.deepEqual(configs, [plotConfig, plotConfig]);
   });
 });
 
@@ -313,27 +315,24 @@ describe('showPageCharts', () => {
     );
   });
 
-  for (const [name, ids] of [
-    ['camera-stats', ['cameraChart', 'trendsChart']],
-    ['lens-stats', ['lensChart', 'trendsChart']],
-    ['camera-info', ['lensFlApChart', 'cameraChart', 'trendsChart']],
-    ['lens-info', ['lensFlApChart', 'cameraChart', 'trendsChart']],
-    [
-      'curate',
-      ['cameraChart', 'lensChart', 'folderChart', 'yearChart', 'monthChart'],
-    ],
+  const curate: CurateSeries = {
+    global: data('global'),
+    lenses: data('lenses'),
+    folders: data('folders'),
+    years: data('years'),
+    months: data('months'),
+  };
+  // Each page, with its data and the charts expected from it.
+  for (const [name, series, charts] of [
+    ['camera-stats', stats, cameraStatsCharts(stats)],
+    ['lens-stats', stats, lensStatsCharts(stats)],
+    ['camera-info', info, cameraInfoCharts(info)],
+    ['lens-info', info, lensInfoCharts(info)],
+    ['curate', curate, curateCharts(curate)],
   ] as const) {
     it(`draws the ${name} charts`, async () => {
       const url = CHART_PAGES[name].url;
-      const { urls, env } = server({
-        ...info,
-        ...stats,
-        global: [],
-        lenses: [],
-        folders: [],
-        years: [],
-        months: [],
-      });
+      const { urls, env } = server(series);
       const { drawn, newPlot } = fakePlot();
       await showPageCharts(
         newPlot,
@@ -341,10 +340,7 @@ describe('showPageCharts', () => {
         env,
       );
       assert.deepEqual(urls, ['/data']);
-      assert.deepEqual(
-        drawn.map((d) => d.id),
-        ids,
-      );
+      assert.deepEqual(drawn, charts);
     });
   }
 
@@ -366,11 +362,28 @@ describe('showPageCharts', () => {
     assert.deepEqual(drawn, []);
   });
 
-  it('logs failures to load the data', async (t: TestContext) => {
+  it('logs a missing data URL', async (t: TestContext) => {
     const errors = t.mock.method(console, 'error', () => {}).mock;
     const { drawn, newPlot } = fakePlot();
     await showPageCharts(newPlot, page('data-init="curate"'));
     assert.deepEqual(drawn, []);
     assert.equal(errors.callCount(), 1);
+  });
+
+  it('logs failures to load the data', async (t: TestContext) => {
+    const errors = t.mock.method(console, 'error', () => {}).mock;
+    const { drawn, newPlot } = fakePlot();
+    const fetch = (() =>
+      Promise.resolve(
+        new Response('', { status: 500 }),
+      )) as unknown as typeof globalThis.fetch;
+    await showPageCharts(
+      newPlot,
+      page('data-init="curate" data-curate-url="/data"'),
+      { fetch, pageUrl: 'https://cory.example/' },
+    );
+    assert.deepEqual(drawn, []);
+    assert.equal(errors.callCount(), 1);
+    assert.match(String(errors.calls[0].arguments[0]), /\/data/);
   });
 });

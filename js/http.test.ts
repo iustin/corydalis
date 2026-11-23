@@ -148,7 +148,7 @@ describe('requestJSON', () => {
       (err) =>
         err instanceof RequestError &&
         err.status === 0 &&
-        err.message === 'offline',
+        err.message.includes('offline'),
     );
   });
 

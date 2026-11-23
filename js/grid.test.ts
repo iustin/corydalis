@@ -151,6 +151,10 @@ describe('setupImageGrid', () => {
     assert.equal(options.append, '.grid-item');
     assert.equal(options.outlayer, masonry);
     assert.equal(options.debug, false);
+    assert.equal(options.history, 'replace');
+    assert.equal(options.checkLastPage, '.pagination-next');
+    assert.equal(options.hideNav, '.pagination');
+    assert.equal(options.status, '.page-load-status');
     assert.equal(scroll.pageIndex, 3);
   });
 

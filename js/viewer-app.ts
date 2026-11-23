@@ -207,6 +207,11 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
     win.alert('Cannot fully initialise the application, aborting!');
     return null;
   }
+  // The functions below need '!' for some of the elements checked above
+  // (e.g. context, waitingBar): function declarations are hoisted, and
+  // could be called before the null checks, so TypeScript doesn't apply
+  // them there. canvas doesn't, since it's declared with a type
+  // assertion (as HTMLCanvasElement), which already excludes null.
   const helpModal = deps.helpModal(helpDiv);
 
   // Now that the base setup has been done, store the current image state,
@@ -476,8 +481,6 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
   function loadImage(img: HTMLImageElement, url: string) {
     setImageReady(img, false);
     img.dataset.fullres = 'false';
-    /** The {@link cory.state.canvasSize} is the size of the canvas in
-     * bitmap pixels, so we can directly use it. */
     img.src = imageUrlScaled(url, cory.state.canvasSize);
   }
 
@@ -490,11 +493,6 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
   }
 
   function showWaitingState(waiting: boolean) {
-    // waitingBar needs '!' since this is a function declaration: these
-    // are hoisted, and could be called before the null checks above, so
-    // TypeScript doesn't apply them here. canvas doesn't, since it's
-    // declared with a type assertion (as HTMLCanvasElement), which
-    // already excludes null.
     if (waiting) {
       canvas.style.cursor = 'wait';
       waitingBar!.style.display = 'block';
@@ -690,7 +688,7 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
   }
 
   /**
-   * Advances to the next image or, in movie move, starts playing the movie.
+   * Advances to the next image or, in movie mode, starts playing the movie.
    */
   function advanceOrPlay() {
     if (cory.info.current.movie != null) {

@@ -315,6 +315,7 @@ describe('makeFilter', () => {
     assert.ok(matches(percent, '<50%', '45.3%'));
     assert.ok(!matches(percent, '<50', '50%'));
     assert.ok(matches(digit, '<=5', '5'));
+    assert.ok(matches(digit, '≤5', '5'));
     assert.ok(!matches(digit, '≤5', '6'));
   });
 
