@@ -165,6 +165,7 @@ module Pics ( PicDir(..)
             , scaledImagePath
             , cacheFileNeedsBuild
             , upToDateCacheFile
+            , filePathLastTouch
             , writeViaTempFile
             , cacheFileEndings
             , isLiveCacheFile
@@ -2518,7 +2519,7 @@ getViewableVersion tools logfn config img = do
       extracted = either (throwIO . ImageError) $ \(mime, epath) -> do
         -- The file can disappear meanwhile (e.g. removed from the cache
         -- directory by hand): a failure for this image only.
-        mtime <- either (const . throwIO $ ImageError "The extracted preview vanished") return
+        mtime <- either (const . throwIO $ ImageError "The extracted preview can't be read") return
                    =<< tryIO (filePathLastTouch epath)
         return (f, epath, extractedDecoder, mime, mtime)
   case kind of
