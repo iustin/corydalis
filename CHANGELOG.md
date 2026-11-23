@@ -1,5 +1,15 @@
 # Changelog
 
+## vNext
+
+### Internal changes
+
+- The image viewer, the chart pages and the image grid are split into
+  modules that the unit tests can load, with the browser-only libraries
+  (Bootstrap, Plotly, screenfull, Masonry, Infinite Scroll) passed in by
+  small entry points; they are now tested, raising the TypeScript test
+  coverage from about 30% to 96% (the rest being the entry points).
+
 ## v2026.48.0 - "Security hardening"
 
 Released: _Mon, 23 Nov 2026_.
