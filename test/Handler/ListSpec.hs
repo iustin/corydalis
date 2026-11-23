@@ -42,7 +42,7 @@ spec = parallel $ withApp $ do
     bodyContains "Nothing found"
   it "lists folders with their details" $ do
     config <- ctxConfig . appContext <$> getTestYesod
-    injectImagesAfterScan
+    injectImages
       [ exifImage config "list-a" "1" $ \e ->
           e { exifCountry = Just (mkSym "Ruritania")
             , exifCity = Just (mkSym "Strelsau")
@@ -60,7 +60,7 @@ spec = parallel $ withApp $ do
     bodyContains "Rudolf"
   it "lists images" $ do
     config <- ctxConfig . appContext <$> getTestYesod
-    injectImagesAfterScan [exifImage config "list-a" "img1" id]
+    injectImages [exifImage config "list-a" "img1" id]
     login
     checkRoute ListImagesR
     bodyContains "img1"

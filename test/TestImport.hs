@@ -644,17 +644,6 @@ injectImages images = do
                        }
     writeTVar (ctxRepo ctx) newRepo
 
--- | Runs a new scan (cancelling any running one, e.g. the initial one),
--- waits for it, then injects the images, so that no scan replaces the
--- repository holding them. Images injected earlier are lost.
-injectImagesAfterScan :: [Image] -> YesodExample App ()
-injectImagesAfterScan images = do
-  ctx <- appContext <$> getTestYesod
-  liftIO $ do
-    launchScanFileSystem ctx
-    void $ waitForScan ctx
-  injectImages images
-
 -- | Helper to add a single image to a test folder in RepoDirs
 addImageToRepo :: Config -> RepoDirs -> Image -> RepoDirs
 addImageToRepo config dirs img =

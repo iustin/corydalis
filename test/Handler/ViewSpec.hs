@@ -158,13 +158,12 @@ responseJson = withResponse $ \response ->
 jsonShouldBe :: Value -> [Aeson.Key] -> Value -> YesodExample App ()
 jsonShouldBe v path expected = liftIO $ jsonAt path v `shouldBe` Just expected
 
--- | Adds the images used by the navigation tests, after the initial
--- scan (which would otherwise drop them): folder @nav-a@ with image
--- @1@, and folder @nav-b@ with images @1@ and @2@.
+-- | Adds the images used by the navigation tests: folder @nav-a@ with
+-- image @1@, and folder @nav-b@ with images @1@ and @2@.
 addNavigationImages :: YesodExample App ()
 addNavigationImages = do
   config <- ctxConfig . appContext <$> getTestYesod
-  injectImagesAfterScan
+  injectImages
                [ exifImage config "nav-a" "1" id
                , exifImage config "nav-b" "1" id
                , exifImage config "nav-b" "2" id
@@ -292,7 +291,7 @@ spec = parallel $ do
         jsonShouldBe v ["current", "bytes"] "http://localhost:3000/image/bytes/nav-b/2"
       it "returns the information of a random image" $ do
         config <- ctxConfig . appContext <$> getTestYesod
-        injectImagesAfterScan [exifImage config "nav-a" "1" id]
+        injectImages [exifImage config "nav-a" "1" id]
         login
         get RandomImageInfoR
         statusIs 200
