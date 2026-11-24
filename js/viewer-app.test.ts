@@ -1021,6 +1021,17 @@ describe('zooming', () => {
     assert.deepEqual(shows(), ['plus']);
   });
 
+  it('zooms on pages without the zoom button', () => {
+    const v = loaded({
+      html: PAGE.replace(/<button id="imageZoom">.*?<\/button>/, ''),
+    });
+    assert.equal(v.doc.getElementById('imageZoom'), null);
+    v.key('+');
+    loadFull(v);
+    assert.equal(v.cory!.state.scale, 1.1);
+    assert.equal(v.ctx.lastDraw()[3], 880);
+  });
+
   it('resets the zoom and panning', () => {
     const v = loaded();
     v.key('+');

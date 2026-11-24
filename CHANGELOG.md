@@ -35,6 +35,9 @@
   copy regex turned `IMG-20240101_1234` into `IMG`. If your settings
   were copied from the sample, consider anchoring them too; note that
   this can change some picture names, and thus how they are grouped.
+- In the image viewer, the zoom button now shows a minus when zoomed
+  in, as clicking it then zooms back out to fit; it always showed a
+  plus.
 - In the image viewer, the up arrow key now toggles the full screen
   state, as intended; the key was bound under a wrong name, so it did
   nothing.
