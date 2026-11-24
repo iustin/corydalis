@@ -425,6 +425,16 @@ than one minute:
 
     ./corydalis +RTS -I63
 
+The binaries are built with the `--disable-delayed-os-memory-return`
+runtime option, so that the memory the runtime returns to the system
+after a garbage collection is really released at once. Without it, on
+Linux, the runtime only marks that memory as reclaimable, and the
+kernel takes it back when it is short on memory; until then it still
+counts as used by the process (in `top`, or in systemd's memory
+accounting), which after a rescan (needing much more memory than
+serving the pictures does) can be more than twice what the application
+really uses.
+
 ### Running as a systemd service
 
 `config/corydalis.service.sample` is a sample systemd unit. It runs

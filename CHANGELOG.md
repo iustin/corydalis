@@ -33,9 +33,24 @@
   now ignored; for a systemd service based on the sample, first remove
   `static/tmp` from its `ReadWritePaths`, as systemd doesn't start a
   service if one of these paths is missing.
+- A rescan keeps less in memory, and gives it back once done. The
+  previous scan's data is dropped as soon as the new data is in use;
+  it used to be kept until the scan ended, through the rendering of
+  the previews and the cleanup of the cache. And the memory the
+  runtime returns to the system once the scan's garbage is collected
+  is really released: the binaries are now built with the
+  `--disable-delayed-os-memory-return` runtime option, without which
+  that memory still counted as used by the process until the system
+  needed it (on a test library of 24,000 pictures, the resident memory
+  after a rescan went from about 580 MB to about 230 MB with this
+  option).
 
 ### Fixed bugs
 
+- If a rescan fails while rendering the previews or cleaning up the
+  cache, the application keeps the pictures that scan found (with the
+  error on the status page, as before); it used to go back to the
+  previous scan's data, bringing back the pictures removed since.
 - The copy and range regexes are now matched against the file name
   only, not against its path relative to the folder: previously, a
   picture in a sub-directory whose name the regex matched (e.g.
@@ -87,6 +102,16 @@
   `static/`, the patching of the Font Awesome style sheets, and the
   combining of the style sheets by the Haskell build in
   `static/combined`.
+- The repository cache is written once per scan, when it finishes; it
+  used to be written a first time before rendering the previews, only
+  so that a restart at that point would scan again, for which the
+  previous cache is now simply removed.
+- Many values built during a scan, and by the statistics pages and
+  the searches, are now evaluated as they are built (strict maps, folds
+  and fields), instead of being left as chains of pending computations
+  holding on to their inputs; and the new repository is fully built
+  before it replaces the current one, rather than partly inside that
+  transaction.
 
 ## v2026.48.0 - "Security hardening"
 
