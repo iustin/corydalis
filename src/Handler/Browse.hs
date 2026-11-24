@@ -26,7 +26,7 @@ module Handler.Browse ( getBrowseImagesR
                       ) where
 
 import           Data.Aeson.Text (encodeToLazyText)
-import qualified Data.Map        as Map
+import qualified Data.Map.Strict as Map
 
 import           Handler.Utils
 import           Handler.Widgets

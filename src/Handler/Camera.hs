@@ -40,7 +40,7 @@ import           Indexer
 import           Pics
 import           Stats               (keeperRate)
 
-import qualified Data.Map            as Map
+import qualified Data.Map.Strict     as Map
 import           Data.Time.Calendar
 import           Data.Time.LocalTime
 

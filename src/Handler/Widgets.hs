@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.Widgets where
 
 import           Data.Aeson.Text     (encodeToLazyText)
-import qualified Data.Map            as Map
+import qualified Data.Map.Strict     as Map
 import           Data.Ord
 import qualified Data.Set            as Set
 import qualified Data.Text           as Text

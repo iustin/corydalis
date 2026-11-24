@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE CPP                #-}
 {-# LANGUAGE GADTs              #-}
 {-# LANGUAGE LambdaCase         #-}
@@ -77,7 +78,7 @@ module Indexer ( Symbol(..)
 import           Control.Monad               (foldM, guard, when)
 import           Data.Bifunctor
 import           Data.List                   (nub, partition)
-import qualified Data.Map                    as Map
+import qualified Data.Map.Strict             as Map
 import           Data.Maybe                  (fromMaybe, isJust, isNothing,
                                               mapMaybe)
 import           Data.Set                    (Set)
@@ -1722,7 +1723,10 @@ earliestImage a b =
 -- | Build image map (with static sorting).
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
-  foldl' (\(mimg, mfld) img ->
+  -- Both maps are evaluated at each step (the bangs evaluate the
+  -- previous step's): a lazy pair would only build them at the end,
+  -- from a chain of insertions as long as the results.
+  foldl' (\(!mimg, !mfld) img ->
              (Map.insert (imgParent img, imageTimeKey img) img mimg,
               Map.insertWith earliestImage (imgParent img) img mfld)
          ) (Map.empty, Map.empty) .

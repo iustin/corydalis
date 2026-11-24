@@ -45,7 +45,7 @@ module Utils.Session ( rotatingCsrfSessions
                      , csrfTokenKey
                      ) where
 
-import qualified Data.Map            as Map
+import qualified Data.Map.Strict     as Map
 
 import           Import.NoFoundation
 
