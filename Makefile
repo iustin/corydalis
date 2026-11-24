@@ -58,7 +58,7 @@ bootstrap:
 	@echo One-shot bundling the TypeScript and CSS...
 	npm run build
 
-# Checks that the files in static/ are all used, and that none is a symbolic link
+# Checks that the files in static/ are all used
 # (see "Static files" in docs/devel.md); needs a 'make bootstrap' first.
 .PHONY: check-static
 check-static:
