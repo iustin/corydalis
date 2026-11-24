@@ -33,6 +33,7 @@
     "watch": "NODE_ENV=development node esbuild.js --watch",
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",
+    "stamp": "node build/static-stamp.js",
     "test": "oxlint js/ && npm run test:unit",
     "test:unit": "node --test js/*.test.ts",
     "coverage": "c8 npm run test:unit"

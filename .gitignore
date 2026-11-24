@@ -3,6 +3,7 @@
 /static/corydalis/css/
 /static/corydalis/fonts/
 /static/corydalis/js/
+/.static-files.stamp
 /config/client_session_key.aes
 /node_modules
 /coverage/

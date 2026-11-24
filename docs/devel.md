@@ -103,13 +103,18 @@ Note that the route names include a hash of each file's contents, as
 the `etag` parameter of the URLs, so that browsers can cache the files
 for long. This hash is computed when `Settings/StaticFiles.hs` is
 compiled, but GHC doesn't know that the module depends on the static
-files: after changing only them (e.g. the JavaScript or CSS bundles), neither
-`stack build` nor touching the module recompiles it (GHC compares the
-contents of the sources), and the URLs keep the old hash, so browsers
-may keep using their cached copies. `make release`, which starts from a
-clean build, is not affected; for other builds, change the module or
-build from scratch. The server also needs a restart, as it reads the
-files' hashes when it starts.
+files, so it depends instead on the stamp file `.static-files.stamp`
+(not committed): a hash of the names and contents of the files in
+`static/` that `staticFiles` generates routes for, written by
+`npm run build` (thus also by `make bootstrap`, and by `npm run watch`
+after each rebuild), only when it changes. After a change to the
+static files, the next build recompiles the module, with the new
+hashes; building without the stamp file fails, asking to run
+`make bootstrap`. When a file in `static/` changes by other means,
+e.g. the committed `manifest.json` after a `git pull` or a branch
+switch, run `npm run stamp` (or `npm run build`) to update the stamp
+file. The server also needs a restart, as it reads the files' hashes
+when it starts.
 
 ## Middlewares: where headers and checks go
 
