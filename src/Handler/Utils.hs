@@ -172,6 +172,12 @@ showLocalTime :: ZonedTime -> Text
 showLocalTime =
   Text.pack . formatTime defaultTimeLocale "%F %T%4Q %EZ"
 
+-- | Formats a time with whole seconds, for display where sub-second
+-- precision is just noise (e.g. tooltips on relative times).
+showLocalTimeSeconds :: ZonedTime -> Text
+showLocalTimeSeconds =
+  Text.pack . formatTime defaultTimeLocale "%F %T %EZ"
+
 showExifTime :: ExifTime -> Text
 showExifTime = showLocalTime . etTime
 

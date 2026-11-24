@@ -25,7 +25,8 @@ module Handler.StatusSpec (spec) where
 import           TestImport
 
 import           Data.Default        (def)
-import           Data.Time.LocalTime (ZonedTime, getZonedTime)
+import           Data.Time.LocalTime (LocalTime (..), TimeOfDay (..),
+                                      ZonedTime (..), getZonedTime, utc)
 
 import           Handler.Status      (ProgressKind (..), remainingTime)
 import           Pics                (RepoStatus (..), Repository (..))
@@ -91,6 +92,13 @@ pageSpec = parallel $ withApp $ describe "the status page" $ do
                     , "Rendering has not started yet."
                     , "Cleaning has not started yet."
                     ] 0
+  it "shows tooltip times with whole seconds" $ do
+    let start = ZonedTime (LocalTime (fromGregorian 2024 3 5)
+                                     (TimeOfDay 3 8 52.520415773751)) utc
+    setRepoStatus $ const (RepoScanning (WorkStart start))
+    login
+    checkRoute StatusR
+    bodyContains "<abbr title=\"Since 2024-03-05 03:08:52 UTC\">"
   it "shows rendering in progress" $ do
     setRepoStatus $ \now -> RepoRendering (done now) (WorkStart now)
     checkStatusPage ["rendering images", "Cleaning has not started yet."] 1

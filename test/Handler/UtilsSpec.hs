@@ -31,7 +31,8 @@ import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Map      as Map
 import qualified Data.Text.Short as TS
 import           Data.Time     (CalendarDiffDays (..), LocalTime (..),
-                                ZonedTime (..), midnight, utc)
+                                TimeOfDay (..), ZonedTime (..), midnight,
+                                utc)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 
 import           Exif
@@ -140,6 +141,12 @@ timeSpec = describe "time formatting" $ do
   let zoned = ZonedTime (LocalTime (fromGregorian 2024 3 5) midnight) utc
   it "formats local times" $
     showLocalTime zoned `shouldBe` "2024-03-05 00:00:00.0000 UTC"
+  it "formats local times with whole seconds" $ do
+    showLocalTimeSeconds zoned `shouldBe` "2024-03-05 00:00:00 UTC"
+    let frac = zoned { zonedTimeToLocalTime =
+                         LocalTime (fromGregorian 2024 3 5)
+                                   (TimeOfDay 3 8 52.520415773751) }
+    showLocalTimeSeconds frac `shouldBe` "2024-03-05 03:08:52 UTC"
   it "formats exif times" $
     showExifTime (ExifTime zoned) `shouldBe` "2024-03-05 00:00:00.0000 UTC"
   it "formats timestamps as UTC" $

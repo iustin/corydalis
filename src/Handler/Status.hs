@@ -111,7 +111,7 @@ repoInProgress :: ZonedTime -> Text -> WorkStart -> Widget
 repoInProgress now work WorkStart{..} =
   toWidget [hamlet|
             <p .card-text>
-               #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
+               #{work} in progress for <abbr title="Since #{showLocalTimeSeconds wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
                |]
 
 repoContents :: Repository -> Widget
@@ -225,10 +225,10 @@ workInProgress now labels counter@Progress{..} WorkStart{..} =
                #{work} progress: #{swissNum $ countedItems kind counter}/#{swissNum pgGoal} #{forCount pgGoal (plUnit labels)}:
             ^{progressDetails labels counter}
             <p .card-text>
-               #{work} in progress for <abbr title="Since #{show wsStart}">#{relTime False delta}</abbr>.
+               #{work} in progress for <abbr title="Since #{showLocalTimeSeconds wsStart}">#{relTime False delta}</abbr>.
                ETA: #
                $maybe at <- eta
-                 <abbr title="At #{show at}">#{relTime True remaining}</abbr>.
+                 <abbr title="At #{showLocalTimeSeconds at}">#{relTime True remaining}</abbr>.
                $nothing
                  #{relTime True remaining}.
             ^{progressThroughput labels counter delta}
@@ -290,7 +290,7 @@ renderCheckInProgress now checked WorkStart{..} =
               Checking which previews need rendering: #
               #{swissNum $ pgDone checked}/#{swissNum $ pgGoal checked} images.
             <p .card-text>
-              #{rendering} in progress for <abbr title="Since #{show wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
+              #{rendering} in progress for <abbr title="Since #{showLocalTimeSeconds wsStart}">#{relTime False (diffZ now wsStart)}</abbr>.
             ^{percentsBar WorkOnly checked}
                |]
 
@@ -302,8 +302,8 @@ workResults now WorkResults{..} labels =
               #{work} finished, #{swissNum processed} #{forCount processed (plUnit labels)} processed:
                  ^{progressDetails labels wrDone}
             <p .card-text>
-              #{work} started <abbr title="#{show wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
-              and took <abbr title="Ended at #{show wrEnd}">#{relTime False delta}</abbr>.
+              #{work} started <abbr title="#{showLocalTimeSeconds wrStart}">#{relTime True (diffZ wrStart now)}</abbr>
+              and took <abbr title="Ended at #{showLocalTimeSeconds wrEnd}">#{relTime False delta}</abbr>.
             ^{progressThroughput labels wrDone delta}
             ^{percentsBar kind wrDone}
               |]
