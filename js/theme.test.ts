@@ -243,15 +243,32 @@ describe('setupTheme', () => {
       value: 'loading',
       configurable: true,
     });
-    setupTheme({ doc, storage: memoryStorage(), media: fakeMedia(false) });
+    setupTheme({
+      doc,
+      storage: memoryStorage({ [STORAGE_KEY]: 'dark' }),
+      media: fakeMedia(false),
+    });
+    // Before the body is shown, so that it doesn't flash in light.
+    assert.equal(currentTheme(doc), 'dark');
     doc.body.innerHTML =
       '<button id="theme-toggle"><span class="fa-solid theme-icon"></span></button>';
     doc.dispatchEvent(new window.Event('DOMContentLoaded'));
     const button = doc.getElementById('theme-toggle')!;
-    assert.match(button.title, /^Theme: automatic/);
+    assert.match(button.title, /^Theme: dark;/);
+    assert.match(iconOf(doc), /\bfa-moon\b/);
+    button.click();
+    assert.equal(currentTheme(doc), 'light'); // auto, with a light system
+    assert.match(iconOf(doc), /\bfa-circle-half-stroke\b/);
     button.click();
     assert.equal(currentTheme(doc), 'light');
-    button.click();
-    assert.equal(currentTheme(doc), 'dark');
+  });
+
+  it('ignores the system once a choice is clicked', () => {
+    const doc = page();
+    const media = fakeMedia(false);
+    setupTheme({ doc, storage: memoryStorage(), media });
+    doc.getElementById('theme-toggle')!.click(); // now light
+    media.set(true);
+    assert.equal(currentTheme(doc), 'light');
   });
 });
