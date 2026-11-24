@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
-{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE NoCPP             #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -278,10 +277,10 @@ buildTopNItems d m n =
       top10 = if length allItems > n
                 then let t10 = reverse $ take (n-1) allItems
                          r  = drop (n-1) allItems
-                         (rc, rs, tr) =
-                           foldl' (\(!c, !s, !t) (cnt, sz, _, _, tr') ->
-                                      (c+cnt, s+sz, Map.unionWith (+) t tr'))
-                             (0, 0, Map.empty) r
+                         StrictTriple rc rs tr =
+                           foldl' (\(StrictTriple c s t) (cnt, sz, _, _, tr') ->
+                                      StrictTriple (c+cnt) (s+sz) (Map.unionWith (+) t tr'))
+                             (StrictTriple 0 0 Map.empty) r
                      in (rc, rs, "Others", d, tr): t10
               else allItems
   in top10

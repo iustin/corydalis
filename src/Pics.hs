@@ -38,6 +38,8 @@ module Pics ( PicDir(..)
             , fileFullPath
             , fileRelPath
             , Flags(..)
+            , StrictPair(..)
+            , StrictTriple(..)
             , Repository
             , Ctx
             , initContext
@@ -818,8 +820,14 @@ computeFolderStats :: PicDir -> Stats
 computeFolderStats dir =
   addUntrackedFiles (pdUntracked dir) (computeImagesStats (pdImages dir))
 
+-- | A pair whose parts are evaluated when it is built. For the
+-- accumulator of a strict fold: with a plain pair, only the pair is
+-- evaluated at each step, and its parts become chains of pending
+-- updates, as long as what is folded over.
 data StrictPair a b = StrictPair !a !b
 
+-- | A triple whose parts are evaluated when it is built (see
+-- 'StrictPair').
 data StrictTriple a b c = StrictTriple !a !b !c
 
 computeRepoStats :: RepoDirs -> RepoStats
