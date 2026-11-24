@@ -33,6 +33,7 @@ import {
   cameraStatsCharts,
   curateCharts,
   drawCharts,
+  pageTheming,
   lensInfoCharts,
   lensStatsCharts,
   showPageCharts,
@@ -40,6 +41,7 @@ import {
   themedLayout,
 } from './charts.ts';
 import { plotConfig } from './plot-config.ts';
+import { THEME_EVENT } from './theme.ts';
 
 /** Distinct data, to check that each chart gets its own. */
 const data = (name: string): Data[] => [{ name }];
@@ -657,5 +659,20 @@ describe('drawCharts colours', () => {
       drawn.map((c) => c.layout),
       charts.map((c) => themedLayout(c.layout, dark)),
     );
+  });
+});
+
+describe('pageTheming', () => {
+  it("reads the page's colours, and calls back on theme changes", () => {
+    const { window } = new JSDOM(
+      '<html style="--bs-body-color: #dee2e6; --bs-emphasis-color-rgb: 255, 255, 255; --bs-tertiary-bg: #2b3035; --bs-border-color: #495057"></html>',
+    );
+    const doc = window.document;
+    const theming = pageTheming(doc);
+    assert.deepEqual(theming.colors(), dark);
+    let calls = 0;
+    theming.onChange(() => calls++);
+    doc.dispatchEvent(new window.CustomEvent(THEME_EVENT));
+    assert.equal(calls, 1);
   });
 });

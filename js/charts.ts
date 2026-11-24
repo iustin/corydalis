@@ -27,6 +27,7 @@ import type { Config, Data, Layout, UpdateMenu } from 'plotly.js';
 import { bootData, loadBootJSON } from './boot.ts';
 import type { RequestEnv } from './http.ts';
 import { plotConfig } from './plot-config.ts';
+import { THEME_EVENT } from './theme.ts';
 
 /** A chart: the id of its element, its data and its layout. */
 export type Chart = {
@@ -442,6 +443,17 @@ export type ChartTheming = {
   colors: () => ChartColors | undefined;
   onChange: (redraw: () => void) => void;
 };
+
+/**
+ * The charts' theming from the page: its colours (see themeChartColors),
+ * and its theme changes (see js/theme.ts).
+ */
+export function pageTheming(doc: Document = document): ChartTheming {
+  return {
+    colors: () => themeChartColors(doc),
+    onChange: (redraw) => doc.addEventListener(THEME_EVENT, redraw),
+  };
+}
 
 /**
  * Draws the charts of the page, as named by its boot data, once their
