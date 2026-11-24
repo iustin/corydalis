@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoCPP                 #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
@@ -123,8 +122,10 @@ getCurateR = do
                            top10 = if length allItems > n
                                      then let t10 = reverse $ take (n-1) allItems
                                               r  = drop (n-1) allItems
-                                              (rc, rs) = foldl' (\(!c, !s) (cnt, sz, _) ->
-                                                                   (c+cnt, s+sz)) (0, 0) r
+                                              StrictPair rc rs =
+                                               foldl' (\(StrictPair c s) (cnt, sz, _) ->
+                                                         StrictPair (c+cnt) (s+sz))
+                                                 (StrictPair 0 0) r
                                           in (rc, rs, "Others"): t10
                                      else allItems
                        in top10
