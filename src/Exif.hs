@@ -74,7 +74,7 @@ module Exif ( Exif(..)
 import           Control.Applicative
 import           Control.DeepSeq
 import           Control.Monad             (fail, msum)
-import           Control.Monad.Trans.State
+import           Control.Monad.Trans.State.Strict
 import           Data.Aeson
 import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
                                             parseMaybe, typeMismatch)
@@ -930,7 +930,7 @@ parseCreateDate o = do
 
 exifFromRaw :: Config -> RawExif -> Exif
 exifFromRaw config RawExif{..} = flip evalState Set.empty $ do
-  let logger s = modify (s `Set.insert`)
+  let logger s = modify' (s `Set.insert`)
       loggerN s = logger s >> return Nothing
       evalTV t p e = maybe (return Nothing)
                         (\v' -> if p v'
@@ -1126,10 +1126,14 @@ readExif config path = do
 
 -- | Insert an exif value after fully evaluating it so cache/JSON thunks
 -- (especially a RawExif Object) can be garbage-collected.
+--
+-- The map is evaluated as well, as it would otherwise be a chain of
+-- pending insertions, each holding its key unevaluated (an evaluated
+-- map has evaluated keys).
 insertForced :: Map Text EExif -> Text -> EExif -> IO (Map Text EExif)
 insertForced m k e = do
   e' <- evaluate $ force e
-  return $ Map.insert k e' m
+  return $! Map.insert k e' m
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
 getExif :: LogFn
@@ -1216,8 +1220,10 @@ runExifToolBatch logfn tools config dir acc batch = do
   case exifs of
     -- The batch's error isn't written to the exif caches: it isn't
     -- about the files themselves, which the next scan tries again.
-    Left msg ->
-      return $ foldl' (\m p -> Map.insert (Text.pack p) (Left msg) m) acc batch
+    Left msg -> do
+      -- Evaluated, as it can hold the exception it was built from.
+      msg' <- evaluate $ force msg
+      foldM (\m p -> insertForced m (Text.pack p) (Left msg')) acc batch
     Right parsed -> do
       logfn LevelDebug $ "extractExifs: parsed " <> toLogStr (show (length parsed)) <>
         " results for " <> toLogStr dir
