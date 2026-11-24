@@ -304,6 +304,8 @@ export type ChartColors = {
   text: string;
   /** The grid and zero lines of the axes. */
   grid: string;
+  /** The mode bar's icons (when not hovered). */
+  icon: string;
   /** The background and border of the update menus' buttons. */
   menuBg: string;
   menuBorder: string;
@@ -328,6 +330,7 @@ export function themeChartColors(
   return {
     text,
     grid: `rgba(${emphasisRgb}, 0.1)`,
+    icon: `rgba(${emphasisRgb}, 0.35)`,
     menuBg: get('--bs-tertiary-bg'),
     menuBorder: get('--bs-border-color'),
   };
@@ -352,7 +355,7 @@ export function themedLayout(
     modebar: {
       ...layout.modebar,
       bgcolor: 'rgba(0, 0, 0, 0)',
-      color: colors.grid,
+      color: colors.icon,
       activecolor: colors.text,
     },
   };

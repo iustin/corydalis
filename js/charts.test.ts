@@ -569,12 +569,14 @@ describe('showPageCharts', () => {
 const dark: ChartColors = {
   text: '#dee2e6',
   grid: 'rgba(255, 255, 255, 0.1)',
+  icon: 'rgba(255, 255, 255, 0.35)',
   menuBg: '#2b3035',
   menuBorder: '#495057',
 };
 const light: ChartColors = {
   text: '#212529',
   grid: 'rgba(0, 0, 0, 0.1)',
+  icon: 'rgba(0, 0, 0, 0.35)',
   menuBg: '#f8f9fa',
   menuBorder: '#dee2e6',
 };
@@ -587,6 +589,7 @@ describe('themedLayout', () => {
     assert.deepEqual(layout.font, { size: 10, color: dark.text });
     assert.equal(layout.modebar?.bgcolor, 'rgba(0, 0, 0, 0)');
     assert.equal(layout.modebar?.activecolor, dark.text);
+    assert.equal(layout.modebar?.color, dark.icon);
   });
 
   it('colours the grids of all the axes, and the default ones', () => {
