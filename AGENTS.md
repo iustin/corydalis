@@ -59,11 +59,12 @@ Add tests for any new TypeScript code as well.
 
 The server serves the files in `static/` (embedded in the binary in
 production builds, see "Static files" in `docs/devel.md`), which are
-generated (except for `static/manifest.json`). JavaScript
-and CSS libraries are imported by our code (`js/`, `css/bundle.css`)
-and bundled by esbuild: don't add links for them in `static/`.
-`make check-static` (run by CI and `make release`, after
-`make bootstrap`) fails on unused files and on symbolic links.
+all written by esbuild (`esbuild.js`): the bundles, and files copied
+as they are, such as `manifest.json`. Don't add files to `static/`
+directly. JavaScript and CSS libraries are imported by our code
+(`js/`, `css/bundle.css`) and bundled by esbuild. `make check-static`
+(run by CI, `make release` and `make dist`, after `make bootstrap`)
+fails on unused files.
 
 ## Documentation
 

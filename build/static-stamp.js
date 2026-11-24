@@ -44,8 +44,8 @@ function listFiles(dir) {
     }
     const path = `${dir}/${name}`;
     // statSync follows symbolic links, as Settings/StaticFiles.hs does
-    // (but a production build fails on broken ones, which `make check-static` forbids
-    // anyway, as all links).
+    // (but a production build fails on broken ones); esbuild, which
+    // writes static/, doesn't create any anyway.
     const stats = statSync(path, { throwIfNoEntry: false });
     if (stats === undefined) {
       continue;

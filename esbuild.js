@@ -1,6 +1,12 @@
 // esbuild.js
 import * as esbuild from 'esbuild';
-import { rmSync, watch as watchFiles } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  watch as watchFiles,
+} from 'node:fs';
 import { writeStaticStamp } from './build/static-stamp.js';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -28,16 +34,36 @@ const esbuildProblemMatcherPlugin = {
   },
 };
 
-/** The output directory of the bundles and of the fonts. */
+/**
+ * The output directory, entirely generated: the bundles, the fonts, and
+ * the files copied as they are (see `copiedFiles`).
+ */
 const outdir = 'static';
 
+/** Files copied as they are into the output directory. */
+const copiedFiles = ['manifest.json'];
+
+/** Copies the files, printing the error if it fails (as esbuild does). */
+function copyFiles() {
+  try {
+    for (const file of copiedFiles) {
+      copyFileSync(file, `${outdir}/${file}`);
+    }
+  } catch (err) {
+    console.error(`✘ [ERROR] Copying to ${outdir} failed: ${err.message}`);
+    throw err;
+  }
+}
+
 async function runBuild() {
-  // The output is entirely generated, so remove it first: old files
-  // would otherwise stay around, e.g. the fonts after an update (their
-  // names include a hash of their contents), or the source maps of a
-  // development build in a production one.
-  for (const dir of ['css', 'fonts', 'js']) {
-    rmSync(`${outdir}/${dir}`, { recursive: true, force: true });
+  // The output is entirely generated, so empty it first (keeping the
+  // directory itself): old files would otherwise stay around, e.g. the
+  // fonts after an update (their names include a hash of their
+  // contents), or the source maps of a development build in a
+  // production one.
+  mkdirSync(outdir, { recursive: true });
+  for (const name of readdirSync(outdir)) {
+    rmSync(`${outdir}/${name}`, { recursive: true, force: true });
   }
 
   // Create the build contexts: for the scripts, the theme script, and
@@ -95,9 +121,10 @@ async function runBuild() {
   // Let all the builds finish (and print their errors), then fail if any
   // of them failed.
   const rebuildAll = async () => {
-    const results = await Promise.allSettled(
-      contexts.map((ctx) => ctx.rebuild()),
-    );
+    const results = await Promise.allSettled([
+      ...contexts.map((ctx) => ctx.rebuild()),
+      Promise.resolve().then(copyFiles),
+    ]);
     const failed = results.find((r) => r.status === 'rejected');
     if (failed) {
       throw failed.reason;
@@ -140,12 +167,13 @@ async function runBuild() {
     // place. Watch the directory rather than the file itself, since a
     // file watch stops working if the file gets replaced via a rename.
     watchFiles('.', (_event, file) => {
-      if (file === 'package-lock.json') {
+      if (file === 'package-lock.json' || copiedFiles.includes(file)) {
         scheduleRebuild(file);
       }
     });
     console.log(
-      'Watching js/, css/ and package-lock.json for changes. Press Ctrl+C to stop.',
+      `Watching js/, css/, package-lock.json and ${copiedFiles.join(', ')}` +
+        ' for changes. Press Ctrl+C to stop.',
     );
   } else {
     // Just do a single build

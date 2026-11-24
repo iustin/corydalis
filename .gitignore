@@ -1,7 +1,5 @@
 /dist*
-/static/css/
-/static/fonts/
-/static/js/
+/static/
 /.static-files.stamp
 /config/client_session_key.aes
 /node_modules

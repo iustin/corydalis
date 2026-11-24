@@ -32,6 +32,7 @@ extra-source-files:
   - static/fonts/*
   - static/js/*
   - static/manifest.json
+  - manifest.json
   - README.md
   - docs/*.md
   - stack.yaml
