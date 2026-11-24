@@ -29,7 +29,7 @@ const esbuildProblemMatcherPlugin = {
 };
 
 /** The output directory of the bundles and of the fonts. */
-const outdir = 'static/corydalis';
+const outdir = 'static';
 
 async function runBuild() {
   // The output is entirely generated, so remove it first: old files

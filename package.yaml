@@ -28,9 +28,9 @@ description: >
 
 extra-source-files:
   - templates/*
-  - static/*/css/*
-  - static/*/fonts/*
-  - static/*/js/*
+  - static/css/*
+  - static/fonts/*
+  - static/js/*
   - README.md
   - docs/*.md
   - stack.yaml

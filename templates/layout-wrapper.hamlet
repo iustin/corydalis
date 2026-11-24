@@ -12,11 +12,11 @@ $doctype 5
     $maybe tok <- mtok
       <meta name="csrf-token" content=#{tok}>
 
-    <link rel="manifest" href=@{StaticR corydalis_manifest_json} />
+    <link rel="manifest" href=@{StaticR manifest_json} />
 
     $# Sets the colour theme before the page is shown (see js/theme.ts);
     $# a classic script, so that it blocks the rendering until then.
-    <script src=@{StaticR corydalis_js_theme_js}>
+    <script src=@{StaticR js_theme_js}>
 
     ^{pageHead pc}
 

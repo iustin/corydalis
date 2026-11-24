@@ -38,7 +38,7 @@ import           Yesod.Auth.Util.PasswordStore (passwordStrength)
 
 import           Handler.Cookies
 import           Settings              (AppSettings (..))
-import           Settings.StaticFiles  (corydalis_manifest_json)
+import           Settings.StaticFiles  (manifest_json)
 import           Pics                  (RepoStatus (..), Repository (..),
                                         waitForScan)
 import           TestImport
@@ -276,7 +276,7 @@ sessionGenerationSpec = describe "session generation" $ do
         responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
     withAppSettings (\settings -> settings { appStrictTransportSecurity = True }) $ do
       it "is sent with static files" $ do
-        get $ StaticR corydalis_manifest_json
+        get $ StaticR manifest_json
         statusIs 200
         responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
       it "is sent with errors" $ do
@@ -636,7 +636,7 @@ appSpec = parallel $ withApp $ do
         let hdrs = simpleHeaders response
         lookup "Cache-Control" hdrs `shouldBe` Just "private, max-age=2592000"
     it "leaves static files cacheable" $ do
-      get $ StaticR corydalis_manifest_json
+      get $ StaticR manifest_json
       statusIs 200
       withResponse $ \response -> liftIO $
         lookup "Cache-Control" (simpleHeaders response)
