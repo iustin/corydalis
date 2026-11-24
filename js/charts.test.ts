@@ -24,6 +24,7 @@ import type { Data } from 'plotly.js';
 import {
   CHART_PAGES,
   type Chart,
+  type ChartColors,
   type CurateSeries,
   type InfoSeries,
   type NewPlot,
@@ -35,6 +36,8 @@ import {
   lensInfoCharts,
   lensStatsCharts,
   showPageCharts,
+  themeChartColors,
+  themedLayout,
 } from './charts.ts';
 import { plotConfig } from './plot-config.ts';
 
@@ -535,5 +538,121 @@ describe('showPageCharts', () => {
     assert.deepEqual(drawn, []);
     assert.equal(errors.callCount(), 1);
     assert.match(String(errors.calls[0].arguments[0]), /\/data/);
+  });
+
+  it('draws the charts again in the new colours', async () => {
+    const { env } = server(stats);
+    const { drawn, newPlot } = fakePlot();
+    let colors = dark;
+    let redraw = () => {};
+    await showPageCharts(
+      newPlot,
+      page('data-init="camera-stats" data-camerastats-url="/data"'),
+      env,
+      { colors: () => colors, onChange: (fn) => (redraw = fn) },
+    );
+    const charts = cameraStatsCharts(stats);
+    assert.deepEqual(
+      drawn.map((c) => c.layout),
+      charts.map((c) => themedLayout(c.layout, dark)),
+    );
+    colors = light;
+    redraw();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(
+      drawn.slice(2).map((c) => c.layout),
+      charts.map((c) => themedLayout(c.layout, light)),
+    );
+  });
+});
+
+const dark: ChartColors = {
+  text: '#dee2e6',
+  grid: 'rgba(255, 255, 255, 0.1)',
+  menuBg: '#2b3035',
+  menuBorder: '#495057',
+};
+const light: ChartColors = {
+  text: '#212529',
+  grid: 'rgba(0, 0, 0, 0.1)',
+  menuBg: '#f8f9fa',
+  menuBorder: '#dee2e6',
+};
+
+describe('themedLayout', () => {
+  it('makes the background transparent and colours the text', () => {
+    const layout = themedLayout({ font: { size: 10 } }, dark);
+    assert.equal(layout.paper_bgcolor, 'rgba(0, 0, 0, 0)');
+    assert.equal(layout.plot_bgcolor, 'rgba(0, 0, 0, 0)');
+    assert.deepEqual(layout.font, { size: 10, color: dark.text });
+    assert.equal(layout.modebar?.bgcolor, 'rgba(0, 0, 0, 0)');
+    assert.equal(layout.modebar?.activecolor, dark.text);
+  });
+
+  it('colours the grids of all the axes, and the default ones', () => {
+    const layout = themedLayout(
+      { yaxis: { type: 'log' }, yaxis2: { side: 'right' } },
+      dark,
+    );
+    assert.deepEqual(layout.xaxis, {
+      gridcolor: dark.grid,
+      zerolinecolor: dark.grid,
+    });
+    assert.deepEqual(layout.yaxis, {
+      type: 'log',
+      gridcolor: dark.grid,
+      zerolinecolor: dark.grid,
+    });
+    assert.deepEqual(layout.yaxis2, {
+      side: 'right',
+      gridcolor: dark.grid,
+      zerolinecolor: dark.grid,
+    });
+  });
+
+  it('colours the update menus', () => {
+    const [layout] = cameraStatsCharts(stats)
+      .slice(1)
+      .map((c) => themedLayout(c.layout, dark));
+    assert.equal(layout.updatemenus?.length, 2);
+    for (const menu of layout.updatemenus ?? []) {
+      assert.equal(menu.bgcolor, dark.menuBg);
+      assert.equal(menu.bordercolor, dark.menuBorder);
+      assert.equal(menu.font?.color, dark.text);
+      assert.equal(menu.buttons?.length, 2);
+    }
+  });
+
+  it('keeps the original layout as it is', () => {
+    const [chart] = cameraStatsCharts(stats).slice(1);
+    const before = structuredClone(chart.layout);
+    themedLayout(chart.layout, dark);
+    assert.deepEqual(chart.layout, before);
+  });
+});
+
+describe('themeChartColors', () => {
+  it('reads the colours from the theme', () => {
+    const { window } = new JSDOM(
+      '<html style="--bs-body-color: #dee2e6; --bs-emphasis-color-rgb: 255, 255, 255; --bs-tertiary-bg: #2b3035; --bs-border-color: #495057"></html>',
+    );
+    assert.deepEqual(themeChartColors(window.document), dark);
+  });
+
+  it("keeps Plotly's colours without Bootstrap", () => {
+    const { window } = new JSDOM('<html></html>');
+    assert.equal(themeChartColors(window.document), undefined);
+  });
+});
+
+describe('drawCharts colours', () => {
+  it('draws the charts in the given colours', async () => {
+    const { drawn, newPlot } = fakePlot();
+    const charts = cameraStatsCharts(stats);
+    await drawCharts(charts, newPlot, dark);
+    assert.deepEqual(
+      drawn.map((c) => c.layout),
+      charts.map((c) => themedLayout(c.layout, dark)),
+    );
   });
 });

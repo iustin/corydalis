@@ -146,5 +146,5 @@ $# expected grid size, so it's important to allow overflow-break.
 
 $if showRecord
   <code>
-    <pre .m-0 .p-2 .bg-light .border>
+    <pre .m-0 .p-2 .bg-body-tertiary .border>
       #{pShowNoColor img}

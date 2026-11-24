@@ -18,6 +18,11 @@
   second level whose names don't match are now searched for folders,
   instead of being ignored.
 
+- A dark theme: the theme button in the navigation bar switches
+  between following the system's light or dark setting (the default),
+  and always using the light or the dark theme; the choice is kept by
+  the browser. The charts follow the theme too.
+
 ### Fixed bugs
 
 - The copy and range regexes are now matched against the file name

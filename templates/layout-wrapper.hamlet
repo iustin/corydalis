@@ -14,10 +14,14 @@ $doctype 5
 
     <link rel="manifest" href=@{StaticR corydalis_manifest_json} />
 
+    $# Sets the colour theme before the page is shown (see js/theme.ts);
+    $# a classic script, so that it blocks the rendering until then.
+    <script src=@{StaticR corydalis_js_theme_js}>
+
     ^{pageHead pc}
 
   <body .d-flex .flex-column style="overscroll-behavior: none;">
-    <nav .navbar .navbar-light .bg-light .navbar-expand #nav>
+    <nav .navbar .bg-body-tertiary .navbar-expand #nav>
       <div .container-fluid>
         <ul .navbar-nav .me-auto #nav-breadcrumbs>
           <li .nav-item>
@@ -71,6 +75,12 @@ $doctype 5
                 <span .fa-solid .fa-gear>
                 <span .d-none .d-xl-inline>
                   Settings
+            $# Cycles through the colour themes, see js/theme.ts, which
+            $# also sets its icon and title.
+            <button .nav-item .nav-link #theme-toggle type="button" title="Theme">
+              <span .fa-solid .fa-circle-half-stroke .theme-icon>
+              <span .d-none .d-xl-inline>
+                Theme
             <a .nav-item .nav-link href=@{AboutR}>
               <span .fa-solid .fa-question>
               <span .d-none .d-xl-inline>

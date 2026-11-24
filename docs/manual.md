@@ -73,6 +73,11 @@ Note: some browsers prevent alphanumeric key entry in full screen mode.
 Thus, keys such as `u`, `p` or `r` don't work in this mode, and one has to
 use "whitespace" keys such as left/right arrows, space, tab, etc.
 
+The theme button in the navigation bar (a half-filled circle, a sun or
+a moon) switches between the automatic colour theme, which follows the
+light or dark setting of your system, and the light or dark one. The
+choice is remembered by the browser (per browser, not per user).
+
 If you want to understand more how Corydalis looks at pictures, read
 on.
 
