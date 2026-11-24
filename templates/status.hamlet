@@ -24,7 +24,7 @@
           $of RepoFinished { rsScanResults = WorkResults { wrStart = b }, rsRenderResults = WorkResults { wrEnd = er }}
             <p .card-text>
               All work completed.
-              Repository age is <abbr title="Scanned at #{show b}">#{relTime False (diffZ now b)}</abbr>.
+              Repository age is <abbr title="Scanned at #{showLocalTimeSeconds b}">#{relTime False (diffZ now b)}</abbr>.
             <p .card-text>
               Total duration: #{relTime False (diffZ er b)}.
           $of RepoError txt
