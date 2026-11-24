@@ -18,6 +18,17 @@ packages:
       size: 581
   original:
     hackage: wai-logger-2.5.1@sha256:b3de7fabd22920255ba9bb87a9dd4f0ba5b076bb8dac6841a8c4ce46b450433f,1443
+- completed:
+    commit: 84a88794836dbf6a2bffa6454151b57555955175
+    git: https://github.com/iustin/vector-hashtables.git
+    name: vector-hashtables
+    pantry-tree:
+      sha256: 2824664f6eafb9e11edc1110cafb2d1ab1fbb67ea8b6f85566af063980008701
+      size: 1600
+    version: 0.1.2.1
+  original:
+    commit: 84a88794836dbf6a2bffa6454151b57555955175
+    git: https://github.com/iustin/vector-hashtables.git
 snapshots:
 - completed:
     sha256: 28449a09208357da94e1976558ede508780271a076375ce89b9fdfd463fabb69

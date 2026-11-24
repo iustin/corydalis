@@ -42,6 +42,13 @@ extra-deps:
   - lrucaching-0.3.5@sha256:27bf853283f36d4ce3c268842288c11d1b03e35445ba9ad615674f9ecc0ecd2a,2015
   # Escapes the request fields in the Apache logs (logger#226).
   - wai-logger-2.5.1@sha256:b3de7fabd22920255ba9bb87a9dd4f0ba5b076bb8dac6841a8c4ce46b450433f,1443
+  # vector-hashtables 0.1.2.1 plus the fix for `alter` deleting keys that
+  # share a bucket (vector-hashtables#43, fix from PR #46). The bug breaks
+  # symbolize's interning: after a symbol is finalized, equal texts can intern
+  # to different symbols. Kept on a fork (tag corydalis-pin-alter-fix) so the
+  # commit can't disappear; drop this once a fixed release is on Hackage.
+  - git: https://github.com/iustin/vector-hashtables.git
+    commit: 84a88794836dbf6a2bffa6454151b57555955175
 # Override default flag values for local packages and extra-deps
 flags: {}
 
