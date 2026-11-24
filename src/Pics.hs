@@ -922,18 +922,29 @@ checkScanOwnership ctx serial = do
 -- results: an unevaluated entry would keep the repository it is
 -- computed from alive, and leave the work to whoever reads it next.
 --
--- This evaluation happens inside the transaction ('stateTVar' forces
--- the result pair), so a concurrent change of the cache makes the
--- transaction run again. That is cheap, though: the results are a
--- value built outside the transaction, so the work already done on them
--- is kept, and only the cache lookup and insertion are repeated. Two
--- identical searches at the same time both compute their results.
+-- This evaluation happens inside the transaction, so a concurrent
+-- change of the cache makes the transaction run again. That is cheap,
+-- though: the results are a value built outside the transaction, so
+-- the work already done on them is kept, and only the cache lookup and
+-- insertion are repeated. Two identical searches at the same time both
+-- compute their results.
+--
+-- The new cache is evaluated as well before being written, on a hit
+-- (which changes the order of the entries) as on a miss: an
+-- unevaluated one would keep the previous cache, and with it, on a
+-- miss with a full cache, the results just dropped.
 getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
-getSearchResults ctx lazy key =
-  atomically $ stateTVar (ctxSearchCache ctx) $ \oldCache ->
-    fromMaybe
-      (force lazy `seq` (lazy, LRU.insert key lazy oldCache))
-      (LRU.lookup key oldCache)
+getSearchResults ctx lazy key = atomically $ do
+  let cacheVar = ctxSearchCache ctx
+  oldCache <- readTVar cacheVar
+  case LRU.lookup key oldCache of
+    Just (results, cache) -> do
+      writeTVar cacheVar $! cache
+      return results
+    Nothing -> do
+      let !results = force lazy
+      writeTVar cacheVar $! LRU.insert key results oldCache
+      return results
 
 -- | The images around a given image in search results, as used for
 -- navigating between them.

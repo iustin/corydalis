@@ -1727,6 +1727,15 @@ spec = parallel $ do
                   Map.singleton "a" image)
         getSearchResults ctx m1 [] `shouldReturn` m1
         getSearchResults ctx (error "Failed to cache") [] `shouldReturn` m1
+      it "evaluates the results before caching them" $ \ctx -> do
+        let image = simpleRawImage (ctxConfig ctx)
+            m1 = (Map.singleton ("a", (Nothing, "b")) image,
+                  Map.singleton "a" image)
+            unevaluated = (Map.singleton ("a", (Nothing, "b")) (error "deep"),
+                           Map.empty)
+        getSearchResults ctx unevaluated [] `shouldThrow` anyErrorCall
+        -- Nothing was cached.
+        getSearchResults ctx m1 [] `shouldReturn` m1
       it "flushes the search cache on rescan" $ \ctx -> do
         let image = simpleRawImage (ctxConfig ctx)
             m1 = (Map.singleton ("a", (Nothing, "b")) image,
