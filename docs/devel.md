@@ -79,7 +79,9 @@ You need up to three terminals, depending on which code you edit:
 The server serves the files in `static/`, at `/static/res/` (e.g.
 `/static/res/js/viewer.js`). The directory is entirely written by
 esbuild (`npm run build`, also run by `make bootstrap`, or
-`npm run watch`), which first empties it, and is not committed:
+`npm run watch`), which first empties it (refusing to if `static` is
+not a real directory, e.g. a symbolic link, whose target it would
+empty), and is not committed:
 
 - the scripts in `static/js`, bundled from the TypeScript code in
   `js/`;

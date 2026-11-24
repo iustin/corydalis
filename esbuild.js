@@ -2,6 +2,7 @@
 import * as esbuild from 'esbuild';
 import {
   copyFileSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   rmSync,
@@ -55,16 +56,36 @@ function copyFiles() {
   }
 }
 
+/**
+ * Empties the output directory, creating it if needed. It must be a
+ * real directory: if it were a symbolic link (or anything else), the
+ * removal would go through it, deleting the files it points to.
+ */
+function emptyOutdir() {
+  const stats = lstatSync(outdir, { throwIfNoEntry: false });
+  if (stats === undefined) {
+    mkdirSync(outdir);
+    return;
+  }
+  if (!stats.isDirectory()) {
+    throw new Error(
+      `${outdir} is not a directory (e.g. it is a symbolic link); ` +
+        'refusing to empty it, remove it first',
+    );
+  }
+  for (const name of readdirSync(outdir)) {
+    // Entries which are symbolic links are removed, not followed.
+    rmSync(`${outdir}/${name}`, { recursive: true, force: true });
+  }
+}
+
 async function runBuild() {
   // The output is entirely generated, so empty it first (keeping the
   // directory itself): old files would otherwise stay around, e.g. the
   // fonts after an update (their names include a hash of their
   // contents), or the source maps of a development build in a
   // production one.
-  mkdirSync(outdir, { recursive: true });
-  for (const name of readdirSync(outdir)) {
-    rmSync(`${outdir}/${name}`, { recursive: true, force: true });
-  }
+  emptyOutdir();
 
   // Create the build contexts: for the scripts, the theme script, and
   // the style sheets.
