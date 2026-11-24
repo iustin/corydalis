@@ -40,3 +40,4 @@ TAGS
 *.ps
 *.patch
 *.diff
+/e2e/test-results/

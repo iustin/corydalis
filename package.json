@@ -5,6 +5,7 @@
   "private": true,
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
+    "@playwright/test": "1.63.0",
     "@types/bootstrap": "^5.2.10",
     "@types/imagesloaded": "^4.1.6",
     "@types/infinite-scroll": "^4.0.4",
@@ -29,7 +30,7 @@
   },
   "scripts": {
     "type-check": "tsc --noEmit -p js/tsconfig.json --watch",
-    "type-check-oneshot": "tsc --noEmit -p js/tsconfig.json",
+    "type-check-oneshot": "tsc --noEmit -p js/tsconfig.json && tsc -p e2e/tsconfig.json",
     "watch": "NODE_ENV=development node esbuild.js --watch",
     "build": "NODE_ENV=production node esbuild.js",
     "build:dev": "NODE_ENV=development node esbuild.js",

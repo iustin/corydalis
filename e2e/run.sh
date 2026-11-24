@@ -18,8 +18,9 @@
 # Runs all the e2e checks (see README.md) from scratch: builds the
 # binaries (normal and public site, unoptimised, in their own stack work
 # directories), makes the two sample libraries, starts a server for
-# each, runs the scripts against them, and stops the servers. Exits
-# with an error if any script failed. Run from the root of the
+# each, runs the tests (Playwright Test, see playwright.config.ts) and
+# the recording scripts against them, and stops the servers. Exits with
+# an error if any of them failed. Run from the root of the
 # repository, after the frontend bundles were built (npm run build).
 #
 # Usage: e2e/run.sh [WORKDIR]   (default: _run/e2e, recreated)
@@ -93,7 +94,7 @@ start normal "$WORK/bin" 3001
 start public "$WORK/public-bin" 3002
 
 FAILED=()
-# Runs one script, recording (but not stopping on) its failure.
+# Runs one step, recording (but not stopping on) its failure.
 check() {
   local name=$1; shift
   echo "== $name"
@@ -108,21 +109,20 @@ check() {
 
 export CORYDALIS_URL=http://localhost:3001
 export CORYDALIS_PASSWORD_FILE=$WORK/normal/password
-check smoke node e2e/smoke.cjs "$WORK/out/smoke"
-check verify node e2e/verify.cjs "$WORK/out/verify"
-# pages.cjs and shots.cjs only record (reports and screenshots, for a
-# person to look at); they fail only if they crash or miss an element.
-check "pages (records only)" node e2e/pages.cjs "$WORK/out/pages"
-# plots.cjs only records; comparing a report with itself fails only if
-# the run had console errors.
-check plots bash -c 'node e2e/plots.cjs "$0" && node e2e/plots.cjs --compare "$0" "$0"' \
-  "$WORK/out/plots"
+export CORYDALIS_PUBLIC_URL=http://localhost:3002
+export CORYDALIS_PUBLIC_PASSWORD_FILE=$WORK/public/password
+export CORYDALIS_PUBLIC_LIB=$WORK/public/lib
+export E2E_OUT=$WORK/out
+check tests npx playwright test -c e2e/playwright.config.ts
 
-export CORYDALIS_URL=http://localhost:3002
-export CORYDALIS_PASSWORD_FILE=$WORK/public/password
-check public-site node e2e/public-site.cjs "$WORK/public"
-# shots.cjs needs a library with problems, so it uses the public one.
-check "shots (records only)" node e2e/shots.cjs "$WORK/out/shots"
+# These only record (reports and screenshots, for a person to look at);
+# they fail only if they crash or miss an element.
+check "pages (records only)" node e2e/pages.cjs "$WORK/out/pages"
+check "plots (records only)" node e2e/plots.cjs "$WORK/out/plots"
+# shots.cjs needs a library with problems, so it uses the public server.
+check "shots (records only)" env CORYDALIS_URL="$CORYDALIS_PUBLIC_URL" \
+  CORYDALIS_PASSWORD_FILE="$CORYDALIS_PUBLIC_PASSWORD_FILE" \
+  node e2e/shots.cjs "$WORK/out/shots"
 
 names=(normal public)
 for i in "${!names[@]}"; do
