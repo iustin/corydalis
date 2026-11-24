@@ -1883,6 +1883,54 @@ spec = parallel $ do
         writeDiskCache (ctxConfig ctx) (cached (RepoScanning (WorkStart now)))
         repo <- scanAll ctx
         repoStatus repo `shouldSatisfy` isFinished
+      it "removes the previous cache once a scan has new data" $ \ctx0 -> do
+        let config = ctxConfig ctx0
+            cachePath = repoCachePath config
+        renderTools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
+        ctx <- atomically $ do
+          scanTools <- newToolLimits 1 defaultScanToolTimeout
+          initContext config (ctxLogger ctx0) renderTools scanTools
+        case cfgOutputDirs config of
+          outRoot:_ -> do
+            let dir = outRoot </> "2020" </> "2020-01-01-trip"
+            createDirectoryIfMissing True dir
+            writeRealJpeg (dir </> "a.jpg")
+            now <- getZonedTime
+            writeDiskCache config (cached (finished now))
+            doesFileExist cachePath `shouldReturn` True
+            -- Taking the only slot, so that the scan waits for it when
+            -- it renders the picture, with its data already published.
+            atomically . waitTSem $ tlSlots renderTools
+            (do launchScanFileSystem ctx
+                published <- timeout lastResort . atomically $ do
+                  status <- repoStatus <$> readTVar (ctxRepo ctx)
+                  case status of
+                    RepoRendering {} -> return True
+                    RepoError _      -> return False
+                    _                -> retrySTM
+                published `shouldBe` Just True
+                readTVarIO (ctxScanner ctx) >>= \case
+                  Just scanner -> waitUntilBlockedInSTM (asyncThreadId scanner)
+                  Nothing      -> expectationFailure "expected a scanner"
+                -- A restart now scans again, rather than loading the
+                -- previous scan's results.
+                doesFileExist cachePath `shouldReturn` False)
+              `finally` atomically (signalTSem $ tlSlots renderTools)
+            final <- waitForScan ctx
+            repoStatus final `shouldSatisfy` isFinished
+            doesFileExist cachePath `shouldReturn` True
+          [] -> expectationFailure "expected an output directory"
+      it "fails the scan if the previous cache can't be removed" $ \ctx -> do
+        let cachePath = repoCachePath (ctxConfig ctx)
+        -- A directory can't be removed as a file.
+        createDirectoryIfMissing True cachePath
+        launchScanFileSystem ctx
+        final <- waitForScan ctx
+        case repoStatus final of
+          -- The error names what couldn't be removed.
+          RepoError msg -> unpack msg `shouldSatisfy` (cachePath `isInfixOf`)
+          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+        doesDirectoryExist cachePath `shouldReturn` True
     describe "scan tool limits" $ do
       -- Scans a folder with a picture, with the given time limits for
       -- the preview tools and the scan's exiftool runs, returning the

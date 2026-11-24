@@ -138,6 +138,7 @@ module Pics ( PicDir(..)
             , implicitEventFromDateRange
             , startupRepository
             , writeDiskCache
+            , repoCachePath
             , loadImage
             , buildFolderFromInodes
             , loadFolder
@@ -1792,20 +1793,25 @@ scanFilesystem ctx serial = do
                            }
       wsrender= WorkStart { wsStart = end
                           }
-  repo_as <- tryUpdateRepo ctx Repository
-               { repoDirs   = repo'
-               , repoStats  = stats
-               , repoExif   = rexif
-               , repoStatus = RepoRendering { rsScanResults = wrscan,
-                                              rsRenderGoal = wsrender }
-               , repoSerial = serial
-               }
-  -- Reset the rendering's progress already: writing the disk cache can
-  -- take a while, during which the status page would otherwise show
-  -- the previous rendering's progress (forceBuildThumbCaches resets it
-  -- again, as it can be called on its own).
-  atomically . resetRenderProgress ctx . length $ renderableImages repo_as
-  writeDiskCache config repo_as
+  -- The new repository is built here, in full: it is lazy up to now
+  -- (the folders are evaluated, but not their merging, nor the
+  -- statistics), and neither the transaction publishing it, nor
+  -- whichever request reads it first, should do that work.
+  built <- evaluate $ force Repository
+             { repoDirs   = repo'
+             , repoStats  = stats
+             , repoExif   = rexif
+             , repoStatus = RepoRendering { rsScanResults = wrscan,
+                                            rsRenderGoal = wsrender }
+             , repoSerial = serial
+             }
+  -- From here on, and until this scan writes its own once finished, a
+  -- restart must not load the previous scan's cache: its pictures
+  -- might be gone since. Only if this scan is still the current one,
+  -- though: the cache is not a superseded scan's to remove.
+  checkScanOwnership ctx serial
+  removeDiskCache config
+  repo_as <- tryUpdateRepo ctx built
   logfn LevelInfo "Finished building repo, starting rendering"
   traceMarkerIO "scanFilesystem start rendering"
   rendered <- forceBuildThumbCaches ctx repo_as
@@ -1911,9 +1917,27 @@ repoDiskFile = "repo"
 repoDiskPath :: Config -> FilePath -> FilePath
 repoDiskPath config path = cachedBasename config path "cache"
 
+-- | The path of the repository cache.
+repoCachePath :: Config -> FilePath
+repoCachePath config = repoDiskPath config repoDiskFile
+
 writeDiskCache :: Config -> Repository -> IO ()
 writeDiskCache config repo =
   writeCacheFile config repoDiskFile repoDiskPath (Data.Store.encode (config, repo))
+
+-- | Removes the repository cache, if there is one.
+--
+-- Any failure other than the cache not existing is an error (and thus
+-- fails the scan doing this), as otherwise a restart would load a
+-- cache which was meant to be gone. The error says what was being
+-- done, as it is what the status page then shows.
+removeDiskCache :: Config -> IO ()
+removeDiskCache config =
+  removeFile path `catch` \e ->
+    unless (isDoesNotExistError e) . throwString $
+      "Failed to remove the previous repository cache (" ++ path ++
+      "), not using the scan's results: " ++ show (e :: IOException)
+  where path = repoCachePath config
 
 readDiskCache :: Config -> IO (Maybe Repository)
 readDiskCache config = do
@@ -1944,6 +1968,8 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
        -- number of zero while any valid cache will have a positive
        -- serial.
        tryUpdateRepo ctx cached_r
+     -- Only a cache written by an earlier version: a scan now removes
+     -- the cache, rather than writing an unfinished one.
      Just unfinished -> do
        logfn LevelWarn . toLogStr $ "Unfinished cache found, state: " ++ show (repoStatus unfinished)
        logfn LevelInfo "Restarting scan"
