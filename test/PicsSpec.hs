@@ -37,6 +37,8 @@ import qualified Control.Exception
 import           Control.Exception (AsyncException (ThreadKilled))
 import           Data.Time.Clock.POSIX (POSIXTime)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
+import           Data.Char        (isDigit)
+import qualified Data.Text        as Text
 import           System.Directory (createDirectoryIfMissing,
                                    doesDirectoryExist, doesFileExist,
                                    listDirectory, renameFile)
@@ -398,6 +400,54 @@ waitsForSlotFirst config target run = do
     -- With a last resort time limit, in case it never finishes.
     timeout lastResort (waitCatch running) >>=
       maybe (expectationFailure "The run never finished" >> error "unreachable") return
+
+-- | Launches a scan which blocks when it renders its previews, with its
+-- data already published: in a new context (with the configuration and
+-- logger of the given one) whose only render slot is taken, and with a
+-- picture to render.
+--
+-- The first action runs before the scan is launched, and the second
+-- one, given what the first returned, while the scan is blocked; the
+-- slot is freed after it, and the scan goes on (if it fails, the scan
+-- is stopped instead). Returns the new context.
+withScanBlockedRendering :: Ctx -> (Ctx -> IO a) -> (Ctx -> a -> IO ()) -> IO Ctx
+withScanBlockedRendering ctx0 prepare during = do
+  let config = ctxConfig ctx0
+  renderTools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
+  ctx <- atomically $ do
+    scanTools <- newToolLimits 1 defaultScanToolTimeout
+    initContext config (ctxLogger ctx0) renderTools scanTools
+  case cfgOutputDirs config of
+    outRoot:_ -> do
+      let dir = outRoot </> "2020" </> "2020-01-01-trip"
+      createDirectoryIfMissing True dir
+      writeRealJpeg (dir </> "a.jpg")
+    [] -> expectationFailure "expected an output directory"
+  prepared <- prepare ctx
+  atomically . waitTSem $ tlSlots renderTools
+  (do launchScanFileSystem ctx
+      waitUntilBlockedRendering ctx
+      during ctx prepared)
+    `finally` atomically (signalTSem $ tlSlots renderTools)
+    -- On a failure the scan is stopped too (and waited for), so that
+    -- it doesn't run on while the test's directories are removed.
+    `onException` (readTVarIO (ctxScanner ctx) >>= mapM_ cancel)
+  return ctx
+
+-- | Waits until the current scan has published its data and is blocked,
+-- which, when the render slots are all taken, is waiting for one.
+waitUntilBlockedRendering :: Ctx -> IO ()
+waitUntilBlockedRendering ctx = do
+  published <- timeout lastResort . atomically $ do
+    status <- repoStatus <$> readTVar (ctxRepo ctx)
+    case status of
+      RepoRendering {} -> return True
+      RepoError _      -> return False
+      _                -> retrySTM
+  published `shouldBe` Just True
+  readTVarIO (ctxScanner ctx) >>= \case
+    Just scanner -> waitUntilBlockedInSTM (asyncThreadId scanner)
+    Nothing      -> expectationFailure "expected a scanner"
 
 -- | Whether a repository is (re)starting a scan.
 isStarting :: RepoStatus -> Bool
@@ -1478,6 +1528,21 @@ spec = parallel $ do
             folder = buildFolderFromInodes config "folder" "/p" True
                        [mkInode "a.nef", mkInode "b.nef"] cache Nothing
         extractEventType (pdEvent folder) `shouldBe` EKGetaway
+      it "dates a folder by its earliest dated image" $ \config -> do
+        let cache = Map.fromList [ ("a.nef", Right (datedExif 2024 6 5))
+                                 , ("c.nef", Right (datedExif 2024 6 1))
+                                 , ("e.nef", Right (datedExif 2024 6 3))
+                                 ]
+            -- With undated images before, between and after.
+            names = ["0.nef", "a.nef", "b.nef", "c.nef", "d.nef", "e.nef", "f.nef"]
+            folder = buildFolderFromInodes config "folder" "/p" True
+                       (map mkInode names) cache Nothing
+        Map.size (pdImages folder) `shouldBe` length names
+        pdTimestamp folder `shouldBe` Just (LocalTime (fromGregorian 2024 6 1) midnight)
+        pdYear folder `shouldBe` Just 2024
+        let undated = buildFolderFromInodes config "folder" "/p" True
+                        [mkInode "a.nef"] Map.empty Nothing
+        pdTimestamp undated `shouldBe` Nothing
       it "keeps unknown and extensionless files out of the image map" $ \config -> do
         let eImg = datedExif 2024 6 1
             eOther = datedExif 1999 1 1
@@ -1736,6 +1801,16 @@ spec = parallel $ do
         getSearchResults ctx unevaluated [] `shouldThrow` anyErrorCall
         -- Nothing was cached.
         getSearchResults ctx m1 [] `shouldReturn` m1
+      it "flushes the search cache when a scan's status changes" $ \ctx -> do
+        let image = simpleRawImage (ctxConfig ctx)
+            m1 = (Map.singleton ("a", (Nothing, "b")) image,
+                  Map.singleton "a" image)
+            m2 = (Map.empty, Map.empty)
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        getSearchResults ctx m1 [] `shouldReturn` m1
+        -- A failing scan only changes the status.
+        _ <- runScanAction ctx serial (throwString "scan exploded")
+        getSearchResults ctx m2 [] `shouldReturn` m2
       it "flushes the search cache on rescan" $ \ctx -> do
         let image = simpleRawImage (ctxConfig ctx)
             m1 = (Map.singleton ("a", (Nothing, "b")) image,
@@ -1897,40 +1972,59 @@ spec = parallel $ do
       it "removes the previous cache once a scan has new data" $ \ctx0 -> do
         let config = ctxConfig ctx0
             cachePath = repoCachePath config
-        renderTools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
-        ctx <- atomically $ do
+            prepare _ = do
+              now <- getZonedTime
+              writeDiskCache config (cached (finished now))
+              doesFileExist cachePath `shouldReturn` True
+        ctx <- withScanBlockedRendering ctx0 prepare $ \_ () -> do
+          -- A restart now scans again, rather than loading the
+          -- previous scan's results.
+          doesFileExist cachePath `shouldReturn` False
+        final <- waitForScan ctx
+        repoStatus final `shouldSatisfy` isFinished
+        doesFileExist cachePath `shouldReturn` True
+        -- A restart now loads the scan's results.
+        restarted <- atomically $ do
+          renderTools <- newToolLimits 1 defaultRenderToolTimeout
           scanTools <- newToolLimits 1 defaultScanToolTimeout
+          initContext config (ctxLogger ctx0) renderTools scanTools
+        loaded <- scanAll restarted
+        repoStatus loaded `shouldSatisfy` isFinished
+        repoSerial loaded `shouldBe` repoSerial final
+        Map.keys (repoDirs loaded) `shouldBe` ["2020-01-01-trip"]
+      it "keeps the previous cache when the scan was superseded" $ \ctx0 -> do
+        requireExifTool
+        let config = ctxConfig ctx0
+            cachePath = repoCachePath config
+        scanTools <- atomically $ newToolLimits 1 defaultScanToolTimeout
+        ctx <- atomically $ do
+          renderTools <- newToolLimits 1 defaultRenderToolTimeout
           initContext config (ctxLogger ctx0) renderTools scanTools
         case cfgOutputDirs config of
           outRoot:_ -> do
             let dir = outRoot </> "2020" </> "2020-01-01-trip"
             createDirectoryIfMissing True dir
             writeRealJpeg (dir </> "a.jpg")
-            now <- getZonedTime
-            writeDiskCache config (cached (finished now))
-            doesFileExist cachePath `shouldReturn` True
-            -- Taking the only slot, so that the scan waits for it when
-            -- it renders the picture, with its data already published.
-            atomically . waitTSem $ tlSlots renderTools
-            (do launchScanFileSystem ctx
-                published <- timeout lastResort . atomically $ do
-                  status <- repoStatus <$> readTVar (ctxRepo ctx)
-                  case status of
-                    RepoRendering {} -> return True
-                    RepoError _      -> return False
-                    _                -> retrySTM
-                published `shouldBe` Just True
-                readTVarIO (ctxScanner ctx) >>= \case
-                  Just scanner -> waitUntilBlockedInSTM (asyncThreadId scanner)
-                  Nothing      -> expectationFailure "expected a scanner"
-                -- A restart now scans again, rather than loading the
-                -- previous scan's results.
-                doesFileExist cachePath `shouldReturn` False)
-              `finally` atomically (signalTSem $ tlSlots renderTools)
-            final <- waitForScan ctx
-            repoStatus final `shouldSatisfy` isFinished
-            doesFileExist cachePath `shouldReturn` True
           [] -> expectationFailure "expected an output directory"
+        now <- getZonedTime
+        writeDiskCache config (cached (finished now))
+        -- Taking the only slot, so that the scan waits for it when it
+        -- reads the picture's metadata.
+        atomically . waitTSem $ tlSlots scanTools
+        (do launchScanFileSystem ctx
+            scanning <- timeout lastResort . atomically $ do
+              status <- repoStatus <$> readTVar (ctxRepo ctx)
+              case status of
+                RepoScanning {} -> return True
+                RepoStarting    -> retrySTM
+                _               -> return False
+            scanning `shouldBe` Just True
+            -- As another scan would, without running one.
+            void . atomically $ newRepo (ctxRepo ctx))
+          `finally` atomically (signalTSem $ tlSlots scanTools)
+        waitForScan ctx `shouldThrow` isOwnershipAbort
+        -- The cache wasn't this scan's to remove any more.
+        doesFileExist cachePath `shouldReturn` True
       it "fails the scan if the previous cache can't be removed" $ \ctx -> do
         let cachePath = repoCachePath (ctxConfig ctx)
         -- A directory can't be removed as a file.
@@ -1942,6 +2036,25 @@ spec = parallel $ do
           RepoError msg -> unpack msg `shouldSatisfy` (cachePath `isInfixOf`)
           other         -> expectationFailure $ "expected RepoError, got " ++ show other
         doesDirectoryExist cachePath `shouldReturn` True
+    describe "scan results" $ do
+      it "replaces a running scan with a new one" $ \ctx0 -> do
+        ctx <- withScanBlockedRendering ctx0 (const $ return ()) $ \ctx () -> do
+          firstScanner <- readTVarIO (ctxScanner ctx)
+          firstSerial <- repoSerial <$> getRepo ctx
+          -- This cancels the first scan, and waits for it to stop.
+          launchScanFileSystem ctx
+          case firstScanner of
+            Just scanner -> do
+              result <- waitCatch scanner
+              (either fromException (const Nothing) result :: Maybe AsyncCancelled)
+                `shouldBe` Just AsyncCancelled
+            Nothing -> expectationFailure "expected a scanner"
+          -- The new scan blocks the same way, with its own data.
+          waitUntilBlockedRendering ctx
+          (repoSerial <$> getRepo ctx) `shouldReturn` firstSerial + 1
+        final <- waitForScan ctx
+        repoStatus final `shouldSatisfy` isFinished
+        Map.keys (repoDirs final) `shouldBe` ["2020-01-01-trip"]
     describe "scan tool limits" $ do
       -- Scans a folder with a picture, with the given time limits for
       -- the preview tools and the scan's exiftool runs, returning the
@@ -2123,6 +2236,35 @@ spec = parallel $ do
             pgDone pg `shouldBe` 0
             pgNumErrors pg `shouldBe` length staleSizes
             pgWork pg `shouldBe` length staleSizes
+      it "reports each failed check and build once" $ \ctx -> do
+        let config = ctxConfig ctx
+            sizes = autoSizeList ctx
+            names = ["a", "b"] :: [Text]
+            picture parent name =
+              mkImage config (ImageName (TS.fromText name)) "folder" Nothing Nothing
+                [(jpegFile ctx) { fileName = TS.fromText name <> ".jpg", fileParent = parent }]
+                Nothing [] [] Nothing MediaImage def
+            withPictures parent = do
+              repo <- getRepo ctx
+              let pictures = map (picture parent) names
+              forM_ pictures $ mapM_ (writeNonEmpty . fileFullPath) . imgJpegPath
+              return repo { repoDirs = foldl' (addImageToRepo config) Map.empty pictures }
+            -- Which picture and size each error is about, from its
+            -- item: the picture's name is in it, and the size ends it.
+            about e = ( filter (\n -> ("/" <> n <> " ") `isInfixOf` peItem e) names
+                      , Text.takeWhileEnd isDigit (peItem e) )
+            -- In no particular order: none is defined for the errors.
+            errors pg = sort $ map about (pgErrors pg)
+            expected = sort [ ([n], tshow size) | n <- names, size <- sizes ]
+        length sizes `shouldSatisfy` (> 1)
+        -- Pictures outside the picture folders fail their check.
+        outside <- withPictures (mkSym (pack $ cfgCacheDir config))
+        checked <- forceBuildThumbCaches ctx outside
+        errors checked `shouldBe` expected
+        -- Files which aren't pictures fail to build.
+        inside <- withPictures (fileParent (jpegFile ctx))
+        built <- forceBuildThumbCaches ctx inside
+        errors built `shouldBe` expected
       it "counts the images checked by the first pass" $ \ctx -> do
         let checkProgress = ctxRenderCheckProgress ctx
             readChecked = (\p -> (pgGoal p, pgDone p)) <$> readTVarIO checkProgress
