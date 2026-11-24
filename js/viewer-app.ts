@@ -160,6 +160,8 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
   const fullScreenIcon = document.querySelector(
     '#imageFull>span',
   ) as HTMLElement;
+  // Optional, like the zoom button itself (see onClick).
+  const zoomIcon = document.querySelector<HTMLElement>('#imageZoom>span');
 
   const helpDiv = relocateHelpDiv(document);
 
@@ -319,7 +321,18 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
     if (showName) {
       writeMessage(info.name);
     }
+    updateZoomIcon();
     LOG_GROUP_END();
+  }
+
+  /**
+   * Updates the zoom button's icon to what clicking it would do: zoom
+   * in when the image fits the canvas, or back out when zoomed in.
+   */
+  function updateZoomIcon() {
+    const zoomedIn = cory.state.scale > 1;
+    zoomIcon?.classList.toggle('fa-magnifying-glass-plus', !zoomedIn);
+    zoomIcon?.classList.toggle('fa-magnifying-glass-minus', zoomedIn);
   }
 
   function updateInfo(url: string) {

@@ -104,7 +104,7 @@ const PAGE = `
     <button id="goBrowse"></button>
     <button id="goList"></button>
     <button id="goFolderList"></button>
-    <button id="imageZoom"></button>
+    <button id="imageZoom"><span class="fa-magnifying-glass-plus"></span></button>
     <button id="imagePrev"></button>
     <button id="imageNext"></button>
     <button id="folderPrev"></button>
@@ -995,6 +995,30 @@ describe('zooming', () => {
     const draws = v.ctx.draws().length;
     v.key('+');
     assert.equal(v.ctx.draws().length, draws);
+  });
+
+  it('shows zooming out on the zoom button when zoomed in', () => {
+    const v = loaded();
+    const icon = () => v.byId('imageZoom').querySelector('span')!.classList;
+    const shows = () =>
+      ['plus', 'minus'].filter((n) =>
+        icon().contains(`fa-magnifying-glass-${n}`),
+      );
+    assert.deepEqual(shows(), ['plus']);
+    v.byId('imageZoom').click();
+    // Unchanged until the full resolution image is drawn.
+    assert.deepEqual(shows(), ['plus']);
+    loadFull(v);
+    assert.deepEqual(shows(), ['minus']);
+    v.key('-');
+    assert.deepEqual(shows(), ['minus']);
+    v.byId('imageZoom').click();
+    assert.equal(v.cory!.state.scale, 1);
+    assert.deepEqual(shows(), ['plus']);
+    v.key('+');
+    assert.deepEqual(shows(), ['minus']);
+    v.key('0');
+    assert.deepEqual(shows(), ['plus']);
   });
 
   it('resets the zoom and panning', () => {
