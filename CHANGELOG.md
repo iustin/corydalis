@@ -23,6 +23,17 @@
   and always using the light or the dark theme; the choice is kept by
   the browser. The charts follow the theme too.
 
+- The static files (scripts, style sheets, fonts) are now embedded in
+  the `corydalis` binary, so the `static` directory no longer needs to
+  be installed with it, and the files always match it; the scripts and style sheets are also sent compressed
+  (with gzip), which they weren't before (unless a reverse proxy
+  compressed them). Their URLs move from `/static/…` to
+  `/static/res/…`. When upgrading, the `static` directory next to the
+  binary can be removed, as can the `static-dir` setting, which is
+  now ignored; for a systemd service based on the sample, first remove
+  `static/tmp` from its `ReadWritePaths`, as systemd doesn't start a
+  service if one of these paths is missing.
+
 ### Fixed bugs
 
 - The copy and range regexes are now matched against the file name
@@ -75,8 +86,7 @@
   the fonts it uses; this replaces the links into `node_modules` in
   `static/`, the patching of the Font Awesome style sheets, and the
   combining of the style sheets by the Haskell build in
-  `static/combined`. Installations copying the `static` directory get
-  the new files as before.
+  `static/combined`.
 
 ## v2026.48.0 - "Security hardening"
 

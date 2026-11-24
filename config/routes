@@ -1,4 +1,4 @@
-/static StaticR Static appStatic
+/static StaticR EmbeddedStatic appStatic
 /auth   AuthR   Auth   getAuth
 
 /favicon.ico FaviconR GET

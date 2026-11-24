@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE RecordWildCards   #-}
 
 -- | Settings are centralized, as much as possible, into this file. This
--- includes database connection settings, static file locations, etc.
+-- includes database connection settings, listening and logging settings, etc.
 -- In addition, you can configure a number of different aspects of Yesod
 -- by overriding methods in the Yesod typeclass. That instance is
 -- declared in the Foundation.hs file.
@@ -66,9 +66,7 @@ instance FromJSON RequestLogging where
 -- loaded from various sources: defaults, environment variables, config files,
 -- theoretically even a database.
 data AppSettings = AppSettings
-    { appStaticDir      :: String
-    -- ^ Directory from which to serve static files.
-    , appDatabaseConf   :: SqliteConf
+    { appDatabaseConf   :: SqliteConf
     -- ^ Configuration settings for accessing the database.
     , appRoot           :: Maybe Text
     -- ^ Base for all generated URLs. If @Nothing@, determined
@@ -169,7 +167,6 @@ instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
         let defaultDev            = isDevel
             defaultRequestLogging = if defaultDev then RequestLoggingDetailed else RequestLoggingApache
-        appStaticDir      <- o .:  "static-dir"
         appDatabaseConf   <- o .:  "database"
         appRoot           <- o .:? "approot"
         appUnixSocket     <- o .:? "unix-socket"

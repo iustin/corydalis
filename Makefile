@@ -80,9 +80,6 @@ release: clean lint doc regen-git-version bootstrap check-static
 	rm -rf .stack-release
 	stack --work-dir .stack-release build --pedantic $(RELEASE_FLAG) $(FLAGS)
 	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG) $(FLAGS)
-	mkdir dist/static
-	cp -a static/corydalis dist/static/
-	mkdir dist/static/tmp/
 
 .PHONY: demo-release
 demo-release:
@@ -101,7 +98,6 @@ haddock:
 
 clean:
 	rm -rf site/ dist/
-	rm -f static/tmp/*
 
 .PHONY: really-clean
 really-clean: clean

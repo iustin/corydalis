@@ -199,7 +199,7 @@ spec = do
     lookup "Cache-Control" hdrs `shouldBe` Just "private, max-age=2592000"
   it "leaves successful static asset responses alone" $ do
     forM_ [status200, status304] $ \st -> do
-      hdrs <- cacheHeadersFor ["static", "corydalis", "css", "bundle.css"] st []
+      hdrs <- cacheHeadersFor ["static", "res", "corydalis", "css", "bundle.css"] st []
       lookup "Cache-Control" hdrs `shouldBe` Nothing
   it "still sets private, no-cache on static 404 error responses" $ do
     hdrs <- cacheHeadersFor ["static", "missing"] status404 []

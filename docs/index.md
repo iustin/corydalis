@@ -30,9 +30,9 @@ _exiftool_ can extract metadata from your images. For movies, _ffmpeg_
 is used as well for some simple tasks.
 
 See [the installation guide](install.md) file for how to quickly
-run and see Corydalis' output; the application only writes to its own
-`static/tmp` directory and the 'cachedir' directory as specified in
-the configuration files. Pointing that key to an initially empty
+run and see Corydalis' output; the application only writes to its
+database and to the 'cachedir' directory as specified in the
+configuration files. Pointing that key to an initially empty
 directory ensures that it will not clobber anything.
 
 The application itself is a web server - the allowed users are stored

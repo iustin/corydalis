@@ -61,6 +61,15 @@ spec = do
   storageDirsSpec
   renderToolsSpec
   scanToolsSpec
+  obsoleteSettingsSpec
+
+-- | Settings that are no longer used must still load, being ignored, so
+-- that upgrading doesn't need a settings change.
+obsoleteSettingsSpec :: Spec
+obsoleteSettingsSpec = describe "obsolete settings" $
+  it "ignores static-dir (the static files are embedded)" $ do
+    settings <- loadSettingsWith [object ["static-dir" .= ("static" :: String)]]
+    appUnixSocket settings `shouldBe` Nothing
 
 unixSocketSpec :: Spec
 unixSocketSpec = describe "unix-socket" $ do
