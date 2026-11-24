@@ -24,6 +24,7 @@ import {
   STORAGE_KEY,
   THEME_EVENT,
   applyTheme,
+  browserThemeEnv,
   currentTheme,
   loadPref,
   nextPref,
@@ -269,6 +270,42 @@ describe('setupTheme', () => {
     setupTheme({ doc, storage: memoryStorage(), media });
     doc.getElementById('theme-toggle')!.click(); // now light
     media.set(true);
+    assert.equal(currentTheme(doc), 'light');
+  });
+});
+
+describe('browserThemeEnv', () => {
+  it("uses the window's document, storage and media query", () => {
+    const doc = page();
+    const storage = memoryStorage();
+    const media = fakeMedia(true);
+    const queries: string[] = [];
+    const env = browserThemeEnv({
+      document: doc,
+      localStorage: storage,
+      matchMedia: ((query: string) => {
+        queries.push(query);
+        return media;
+      }) as unknown as Window['matchMedia'],
+    });
+    assert.equal(env.doc, doc);
+    assert.equal(env.storage, storage);
+    assert.equal(env.media, media);
+    assert.deepEqual(queries, ['(prefers-color-scheme: dark)']);
+  });
+
+  it('works when the storage is refused, without media queries', () => {
+    const doc = page();
+    const win = {
+      document: doc,
+      get localStorage(): Storage {
+        throw new Error('denied');
+      },
+    };
+    const env = browserThemeEnv(win);
+    assert.equal(env.storage, null);
+    assert.equal(env.media, null);
+    setupTheme(env);
     assert.equal(currentTheme(doc), 'light');
   });
 });
