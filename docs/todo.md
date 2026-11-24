@@ -142,18 +142,11 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 
 ## Build and static files
 
-- Stale URL hashes of static files (see "Static files" in
-  [devel](devel.md)): generate a stamp file with a hash of the names and
-  contents of all the files in `static/` (outside `static/`, not
-  committed; written by `npm run build` and `make bootstrap`), and make
-  `Settings/StaticFiles.hs` depend on it (`addDependentFile`), failing
-  with a clear message if it's missing. Needed with or without
-  embedding.
 - Embed the static files in the binary (`Yesod.EmbeddedStatic`): a
   single binary to deploy, with the files' hashes and contents always
-  matching it, and precompressed. Best after the item above; then
-  drop the `static-dir` setting and the copying of the files in
-  `make release` and the installation instructions.
+  matching it, and precompressed. Then drop the `static-dir` setting
+  and the copying of the files in `make release` and the installation
+  instructions.
 
 ## Dependencies status
 

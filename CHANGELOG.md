@@ -48,6 +48,13 @@
 - On a lens's page, the timeline chart's axis now says "Per camera
   timeline stats", as it shows the lens's use per camera, instead of
   "Per lens timeline stats".
+- Changes to the static files (e.g. the JavaScript or CSS bundles)
+  now make the next build recompile the URLs of the files, whose hash
+  parameter tells browsers to fetch them again; previously, only clean
+  builds (as `make release` does) did, and other builds kept the old
+  URLs. The build writes a stamp file, `.static-files.stamp`, for this,
+  and the Haskell build fails if it's missing: run `make bootstrap`
+  first.
 
 ### Internal changes
 

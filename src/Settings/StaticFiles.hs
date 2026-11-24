@@ -23,7 +23,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Settings.StaticFiles where
 
-import           Yesod.Static (staticFiles)
+import           Control.Monad              (unless)
+import           Language.Haskell.TH.Syntax (addDependentFile, runIO)
+import           Prelude                    (fail, return, unlines, ($), (<>))
+import           System.Directory           (doesFileExist,
+                                             getCurrentDirectory)
+import           Yesod.Static               (staticFiles)
+
+-- The hashes of the files' contents, in the 'etag' parameter of their
+-- URLs, are computed at compile time, but GHC doesn't know that this
+-- module depends on the files. So depend instead on the stamp file
+-- written by @npm run build@ (and @npm run watch@ and @npm run stamp@),
+-- whose contents change whenever the files do, provided it is
+-- regenerated after they change (see "Static files" in docs/devel.md).
+$(do
+    let stamp = ".static-files.stamp"
+    exists <- runIO $ doesFileExist stamp
+    cwd <- runIO getCurrentDirectory
+    unless exists $ fail $ unlines
+      [ "The stamp file of the static files, '" <> stamp <>
+        "', is missing (in " <> cwd <> ")."
+      , "Run 'make bootstrap' (or 'npm run build') to create it."
+      ]
+    addDependentFile stamp
+    return [])
 
 -- This uses hardcoded "static", which is the git location of the
 -- static files. At run-time, this directory can be changed via the

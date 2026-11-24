@@ -1,6 +1,7 @@
 // esbuild.js
 import * as esbuild from 'esbuild';
 import { rmSync, watch as watchFiles } from 'node:fs';
+import { writeStaticStamp } from './build/static-stamp.js';
 
 const isDev = process.env.NODE_ENV === 'development';
 const watch = process.argv.includes('--watch');
@@ -110,6 +111,16 @@ async function runBuild() {
     const rebuild = async (reason) => {
       console.log(`[watch] build started${reason}`);
       await rebuildAll().catch(() => {}); // errors are already printed
+      // Even after a failed build, as the files in static/ may have changed.
+      try {
+        writeStaticStamp();
+      } catch (err) {
+        console.error(
+          '[watch] Writing the static files stamp failed, so Haskell builds' +
+            ' keep the old URL hashes until it succeeds:',
+          err,
+        );
+      }
       console.log('[watch] build finished');
     };
     await rebuild('');
@@ -138,7 +149,12 @@ async function runBuild() {
     );
   } else {
     // Just do a single build
-    await rebuildAll();
+    try {
+      await rebuildAll();
+    } finally {
+      // Even after a failed build, as some bundles may have been written.
+      writeStaticStamp();
+    }
     console.log('Build complete!');
     await Promise.all(contexts.map((ctx) => ctx.dispose()));
   }
