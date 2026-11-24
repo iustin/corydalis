@@ -388,7 +388,7 @@ data MediaType = MediaUnknown
 instance Store MediaType
 
 instance NFData MediaType where
-  rnf _ = ()
+  rnf = rwhnf
 
 data Image = Image
     { imgName        :: !ImageName
@@ -1780,7 +1780,7 @@ scanFilesystem ctx serial = do
   -- Ensure cache top dirs are created if missing (likely only during
   -- bootstrap, but better to always redo during scanning).
   mapConcurrently_ (createDirectoryIfMissing True) cachePaths
-  atomically $ writeTVar scanProgress (def { pgGoal = sum itemcounts })
+  atomically $ writeTVar scanProgress $! def { pgGoal = sum itemcounts }
   start <- getZonedTime
   let ws = WorkStart { wsStart = start }
   _ <- tryUpdateRepoStatus ctx serial RepoScanning { rsScanGoal = ws }

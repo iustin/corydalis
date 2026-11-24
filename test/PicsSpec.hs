@@ -1312,6 +1312,8 @@ spec = parallel $ do
         live config "/p/a.nef-exif123456.tmp" `shouldBe` False
   withConfig $ do
     describe "NFData" $ do
+      it "forces the media type" $ \_ ->
+        evaluate (rnf (error "type" :: MediaType)) `shouldThrow` anyErrorCall
       it "forces image movie and untracked files" $ \config -> do
         let img = simpleRawImage config
         evaluate (rnf img) `shouldReturn` ()

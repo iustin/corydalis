@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
@@ -519,9 +520,15 @@ pgWorkProgress p@Progress{..}
   | pgNoop > 0 || pgWork p > 0 = Just 1
   | otherwise = Nothing
 
+-- | Adds an error to a progress.
+--
+-- The error is evaluated along with the progress, as otherwise it
+-- keeps whatever its texts are computed from (e.g. an image, for its
+-- name) for as long as the progress is kept.
 incErrors :: Text -> Text -> Progress -> Progress
 incErrors item err p@Progress { pgErrors = old } =
-  p { pgErrors = ProgressError item err:old  }
+  let !e = ProgressError item err
+  in p { pgErrors = e:old  }
 
 incNoop :: Progress -> Progress
 incNoop p@Progress { pgNoop = old } =
@@ -531,9 +538,13 @@ incDone :: Progress -> Progress
 incDone p@Progress { pgDone = old } =
   p { pgDone = old + 1 }
 
+-- | Adds errors, skipped work and done work to a progress.
+--
+-- The errors are evaluated along with the progress, as for
+-- 'incErrors'.
 incProgress :: [ProgressError] -> Int -> Int -> Progress -> Progress
 incProgress e n d p@Progress{..} =
-  p { pgErrors = e ++ pgErrors
+  p { pgErrors = foldr (\x acc -> x `seq` acc `seq` (x:acc)) pgErrors e
     , pgNoop = pgNoop + n
     , pgDone = pgDone + d
     }
