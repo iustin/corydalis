@@ -189,25 +189,24 @@ jobs:
       - name: Bootstrap npm/typescript code
         run: make bootstrap
 
-      # Playwright is not a project dependency (see e2e/README.md), so
-      # install it outside the project.
+      # The browser matching the Playwright version in package-lock.json
+      # (installed by npm ci, in the bootstrap step).
       - name: Cache the Playwright browsers
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: v1-playwright-${{ runner.os }}-1.63.0
+          key: v2-playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            v2-playwright-${{ runner.os }}-
 
-      - name: Install Playwright with Chromium
-        run: |
-          mkdir -p ~/playwright
-          npm install --prefix ~/playwright --no-save --no-package-lock playwright@1.63.0
-          ~/playwright/node_modules/.bin/playwright install --with-deps chromium
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
 
       - name: Setup GHC for the resolver
         run: stack setup --no-terminal
 
       - name: Run the e2e checks
-        run: NODE_PATH=$HOME/playwright/node_modules make e2e
+        run: make e2e
 
       # Also (mostly) when the checks failed, which would otherwise skip
       # this step.

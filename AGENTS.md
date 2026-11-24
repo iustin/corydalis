@@ -55,6 +55,14 @@ npm is the frontend toolchain (`package.json`, `js/tsconfig.json`).
 
 Add tests for any new TypeScript code as well.
 
+## End-to-end tests
+
+`make e2e` builds the server, starts it with a generated library, and
+runs the Playwright tests in `e2e/tests/` against it in Chromium (see
+`e2e/README.md`, which also says what belongs in e2e tests rather than
+in the unit tests). The tests are type-checked by
+`npm run type-check-oneshot`.
+
 ## Static files
 
 The server serves the files in `static/` (embedded in the binary in
