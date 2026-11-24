@@ -25,9 +25,9 @@
 
 - The static files (scripts, style sheets, fonts) are now embedded in
   the `corydalis` binary, so the `static` directory no longer needs to
-  be installed with it, and the files always match it; the scripts and style sheets are also sent compressed
-  (with gzip), which they weren't before (unless a reverse proxy
-  compressed them). Their URLs change from `/static/corydalis/…`
+  be installed with it, and the files always match it; the scripts and
+  style sheets are also sent compressed (with gzip), which they weren't
+  before (unless a reverse proxy compressed them). Their URLs change from `/static/corydalis/…`
   to `/static/res/…`. When upgrading, the `static` directory next to the
   binary can be removed, as can the `static-dir` setting, which is
   now ignored; for a systemd service based on the sample, first remove

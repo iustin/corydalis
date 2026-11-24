@@ -55,12 +55,13 @@ and doesn't need a server or a browser.
 
 ## Requirements
 
+- the frontend bundles (`npm run build`), built first, as they are
+  embedded in the binaries;
 - the Corydalis binaries (`corydalis` and `db-util`), built without the
   `dev` flag, which disables the executables:
 
       stack build --flag corydalis:-dev --copy-bins --local-bin-path BINDIR
 
-- the frontend bundles (`npm run build`);
 - ImageMagick and exiftool, as for the application itself;
 - Playwright with Chromium, installed outside the project, e.g. in a
   scratch directory:
@@ -101,7 +102,8 @@ record them with each version, then compare the reports, and the
 screenshots (e.g. with ImageMagick):
 
     node e2e/plots.cjs WORKDIR/plots-before
-    # update, rebuild the bundles (npm ci && npm run build)
+    # update, rebuild the bundles (npm ci && npm run build), then the
+    # binaries, and restart the server
     node e2e/plots.cjs WORKDIR/plots-after
     node e2e/plots.cjs --compare WORKDIR/plots-before WORKDIR/plots-after
     compare -metric AE WORKDIR/plots-before/curate.png \

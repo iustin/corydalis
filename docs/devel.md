@@ -101,10 +101,13 @@ are served depends on the build flags:
   with gzip, and sent as such (with `Content-Encoding: gzip`), even to
   clients that don't ask for it, which all browsers do anyway;
 - in development builds (with the `dev` flag, the default, used by
-  the tests, or the `library-only` one, used by `yesod devel`), the files are read from `static/` on each request,
-  so after a change to them (e.g. by `npm run watch`), reloading the
-  page is enough. Adding or removing a file still needs a rebuild, for
-  its route name.
+  the tests, or the `library-only` one, used by `yesod devel`), the
+  files are read from `static/` on each request, so after a change to
+  them (e.g. by `npm run watch`), reloading the page is enough. Adding
+  or removing a file still needs a rebuild, for its route name: e.g.
+  the source maps that `npm run watch` writes (unlike `npm run build`)
+  are only served once `Settings/StaticFiles.hs` is recompiled, which
+  `yesod devel` does when the stamp file changes.
 
 Older checkouts may have a `static/tmp` directory, which the server
 used to write, and a `static/corydalis` one, where the bundles used to
@@ -150,9 +153,11 @@ things:
 - `yesodMiddleware` (in `Foundation.hs`) runs inside `Handler`, around
   each request's handler, so it can use the session, the user, the
   route and the settings, and can refuse or redirect the request (this
-  is where the authorization and CSRF checks happen). But the headers it
-  adds with `addHeader` don't reach the static files: yesod-static
-  answers with a WAI response of its own, which doesn't include them.
+  is where the authorization and CSRF checks happen). But it doesn't
+  run at all for the static files: the embedded static subsite answers
+  them directly, with a WAI response of its own, so neither
+  `isAuthorized` nor the headers added with `addHeader` apply to them
+  (they are public, and don't touch the session).
 
 So a header that every response must carry (the security headers,
 `Cache-Control`) goes in `appMiddlewares`; anything that depends on the
