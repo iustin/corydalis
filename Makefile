@@ -71,7 +71,9 @@ ts-watch:
 
 # Incremental rebuild and installs binaries in dist/ with the current settings
 # (vs. release which is clean build).
-dist:
+# The static files are embedded as they are in static/, so check them
+# first (e.g. for leftover source maps of a development bundle).
+dist: check-static
 	@mkdir -p dist/
 	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG)
 

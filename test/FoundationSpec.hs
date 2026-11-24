@@ -627,9 +627,11 @@ appSpec = parallel $ withApp $ do
       responseNoCache
     it "forbids shared caching on missing static files" $ do
       login
-      get ("/static/res/no-such-file" :: Text)
-      statusIs 404
-      responseNoCache
+      -- Both missing files, and paths outside the subsite's own.
+      forM_ ["/static/res/no-such-file", "/static/no-such-file" :: Text] $ \path -> do
+        get path
+        statusIs 404
+        responseNoCache
     it "keeps the favicon browser-cacheable, but not publicly" $ do
       checkRoute FaviconR
       withResponse $ \response -> liftIO $ do

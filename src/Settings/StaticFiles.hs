@@ -38,11 +38,10 @@ import           Settings.Development       (development)
 
 -- The files are listed (and, in production builds, read, see below)
 -- at compile time, but GHC doesn't know that this module depends on
--- them. So
--- depend instead on the stamp file written by @npm run build@ (and
--- @npm run watch@ and @npm run stamp@), whose contents change whenever
--- the files do, provided it is regenerated after they change (see
--- "Static files" in docs/devel.md).
+-- them. So depend instead on the stamp file written by @npm run build@
+-- (and @npm run watch@ and @npm run stamp@), whose contents change
+-- whenever the files do, provided it is regenerated after they change
+-- (see "Static files" in docs/devel.md).
 $(do
     let stamp = ".static-files.stamp"
     exists <- runIO $ doesFileExist stamp

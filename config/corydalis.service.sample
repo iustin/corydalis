@@ -23,8 +23,8 @@ Group=corydalis
 Restart=always
 StandardInput=null
 SyslogIdentifier=corydalis
-# The files Corydalis creates (database, cache, generated style sheets
-# and scripts) are only for its own user: it serves them itself. The
+# The files Corydalis creates (database, cache) are only for its own
+# user: it serves them itself. The
 # Unix socket gets these permissions too (0700), unless unix-socket-mode
 # is set, as a proxy in the socket's group needs (e.g. "0660").
 UMask=0077

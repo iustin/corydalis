@@ -57,7 +57,12 @@ disables the executables, so a build for installing must turn it off
 The static files (scripts, style sheets, fonts) are embedded in the
 `corydalis` binary, so no `static` directory needs to be installed
 with it; the scripts and style sheets are also embedded compressed
-with gzip, so a reverse proxy doesn't need to compress them.
+with gzip, so a reverse proxy doesn't need to compress them (proxies
+leave such responses alone). Note that these are sent with
+`Content-Encoding: gzip` even to clients that don't accept it, e.g.
+`curl` without `--compressed`, or a proxy configured to rewrite
+response bodies (e.g. nginx's `sub_filter`, which needs
+`proxy_set_header Accept-Encoding ""`); browsers all accept gzip.
 
 That should be it about the "build" phase, although if you don't
 already have a stack work space already, this will take a bit of time
