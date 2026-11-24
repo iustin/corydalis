@@ -1836,6 +1836,14 @@ scanFilesystem ctx serial = do
   -- restart must not load the previous scan's cache: its pictures
   -- might be gone since. Only if this scan is still the current one,
   -- though: the cache is not a superseded scan's to remove.
+  --
+  -- The check and the removal are not atomic (the removal can't be
+  -- part of a transaction): a scan superseded right between the two
+  -- still removes the cache. That is the safe side to err on: the new
+  -- scan removes it as well once it has its data, so the only effect
+  -- is that a restart before that scans again, instead of loading the
+  -- previous scan's cache; a restart never loads data older than it
+  -- would have otherwise.
   checkScanOwnership ctx serial
   removeDiskCache config
   repo_as <- tryUpdateRepo ctx built
