@@ -153,9 +153,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          fetch-tags: true
 
       - name: Setup Haskell
         uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
@@ -212,6 +209,8 @@ jobs:
       - name: Run the e2e checks
         run: NODE_PATH=$HOME/playwright/node_modules make e2e
 
+      # Also (mostly) when the checks failed, which would otherwise skip
+      # this step.
       - name: Upload the e2e output
         if: always()
         uses: actions/upload-artifact@v7
