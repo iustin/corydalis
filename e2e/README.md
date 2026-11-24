@@ -87,7 +87,8 @@ how reliable it is there. The limitations above still apply.
 
 This builds the binaries (normal and public site, without
 optimisation, in `.stack-e2e` and `.stack-e2e-public`), makes the two
-libraries, starts a server for each (on ports 3000 and 3001), runs
+libraries, starts a server for each (on ports 3001 and 3002, so as not to conflict with a development
+server on 3000), runs
 `smoke.cjs`, `verify.cjs`, `pages.cjs` and `plots.cjs` on the normal
 one and `public-site.cjs` and `shots.cjs` on the public one, then stops
 the servers. It exits with an error if any script failed. Set

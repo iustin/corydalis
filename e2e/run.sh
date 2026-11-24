@@ -50,7 +50,9 @@ build() {
     --copy-bins --local-bin-path "$bin"
 }
 echo "== Building the binaries"
+echo "  - flavour private"
 build .stack-e2e "$WORK/bin"
+echo "  - flavour public"
 build .stack-e2e-public "$WORK/public-bin" --flag corydalis:public-site
 
 echo "== Making the libraries"
@@ -86,8 +88,9 @@ start() {
   cat "$WORK/$name/server.log" >&2
   exit 1
 }
-start normal "$WORK/bin" 3000
-start public "$WORK/public-bin" 3001
+# Not 3000, so as not to conflict with a development server.
+start normal "$WORK/bin" 3001
+start public "$WORK/public-bin" 3002
 
 FAILED=()
 # Runs one script, recording (but not stopping on) its failure.
@@ -103,7 +106,7 @@ check() {
   fi
 }
 
-export CORYDALIS_URL=http://localhost:3000
+export CORYDALIS_URL=http://localhost:3001
 export CORYDALIS_PASSWORD_FILE=$WORK/normal/password
 check smoke node e2e/smoke.cjs "$WORK/out/smoke"
 check verify node e2e/verify.cjs "$WORK/out/verify"
@@ -115,7 +118,7 @@ check "pages (records only)" node e2e/pages.cjs "$WORK/out/pages"
 check plots bash -c 'node e2e/plots.cjs "$0" && node e2e/plots.cjs --compare "$0" "$0"' \
   "$WORK/out/plots"
 
-export CORYDALIS_URL=http://localhost:3001
+export CORYDALIS_URL=http://localhost:3002
 export CORYDALIS_PASSWORD_FILE=$WORK/public/password
 check public-site node e2e/public-site.cjs "$WORK/public"
 # shots.cjs needs a library with problems, so it uses the public one.
