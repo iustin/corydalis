@@ -108,6 +108,13 @@ spec = parallel $ do
           expected = Just (5, 10)
       mergeMinMaxPair range1 range2 `shouldBe` expected
 
+    it "evaluates both ends of a merged range" $ do
+      let range = Just (2, 6)::Maybe (Int, Int)
+      evaluate (mergeMinMaxPair (Just (error "min", 5)) range)
+        `shouldThrow` anyErrorCall
+      evaluate (mergeMinMaxPair (Just (1, error "max")) range)
+        `shouldThrow` anyErrorCall
+
   describe "Occurrence" $ do
     describe "Default instance" $ do
       it "creates empty occurrence with default values" $ do

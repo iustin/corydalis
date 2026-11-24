@@ -32,7 +32,7 @@ module Handler.List
   , getListImagesR
   ) where
 
-import qualified Data.Map        as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Text.Short as TS
 
 import           Exif            (GroupExif (gExifCities, gExifCountries, gExifPeople))

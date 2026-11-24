@@ -38,7 +38,7 @@ import           Import
 import           Indexer
 import           Pics
 
-import qualified Data.Map            as Map
+import qualified Data.Map.Strict     as Map
 import           Data.Time.Calendar
 import           Data.Time.LocalTime
 

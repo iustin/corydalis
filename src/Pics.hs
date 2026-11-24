@@ -138,6 +138,7 @@ module Pics ( PicDir(..)
             , implicitEventFromDateRange
             , startupRepository
             , writeDiskCache
+            , repoCachePath
             , loadImage
             , buildFolderFromInodes
             , loadFolder
@@ -387,7 +388,7 @@ data MediaType = MediaUnknown
 instance Store MediaType
 
 instance NFData MediaType where
-  rnf _ = ()
+  rnf = rwhnf
 
 data Image = Image
     { imgName        :: !ImageName
@@ -578,8 +579,9 @@ type RepoDirs = Map ShortText PicDir
 -- | Status of a repository.
 data RepoStatus = RepoEmpty    -- ^ Only to be used at application
                                -- startup time!
-                | RepoStarting -- ^ Denotes an empty, in-process of
-                               -- being rescanned repo.
+                | RepoStarting -- ^ Denotes a repository about to be
+                               -- rescanned; it still holds the
+                               -- previous data (or none, at startup).
                 | RepoScanning
                   { rsScanGoal :: !WorkStart
                   }
@@ -816,6 +818,8 @@ computeFolderStats :: PicDir -> Stats
 computeFolderStats dir =
   addUntrackedFiles (pdUntracked dir) (computeImagesStats (pdImages dir))
 
+data StrictPair a b = StrictPair !a !b
+
 data StrictTriple a b c = StrictTriple !a !b !c
 
 computeRepoStats :: RepoDirs -> RepoStats
@@ -848,17 +852,66 @@ updateRepo ctx new = atomically $ do
     flushSearchCache (ctxSearchCache ctx)
   return do_update
 
+-- | The failure of a scan that no longer owns the repository, as a
+-- newer one was started (see 'newRepo').
+ownershipChanged :: IO a
+ownershipChanged = throwString "Repository ownership changed, aborting"
+
 tryUpdateRepo :: Ctx -> Repository -> IO Repository
 tryUpdateRepo ctx new = do
   owning <- updateRepo ctx new
-  unless owning $ throwString "Repository ownership changed, aborting"
+  unless owning ownershipChanged
   return new
+
+-- | Sets the status of the current repository, if the scan with the
+-- given serial (see 'newRepo') still owns it, and returns the updated
+-- repository if so.
+--
+-- Unlike 'updateRepo', the caller doesn't pass a repository, only the
+-- status: it can't bring back data it read earlier, and has no reason
+-- to keep the repository it started from (which, during a scan, is
+-- the previous one, in full).
+--
+-- The search cache is flushed as for any other update, even though the
+-- images don't change. This is on purpose: a search that read the
+-- repository before a scan replaced its data can cache its results
+-- after that; the flushes of the status updates that follow (rendering
+-- done, cleanup done, or an error) remove such results, unless they
+-- are cached after the last of them. ('newRepo' doesn't flush: no data
+-- was replaced before it.)
+updateRepoStatus :: Ctx -> Int -> RepoStatus -> IO (Maybe Repository)
+updateRepoStatus ctx !serial status = do
+  -- Evaluated here, so that the transaction doesn't do it, and so that
+  -- the repository doesn't keep what the status is computed from.
+  status' <- evaluate $ force status
+  atomically $ do
+    let rc = ctxRepo ctx
+    current <- readTVar rc
+    if repoSerial current == serial
+      then do
+        let new = current { repoStatus = status' }
+        writeTVar rc $! new
+        flushSearchCache (ctxSearchCache ctx)
+        return $ Just new
+      else return Nothing
+
+-- | Like 'updateRepoStatus', but failing if the scan no longer owns
+-- the repository.
+tryUpdateRepoStatus :: Ctx -> Int -> RepoStatus -> IO Repository
+tryUpdateRepoStatus ctx serial status =
+  updateRepoStatus ctx serial status >>= maybe ownershipChanged return
 
 checkRepoOwnership :: Ctx -> Repository -> IO ()
 checkRepoOwnership ctx candidate = do
   current <- readTVarIO (ctxRepo ctx)
-  unless (repoSerial current <= repoSerial candidate) $
-    throwString "Repository ownership changed, aborting"
+  unless (repoSerial current <= repoSerial candidate) ownershipChanged
+
+-- | Fails if the scan with the given serial (see 'newRepo') no longer
+-- owns the repository.
+checkScanOwnership :: Ctx -> Int -> IO ()
+checkScanOwnership ctx serial = do
+  current <- readTVarIO (ctxRepo ctx)
+  unless (repoSerial current == serial) ownershipChanged
 
 -- | Returns the search results for the given key, from the cache if
 -- present, otherwise the given (lazy) results, cached.
@@ -869,18 +922,29 @@ checkRepoOwnership ctx candidate = do
 -- results: an unevaluated entry would keep the repository it is
 -- computed from alive, and leave the work to whoever reads it next.
 --
--- This evaluation happens inside the transaction ('stateTVar' forces
--- the result pair), so a concurrent change of the cache makes the
--- transaction run again. That is cheap, though: the results are a
--- value built outside the transaction, so the work already done on them
--- is kept, and only the cache lookup and insertion are repeated. Two
--- identical searches at the same time both compute their results.
+-- This evaluation happens inside the transaction, so a concurrent
+-- change of the cache makes the transaction run again. That is cheap,
+-- though: the results are a value built outside the transaction, so
+-- the work already done on them is kept, and only the cache lookup and
+-- insertion are repeated. Two identical searches at the same time both
+-- compute their results.
+--
+-- The new cache is evaluated as well before being written, on a hit
+-- (which changes the order of the entries) as on a miss: an
+-- unevaluated one would keep the previous cache, and with it, on a
+-- miss with a full cache, the results just dropped.
 getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
-getSearchResults ctx lazy key =
-  atomically $ stateTVar (ctxSearchCache ctx) $ \oldCache ->
-    fromMaybe
-      (force lazy `seq` (lazy, LRU.insert key lazy oldCache))
-      (LRU.lookup key oldCache)
+getSearchResults ctx lazy key = atomically $ do
+  let cacheVar = ctxSearchCache ctx
+  oldCache <- readTVar cacheVar
+  case LRU.lookup key oldCache of
+    Just (results, cache) -> do
+      writeTVar cacheVar $! cache
+      return results
+    Nothing -> do
+      let !results = force lazy
+      writeTVar cacheVar $! LRU.insert key results oldCache
+      return results
 
 -- | The images around a given image in search results, as used for
 -- navigating between them.
@@ -1416,17 +1480,23 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
       dirpath = TS.fromString path
       parent = mkSymbolizedItem dirpath
       (known, otherFiles) = partition (isKnownMediaInode config) contents
-      (images, shadows) =
-        foldl' (\(images', shadows') f ->
+      -- A strict pair: with a lazy one, the maps would only be built
+      -- once the fold is done, from a chain of updates holding every
+      -- image still to be loaded.
+      StrictPair images shadows =
+        foldl' (\(StrictPair images' shadows') f ->
                   let (img, newss) = loadImage config tname parent isSource lcache f
-                  in (addImg config images' img, addImgs config shadows' newss)
-               ) (Map.empty, Map.empty) known
+                  in StrictPair (addImg config images' img) (addImgs config shadows' newss)
+               ) (StrictPair Map.empty Map.empty) known
       untracked = map (\ii -> mkFileFromInode parent ii def) otherFiles
+      -- The earliest date, evaluated at each step (not only down to
+      -- its Just).
       timestamp = Map.foldl' (\a img ->
-                           (min <$> a <*> imageLocalDate img) <|>
-                           a <|>
-                           imageLocalDate img
-                        ) Nothing images
+                                case (a, imageLocalDate img) of
+                                  (Just x, Just y) -> Just $! min x y
+                                  (Nothing, d)     -> d
+                                  (_, Nothing)     -> a
+                             ) Nothing images
       year = localDateToYear <$> timestamp
       exif = buildGroupExif images
       timesort = buildTimeSort images
@@ -1504,9 +1574,9 @@ loadFolder ctx name path isSource = do
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
   let images' =
-        Map.foldlWithKey (\imgs sname shadow ->
-                            Map.adjust (\i -> mergePictures config i shadow)
-                               sname imgs)
+        Map.foldlWithKey' (\imgs sname shadow ->
+                             Map.adjust (\i -> mergePictures config i shadow)
+                                sname imgs)
              (pdImages picd) (pdShadows picd)
   in picd { pdImages = images' }
 
@@ -1527,10 +1597,10 @@ maybeUpdateStandaloneRange config picd img = do
 resolveProcessedRanges :: Config -> PicDir -> PicDir
 resolveProcessedRanges config picd =
   let images' =
-        Map.foldl (\accimgs img ->
-                     case maybeUpdateStandaloneRange  config picd img of
-                       Nothing   -> accimgs
-                       Just img' -> Map.insert (imgName img') img' accimgs)
+        Map.foldl' (\accimgs img ->
+                      case maybeUpdateStandaloneRange  config picd img of
+                        Nothing   -> accimgs
+                        Just img' -> Map.insert (imgName img') img' accimgs)
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
@@ -1629,20 +1699,27 @@ cleanupCache ctx repo alldirs = do
     modifyTVar' cleanProgress $ \p -> p { pgGoal = pgTotal p }
     readTVar cleanProgress
 
--- | Resets the repository to empty with an increase serial number.
+-- | Marks the repository as being rescanned: it keeps its data, with
+-- an increased serial number and the starting status. Returns the new
+-- serial, which identifies the scan that owns the repository from now
+-- on (see 'updateRepo' and 'updateRepoStatus').
 --
--- The logic here needs to be kept in sync with updateRepo.
-newRepo :: TVar Repository -> STM Repository
+-- Only the serial is returned, not the repository, so that the scan
+-- can't keep the previous data alive once it has published its own.
+--
+-- The logic here needs to be kept in sync with updateRepo and
+-- updateRepoStatus.
+newRepo :: TVar Repository -> STM Int
 newRepo rc = do
   old <- readTVar rc
   let new = old { repoSerial = repoSerial old + 1
                 , repoStatus = RepoStarting
                 }
   -- Note: it is safe to update the repository without flushing the
-  -- cache, as the image date has not been changed, only the serial
+  -- cache, as the image data has not been changed, only the serial
   -- and status; hence, not going through updateRepo.
   writeTVar rc $! new
-  return new
+  return $ repoSerial new
 
 waitForScan :: Ctx -> IO Repository
 waitForScan ctx = atomically $ do
@@ -1650,35 +1727,50 @@ waitForScan ctx = atomically $ do
   maybe (readTVar (ctxRepo ctx)) waitSTM scanner
 
 launchScanFileSystem :: Ctx -> IO ()
-launchScanFileSystem ctx =
-  bracketOnError
+launchScanFileSystem ctx = do
+  -- The cleanup only covers starting and registering the new scanner:
+  -- once the scanner runs, the status is its own to set, and a failure
+  -- while cancelling the previous one must not overwrite it.
+  previous <- bracketOnError
     (atomically $ newRepo rc)
-    (\new -> tryUpdateRepo ctx (new { repoStatus = RepoError "unknown"}))
-    $ \newrepo -> do
-      newscanner <- async (scanFSWrapper ctx newrepo)
-      currentSC <- atomically $ swapTVar scannerThread (Just newscanner)
-      case currentSC of
-        Nothing -> return ()
-        Just t -> do
-          logfn LevelInfo "Cancelling previous scanner"
-          cancel t
-          logfn LevelInfo "Cancel done"
-      return ()
-     where rc = ctxRepo ctx
-           logfn = ctxLogger ctx
-           scannerThread = ctxScanner ctx
+    (\serial -> updateRepoStatus ctx serial (RepoError "unknown"))
+    $ \serial -> do
+      newscanner <- async (scanFSWrapper ctx serial)
+      atomically $ swapTVar scannerThread (Just newscanner)
+  forM_ previous $ \t -> do
+    logfn LevelInfo "Cancelling previous scanner"
+    cancel t
+    logfn LevelInfo "Cancel done"
+  where rc = ctxRepo ctx
+        logfn = ctxLogger ctx
+        scannerThread = ctxScanner ctx
 
-scanFSWrapper :: Ctx -> Repository -> IO Repository
-scanFSWrapper ctx newrepo =
-  runScanAction ctx newrepo (scanFilesystem ctx newrepo)
+scanFSWrapper :: Ctx -> Int -> IO Repository
+scanFSWrapper ctx serial =
+  runScanAction ctx serial (scanFilesystem ctx serial)
 
-runScanAction :: Ctx -> Repository -> IO Repository -> IO Repository
-runScanAction ctx newrepo action =
+-- | Runs a scan, recording its failure as the repository's status,
+-- and returning that repository instead of failing.
+--
+-- The scan is known by its serial only (see 'newRepo'): on failure the
+-- status of the current repository is changed, whatever it holds by
+-- then. That is the previous data if the scan failed before publishing
+-- its own, and the new data after that; in particular, a failure while
+-- rendering or cleaning up doesn't bring back the previous data, with
+-- the pictures the scan found to be gone.
+--
+-- If a newer scan owns the repository, the status is left alone, and
+-- this fails instead. Being cancelled is not a failure: asynchronous
+-- exceptions are not handled here.
+runScanAction :: Ctx -> Int -> IO Repository -> IO Repository
+runScanAction ctx !serial action =
   action `catch` \(err :: SomeException) ->
-    tryUpdateRepo ctx newrepo {repoStatus = RepoError (sformat shown err)}
+    tryUpdateRepoStatus ctx serial $ RepoError (sformat shown err)
 
-scanFilesystem :: Ctx -> Repository -> IO Repository
-scanFilesystem ctx newrepo = do
+-- | Scans the file system, as the scan with the given serial (see
+-- 'newRepo', which also set the starting status).
+scanFilesystem :: Ctx -> Int -> IO Repository
+scanFilesystem ctx serial = do
   let logfn = ctxLogger ctx
       config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
@@ -1686,7 +1778,9 @@ scanFilesystem ctx newrepo = do
   traceMarkerIO "scanFilesystem start"
   -- Only in profiling builds:
   -- _ <- incrementUserEra 1
-  r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
+  -- A scan already superseded (by another one started at the same
+  -- time) stops here, before it resets the scan's progress.
+  checkScanOwnership ctx serial
   let srcdirs = map (, True)  (cfgSourceDirs config)
       outdirs = map (, False) (cfgOutputDirs config)
       alldirs = map fst $ srcdirs ++ outdirs
@@ -1697,10 +1791,10 @@ scanFilesystem ctx newrepo = do
   -- Ensure cache top dirs are created if missing (likely only during
   -- bootstrap, but better to always redo during scanning).
   mapConcurrently_ (createDirectoryIfMissing True) cachePaths
-  atomically $ writeTVar scanProgress (def { pgGoal = sum itemcounts })
+  atomically $ writeTVar scanProgress $! def { pgGoal = sum itemcounts }
   start <- getZonedTime
   let ws = WorkStart { wsStart = start }
-  r2 <- tryUpdateRepo ctx (r1 { repoStatus = RepoScanning { rsScanGoal = ws } })
+  _ <- tryUpdateRepoStatus ctx serial RepoScanning { rsScanGoal = ws }
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir ctx))
                  $ srcdirs ++ outdirs
   logfn LevelInfo "Finished scanning directories"
@@ -1718,18 +1812,25 @@ scanFilesystem ctx newrepo = do
                            }
       wsrender= WorkStart { wsStart = end
                           }
-  repo_as <- tryUpdateRepo ctx r2 { repoDirs   = repo'
-                                  , repoStats  = stats
-                                  , repoExif   = rexif
-                                  , repoStatus = RepoRendering { rsScanResults = wrscan,
-                                                                 rsRenderGoal = wsrender }
-                                  }
-  -- Reset the rendering's progress already: writing the disk cache can
-  -- take a while, during which the status page would otherwise show
-  -- the previous rendering's progress (forceBuildThumbCaches resets it
-  -- again, as it can be called on its own).
-  atomically . resetRenderProgress ctx . length $ renderableImages repo_as
-  writeDiskCache config repo_as
+  -- The new repository is built here, in full: it is lazy up to now
+  -- (the folders are evaluated, but not their merging, nor the
+  -- statistics), and neither the transaction publishing it, nor
+  -- whichever request reads it first, should do that work.
+  built <- evaluate $ force Repository
+             { repoDirs   = repo'
+             , repoStats  = stats
+             , repoExif   = rexif
+             , repoStatus = RepoRendering { rsScanResults = wrscan,
+                                            rsRenderGoal = wsrender }
+             , repoSerial = serial
+             }
+  -- From here on, and until this scan writes its own once finished, a
+  -- restart must not load the previous scan's cache: its pictures
+  -- might be gone since. Only if this scan is still the current one,
+  -- though: the cache is not a superseded scan's to remove.
+  checkScanOwnership ctx serial
+  removeDiskCache config
+  repo_as <- tryUpdateRepo ctx built
   logfn LevelInfo "Finished building repo, starting rendering"
   traceMarkerIO "scanFilesystem start rendering"
   rendered <- forceBuildThumbCaches ctx repo_as
@@ -1742,8 +1843,7 @@ scanFilesystem ctx newrepo = do
                               , rsRenderResults = wrrender
                               , rsCleanGoal = WorkStart { wsStart = endr }
                               }
-  repo_ar' <- evaluate $ force $ repo_as { repoStatus = wrstatus }
-  repo_ar <- tryUpdateRepo ctx repo_ar'
+  repo_ar <- tryUpdateRepoStatus ctx serial wrstatus
   logfn LevelInfo "Finished rendering, starting cleanup"
   traceMarkerIO "scanFilesystem start cleanup"
   clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative
@@ -1756,8 +1856,7 @@ scanFilesystem ctx newrepo = do
                             , rsRenderResults = wrrender
                             , rsCleanResults = wrclean
                             }
-  repo_ac <- evaluate $ force $ repo_ar { repoStatus = status }
-  r4 <- tryUpdateRepo ctx repo_ac
+  r4 <- tryUpdateRepoStatus ctx serial status
   writeDiskCache config r4
   logfn LevelInfo "Finished cleaning up, all done"
   traceMarkerIO "scanFilesystem done"
@@ -1793,32 +1892,47 @@ forceBuildThumbCaches ctx repo = do
       renderProgress = ctxRenderProgress ctx
       checkProgress = ctxRenderCheckProgress ctx
       images = renderableImages repo
-      total = length images
       sizes = Set.toList (cfgAutoImageSizes config)
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
                          (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
       -- The last image is counted along with setting the rendering's
       -- goal (below), so that the check is never complete before the
       -- goal is set.
-      classifyImage (pend, n, es) (k, i) = do
+      --
+      -- The accumulator is strict, and its lists are built by
+      -- prepending evaluated elements (so they come out reversed: the
+      -- last image first, and each image's sizes last to first):
+      -- otherwise it would be a chain of unevaluated updates, as long
+      -- as the list of images.
+      classifyImage total (StrictTriple pend n es) (k, i) = do
         checkRepoOwnership ctx repo
         res <- imagePendingSizes (ctxLogger ctx) config i sizes
         when (k < total) . atomically $ modifyTVar' checkProgress incDone
-        return $ case res of
+        return $! case res of
           Left err ->
             let msg = Text.pack $ show err
-            in (pend, n, [ProgressError (imageForError i size) msg | size <- reverse sizes] ++ es)
+                failed acc size =
+                  let !e = ProgressError (imageForError i size) msg
+                  in e : acc
+            in StrictTriple pend n (foldl' failed es sizes)
           Right stale ->
-            (map (i,) (reverse stale) ++ pend, n + length sizes - length stale, es)
+            StrictTriple (foldl' (\acc size -> (i, size) : acc) pend stale)
+                         (n + length sizes - length stale)
+                         es
+  -- Counted here: not in the transactions below, and not by a status
+  -- request either.
+  total <- evaluate $ length images
   atomically $ resetRenderProgress ctx total
-  (pending, noops, errs) <- foldM classifyImage ([], 0, []) (zip [1..] images)
+  StrictTriple pending noops errs <-
+    foldM (classifyImage total) (StrictTriple [] 0 []) (zip [1..] images)
+  goal <- evaluate $ length pending + length errs
   -- The check is marked complete explicitly, not relying on its count.
   atomically $ do
-    writeTVar renderProgress Progress
+    writeTVar renderProgress $! Progress
       { pgErrors = errs
       , pgNoop = noops
       , pgDone = 0
-      , pgGoal = length pending + length errs
+      , pgGoal = goal
       }
     modifyTVar' checkProgress $ \p -> p { pgDone = pgGoal p }
   mapM_ (\(i, size) -> do
@@ -1837,9 +1951,27 @@ repoDiskFile = "repo"
 repoDiskPath :: Config -> FilePath -> FilePath
 repoDiskPath config path = cachedBasename config path "cache"
 
+-- | The path of the repository cache.
+repoCachePath :: Config -> FilePath
+repoCachePath config = repoDiskPath config repoDiskFile
+
 writeDiskCache :: Config -> Repository -> IO ()
 writeDiskCache config repo =
   writeCacheFile config repoDiskFile repoDiskPath (Data.Store.encode (config, repo))
+
+-- | Removes the repository cache, if there is one.
+--
+-- Any failure other than the cache not existing is an error (and thus
+-- fails the scan doing this), as otherwise a restart would load a
+-- cache which was meant to be gone. The error says what was being
+-- done, as it is what the status page then shows.
+removeDiskCache :: Config -> IO ()
+removeDiskCache config =
+  removeFile path `catch` \e ->
+    unless (isDoesNotExistError e) . throwString $
+      "Failed to remove the previous repository cache (" ++ path ++
+      "), not using the scan's results: " ++ show (e :: IOException)
+  where path = repoCachePath config
 
 readDiskCache :: Config -> IO (Maybe Repository)
 readDiskCache config = do
@@ -1870,6 +2002,8 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
        -- number of zero while any valid cache will have a positive
        -- serial.
        tryUpdateRepo ctx cached_r
+     -- Only a cache written by an earlier version: a scan now removes
+     -- the cache, rather than writing an unfinished one.
      Just unfinished -> do
        logfn LevelWarn . toLogStr $ "Unfinished cache found, state: " ++ show (repoStatus unfinished)
        logfn LevelInfo "Restarting scan"

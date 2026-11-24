@@ -42,7 +42,7 @@ module Handler.View ( getViewR
                     ) where
 
 import           Data.Aeson.Text               (encodeToLazyText)
-import qualified Data.Map                      as Map
+import qualified Data.Map.Strict               as Map
 import qualified Data.Text                     as Text
 import qualified Data.Text.Encoding            as Text (encodeUtf8)
 import qualified Data.Text.Short               as TS

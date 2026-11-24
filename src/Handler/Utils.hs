@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE NoCPP             #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -32,7 +33,7 @@ import           Utils.Parsing         (parseDecimal)
 import           Utils.Storage         (relativeStoragePath)
 
 import           Data.Aeson.Key        (fromText)
-import qualified Data.Map              as Map
+import qualified Data.Map.Strict       as Map
 import           Data.Prefix.Units
 import qualified Data.Text             as Text
 import qualified Data.Text.Lazy        as TL
@@ -278,7 +279,7 @@ buildTopNItems d m n =
                 then let t10 = reverse $ take (n-1) allItems
                          r  = drop (n-1) allItems
                          (rc, rs, tr) =
-                           foldl' (\(c, s, t) (cnt, sz, _, _, tr') ->
+                           foldl' (\(!c, !s, !t) (cnt, sz, _, _, tr') ->
                                       (c+cnt, s+sz, Map.unionWith (+) t tr'))
                              (0, 0, Map.empty) r
                      in (rc, rs, "Others", d, tr): t10

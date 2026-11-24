@@ -32,7 +32,7 @@ module Handler.Search ( getQuickSearchR
                       , getBestHandler
                       ) where
 
-import qualified Data.Map        as Map
+import qualified Data.Map.Strict as Map
 import qualified Data.Text       as Text
 
 import           Handler.Utils

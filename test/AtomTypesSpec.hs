@@ -40,6 +40,9 @@ spec = parallel $ do
       showMonth December `shouldBe` "December"
       showMonth MonthUnknown `shouldBe` "unknown"
 
+    it "evaluates the day of the month" $
+      evaluate (MonthDay (error "day")) `shouldThrow` anyErrorCall
+
     it "shows day correctly" $ do
       showDay Monday `shouldBe` "Monday"
       showDay Weekday `shouldBe` "weekday"

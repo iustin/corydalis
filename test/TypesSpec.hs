@@ -188,6 +188,11 @@ spec = parallel $ do
       in case pgErrors pg of
         [p] -> peItem p === item .&&. peError p === err
         _   -> counterexample "Unexpected error count" False
+    it "evaluates the errors it is given" $ do
+      evaluate (incErrors (error "item") "b" def) `shouldThrow` anyErrorCall
+      evaluate (incErrors "a" (error "error") def) `shouldThrow` anyErrorCall
+      evaluate (incProgress [ProgressError "a" "b", error "second"] 0 0 def)
+        `shouldThrow` anyErrorCall
     prop "arbitrary increases" $ \errs noop dones ->
       pgTotal (incProgress (map (uncurry ProgressError) errs) noop dones def)
         === (length errs + noop + dones)

@@ -1312,6 +1312,8 @@ spec = parallel $ do
         live config "/p/a.nef-exif123456.tmp" `shouldBe` False
   withConfig $ do
     describe "NFData" $ do
+      it "forces the media type" $ \_ ->
+        evaluate (rnf (error "type" :: MediaType)) `shouldThrow` anyErrorCall
       it "forces image movie and untracked files" $ \config -> do
         let img = simpleRawImage config
         evaluate (rnf img) `shouldReturn` ()
@@ -1725,6 +1727,15 @@ spec = parallel $ do
                   Map.singleton "a" image)
         getSearchResults ctx m1 [] `shouldReturn` m1
         getSearchResults ctx (error "Failed to cache") [] `shouldReturn` m1
+      it "evaluates the results before caching them" $ \ctx -> do
+        let image = simpleRawImage (ctxConfig ctx)
+            m1 = (Map.singleton ("a", (Nothing, "b")) image,
+                  Map.singleton "a" image)
+            unevaluated = (Map.singleton ("a", (Nothing, "b")) (error "deep"),
+                           Map.empty)
+        getSearchResults ctx unevaluated [] `shouldThrow` anyErrorCall
+        -- Nothing was cached.
+        getSearchResults ctx m1 [] `shouldReturn` m1
       it "flushes the search cache on rescan" $ \ctx -> do
         let image = simpleRawImage (ctxConfig ctx)
             m1 = (Map.singleton ("a", (Nothing, "b")) image,
@@ -1883,6 +1894,54 @@ spec = parallel $ do
         writeDiskCache (ctxConfig ctx) (cached (RepoScanning (WorkStart now)))
         repo <- scanAll ctx
         repoStatus repo `shouldSatisfy` isFinished
+      it "removes the previous cache once a scan has new data" $ \ctx0 -> do
+        let config = ctxConfig ctx0
+            cachePath = repoCachePath config
+        renderTools <- atomically $ newToolLimits 1 defaultRenderToolTimeout
+        ctx <- atomically $ do
+          scanTools <- newToolLimits 1 defaultScanToolTimeout
+          initContext config (ctxLogger ctx0) renderTools scanTools
+        case cfgOutputDirs config of
+          outRoot:_ -> do
+            let dir = outRoot </> "2020" </> "2020-01-01-trip"
+            createDirectoryIfMissing True dir
+            writeRealJpeg (dir </> "a.jpg")
+            now <- getZonedTime
+            writeDiskCache config (cached (finished now))
+            doesFileExist cachePath `shouldReturn` True
+            -- Taking the only slot, so that the scan waits for it when
+            -- it renders the picture, with its data already published.
+            atomically . waitTSem $ tlSlots renderTools
+            (do launchScanFileSystem ctx
+                published <- timeout lastResort . atomically $ do
+                  status <- repoStatus <$> readTVar (ctxRepo ctx)
+                  case status of
+                    RepoRendering {} -> return True
+                    RepoError _      -> return False
+                    _                -> retrySTM
+                published `shouldBe` Just True
+                readTVarIO (ctxScanner ctx) >>= \case
+                  Just scanner -> waitUntilBlockedInSTM (asyncThreadId scanner)
+                  Nothing      -> expectationFailure "expected a scanner"
+                -- A restart now scans again, rather than loading the
+                -- previous scan's results.
+                doesFileExist cachePath `shouldReturn` False)
+              `finally` atomically (signalTSem $ tlSlots renderTools)
+            final <- waitForScan ctx
+            repoStatus final `shouldSatisfy` isFinished
+            doesFileExist cachePath `shouldReturn` True
+          [] -> expectationFailure "expected an output directory"
+      it "fails the scan if the previous cache can't be removed" $ \ctx -> do
+        let cachePath = repoCachePath (ctxConfig ctx)
+        -- A directory can't be removed as a file.
+        createDirectoryIfMissing True cachePath
+        launchScanFileSystem ctx
+        final <- waitForScan ctx
+        case repoStatus final of
+          -- The error names what couldn't be removed.
+          RepoError msg -> unpack msg `shouldSatisfy` (cachePath `isInfixOf`)
+          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+        doesDirectoryExist cachePath `shouldReturn` True
     describe "scan tool limits" $ do
       -- Scans a folder with a picture, with the given time limits for
       -- the preview tools and the scan's exiftool runs, returning the
@@ -1964,27 +2023,66 @@ spec = parallel $ do
             doesFileExist (bExifPath config picture) `shouldReturn` True
           _ -> expectationFailure "expected an output directory and image sizes"
     describe "scan abort" $ do
+      let errorMessage repo = case repoStatus repo of
+            RepoError msg -> return msg
+            other         -> do
+              expectationFailure $ "expected RepoError, got " ++ show other
+              return ""
+          folders = Map.keys . repoDirs
+          setFolders ctx names = atomically . modifyTVar' (ctxRepo ctx) $ \r ->
+            r { repoDirs = Map.fromList [(n, createTestPicDir n) | n <- names] }
       it "records synchronous scan failures as RepoError" $ \ctx -> do
-        repo <- getRepo ctx
-        result <- runScanAction ctx repo (throwString "scan exploded")
-        case repoStatus result of
-          RepoError msg -> msg `shouldSatisfy` ("scan exploded" `isInfixOf`)
-          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        result <- runScanAction ctx serial (throwString "scan exploded")
+        errorMessage result >>= (`shouldSatisfy` ("scan exploded" `isInfixOf`))
         repo' <- getRepo ctx
-        case repoStatus repo' of
-          RepoError msg -> msg `shouldSatisfy` ("scan exploded" `isInfixOf`)
-          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+        errorMessage repo' >>= (`shouldSatisfy` ("scan exploded" `isInfixOf`))
+        repoSerial repo' `shouldBe` serial
+      it "keeps the previous data when a scan fails before publishing" $ \ctx -> do
+        setFolders ctx ["previous"]
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        result <- runScanAction ctx serial (throwString "scan exploded")
+        folders result `shouldBe` ["previous"]
+        repo' <- getRepo ctx
+        folders repo' `shouldBe` ["previous"]
+        void $ errorMessage repo'
+      it "keeps the new data when a scan fails after publishing" $ \ctx -> do
+        setFolders ctx ["previous"]
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        result <- runScanAction ctx serial $ do
+          -- As the scan does: new data, under the scan's serial.
+          setFolders ctx ["new"]
+          throwString "render exploded"
+        folders result `shouldBe` ["new"]
+        repo' <- getRepo ctx
+        folders repo' `shouldBe` ["new"]
+        errorMessage repo' >>= (`shouldSatisfy` ("render exploded" `isInfixOf`))
+        repoSerial repo' `shouldBe` serial
+      it "leaves the repository alone when a superseded scan fails" $ \ctx -> do
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        newer <- atomically $ newRepo (ctxRepo ctx)
+        newer `shouldBe` serial + 1
+        runScanAction ctx serial (throwString "scan exploded")
+          `shouldThrow` isOwnershipAbort
+        repo' <- getRepo ctx
+        repoSerial repo' `shouldBe` newer
+        repoStatus repo' `shouldSatisfy` isStarting
       it "stops scan work when the scanner thread is cancelled" $ \ctx -> do
         started <- newEmptyMVar
         block <- newEmptyMVar
         cleaned <- newIORef False
         repo <- getRepo ctx
-        scanner <- async $ runScanAction ctx repo $
+        scanner <- async $ runScanAction ctx (repoSerial repo) $
           (putMVar started () >> takeMVar block >> return repo)
           `finally` writeIORef cleaned True
         takeMVar started
         cancel scanner
         readIORef cleaned `shouldReturn` True
+        -- Being cancelled is not a failure of the scan.
+        repo' <- getRepo ctx
+        case repoStatus repo' of
+          RepoError msg -> expectationFailure $ "unexpected error: " ++ show msg
+          _             -> return ()
       it "aborts thumbnail builds after a newer scan takes ownership" $ \ctx -> do
         old <- getRepo ctx
         _ <- atomically $ newRepo (ctxRepo ctx)

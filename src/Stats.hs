@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -58,15 +59,24 @@ type TrendsKey = (Int, Int)
 type Trends = Map TrendsKey Integer
 
 -- | Min-max merge of two pairs.
+--
+-- Both ends of the result are evaluated along with the pair: these
+-- are merged repeatedly (e.g. once per image), so otherwise each end
+-- would be a chain of pending comparisons, holding all the values
+-- compared.
 minMaxPairMerge :: (Ord a) => (a, a) -> (a, a) -> (a, a)
 minMaxPairMerge (xmin, xmax) (ymin, ymax) =
-  (xmin `min` ymin, xmax `max` ymax)
+  let !lo = xmin `min` ymin
+      !hi = xmax `max` ymax
+  in (lo, hi)
 
--- | Merge two Maybe values using a custom function.
+-- | Merge two Maybe values using a custom function, whose result is
+-- evaluated along with the merged value (and not left pending inside
+-- its Just).
 mergeMM :: (a -> a -> a) -> Maybe a -> Maybe a -> Maybe a
 mergeMM _ Nothing x          = x
 mergeMM _ x Nothing          = x
-mergeMM fn (Just x) (Just y) = Just $ fn x y
+mergeMM fn (Just x) (Just y) = Just $! fn x y
 
 -- | Helper for merging two Maybe values using minxMaxPairMerge.
 mergeMinMaxPair :: (Ord a) => Maybe (a, a) -> Maybe (a, a) -> Maybe (a, a)

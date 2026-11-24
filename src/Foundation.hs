@@ -76,7 +76,7 @@ import           Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe    as Unsafe
 import           Yesod.EmbeddedStatic (EmbeddedStatic, embedStaticContent)
 
-import qualified Data.Map             as Map
+import qualified Data.Map.Strict      as Map
 import qualified Data.Set             as Set
 import qualified Data.Text.Short      as TS
 

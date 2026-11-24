@@ -105,7 +105,7 @@ data DayOp
   | Sunday
   | Weekday
   | Weekend
-  | MonthDay Int
+  | MonthDay !Int
   | DayUnknown
   deriving (Show, Eq, Ord, Generic)
 
