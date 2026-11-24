@@ -38,6 +38,7 @@ import           Yesod.Auth.Util.PasswordStore (passwordStrength)
 
 import           Handler.Cookies
 import           Settings              (AppSettings (..))
+import           Settings.StaticFiles  (corydalis_manifest_json)
 import           Pics                  (RepoStatus (..), Repository (..),
                                         waitForScan)
 import           TestImport
@@ -275,7 +276,7 @@ sessionGenerationSpec = describe "session generation" $ do
         responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
     withAppSettings (\settings -> settings { appStrictTransportSecurity = True }) $ do
       it "is sent with static files" $ do
-        get ("/static/corydalis/manifest.json" :: Text)
+        get $ StaticR corydalis_manifest_json
         statusIs 200
         responseHsts >>= liftIO . (`shouldBe` Just "max-age=31536000; includeSubDomains")
       it "is sent with errors" $ do
@@ -548,6 +549,21 @@ appSpec = parallel $ withApp $ do
         scripts <- htmlQuery "script"
         let inline = filter (null . attribute "src" . fromDocument . parseLBS) scripts
         liftIO $ inline `shouldBe` []
+  describe "links to scripts and style sheets that are served" $
+    forM_ htmlPages $ \route ->
+      it ("on " ++ show route) $ do
+        login
+        checkRoute route
+        let attrs sel name = do
+              elems <- htmlQuery sel
+              return $ concatMap (attribute name . fromDocument . parseLBS) elems
+        scripts <- attrs "script" "src"
+        links <- attrs "link" "href"
+        let urls = scripts ++ links
+        liftIO $ urls `shouldSatisfy` (not . null)
+        forM_ urls $ \url -> do
+          get url
+          statusIs 200
   describe "has a container for notifications (see js/toast.ts)" $
     forM_ htmlPages $ \route ->
       it ("on " ++ show route) $ do
@@ -611,7 +627,7 @@ appSpec = parallel $ withApp $ do
       responseNoCache
     it "forbids shared caching on missing static files" $ do
       login
-      get ("/static/no-such-file" :: Text)
+      get ("/static/res/no-such-file" :: Text)
       statusIs 404
       responseNoCache
     it "keeps the favicon browser-cacheable, but not publicly" $ do
@@ -620,7 +636,7 @@ appSpec = parallel $ withApp $ do
         let hdrs = simpleHeaders response
         lookup "Cache-Control" hdrs `shouldBe` Just "private, max-age=2592000"
     it "leaves static files cacheable" $ do
-      get ("/static/corydalis/manifest.json" :: Text)
+      get $ StaticR corydalis_manifest_json
       statusIs 200
       withResponse $ \response -> liftIO $
         lookup "Cache-Control" (simpleHeaders response)

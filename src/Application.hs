@@ -140,13 +140,7 @@ makeFoundation appSettings = do
     -- subsite.
     appHttpManager <- newManager
     appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    appStatic <-
-#ifdef DEVELOPMENT
-        staticDevel
-#else
-        static
-#endif
-          (appStaticDir appSettings)
+    let appStatic = corydalisStatic
 
     -- Initialise the application context, first creating the custom app logger.
     let logfn = makeLogFn (appLogLevel appSettings) appLogger

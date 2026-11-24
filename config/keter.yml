@@ -31,15 +31,6 @@ stanzas:
     # Can be added to any stanza
     requires-secure: false
 
-  # Static files.
-  - type: static-files
-    hosts:
-      - static.example.com
-    root: ../static
-
-    # Uncomment to turn on directory listings.
-    # directory-listing: true
-
   # Redirect plain domain name to www.
   - type: redirect
 

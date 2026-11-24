@@ -2,8 +2,6 @@
 # Values formatted like "_env:ENV_VAR_NAME:default_value" can be overridden by the specified environment variable.
 # See https://github.com/yesodweb/yesod/wiki/Configuration#overriding-configuration-values-with-environment-variables
 
-# Static files are found in this directory
-static-dir:     "_env:STATIC_DIR:static"
 # Unix socket to use instead of (and ignoring) the host and port settings. If
 # enabled, please configure manually the secure sessions and strict transport
 # security settings.

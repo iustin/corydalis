@@ -140,14 +140,6 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 - for consistency, should try to find a landscape-oriented image first
 - and with a person, if possible
 
-## Build and static files
-
-- Embed the static files in the binary (`Yesod.EmbeddedStatic`): a
-  single binary to deploy, with the files' hashes and contents always
-  matching it, and precompressed. Then drop the `static-dir` setting
-  and the copying of the files in `make release` and the installation
-  instructions.
-
 ## Dependencies status
 
 - wai-logger 2.5.1 (which escapes the Apache request log fields) is an

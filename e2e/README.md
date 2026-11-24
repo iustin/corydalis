@@ -89,7 +89,7 @@ and `CORYDALIS_USER` (default `tester`) to use another server or user.
 To check a public-site build, use a separate work directory, as the
 other scripts expect the library exactly as `setup.sh` makes it:
 
-    make demo-release                   # binaries and static files in dist/
+    make demo-release                   # binaries in dist/
     e2e/setup.sh WORKDIR dist
     e2e/add-problem.sh WORKDIR
     dist/corydalis WORKDIR/settings.yml &
@@ -112,7 +112,8 @@ run had console errors. Check that the reported plotly versions are the
 expected ones: the browser can only get the new version once the
 bundles are rebuilt.
 
-Note that templates and stylesheets are compiled into the server binary,
-so changes to them need a rebuild (and a restart); the JavaScript bundles
-are served from `static/`, so for them `npm run build` and a page reload
-are enough.
+Note that templates are compiled into the server binary, so changes to
+them need a rebuild (and a restart). So do changes to the JavaScript and
+CSS bundles (after `npm run build`) for a release build, which embeds
+them; a development build serves them from `static/`, so for it a page
+reload is enough.

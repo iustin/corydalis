@@ -49,11 +49,15 @@ Using stack:
     echo build the backend
     stack build --flag corydalis:-dev
     stack install --flag corydalis:-dev --local-bin-path /path/to/target
-    cp -a static /path/to/target/
 
 The `dev` flag is on by default, for development and the tests, and
 disables the executables, so a build for installing must turn it off
 (`--flag corydalis:-dev`); otherwise, `stack install` installs nothing.
+
+The static files (scripts, style sheets, fonts) are embedded in the
+`corydalis` binary, so no `static` directory needs to be installed
+with it; the scripts and style sheets are also embedded compressed
+with gzip, so a reverse proxy doesn't need to compress them.
 
 That should be it about the "build" phase, although if you don't
 already have a stack work space already, this will take a bit of time
@@ -174,7 +178,7 @@ back/forward cache after logout. Responses that already set their own
 `Cache-Control` header keep it: Yesod's redirects send
 `no-cache, must-revalidate`, and the favicon sends
 `private, max-age=2592000` (private because it carries the session
-cookie). Static assets remain publicly cacheable.
+cookie). Static assets (under `/static/`) remain publicly cacheable.
 
 ### Unix socket
 

@@ -15,11 +15,11 @@
 
 // Writes the stamp file of the static files (see "Static files" in
 // docs/devel.md): a hash of the names and contents of the files in
-// static/ that `staticFiles` generates routes for, which
-// Settings/StaticFiles.hs depends on, so that it is recompiled, with the
-// new hashes in the URLs of the files, whenever one of them changes. Run from the root of the
-// repository, by `npm run build` (after the bundles are written) or on
-// its own with `npm run stamp`.
+// static/ that the server serves, which Settings/StaticFiles.hs
+// depends on, so that it is recompiled, embedding the new contents
+// (with their new hashes in the URLs of the files), whenever one of
+// them changes. Run from the root of the repository, by `npm run build`
+// (after the bundles are written) or on its own with `npm run stamp`.
 
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -28,15 +28,14 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 export const stampFile = '.static-files.stamp';
 
 /**
- * Whether `staticFiles` (from yesod-static) skips a file or directory,
- * at any level: hidden ones, and `tmp` (static/tmp is written at
- * runtime).
+ * Whether Settings/StaticFiles.hs skips a file or directory, at any
+ * level: hidden ones.
  */
 function skipped(name) {
-  return name.startsWith('.') || name === 'tmp';
+  return name.startsWith('.');
 }
 
-/** The files below `dir` that `staticFiles` sees, in a deterministic order. */
+/** The files below `dir` that the server serves, in a deterministic order. */
 function listFiles(dir) {
   const files = [];
   for (const name of readdirSync(dir).sort()) {
@@ -44,8 +43,9 @@ function listFiles(dir) {
       continue;
     }
     const path = `${dir}/${name}`;
-    // statSync follows symbolic links, as `staticFiles` does, which
-    // also skips broken ones.
+    // statSync follows symbolic links, as Settings/StaticFiles.hs does
+    // (but a production build fails on broken ones, which `make check-static` forbids
+    // anyway, as all links).
     const stats = statSync(path, { throwIfNoEntry: false });
     if (stats === undefined) {
       continue;
