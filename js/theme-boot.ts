@@ -18,19 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Theme entry point (see js/theme.ts): loaded as a classic, blocking
 // script in every page's head, so that the theme is set before the page
 // is shown.
-import { DARK_QUERY, setupTheme } from './theme';
+import { browserThemeEnv, setupTheme } from './theme';
 
-/** The local storage, unless the browser refuses access to it. */
-function localStorageOrNull(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
-setupTheme({
-  doc: document,
-  storage: localStorageOrNull(),
-  media: window.matchMedia?.(DARK_QUERY) ?? null,
-});
+setupTheme(browserThemeEnv(window));

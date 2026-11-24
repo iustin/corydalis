@@ -152,6 +152,29 @@ export type ThemeEnv = {
 };
 
 /**
+ * The browser's environment for setupTheme: the window's document, its
+ * local storage (null if the browser refuses access to it, which throws),
+ * and the system's dark setting (null without media query support).
+ */
+export function browserThemeEnv(
+  win: Pick<Window, 'document' | 'localStorage'> & {
+    matchMedia?: Window['matchMedia'];
+  },
+): ThemeEnv {
+  let storage: Storage | null;
+  try {
+    storage = win.localStorage;
+  } catch {
+    storage = null;
+  }
+  return {
+    doc: win.document,
+    storage,
+    media: win.matchMedia?.(DARK_QUERY) ?? null,
+  };
+}
+
+/**
  * Applies the stored choice right away, follows the system's setting
  * while the choice is 'auto', and, once the page is parsed, makes the
  * theme button cycle through the choices.
