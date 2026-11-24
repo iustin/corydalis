@@ -578,8 +578,9 @@ type RepoDirs = Map ShortText PicDir
 -- | Status of a repository.
 data RepoStatus = RepoEmpty    -- ^ Only to be used at application
                                -- startup time!
-                | RepoStarting -- ^ Denotes an empty, in-process of
-                               -- being rescanned repo.
+                | RepoStarting -- ^ Denotes a repository about to be
+                               -- rescanned; it still holds the
+                               -- previous data (or none, at startup).
                 | RepoScanning
                   { rsScanGoal :: !WorkStart
                   }
@@ -848,17 +849,66 @@ updateRepo ctx new = atomically $ do
     flushSearchCache (ctxSearchCache ctx)
   return do_update
 
+-- | The failure of a scan that no longer owns the repository, as a
+-- newer one was started (see 'newRepo').
+ownershipChanged :: IO a
+ownershipChanged = throwString "Repository ownership changed, aborting"
+
 tryUpdateRepo :: Ctx -> Repository -> IO Repository
 tryUpdateRepo ctx new = do
   owning <- updateRepo ctx new
-  unless owning $ throwString "Repository ownership changed, aborting"
+  unless owning ownershipChanged
   return new
+
+-- | Sets the status of the current repository, if the scan with the
+-- given serial (see 'newRepo') still owns it, and returns the updated
+-- repository if so.
+--
+-- Unlike 'updateRepo', the caller doesn't pass a repository, only the
+-- status: it can't bring back data it read earlier, and has no reason
+-- to keep the repository it started from (which, during a scan, is
+-- the previous one, in full).
+--
+-- The search cache is flushed as for any other update, even though the
+-- images don't change. This is on purpose: a search that read the
+-- repository before a scan replaced its data can cache its results
+-- after that; the flushes of the status updates that follow (rendering
+-- done, cleanup done, or an error) remove such results, unless they
+-- are cached after the last of them. ('newRepo' doesn't flush: no data
+-- was replaced before it.)
+updateRepoStatus :: Ctx -> Int -> RepoStatus -> IO (Maybe Repository)
+updateRepoStatus ctx !serial status = do
+  -- Evaluated here, so that the transaction doesn't do it, and so that
+  -- the repository doesn't keep what the status is computed from.
+  status' <- evaluate $ force status
+  atomically $ do
+    let rc = ctxRepo ctx
+    current <- readTVar rc
+    if repoSerial current == serial
+      then do
+        let new = current { repoStatus = status' }
+        writeTVar rc $! new
+        flushSearchCache (ctxSearchCache ctx)
+        return $ Just new
+      else return Nothing
+
+-- | Like 'updateRepoStatus', but failing if the scan no longer owns
+-- the repository.
+tryUpdateRepoStatus :: Ctx -> Int -> RepoStatus -> IO Repository
+tryUpdateRepoStatus ctx serial status =
+  updateRepoStatus ctx serial status >>= maybe ownershipChanged return
 
 checkRepoOwnership :: Ctx -> Repository -> IO ()
 checkRepoOwnership ctx candidate = do
   current <- readTVarIO (ctxRepo ctx)
-  unless (repoSerial current <= repoSerial candidate) $
-    throwString "Repository ownership changed, aborting"
+  unless (repoSerial current <= repoSerial candidate) ownershipChanged
+
+-- | Fails if the scan with the given serial (see 'newRepo') no longer
+-- owns the repository.
+checkScanOwnership :: Ctx -> Int -> IO ()
+checkScanOwnership ctx serial = do
+  current <- readTVarIO (ctxRepo ctx)
+  unless (repoSerial current == serial) ownershipChanged
 
 -- | Returns the search results for the given key, from the cache if
 -- present, otherwise the given (lazy) results, cached.
@@ -1629,20 +1679,27 @@ cleanupCache ctx repo alldirs = do
     modifyTVar' cleanProgress $ \p -> p { pgGoal = pgTotal p }
     readTVar cleanProgress
 
--- | Resets the repository to empty with an increase serial number.
+-- | Marks the repository as being rescanned: it keeps its data, with
+-- an increased serial number and the starting status. Returns the new
+-- serial, which identifies the scan that owns the repository from now
+-- on (see 'updateRepo' and 'updateRepoStatus').
 --
--- The logic here needs to be kept in sync with updateRepo.
-newRepo :: TVar Repository -> STM Repository
+-- Only the serial is returned, not the repository, so that the scan
+-- can't keep the previous data alive once it has published its own.
+--
+-- The logic here needs to be kept in sync with updateRepo and
+-- updateRepoStatus.
+newRepo :: TVar Repository -> STM Int
 newRepo rc = do
   old <- readTVar rc
   let new = old { repoSerial = repoSerial old + 1
                 , repoStatus = RepoStarting
                 }
   -- Note: it is safe to update the repository without flushing the
-  -- cache, as the image date has not been changed, only the serial
+  -- cache, as the image data has not been changed, only the serial
   -- and status; hence, not going through updateRepo.
   writeTVar rc $! new
-  return new
+  return $ repoSerial new
 
 waitForScan :: Ctx -> IO Repository
 waitForScan ctx = atomically $ do
@@ -1650,35 +1707,50 @@ waitForScan ctx = atomically $ do
   maybe (readTVar (ctxRepo ctx)) waitSTM scanner
 
 launchScanFileSystem :: Ctx -> IO ()
-launchScanFileSystem ctx =
-  bracketOnError
+launchScanFileSystem ctx = do
+  -- The cleanup only covers starting and registering the new scanner:
+  -- once the scanner runs, the status is its own to set, and a failure
+  -- while cancelling the previous one must not overwrite it.
+  previous <- bracketOnError
     (atomically $ newRepo rc)
-    (\new -> tryUpdateRepo ctx (new { repoStatus = RepoError "unknown"}))
-    $ \newrepo -> do
-      newscanner <- async (scanFSWrapper ctx newrepo)
-      currentSC <- atomically $ swapTVar scannerThread (Just newscanner)
-      case currentSC of
-        Nothing -> return ()
-        Just t -> do
-          logfn LevelInfo "Cancelling previous scanner"
-          cancel t
-          logfn LevelInfo "Cancel done"
-      return ()
-     where rc = ctxRepo ctx
-           logfn = ctxLogger ctx
-           scannerThread = ctxScanner ctx
+    (\serial -> updateRepoStatus ctx serial (RepoError "unknown"))
+    $ \serial -> do
+      newscanner <- async (scanFSWrapper ctx serial)
+      atomically $ swapTVar scannerThread (Just newscanner)
+  forM_ previous $ \t -> do
+    logfn LevelInfo "Cancelling previous scanner"
+    cancel t
+    logfn LevelInfo "Cancel done"
+  where rc = ctxRepo ctx
+        logfn = ctxLogger ctx
+        scannerThread = ctxScanner ctx
 
-scanFSWrapper :: Ctx -> Repository -> IO Repository
-scanFSWrapper ctx newrepo =
-  runScanAction ctx newrepo (scanFilesystem ctx newrepo)
+scanFSWrapper :: Ctx -> Int -> IO Repository
+scanFSWrapper ctx serial =
+  runScanAction ctx serial (scanFilesystem ctx serial)
 
-runScanAction :: Ctx -> Repository -> IO Repository -> IO Repository
-runScanAction ctx newrepo action =
+-- | Runs a scan, recording its failure as the repository's status,
+-- and returning that repository instead of failing.
+--
+-- The scan is known by its serial only (see 'newRepo'): on failure the
+-- status of the current repository is changed, whatever it holds by
+-- then. That is the previous data if the scan failed before publishing
+-- its own, and the new data after that; in particular, a failure while
+-- rendering or cleaning up doesn't bring back the previous data, with
+-- the pictures the scan found to be gone.
+--
+-- If a newer scan owns the repository, the status is left alone, and
+-- this fails instead. Being cancelled is not a failure: asynchronous
+-- exceptions are not handled here.
+runScanAction :: Ctx -> Int -> IO Repository -> IO Repository
+runScanAction ctx !serial action =
   action `catch` \(err :: SomeException) ->
-    tryUpdateRepo ctx newrepo {repoStatus = RepoError (sformat shown err)}
+    tryUpdateRepoStatus ctx serial $ RepoError (sformat shown err)
 
-scanFilesystem :: Ctx -> Repository -> IO Repository
-scanFilesystem ctx newrepo = do
+-- | Scans the file system, as the scan with the given serial (see
+-- 'newRepo', which also set the starting status).
+scanFilesystem :: Ctx -> Int -> IO Repository
+scanFilesystem ctx serial = do
   let logfn = ctxLogger ctx
       config = ctxConfig ctx
       scanProgress = ctxScanProgress ctx
@@ -1686,7 +1758,9 @@ scanFilesystem ctx newrepo = do
   traceMarkerIO "scanFilesystem start"
   -- Only in profiling builds:
   -- _ <- incrementUserEra 1
-  r1 <- tryUpdateRepo ctx (newrepo { repoStatus = RepoStarting })
+  -- A scan already superseded (by another one started at the same
+  -- time) stops here, before it resets the scan's progress.
+  checkScanOwnership ctx serial
   let srcdirs = map (, True)  (cfgSourceDirs config)
       outdirs = map (, False) (cfgOutputDirs config)
       alldirs = map fst $ srcdirs ++ outdirs
@@ -1700,7 +1774,7 @@ scanFilesystem ctx newrepo = do
   atomically $ writeTVar scanProgress (def { pgGoal = sum itemcounts })
   start <- getZonedTime
   let ws = WorkStart { wsStart = start }
-  r2 <- tryUpdateRepo ctx (r1 { repoStatus = RepoScanning { rsScanGoal = ws } })
+  _ <- tryUpdateRepoStatus ctx serial RepoScanning { rsScanGoal = ws }
   asyncDirs <- mapConcurrently (uncurry (scanBaseDir ctx))
                  $ srcdirs ++ outdirs
   logfn LevelInfo "Finished scanning directories"
@@ -1718,12 +1792,14 @@ scanFilesystem ctx newrepo = do
                            }
       wsrender= WorkStart { wsStart = end
                           }
-  repo_as <- tryUpdateRepo ctx r2 { repoDirs   = repo'
-                                  , repoStats  = stats
-                                  , repoExif   = rexif
-                                  , repoStatus = RepoRendering { rsScanResults = wrscan,
-                                                                 rsRenderGoal = wsrender }
-                                  }
+  repo_as <- tryUpdateRepo ctx Repository
+               { repoDirs   = repo'
+               , repoStats  = stats
+               , repoExif   = rexif
+               , repoStatus = RepoRendering { rsScanResults = wrscan,
+                                              rsRenderGoal = wsrender }
+               , repoSerial = serial
+               }
   -- Reset the rendering's progress already: writing the disk cache can
   -- take a while, during which the status page would otherwise show
   -- the previous rendering's progress (forceBuildThumbCaches resets it
@@ -1742,8 +1818,7 @@ scanFilesystem ctx newrepo = do
                               , rsRenderResults = wrrender
                               , rsCleanGoal = WorkStart { wsStart = endr }
                               }
-  repo_ar' <- evaluate $ force $ repo_as { repoStatus = wrstatus }
-  repo_ar <- tryUpdateRepo ctx repo_ar'
+  repo_ar <- tryUpdateRepoStatus ctx serial wrstatus
   logfn LevelInfo "Finished rendering, starting cleanup"
   traceMarkerIO "scanFilesystem start cleanup"
   clean_pg <- cleanupCache ctx repo_ar alldirsAsRelative
@@ -1756,8 +1831,7 @@ scanFilesystem ctx newrepo = do
                             , rsRenderResults = wrrender
                             , rsCleanResults = wrclean
                             }
-  repo_ac <- evaluate $ force $ repo_ar { repoStatus = status }
-  r4 <- tryUpdateRepo ctx repo_ac
+  r4 <- tryUpdateRepoStatus ctx serial status
   writeDiskCache config r4
   logfn LevelInfo "Finished cleaning up, all done"
   traceMarkerIO "scanFilesystem done"

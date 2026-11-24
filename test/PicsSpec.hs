@@ -1964,27 +1964,66 @@ spec = parallel $ do
             doesFileExist (bExifPath config picture) `shouldReturn` True
           _ -> expectationFailure "expected an output directory and image sizes"
     describe "scan abort" $ do
+      let errorMessage repo = case repoStatus repo of
+            RepoError msg -> return msg
+            other         -> do
+              expectationFailure $ "expected RepoError, got " ++ show other
+              return ""
+          folders = Map.keys . repoDirs
+          setFolders ctx names = atomically . modifyTVar' (ctxRepo ctx) $ \r ->
+            r { repoDirs = Map.fromList [(n, createTestPicDir n) | n <- names] }
       it "records synchronous scan failures as RepoError" $ \ctx -> do
-        repo <- getRepo ctx
-        result <- runScanAction ctx repo (throwString "scan exploded")
-        case repoStatus result of
-          RepoError msg -> msg `shouldSatisfy` ("scan exploded" `isInfixOf`)
-          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        result <- runScanAction ctx serial (throwString "scan exploded")
+        errorMessage result >>= (`shouldSatisfy` ("scan exploded" `isInfixOf`))
         repo' <- getRepo ctx
-        case repoStatus repo' of
-          RepoError msg -> msg `shouldSatisfy` ("scan exploded" `isInfixOf`)
-          other         -> expectationFailure $ "expected RepoError, got " ++ show other
+        errorMessage repo' >>= (`shouldSatisfy` ("scan exploded" `isInfixOf`))
+        repoSerial repo' `shouldBe` serial
+      it "keeps the previous data when a scan fails before publishing" $ \ctx -> do
+        setFolders ctx ["previous"]
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        result <- runScanAction ctx serial (throwString "scan exploded")
+        folders result `shouldBe` ["previous"]
+        repo' <- getRepo ctx
+        folders repo' `shouldBe` ["previous"]
+        void $ errorMessage repo'
+      it "keeps the new data when a scan fails after publishing" $ \ctx -> do
+        setFolders ctx ["previous"]
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        result <- runScanAction ctx serial $ do
+          -- As the scan does: new data, under the scan's serial.
+          setFolders ctx ["new"]
+          throwString "render exploded"
+        folders result `shouldBe` ["new"]
+        repo' <- getRepo ctx
+        folders repo' `shouldBe` ["new"]
+        errorMessage repo' >>= (`shouldSatisfy` ("render exploded" `isInfixOf`))
+        repoSerial repo' `shouldBe` serial
+      it "leaves the repository alone when a superseded scan fails" $ \ctx -> do
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        newer <- atomically $ newRepo (ctxRepo ctx)
+        newer `shouldBe` serial + 1
+        runScanAction ctx serial (throwString "scan exploded")
+          `shouldThrow` isOwnershipAbort
+        repo' <- getRepo ctx
+        repoSerial repo' `shouldBe` newer
+        repoStatus repo' `shouldSatisfy` isStarting
       it "stops scan work when the scanner thread is cancelled" $ \ctx -> do
         started <- newEmptyMVar
         block <- newEmptyMVar
         cleaned <- newIORef False
         repo <- getRepo ctx
-        scanner <- async $ runScanAction ctx repo $
+        scanner <- async $ runScanAction ctx (repoSerial repo) $
           (putMVar started () >> takeMVar block >> return repo)
           `finally` writeIORef cleaned True
         takeMVar started
         cancel scanner
         readIORef cleaned `shouldReturn` True
+        -- Being cancelled is not a failure of the scan.
+        repo' <- getRepo ctx
+        case repoStatus repo' of
+          RepoError msg -> expectationFailure $ "unexpected error: " ++ show msg
+          _             -> return ()
       it "aborts thumbnail builds after a newer scan takes ownership" $ \ctx -> do
         old <- getRepo ctx
         _ <- atomically $ newRepo (ctxRepo ctx)
