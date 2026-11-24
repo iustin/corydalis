@@ -1846,6 +1846,14 @@ scanFilesystem ctx serial = do
   -- would have otherwise.
   checkScanOwnership ctx serial
   removeDiskCache config
+  -- The rendering's progress is reset before the new status shows, as
+  -- the status page would otherwise show the previous rendering's as
+  -- this one's, until forceBuildThumbCaches resets it, with the number
+  -- of images to check. That number isn't needed here: any goal makes
+  -- the page show a check that has started, so it is given one image.
+  -- The progress is only shown while rendering, so resetting it early
+  -- is not seen.
+  atomically $ resetRenderProgress ctx 1
   repo_as <- tryUpdateRepo ctx built
   logfn LevelInfo "Finished building repo, starting rendering"
   traceMarkerIO "scanFilesystem start rendering"

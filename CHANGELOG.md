@@ -51,6 +51,9 @@
   cache, the application keeps the pictures that scan found (with the
   error on the status page, as before); it used to go back to the
   previous scan's data, bringing back the pictures removed since.
+- When a rescan started rendering the previews, the status page could
+  show, for a moment, the previous rendering's progress as the new
+  one's.
 - The copy and range regexes are now matched against the file name
   only, not against its path relative to the folder: previously, a
   picture in a sub-directory whose name the regex matched (e.g.
