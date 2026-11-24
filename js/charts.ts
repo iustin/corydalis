@@ -298,6 +298,88 @@ export function curateCharts(series: CurateSeries): Chart[] {
   ];
 }
 
+/** The colours of the charts' parts that follow the page's theme. */
+export type ChartColors = {
+  /** The text: titles, labels, ticks, legends. */
+  text: string;
+  /** The grid and zero lines of the axes. */
+  grid: string;
+  /** The background and border of the update menus' buttons. */
+  menuBg: string;
+  menuBorder: string;
+};
+
+/**
+ * Reads the chart colours from the page's theme (Bootstrap's CSS
+ * variables), so that the charts match it, light or dark.
+ */
+export function themeChartColors(
+  doc: Pick<Document, 'documentElement'> & {
+    defaultView: Pick<Window, 'getComputedStyle'> | null;
+  } = document,
+): ChartColors | undefined {
+  const style = doc.defaultView?.getComputedStyle(doc.documentElement);
+  const get = (name: string) => style?.getPropertyValue(name).trim() ?? '';
+  const text = get('--bs-body-color');
+  const emphasisRgb = get('--bs-emphasis-color-rgb');
+  if (text === '' || emphasisRgb === '') {
+    return undefined; // no Bootstrap style sheet: keep Plotly's colours
+  }
+  return {
+    text,
+    grid: `rgba(${emphasisRgb}, 0.1)`,
+    menuBg: get('--bs-tertiary-bg'),
+    menuBorder: get('--bs-border-color'),
+  };
+}
+
+/**
+ * The layout with the colours applied: a transparent background (so the
+ * page's shows through), and the given colours for the text, the axes'
+ * grids (of all its axes, and of the default x and y ones, which Plotly
+ * shows even when the layout doesn't mention them), the update menus and
+ * the mode bar.
+ */
+export function themedLayout(
+  layout: Partial<Layout>,
+  colors: ChartColors,
+): Partial<Layout> {
+  const themed: Record<string, unknown> = {
+    ...layout,
+    paper_bgcolor: 'rgba(0, 0, 0, 0)',
+    plot_bgcolor: 'rgba(0, 0, 0, 0)',
+    font: { ...layout.font, color: colors.text },
+    modebar: {
+      ...layout.modebar,
+      bgcolor: 'rgba(0, 0, 0, 0)',
+      color: colors.grid,
+      activecolor: colors.text,
+    },
+  };
+  const axes = new Set(['xaxis', 'yaxis']);
+  for (const key of Object.keys(layout)) {
+    if (/^[xy]axis\d*$/.test(key)) {
+      axes.add(key);
+    }
+  }
+  for (const key of axes) {
+    themed[key] = {
+      ...(themed[key] as object | undefined),
+      gridcolor: colors.grid,
+      zerolinecolor: colors.grid,
+    };
+  }
+  if (layout.updatemenus !== undefined) {
+    themed.updatemenus = layout.updatemenus.map((menu) => ({
+      ...menu,
+      bgcolor: colors.menuBg,
+      bordercolor: colors.menuBorder,
+      font: { ...menu.font, color: colors.text },
+    }));
+  }
+  return themed as Partial<Layout>;
+}
+
 /** A page with charts: the boot data naming its data URL, and its charts. */
 type ChartPage = {
   url: string;
@@ -315,12 +397,17 @@ export const CHART_PAGES: Record<string, ChartPage> = {
 };
 
 /**
- * Draws the charts, with the shared configuration. A chart that fails
- * to draw (by throwing, or by rejecting), or whose data is not a list
- * of traces, is logged, and doesn't stop the others. The returned
- * promise resolves once all are drawn, and never rejects.
+ * Draws the charts, with the shared configuration, and the given colours
+ * (see themedLayout), if any. A chart that fails to draw (by throwing,
+ * or by rejecting), or whose data is not a list of traces, is logged,
+ * and doesn't stop the others. The returned promise resolves once all
+ * are drawn, and never rejects.
  */
-export function drawCharts(charts: Chart[], newPlot: NewPlot): Promise<void> {
+export function drawCharts(
+  charts: Chart[],
+  newPlot: NewPlot,
+  colors?: ChartColors,
+): Promise<void> {
   const draws = charts.map(({ id, data, layout }) => {
     const logFailure = (err: unknown) => {
       console.error(`Failed to draw chart ${id}:`, err);
@@ -330,7 +417,9 @@ export function drawCharts(charts: Chart[], newPlot: NewPlot): Promise<void> {
       return Promise.resolve();
     }
     try {
-      return Promise.resolve(newPlot(id, data, layout, plotConfig)).then(
+      const shown =
+        colors === undefined ? layout : themedLayout(layout, colors);
+      return Promise.resolve(newPlot(id, data, shown, plotConfig)).then(
         () => {},
         logFailure,
       );
@@ -343,16 +432,27 @@ export function drawCharts(charts: Chart[], newPlot: NewPlot): Promise<void> {
 }
 
 /**
+ * How the charts follow the page's theme: their current colours, and a
+ * way to be told when the theme changes.
+ */
+export type ChartTheming = {
+  colors: () => ChartColors | undefined;
+  onChange: (redraw: () => void) => void;
+};
+
+/**
  * Draws the charts of the page, as named by its boot data, once their
- * data is loaded. Does nothing on pages without charts (no `data-init`).
- * Never fails: an unknown page name, failures to get the data (see
- * loadBootJSON), unexpected data, and charts failing to draw (see
- * drawCharts) are logged to the console.
+ * data is loaded, in the theme's colours, if given; then draws them
+ * again whenever the theme changes. Does nothing on pages without charts
+ * (no `data-init`). Never fails: an unknown page name, failures to get
+ * the data (see loadBootJSON), unexpected data, and charts failing to
+ * draw (see drawCharts) are logged to the console.
  */
 export function showPageCharts(
   newPlot: NewPlot,
   doc: Pick<Document, 'getElementById'> = document,
   env: RequestEnv = {},
+  theming?: ChartTheming,
 ): Promise<void> {
   const name = bootData('init', doc);
   if (name === null) {
@@ -367,7 +467,11 @@ export function showPageCharts(
     page.url,
     (series) => {
       try {
-        return drawCharts(page.charts(series), newPlot);
+        const charts = page.charts(series);
+        theming?.onChange(() => {
+          void drawCharts(charts, newPlot, theming.colors());
+        });
+        return drawCharts(charts, newPlot, theming?.colors());
       } catch (err) {
         console.error(`Unexpected data for the ${name} charts:`, err);
       }

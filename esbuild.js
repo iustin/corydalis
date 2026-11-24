@@ -39,8 +39,8 @@ async function runBuild() {
     rmSync(`${outdir}/${dir}`, { recursive: true, force: true });
   }
 
-  // Create the build contexts: one for the scripts and one for the
-  // style sheets, which have different output directories.
+  // Create the build contexts: for the scripts, the theme script, and
+  // the style sheets.
   const jsCtx = await esbuild.context({
     entryPoints: [
       'js/bundle-plot.ts',
@@ -60,6 +60,19 @@ async function runBuild() {
     logLevel: 'info', // Show rebuild info in the console
     plugins: [esbuildProblemMatcherPlugin],
   });
+  // The theme script runs as a classic (blocking) script in the pages'
+  // head, see js/theme-boot.ts, hence its own context and format.
+  const themeCtx = await esbuild.context({
+    entryPoints: { theme: 'js/theme-boot.ts' },
+    bundle: true,
+    minify: !isDev,
+    format: 'iife',
+    outdir: `${outdir}/js`,
+    target: 'es2021',
+    sourcemap: isDev,
+    logLevel: 'info',
+    plugins: [esbuildProblemMatcherPlugin],
+  });
   const cssCtx = await esbuild.context({
     entryPoints: ['css/bundle.css'],
     bundle: true,
@@ -77,7 +90,7 @@ async function runBuild() {
     logOverride: { 'css-syntax-error': 'error' },
     plugins: [esbuildProblemMatcherPlugin],
   });
-  const contexts = [jsCtx, cssCtx];
+  const contexts = [jsCtx, themeCtx, cssCtx];
   // Let all the builds finish (and print their errors), then fail if any
   // of them failed.
   const rebuildAll = async () => {

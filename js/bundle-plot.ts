@@ -19,12 +19,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // and sortable tables.
 import * as Plotly from 'plotly.js-cartesian-dist';
 import 'bootstrap';
-import { showPageCharts } from './charts';
+import { showPageCharts, themeChartColors } from './charts';
 import { whenReady } from './ready';
 import { setupSortableTables } from './tablesort';
+import { THEME_EVENT } from './theme';
 
 whenReady(() => {
-  void showPageCharts(Plotly.newPlot);
+  void showPageCharts(
+    Plotly.newPlot,
+    document,
+    {},
+    {
+      colors: () => themeChartColors(),
+      onChange: (redraw) => document.addEventListener(THEME_EVENT, redraw),
+    },
+  );
 });
 
 setupSortableTables();

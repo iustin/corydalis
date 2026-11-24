@@ -362,7 +362,7 @@ percentsBar kind counter =
       ^{pgBar pN "bg-success" "Nothing to do"}
       ^{pgBar pE "bg-danger" "Failed"}
       ^{pgBar pD "bg-info progress-bar-striped" "Done"}
-      ^{pgBar pR "bg-light text-secondary" "Left to do"}
+      ^{pgBar pR "bg-body-tertiary text-secondary" "Left to do"}
       |]
   where (pE, pN, pD, pR) = percentsDone kind counter
 
