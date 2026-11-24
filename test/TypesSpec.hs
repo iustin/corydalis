@@ -193,6 +193,12 @@ spec = parallel $ do
       evaluate (incErrors "a" (error "error") def) `shouldThrow` anyErrorCall
       evaluate (incProgress [ProgressError "a" "b", error "second"] 0 0 def)
         `shouldThrow` anyErrorCall
+    it "adds the errors it is given to the previous ones" $ do
+      -- In no particular order: none is defined for the errors.
+      let pg = incErrors "c" "old" def
+          items = sort . map peItem . pgErrors
+      items (incProgress [ProgressError "a" "new", ProgressError "b" "new"] 0 0 pg)
+        `shouldBe` ["a", "b", "c"]
     prop "arbitrary increases" $ \errs noop dones ->
       pgTotal (incProgress (map (uncurry ProgressError) errs) noop dones def)
         === (length errs + noop + dones)
