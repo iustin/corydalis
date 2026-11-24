@@ -98,6 +98,15 @@
   combining of the style sheets by the Haskell build in
   `static/combined`.
 
+### Dependencies
+
+- vector-hashtables needs the fix for
+  [#43](https://github.com/klapaucius/vector-hashtables/issues/43)
+  (`alter` losing keys), not yet released; `stack.yaml` pins it from
+  git (the fix from
+  [PR #46](https://github.com/klapaucius/vector-hashtables/pull/46)),
+  and builds without Stack need to apply that fix themselves.
+
 ## v2026.48.0 - "Security hardening"
 
 Released: _Mon, 23 Nov 2026_.
@@ -626,12 +635,6 @@ The viewer and the image grid:
 
 - The Stackage LTS is now 24.68 (GHC 9.10), from 23.22 (GHC 9.8), and
   wai-logger must be at least 2.5.1.
-- vector-hashtables needs the fix for
-  [#43](https://github.com/klapaucius/vector-hashtables/issues/43)
-  (`alter` losing keys), not yet released; `stack.yaml` pins it from
-  git (the fix from
-  [PR #46](https://github.com/klapaucius/vector-hashtables/pull/46)),
-  and builds without Stack need to apply that fix themselves.
 - `plotly` 4.3 (from 2.30), Font Awesome 7 (from 6), TypeScript 7 (the
   native Go port, from 5), `imagesloaded` 5, `infinite-scroll` 5, and
   `screenfull` 6.
