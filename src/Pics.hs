@@ -818,6 +818,8 @@ computeFolderStats :: PicDir -> Stats
 computeFolderStats dir =
   addUntrackedFiles (pdUntracked dir) (computeImagesStats (pdImages dir))
 
+data StrictPair a b = StrictPair !a !b
+
 data StrictTriple a b c = StrictTriple !a !b !c
 
 computeRepoStats :: RepoDirs -> RepoStats
@@ -1467,17 +1469,23 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
       dirpath = TS.fromString path
       parent = mkSymbolizedItem dirpath
       (known, otherFiles) = partition (isKnownMediaInode config) contents
-      (images, shadows) =
-        foldl' (\(images', shadows') f ->
+      -- A strict pair: with a lazy one, the maps would only be built
+      -- once the fold is done, from a chain of updates holding every
+      -- image still to be loaded.
+      StrictPair images shadows =
+        foldl' (\(StrictPair images' shadows') f ->
                   let (img, newss) = loadImage config tname parent isSource lcache f
-                  in (addImg config images' img, addImgs config shadows' newss)
-               ) (Map.empty, Map.empty) known
+                  in StrictPair (addImg config images' img) (addImgs config shadows' newss)
+               ) (StrictPair Map.empty Map.empty) known
       untracked = map (\ii -> mkFileFromInode parent ii def) otherFiles
+      -- The earliest date, evaluated at each step (not only down to
+      -- its Just).
       timestamp = Map.foldl' (\a img ->
-                           (min <$> a <*> imageLocalDate img) <|>
-                           a <|>
-                           imageLocalDate img
-                        ) Nothing images
+                                case (a, imageLocalDate img) of
+                                  (Just x, Just y) -> Just $! min x y
+                                  (Nothing, d)     -> d
+                                  (_, Nothing)     -> a
+                             ) Nothing images
       year = localDateToYear <$> timestamp
       exif = buildGroupExif images
       timesort = buildTimeSort images
@@ -1555,9 +1563,9 @@ loadFolder ctx name path isSource = do
 mergeShadows :: Config -> PicDir -> PicDir
 mergeShadows config picd =
   let images' =
-        Map.foldlWithKey (\imgs sname shadow ->
-                            Map.adjust (\i -> mergePictures config i shadow)
-                               sname imgs)
+        Map.foldlWithKey' (\imgs sname shadow ->
+                             Map.adjust (\i -> mergePictures config i shadow)
+                                sname imgs)
              (pdImages picd) (pdShadows picd)
   in picd { pdImages = images' }
 
@@ -1578,10 +1586,10 @@ maybeUpdateStandaloneRange config picd img = do
 resolveProcessedRanges :: Config -> PicDir -> PicDir
 resolveProcessedRanges config picd =
   let images' =
-        Map.foldl (\accimgs img ->
-                     case maybeUpdateStandaloneRange  config picd img of
-                       Nothing   -> accimgs
-                       Just img' -> Map.insert (imgName img') img' accimgs)
+        Map.foldl' (\accimgs img ->
+                      case maybeUpdateStandaloneRange  config picd img of
+                        Nothing   -> accimgs
+                        Just img' -> Map.insert (imgName img') img' accimgs)
              (pdImages picd) (pdImages picd)
   in picd { pdImages = images' }
 
@@ -1873,32 +1881,47 @@ forceBuildThumbCaches ctx repo = do
       renderProgress = ctxRenderProgress ctx
       checkProgress = ctxRenderCheckProgress ctx
       images = renderableImages repo
-      total = length images
       sizes = Set.toList (cfgAutoImageSizes config)
       imageForError i = sformat (stext % "/" % stext % " at resolution " % int)
                          (TS.toText $ imgParent i) (TS.toText . unImageName . imgName $ i)
       -- The last image is counted along with setting the rendering's
       -- goal (below), so that the check is never complete before the
       -- goal is set.
-      classifyImage (pend, n, es) (k, i) = do
+      --
+      -- The accumulator is strict, and its lists are built by
+      -- prepending evaluated elements (so they come out reversed: the
+      -- last image first, and each image's sizes last to first):
+      -- otherwise it would be a chain of unevaluated updates, as long
+      -- as the list of images.
+      classifyImage total (StrictTriple pend n es) (k, i) = do
         checkRepoOwnership ctx repo
         res <- imagePendingSizes (ctxLogger ctx) config i sizes
         when (k < total) . atomically $ modifyTVar' checkProgress incDone
-        return $ case res of
+        return $! case res of
           Left err ->
             let msg = Text.pack $ show err
-            in (pend, n, [ProgressError (imageForError i size) msg | size <- reverse sizes] ++ es)
+                failed acc size =
+                  let !e = ProgressError (imageForError i size) msg
+                  in e : acc
+            in StrictTriple pend n (foldl' failed es sizes)
           Right stale ->
-            (map (i,) (reverse stale) ++ pend, n + length sizes - length stale, es)
+            StrictTriple (foldl' (\acc size -> (i, size) : acc) pend stale)
+                         (n + length sizes - length stale)
+                         es
+  -- Counted here: not in the transactions below, and not by a status
+  -- request either.
+  total <- evaluate $ length images
   atomically $ resetRenderProgress ctx total
-  (pending, noops, errs) <- foldM classifyImage ([], 0, []) (zip [1..] images)
+  StrictTriple pending noops errs <-
+    foldM (classifyImage total) (StrictTriple [] 0 []) (zip [1..] images)
+  goal <- evaluate $ length pending + length errs
   -- The check is marked complete explicitly, not relying on its count.
   atomically $ do
-    writeTVar renderProgress Progress
+    writeTVar renderProgress $! Progress
       { pgErrors = errs
       , pgNoop = noops
       , pgDone = 0
-      , pgGoal = length pending + length errs
+      , pgGoal = goal
       }
     modifyTVar' checkProgress $ \p -> p { pgDone = pgGoal p }
   mapM_ (\(i, size) -> do
