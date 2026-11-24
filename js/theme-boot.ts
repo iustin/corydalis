@@ -18,6 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Theme entry point (see js/theme.ts): loaded as a classic, blocking
 // script in every page's head, so that the theme is set before the page
 // is shown.
-import { browserThemeEnv, setupTheme } from './theme';
+import { browserThemeEnv, setupTheme } from './theme.ts';
 
 setupTheme(browserThemeEnv(window));
