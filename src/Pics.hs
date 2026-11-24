@@ -1924,8 +1924,7 @@ forceBuildThumbCaches ctx repo = do
       -- goal is set.
       --
       -- The accumulator is strict, and its lists are built by
-      -- prepending evaluated elements (so they come out reversed: the
-      -- last image first, and each image's sizes last to first):
+      -- prepending evaluated elements (their order is not defined):
       -- otherwise it would be a chain of unevaluated updates, as long
       -- as the list of images.
       classifyImage total (StrictTriple pend n es) (k, i) = do
