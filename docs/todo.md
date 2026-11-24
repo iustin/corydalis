@@ -144,6 +144,11 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 
 - wai-logger 2.5.1 (which escapes the Apache request log fields) is an
   extra-dep in `stack.yaml`; drop it once the Stackage LTS has it.
+- vector-hashtables is pinned from git in `stack.yaml` (a fork, tag
+  `corydalis-pin-alter-fix`) for
+  [#43](https://github.com/klapaucius/vector-hashtables/issues/43)
+  (fixed by [PR #46](https://github.com/klapaucius/vector-hashtables/pull/46));
+  drop it once a fixed release is in the Stackage LTS.
 
 Workarounds for upstream bugs, to drop once fixed there:
 

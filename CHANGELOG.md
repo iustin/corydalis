@@ -66,6 +66,12 @@
   URLs. The build writes a stamp file, `.static-files.stamp`, for this,
   and the Haskell build fails if it's missing: run `make bootstrap`
   first.
+- The same name (e.g. of a camera, lens or folder) could rarely be
+  stored as two separate values that don't compare equal, after the
+  memory of unused names was reclaimed, which could split or misgroup
+  pictures. This was a bug in the `vector-hashtables` library, used for
+  interning names; Corydalis now builds with a fixed version of it (see
+  Dependencies).
 
 ### Internal changes
 
@@ -620,6 +626,12 @@ The viewer and the image grid:
 
 - The Stackage LTS is now 24.68 (GHC 9.10), from 23.22 (GHC 9.8), and
   wai-logger must be at least 2.5.1.
+- vector-hashtables needs the fix for
+  [#43](https://github.com/klapaucius/vector-hashtables/issues/43)
+  (`alter` losing keys), not yet released; `stack.yaml` pins it from
+  git (the fix from
+  [PR #46](https://github.com/klapaucius/vector-hashtables/pull/46)),
+  and builds without Stack need to apply that fix themselves.
 - `plotly` 4.3 (from 2.30), Font Awesome 7 (from 6), TypeScript 7 (the
   native Go port, from 5), `imagesloaded` 5, `infinite-scroll` 5, and
   `screenfull` 6.
