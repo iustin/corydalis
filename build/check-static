@@ -51,9 +51,9 @@ route_name() {
 }
 
 # Files that the server serves (hidden ones are skipped, see
-# Settings/StaticFiles.hs); static/corydalis/fonts is written by
-# esbuild, with only the fonts the CSS bundle uses, which it refers to
-# by relative URLs, not route names.
+# Settings/StaticFiles.hs); static/fonts is written by esbuild, with
+# only the fonts the CSS bundle uses, which it refers to by relative
+# URLs, not route names.
 while IFS= read -r file; do
   rel=${file#static/}
   name=$(route_name "$rel")
@@ -63,7 +63,7 @@ while IFS= read -r file; do
   echo "Unused static file: $file (no '$name' route in src/ or templates/)" >&2
   rc=1
 done < <(find static -type f -not -path '*/.*' \
-           -not -path 'static/corydalis/fonts/*' | sort)
+           -not -path 'static/fonts/*' | sort)
 
 if [ "$rc" -ne 0 ]; then
   echo "See \"Static files\" in docs/devel.md." >&2

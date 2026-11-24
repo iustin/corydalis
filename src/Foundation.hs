@@ -160,13 +160,13 @@ data PageStyle
 -- | The style sheet of all the pages: Bootstrap, Font Awesome and ours,
 -- bundled by esbuild (see @css/bundle.css@).
 pageCSSResources :: Widget
-pageCSSResources = addStylesheet $ StaticR corydalis_css_bundle_css
+pageCSSResources = addStylesheet $ StaticR css_bundle_css
 
 pageJSResources :: PageStyle -> Route EmbeddedStatic
-pageJSResources PageBasic = corydalis_js_bundle_basic_js
-pageJSResources PageView  = corydalis_js_viewer_js
-pageJSResources PagePlot  = corydalis_js_bundle_plot_js
-pageJSResources PageGrid  = corydalis_js_imagegrid_js
+pageJSResources PageBasic = js_bundle_basic_js
+pageJSResources PageView  = js_viewer_js
+pageJSResources PagePlot  = js_bundle_plot_js
+pageJSResources PageGrid  = js_imagegrid_js
 
 routeStyle :: Route App -> PageStyle
 routeStyle AboutR                 = PageBasic

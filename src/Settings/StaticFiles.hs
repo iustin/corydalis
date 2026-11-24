@@ -57,7 +57,7 @@ $(do
 
 -- Defines the static subsite, 'corydalisStatic', serving the files
 -- in the "static" directory, and a route name for each file (e.g.
--- @corydalis_js_viewer_js@ for @static/corydalis/js/viewer.js@).
+-- @js_viewer_js@ for @static/js/viewer.js@).
 --
 -- In production builds, the files' contents are embedded in the
 -- binary, (gzip-)compressed if useful, and their URLs include a hash of
