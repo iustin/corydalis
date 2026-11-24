@@ -541,10 +541,11 @@ incDone p@Progress { pgDone = old } =
 -- | Adds errors, skipped work and done work to a progress.
 --
 -- The errors are evaluated along with the progress, as for
--- 'incErrors'.
+-- 'incErrors'. A progress's errors have no defined order, and these
+-- are added as is cheapest: with a strict left fold, each in front.
 incProgress :: [ProgressError] -> Int -> Int -> Progress -> Progress
 incProgress e n d p@Progress{..} =
-  p { pgErrors = foldr (\x acc -> x `seq` acc `seq` (x:acc)) pgErrors e
+  p { pgErrors = foldl' (\acc !x -> x : acc) pgErrors e
     , pgNoop = pgNoop + n
     , pgDone = pgDone + d
     }
