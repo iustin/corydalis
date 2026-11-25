@@ -425,6 +425,10 @@ than one minute:
 
     ./corydalis +RTS -I63
 
+A longer idle interval delays giving back only a small part of the
+memory used by a scan: the end of a scan forces a garbage collection,
+which gives back most of it.
+
 The binaries are built with the `--disable-delayed-os-memory-return`
 runtime option, so that the memory the runtime returns to the system
 after a garbage collection is really released at once. Without it, on

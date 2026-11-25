@@ -213,6 +213,7 @@ import qualified System.IO
 import           System.Exit
 import           System.FilePath
 import           System.Log.FastLogger   (toLogStr)
+import           System.Mem              (performMajorGC)
 import qualified System.Posix.Files      (fileSize)
 import           System.Posix.Files      hiding (fileSize)
 import           System.Posix.Types
@@ -1753,9 +1754,26 @@ launchScanFileSystem ctx = do
         logfn = ctxLogger ctx
         scannerThread = ctxScanner ctx
 
+-- | Runs a scan (see 'runScanAction'), then forces a major garbage
+-- collection, so that most of the memory the scan used is released
+-- when it ends. Otherwise that waits for the next major collection:
+-- an idle one, much later with a long idle interval (e.g.
+-- @+RTS -I63@), or one triggered by allocation, which after a scan's
+-- large heap can take long even on a busy server. The runtime gives
+-- the rest back over the following major collections (see its @-Fd@
+-- option), and what it gives back is really released (see the
+-- @--disable-delayed-os-memory-return@ runtime option).
+--
+-- The collection runs when the scan finishes or fails, but not when a
+-- newer scan replaces it: being cancelled (an asynchronous exception),
+-- or failing to record its failure because a newer scan owns the
+-- repository, skips it, as the newer scan collects at its own end, and
+-- collecting would only delay it.
 scanFSWrapper :: Ctx -> Int -> IO Repository
-scanFSWrapper ctx serial =
-  runScanAction ctx serial (scanFilesystem ctx serial)
+scanFSWrapper ctx serial = do
+  repo <- runScanAction ctx serial (scanFilesystem ctx serial)
+  performMajorGC
+  return repo
 
 -- | Runs a scan, recording its failure as the repository's status,
 -- and returning that repository instead of failing.
