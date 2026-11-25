@@ -82,8 +82,8 @@ getListFoldersR = do
 
 getListImagesR :: Handler Html
 getListImagesR = do
-  (ctx, config, params, atom, search_string, pics) <- searchContext
-  images <- Map.elems . fst <$> liftIO (searchImages ctx atom pics)
+  (ctx, config, params, atom, search_string, _) <- searchContext
+  images <- Map.elems . fst <$> liftIO (searchImages ctx atom)
   let thumbsize = cfgThumbnailSize config
   defaultLayout $ do
     setHtmlTitle "Listing images"

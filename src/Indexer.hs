@@ -1738,13 +1738,10 @@ buildFolderMap :: Atom -> Repository -> RepoDirs
 buildFolderMap atom =
   filterFoldersBy (folderSearchFunction atom)
 
-searchImages :: Ctx -> Atom -> Repository -> IO SearchResults
-searchImages ctx atom pics = do
-  -- Note: the call to buildImageMap must *not* be evaluated,
-  -- otherwise we don't gain anything from caching it.
-  -- TODO: remove repository argument, read from ctx? [cleanup]
-  let lazyimages = buildImageMap atom pics
-  getSearchResults ctx lazyimages (atomToParams atom)
+-- | Searches the current repository (see 'getSearchResults').
+searchImages :: Ctx -> Atom -> IO SearchResults
+searchImages ctx atom =
+  getSearchResults ctx (buildImageMap atom) (atomToParams atom)
 
 -- | Computs the right atoms for an input quick search element.
 --
