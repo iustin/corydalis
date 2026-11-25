@@ -166,8 +166,13 @@ spec = parallel $ do
       it "expands range jpegs into shadows" $ \config -> do
         let (img, shadows) = runLoad (withProdNameRegexes config) False (mkInode "a_1-3.jpg")
         imgName img `shouldBe` "a_1-3"
-        imgRange img `shouldBe` Just ("a_1", "a_3")
+        imgRange img `shouldBe` Just (ImageRange "a_" 1 3 1)
         map imgName shadows `shouldBe` ["a_1", "a_2", "a_3"]
+      it "gives a movie named like a range no range" $ \config -> do
+        let (img, shadows) = runLoad config False (mkInode "a_1-3.mov")
+        imgName img `shouldBe` "a_1-3"
+        imgRange img `shouldBe` Nothing
+        map imgName shadows `shouldBe` []
       it "drops copy suffixes from the image name" $ \config -> do
         let (img, _) = runLoad config True (mkInode "foo-1.nef")
         imgName img `shouldBe` "foo"
@@ -325,9 +330,10 @@ spec = parallel $ do
             merged = mergeShadows config dir
         imgStatus (pdImages merged Map.! "a") `shouldBe` ImageProcessed
       it "promotes a standalone range jpeg when the begin image has a raw" $ \config -> do
-        let root = simpleRawImage config
-            ranged = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"]
-                             Nothing [] [] (Just ("a", "a_3")) MediaImage def
+        let root = mkImage config "a_1" "test" (Just $ simpleFile "a_1.nef") Nothing []
+                           Nothing [] [] Nothing MediaImage def
+            ranged = mkImage config "a_1-3" "test" Nothing Nothing [simpleFile "a_1-3.jpg"]
+                             Nothing [] [] (Just (ImageRange "a_" 1 3 1)) MediaImage def
             dir = picDirWith "test" [root, ranged]
         imgStatus ranged `shouldBe` ImageStandalone
         case maybeUpdateStandaloneRange config dir ranged of
@@ -336,17 +342,18 @@ spec = parallel $ do
             imgStatus img `shouldBe` ImageProcessed
             isJust (imgRawPath img) `shouldBe` True
       it "does nothing when the range begin has no raw" $ \config -> do
-        let begin = mkImage config "a" "test" Nothing Nothing [simpleFile "a.jpg"] Nothing [] [] Nothing MediaImage def
-            ranged = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"]
-                             Nothing [] [] (Just ("a", "a_3")) MediaImage def
+        let begin = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"] Nothing [] [] Nothing MediaImage def
+            ranged = mkImage config "a_1-3" "test" Nothing Nothing [simpleFile "a_1-3.jpg"]
+                             Nothing [] [] (Just (ImageRange "a_" 1 3 1)) MediaImage def
             dir = picDirWith "test" [begin, ranged]
         maybeUpdateStandaloneRange config dir ranged `shouldBe` Nothing
       it "rewrites standalone range images in the folder" $ \config -> do
-        let root = simpleRawImage config
-            ranged = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"]
-                             Nothing [] [] (Just ("a", "a_3")) MediaImage def
+        let root = mkImage config "a_1" "test" (Just $ simpleFile "a_1.nef") Nothing []
+                           Nothing [] [] Nothing MediaImage def
+            ranged = mkImage config "a_1-3" "test" Nothing Nothing [simpleFile "a_1-3.jpg"]
+                             Nothing [] [] (Just (ImageRange "a_" 1 3 1)) MediaImage def
             dir = resolveProcessedRanges config (picDirWith "test" [root, ranged])
-        imgStatus (pdImages dir Map.! "a_1") `shouldBe` ImageProcessed
+        imgStatus (pdImages dir Map.! "a_1-3") `shouldBe` ImageProcessed
 
   withContext $ do
     describe "addDirToRepo event merge" $ do

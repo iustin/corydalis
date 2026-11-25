@@ -139,6 +139,7 @@ mergePictures c x y =
                , imgMovs        = movs
                , imgUntracked   = untrk
                , imgType        = ityp
+               , imgRange       = imgRange x <|> imgRange y
                , imgStatus      = status
                , imgExif        = exif
                }
@@ -251,7 +252,7 @@ loadImage config tname parent isSource lcache ii =
       file_name = inodeFullName ii
       file_text = Text.pack file_name
       (base_full, ext) = splitPathExt file_name
-      base_name = dropCopySuffix config base_full
+      (base_name, name_range) = parseImageName config base_full
       base_name_text = Text.pack base_name
       exif = case file_text `Map.lookup` lcache of
                Nothing         -> ewarn "Internal error: exif not read"
@@ -275,15 +276,15 @@ loadImage config tname parent isSource lcache ii =
                 else Nothing
       jpeg_file = [file_obj | is_jpeg && not isSource]
       p_mov = [file_obj | is_mov && not isSource]
-      snames = expandRangeFile config base_name
-      range = case fromNullable snames of
-                Nothing -> Nothing
-                Just s  -> Just (ImageName . TS.fromText . head $ s, ImageName . TS.fromText . last $ s)
+      -- A movie is never a composite image (for now): its name is
+      -- read as for the other files, but it has no range.
+      range = if is_mov then Nothing else name_range
+      snames = maybe [] rangeNames range
       flags = Flags {
         flagsSoftMaster = isSoftMaster
         }
       simgs = map (\expname ->
-                     mkImage config (ImageName  (TS.fromText expname)) tname
+                     mkImage config expname tname
                              Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
                   ) snames
       onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
@@ -360,7 +361,7 @@ mergeShadows config picd =
 maybeUpdateStandaloneRange :: Config -> PicDir -> Image -> Maybe Image
 maybeUpdateStandaloneRange config picd img = do
   let iname = imgName img
-  (begin, _) <- imgRange img
+  begin <- headMay . rangeNames =<< imgRange img
   _ <- if imgStatus img == ImageStandalone
          then Just ()
          else Nothing
