@@ -238,7 +238,10 @@ import           Compat.Orphans          ()
 import           Exif
 import           Import.NoFoundation     hiding (fileName, fileSize)
 import           Utils.Tools
-import           Utils.Storage           (isCanonicalStoragePath)
+import           Utils.Storage           (ResolvedStorageDirs,
+                                          isCanonicalStoragePath,
+                                          isCanonicalStoragePathIn,
+                                          resolveStorageDirs)
 import           Stats                   (CameraInfo (..), DateRange,
                                           Occurrence (..), Trends,
                                           mergeMinMaxPair, ocFromSize)
@@ -1986,9 +1989,9 @@ forceBuildThumbCaches ctx repo = do
       -- prepending evaluated elements (their order is not defined):
       -- otherwise it would be a chain of unevaluated updates, as long
       -- as the list of images.
-      classifyImage total (StrictTriple pend n es) (k, i) = do
+      classifyImage storageDirs total (StrictTriple pend n es) (k, i) = do
         checkRepoOwnership ctx repo
-        res <- imagePendingSizes (ctxLogger ctx) config i sizes
+        res <- imagePendingSizes (ctxLogger ctx) config storageDirs i sizes
         when (k < total) . atomically $ modifyTVar' checkProgress incDone
         return $! case res of
           Left err ->
@@ -2005,8 +2008,11 @@ forceBuildThumbCaches ctx repo = do
   -- request either.
   total <- evaluate $ length images
   atomically $ resetRenderProgress ctx total
+  -- For this check only: the builds below, as the requests, check the
+  -- files with the directories resolved each time.
+  storageDirs <- resolveStorageDirs (ctxLogger ctx) config
   StrictTriple pending noops errs <-
-    foldM (classifyImage total) (StrictTriple [] 0 []) (zip [1..] images)
+    foldM (classifyImage storageDirs total) (StrictTriple [] 0 []) (zip [1..] images)
   goal <- evaluate $ length pending + length errs
   -- The check is marked complete explicitly, not relying on its count.
   atomically $ do
@@ -2251,10 +2257,14 @@ scaledCacheNeedsBuild config origPath mtime size =
 -- missing or stale extracted file means all the sizes need building,
 -- and the extraction is left to the build. Otherwise, each size needs
 -- building if its preview is missing, or older than the viewable file.
-imagePendingSizes :: LogFn -> Config -> Image -> [Int] -> IO (Either ImageError [Int])
-imagePendingSizes logfn config img sizes = try $ do
+--
+-- The configured directories are given resolved (see
+-- 'resolveStorageDirs'), as this checks many images in a row.
+imagePendingSizes :: LogFn -> Config -> ResolvedStorageDirs -> Image -> [Int]
+                  -> IO (Either ImageError [Int])
+imagePendingSizes logfn config storageDirs img sizes = try $ do
   (f, kind) <- maybe (throwIO ImageNotViewable) return $ imageViewSource config img
-  ensureStorageFile logfn config f
+  ensureStorageFileWith (isCanonicalStoragePathIn storageDirs config) logfn f
   let path = fileFullPath f
       staleSizes mtime =
         filterM (scaledCacheNeedsBuild config path mtime . ImageSize) sizes
@@ -2789,9 +2799,16 @@ bestMovie img =
 -- file is then either used normally, or skipped and listed as a scan
 -- error); the exact reason is logged.
 ensureStorageFile :: LogFn -> Config -> File -> IO ()
-ensureStorageFile logfn config f = do
+ensureStorageFile logfn config =
+  ensureStorageFileWith (isCanonicalStoragePath config) logfn
+
+-- | Checks a file as 'ensureStorageFile' does, but with the given check
+-- of its path (e.g. one with the configured directories resolved
+-- beforehand, see 'isCanonicalStoragePathIn').
+ensureStorageFileWith :: (FilePath -> IO Bool) -> LogFn -> File -> IO ()
+ensureStorageFileWith isCanonical logfn f = do
   let path = fileFullPath f
-  ok <- isCanonicalStoragePath config path
+  ok <- isCanonical path
   unless ok $ do
     logfn LevelWarn $ "File " <> toLogStr path <> " has changed since " <>
       "the last scan: it is no longer within the picture folders, or its " <>

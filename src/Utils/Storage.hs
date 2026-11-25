@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
@@ -26,6 +27,9 @@ module Utils.Storage ( StorageKind(..)
                      , isWithinDir
                      , storageLocation
                      , isCanonicalStoragePath
+                     , ResolvedStorageDirs
+                     , resolveStorageDirs
+                     , isCanonicalStoragePathIn
                      , storageKindName
                      , relativeStoragePath
                      , UnsafeDir(..)
@@ -34,7 +38,9 @@ module Utils.Storage ( StorageKind(..)
                      ) where
 
 import           Data.Either         (fromRight)
+import qualified Data.Map.Strict     as Map
 import           System.Directory    (canonicalizePath)
+import           System.Log.FastLogger (toLogStr)
 import           System.FilePath     (makeRelative, normalise,
                                       splitDirectories, takeFileName)
 
@@ -101,7 +107,51 @@ storageLocation config fpath =
 -- The configured directories themselves can be (or be under) symbolic
 -- links. Errors (e.g. permission denied) result in a failed check.
 isCanonicalStoragePath :: Config -> FilePath -> IO Bool
-isCanonicalStoragePath config fpath =
+isCanonicalStoragePath config =
+  checkCanonicalStoragePath config (fmap Just . canonicalizePath)
+
+-- | The configured picture directories, resolved (see
+-- 'resolveStorageDirs'), for checking many paths in one pass.
+--
+-- Each directory maps to its resolved path, or to nothing if resolving
+-- it failed.
+newtype ResolvedStorageDirs = ResolvedStorageDirs (Map FilePath (Maybe FilePath))
+
+-- | Resolves the configured picture directories, for checking many
+-- paths (see 'isCanonicalStoragePathIn'), e.g. all the pictures, after
+-- a scan.
+--
+-- The result must only be used for one such pass, not kept: it doesn't
+-- see later changes of the configured directories (e.g. one of them
+-- replaced by a symbolic link to elsewhere). A directory which can't be
+-- resolved (e.g. permission denied) fails the checks of all its paths;
+-- the reason is logged here, once, as the failed checks can't tell it.
+resolveStorageDirs :: LogFn -> Config -> IO ResolvedStorageDirs
+resolveStorageDirs logfn config =
+  ResolvedStorageDirs . Map.fromList <$>
+    mapM resolve (cfgSourceDirs config ++ cfgOutputDirs config)
+  where
+    resolve dir = tryIO (canonicalizePath dir) >>= \case
+      Right cdir -> return (dir, Just cdir)
+      Left err -> do
+        logfn LevelError $ "Cannot resolve the picture directory " <>
+          toLogStr dir <> ": " <> toLogStr (show err)
+        return (dir, Nothing)
+
+-- | Checks a path as 'isCanonicalStoragePath' does, but with the
+-- configured directories resolved beforehand (see
+-- 'resolveStorageDirs'), so that checking many paths resolves each
+-- directory only once. The path itself is still resolved.
+isCanonicalStoragePathIn :: ResolvedStorageDirs -> Config -> FilePath -> IO Bool
+isCanonicalStoragePathIn (ResolvedStorageDirs dirs) config =
+  checkCanonicalStoragePath config (return . join . (`Map.lookup` dirs))
+
+-- | Checks a path as 'isCanonicalStoragePath' describes, resolving its
+-- configured directory with the given function (nothing failing the
+-- check).
+checkCanonicalStoragePath :: Config -> (FilePath -> IO (Maybe FilePath))
+                          -> FilePath -> IO Bool
+checkCanonicalStoragePath config resolveDir fpath =
   case storageLocation config fpath of
     Nothing -> return False
     -- Links are allowed only in the configured directory, so resolve
@@ -110,9 +160,12 @@ isCanonicalStoragePath config fpath =
     -- a "..").
     Just (_, dir, rel) -> do
       result <- tryIO $ do
-        cdir <- canonicalizePath dir
-        cpath <- canonicalizePath fpath
-        return $ pathComponents cpath == pathComponents (cdir </> rel)
+        mcdir <- resolveDir dir
+        case mcdir of
+          Nothing -> return False
+          Just cdir -> do
+            cpath <- canonicalizePath fpath
+            return $ pathComponents cpath == pathComponents (cdir </> rel)
       return $ fromRight False result
 
 -- | A directory which must not hold private files, and why.

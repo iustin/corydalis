@@ -101,36 +101,52 @@ spec = do
       let config' = withDirs ["/raw"] ["/jpeg"] config
       relativeStoragePath config' "/srv/other/a.jpg" `shouldBe` "a.jpg"
 
-  describe "isCanonicalStoragePath" $ withConfig $ do
-    it "accepts a regular file" $ \config -> do
-      let path = rawDir config </> "2020" </> "trip" </> "a.nef"
-      createFile path
-      isCanonicalStoragePath config path `shouldReturn` True
-    it "accepts a missing file" $ \config ->
-      isCanonicalStoragePath config (rawDir config </> "missing.nef")
-        `shouldReturn` True
-    it "rejects a file outside the configured directories" $ \config -> do
-      let path = cfgCacheDir config </> "a.nef"
-      createFile path
-      isCanonicalStoragePath config path `shouldReturn` False
-    it "rejects a symbolic link" $ \config -> do
-      let target = rawDir config </> "a.nef"
-          path = rawDir config </> "b.nef"
-      createFile target
-      createSymbolicLink target path
-      isCanonicalStoragePath config path `shouldReturn` False
-    it "rejects a file under a symbolic link to a directory" $ \config -> do
-      let dir = rawDir config </> "2020"
-      createFile (dir </> "trip" </> "a.nef")
-      createSymbolicLink (dir </> "trip") (dir </> "link")
-      isCanonicalStoragePath config (dir </> "link" </> "a.nef")
-        `shouldReturn` False
-    it "accepts a configured directory which is a symbolic link" $ \config -> do
+  forM_ [ ("isCanonicalStoragePath", isCanonicalStoragePath)
+        , ("isCanonicalStoragePathIn", \config path -> do
+              dirs <- resolveStorageDirs (\_ _ -> return ()) config
+              isCanonicalStoragePathIn dirs config path)
+        ] $ \(name, check) ->
+    describe name $ withConfig $ do
+      it "accepts a regular file" $ \config -> do
+        let path = rawDir config </> "2020" </> "trip" </> "a.nef"
+        createFile path
+        check config path `shouldReturn` True
+      it "accepts a missing file" $ \config ->
+        check config (rawDir config </> "missing.nef")
+          `shouldReturn` True
+      it "rejects a file outside the configured directories" $ \config -> do
+        let path = cfgCacheDir config </> "a.nef"
+        createFile path
+        check config path `shouldReturn` False
+      it "rejects a symbolic link" $ \config -> do
+        let target = rawDir config </> "a.nef"
+            path = rawDir config </> "b.nef"
+        createFile target
+        createSymbolicLink target path
+        check config path `shouldReturn` False
+      it "rejects a file under a symbolic link to a directory" $ \config -> do
+        let dir = rawDir config </> "2020"
+        createFile (dir </> "trip" </> "a.nef")
+        createSymbolicLink (dir </> "trip") (dir </> "link")
+        check config (dir </> "link" </> "a.nef")
+          `shouldReturn` False
+      it "accepts a configured directory which is a symbolic link" $ \config -> do
+        let rawLink = takeDirectory (rawDir config) </> "rawlink"
+            config' = withDirs [rawLink] [] config
+        createFile (rawDir config </> "a.nef")
+        createSymbolicLink (rawDir config) rawLink
+        check config' (rawLink </> "a.nef") `shouldReturn` True
+
+  describe "isCanonicalStoragePathIn" $ withConfig $
+    it "rejects a path whose directory wasn't resolved" $ \config -> do
       let rawLink = takeDirectory (rawDir config) </> "rawlink"
           config' = withDirs [rawLink] [] config
       createFile (rawDir config </> "a.nef")
       createSymbolicLink (rawDir config) rawLink
-      isCanonicalStoragePath config' (rawLink </> "a.nef") `shouldReturn` True
+      -- Resolved for the original directories only.
+      dirs <- resolveStorageDirs (\_ _ -> return ()) config
+      isCanonicalStoragePathIn dirs config' (rawLink </> "a.nef")
+        `shouldReturn` False
 
   describe "privateDirsInStorage" $ do
     let pictures = map (PictureDir,)
