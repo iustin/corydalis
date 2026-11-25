@@ -76,7 +76,8 @@ cameraCounterWidth :: Int
 cameraCounterWidth = 4
 
 -- | Reads the range in a name, if it has one that the numbers allow:
--- the last number not below the first, or a camera counter that
+-- the last number not below the first, and with at least as many
+-- digits (as names are padded), or a camera counter that
 -- wrapped (both numbers of 'cameraCounterWidth' digits, and the last
 -- below the first, but not zero); and at most 'cfgMaxRangeSize' names
 -- in it. The limit keeps names that only look like ranges, such as
@@ -99,7 +100,9 @@ readRange cfg path =
              wrapped = Text.length begin == cameraCounterWidth &&
                        Text.length end == cameraCounterWidth &&
                        last' >= 1
-         guard $ last' >= first' || wrapped
+         -- With padded names, a last number shorter than the first
+         -- is a copy suffix (dsc_0001-2), not the end of a range.
+         guard $ (last' >= first' && Text.length end >= Text.length begin) || wrapped
          guard $ rangeSize range <= toInteger (cfgMaxRangeSize cfg)
          return range
        _ -> Nothing

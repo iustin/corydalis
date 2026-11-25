@@ -29,10 +29,12 @@ The name of the file, without its extension, is matched against the
 last number; with the sample settings, `dsc_0101-0105` has the root
 `dsc_`, and the numbers 0101 and 0105.
 
-- The name is a range when the last number is not below the first.
-  The names it covers are padded to the width of the first number:
-  `d_01-03` covers `d_01`, `d_02` and `d_03`, while `d_1-03` covers
-  `d_1`, `d_2` and `d_3`.
+- The name is a range when the last number is not below the first,
+  and has at least as many digits: `dsc_0001-2` is not a range, as
+  camera names are padded, so the `-2` is a copy suffix. The names a
+  range covers are padded to the width of the first number: `d_01-03`
+  covers `d_01`, `d_02` and `d_03`, while `d_1-03` covers `d_1`, `d_2`
+  and `d_3`.
 - A camera counter that wrapped is a range too: when both numbers have
   exactly four digits, as camera file numbers do (0001 to 9999), and
   the last is below the first, the range runs up to 9999 and continues
