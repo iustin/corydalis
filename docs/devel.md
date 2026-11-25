@@ -145,6 +145,50 @@ asking to run `make bootstrap`. Note that `manifest.json` is copied,
 so after it changes (e.g. after a `git pull` or a branch switch), run
 `npm run build` (`npm run watch` copies it on each change).
 
+## The repository cache's format version
+
+The repository cache (`repo-cache` in the cache directory) holds the
+configuration and the repository, encoded with `store`, behind a format
+version: a hash of the shape of the cached types, computed at compile
+time by `Data.Store.Version` from their `Data` instances. The shape is
+the names of the types (with their modules), constructors and fields,
+and the types of the fields. A cache with another version, or from
+before versions, fails to decode, and the application scans instead.
+
+The expected hash is pinned in `repoCacheVersion` (`src/Repository.hs`).
+After a change to the shape of any type reachable from what the cache
+holds (those in `Repository`, and the ones they use from `Types`,
+`Exif`, `Stats` and `AtomTypes`), even only a renamed field or a type
+moved to another module, the build fails. Check that the change is the
+intended one, and copy the new hash into `repoCacheVersion`: in the
+error, the new hash is the one called "expected", the pinned one is
+called "specified". The build writes the new shape to
+`dist/store-versioned/<hash>` (or under `.stack-work` if the `STACK_EXE`
+environment variable is set when compiling, which `stack build` doesn't
+do). `make clean` removes it, and `make dist` and `make release` don't
+leave it next to the binaries. If the same directory built the previous
+version, its shape is there too, and the error shows the `diff` command
+to compare them.
+
+A new type in the cache needs a `Data` instance: a `deriving Data` for
+most, and an orphan instance for a library type without one (as for
+`COff`). A type whose `Data` instance has no representation (`NoRep`)
+fails the build, unless it is listed in `vcIgnore`.
+
+The hash covers the shape, not the encodings, so a change to an
+encoding that keeps the shape isn't noticed by itself. That is the case
+for the hand-written `Store` instances: those of `Regex` and
+`SymbolizedItem` (whose `Data` instances are hand-written too, so their
+constructor's name can be changed), and that of `ShortText` in
+`Compat.Orphans`. It is also the case for a library that changes how it
+encodes a type whose name stays the same. For these, rename the
+constructor of `CacheRevision` (in `Repository`) to the next number:
+it is written in no byte of the cache, but it is part of the shape.
+
+The names of library types are part of the shape too, so a resolver
+upgrade can change the hash with no change to the code; update it then
+as well.
+
 ## Middlewares: where headers and checks go
 
 Requests go through two layers of middleware, which see different
@@ -190,6 +234,8 @@ the `corydalis` binary, so they don't need to be copied; you need the
 ### Haskell code
 
 - bump stack version in `stack.yaml`, run `make devel`, fix issues
+  (this includes the repository cache's format version, see "The
+  repository cache's format version")
 - recommend to commit minimal diff to fix building with newer version, and run
   proper cleanup afterwards.
 

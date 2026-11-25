@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -25,7 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE ViewPatterns        #-}
 
 -- | The repository of pictures: the types it is made of (files,
--- images, folders, statistics), and the pure functions on them.
+-- images, folders, statistics), and the pure functions on them. It
+-- also defines what the repository cache holds ('CachedRepo'), and
+-- pins its format version ('repoCacheVersion'; see
+-- "Repository.Encoding").
 module Repository
   ( MimeType
   , File(..)
@@ -94,15 +98,20 @@ module Repository
   , imgProblems
   , pdProblems
   , repoProblems
+  , CacheRevision(..)
+  , CachedRepo
+  , repoCacheVersion
   ) where
 
 import           Control.Applicative
 import           Control.DeepSeq
+import           Data.Data               (Data)
 import qualified Data.Foldable
 import qualified Data.Map.Strict         as Map
 import           Data.Semigroup
 import qualified Data.Set                as Set
 import           Data.Store              (Store)
+import           Data.Store.Version      (VersionConfig, hashedVersionConfig)
 import           Data.Char               (isAlphaNum, isAscii)
 import qualified Data.Text               as Text
 import qualified Data.Text.Short         as TS
@@ -131,7 +140,7 @@ data File = File
   , fileSize   :: !FileOffset
   , fileParent :: !SymbolizedItem
   , fileExif   :: !Exif
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, Data)
 
 instance Store File
 
@@ -185,7 +194,7 @@ isSafeMediaType t =
 {-# ANN Flags ("HLint: ignore Use newtype instead of data"::String) #-}
 data Flags = Flags
   { flagsSoftMaster :: !Bool
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, Data)
 
 instance Store Flags
 
@@ -207,7 +216,7 @@ emptyFlags = Flags {
 data MediaType = MediaUnknown
                | MediaImage
                | MediaMovie
-               deriving (Show, Eq, Ord, Generic)
+               deriving (Show, Eq, Ord, Generic, Data)
 
 instance Store MediaType
 
@@ -228,7 +237,7 @@ data Image = Image
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
     , imgFlags       :: !Flags
-    } deriving (Show, Eq, Generic)
+    } deriving (Show, Eq, Generic, Data)
 
 instance Store Image
 
@@ -361,7 +370,7 @@ data PicDir = PicDir
   , pdExif      :: !GroupExif
   , pdStats     :: !Stats
   , pdEvent     :: !(Maybe Event)
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Data)
 
 instance Store PicDir
 
@@ -405,7 +414,7 @@ data RepoStatus = RepoEmpty    -- ^ Only to be used at application
                   , rsCleanResults  :: !WorkResults
                   }
                 | RepoError !Text
-  deriving (Show, Generic)
+  deriving (Show, Generic, Data)
 
 instance Store RepoStatus
 
@@ -427,7 +436,7 @@ data Repository = Repository
   , repoExif   :: !GroupExif
   , repoStatus :: !RepoStatus
   , repoSerial :: !Int
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Data)
 
 instance Store Repository
 
@@ -477,7 +486,7 @@ data Stats = Stats
   , sByLens         :: !(Map SymbolizedItem (Occurrence LensInfo))
   , sPeople         :: !(Set SymbolizedItem)
   , sDateRange      :: !(Maybe DateRange)
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Data)
 
 instance Store Stats
 
@@ -491,7 +500,7 @@ data RepoStats = RepoStats
   { rsPicStats   :: !Stats
   , rsFCStats    :: !FolderClassStats
   , rsEventStats :: !EventKindStats
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Data)
 
 instance Store RepoStats
 
@@ -820,3 +829,33 @@ pdProblems =
 repoProblems :: Repository -> NameStats ShortText
 repoProblems =
   Map.unionsWith (+) . map pdProblems . Map.elems . repoDirs
+
+-- | A revision marker for the repository cache. 'Store' writes nothing
+-- for it, but the name of its constructor is part of the shape that
+-- 'repoCacheVersion' hashes. Rename the constructor (to the next
+-- number) when an encoding changes in a way the shape doesn't show,
+-- so that older caches are ignored: a change to a hand-written 'Store'
+-- instance (that of 'ShortText' in "Compat.Orphans", or those of
+-- 'Regex' and 'SymbolizedItem'), or to a library's encoding of a type
+-- whose name stays the same.
+data CacheRevision = CacheRevision1
+  deriving (Show, Eq, Generic, Data)
+
+instance Store CacheRevision
+
+-- | What the repository cache holds: the revision marker, the
+-- configuration the repository was built with, and the repository.
+type CachedRepo = (CacheRevision, Config, Repository)
+
+-- | The expected format version of the repository cache, which
+-- "Repository.Encoding" uses. The version written to the cache is a
+-- hash of the shape of 'CachedRepo' (the names of its types,
+-- constructors and fields, and the types of the fields), computed when
+-- compiling; the hash here is only checked against it, and the build
+-- fails when they differ. Then check that the change is the intended
+-- one, and copy the computed hash here: in the build error, it is the
+-- one called \"expected\", the one called \"specified\" being this one.
+-- It is defined here, not in "Repository.Encoding", because a value
+-- used at compile time can't come from the module that uses it.
+repoCacheVersion :: VersionConfig CachedRepo
+repoCacheVersion = hashedVersionConfig "YVU-vHGq7A9KetTAELp64BzOibo="

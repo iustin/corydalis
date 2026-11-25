@@ -17,10 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE NoImplicitPrelude  #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE ViewPatterns       #-}
 
 -- | Base atom value types shared between search indexing and repository
 -- statistics.
@@ -54,6 +55,7 @@ module AtomTypes ( SeasonOp(..)
                  ) where
 
 import           Control.DeepSeq
+import           Data.Data               (Data)
 import           Data.Store              (Store)
 import qualified Data.Text               as Text
 import qualified Data.Text.Read          as Text
@@ -135,7 +137,7 @@ data EventKindOp
   | EKGrandVacation
   | EKWorkTrip
   | EKNoEvent
-  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
+  deriving (Show, Eq, Ord, Enum, Bounded, Generic, Data)
 
 instance Store EventKindOp
 

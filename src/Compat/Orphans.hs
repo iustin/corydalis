@@ -18,7 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 
 module Compat.Orphans
@@ -27,6 +29,7 @@ where
 import           ClassyPrelude.Yesod                 (PathPiece (..),
                                                       PersistValue (..), Text)
 import           Control.DeepSeq
+import           Data.Data                           (Data)
 import           Data.Functor.Contravariant
 import           Data.Store
 import           Data.Text.Short
@@ -39,6 +42,11 @@ import           Text.Blaze                          (ToMarkup (toMarkup))
 instance NFData COff where
   rnf (COff x) = rnf x
 
+-- | Needed by the repository cache's format version, which derives
+-- the version from the 'Data' instances of the cached types (sizes
+-- are a 'FileOffset'). To remove if base gets one.
+deriving instance Data COff
+
 instance PersistField ShortText where
   toPersistValue = PersistText . toText
   fromPersistValue (PersistText t) = Right $ fromText t
@@ -47,6 +55,9 @@ instance PersistField ShortText where
 instance PersistFieldSql ShortText where
   sqlType _ = SqlString
 
+-- | Encodes the text. The repository cache's format version doesn't
+-- see this encoding, only the name of the type: if it changes, rename
+-- 'Repository.CacheRevision'.
 instance Store ShortText where
   size = contramap toText (size :: Size Text)
   poke = poke . toText

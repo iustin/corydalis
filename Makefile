@@ -76,12 +76,14 @@ ts-watch:
 dist: check-static
 	@mkdir -p dist/
 	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG)
+	rm -rf dist/store-versioned
 
 # An entire clean build and install of production binaries in dist/.
 release: clean lint doc regen-git-version bootstrap check-static
 	rm -rf .stack-release
 	stack --work-dir .stack-release build --pedantic $(RELEASE_FLAG) $(FLAGS)
 	stack --work-dir .stack-release install --local-bin-path dist/ $(RELEASE_FLAG) $(FLAGS)
+	rm -rf dist/store-versioned
 
 .PHONY: demo-release
 demo-release:

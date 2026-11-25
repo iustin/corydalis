@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -35,6 +36,7 @@ module Stats ( DateRange
 )  where
 
 import           Control.DeepSeq
+import           Data.Data           (Data)
 import qualified Data.Map.Strict     as Map
 import           Data.Semigroup
 import           Data.Store          (Store)
@@ -89,7 +91,7 @@ data Occurrence a = Occurrence
   , ocData      :: !a
   , ocTrends    :: !Trends
   , ocDateRange :: !(Maybe DateRange)
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, Data)
 
 instance (Store a) => Store (Occurrence a)
 
@@ -126,7 +128,7 @@ ocFromSize size d tk dr =
 data CameraInfo = CameraInfo
   { ciName         :: !SymbolizedItem
   , ciShutterCount :: !(Maybe (Integer, Integer))
-  } deriving (Eq, Show, Ord, Generic)
+  } deriving (Eq, Show, Ord, Generic, Data)
 
 instance Store CameraInfo
 
