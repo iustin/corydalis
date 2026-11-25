@@ -32,7 +32,7 @@ import           TestImport
 -- | A repository with one folder and one image, and its configuration.
 sampleRepository :: Config -> (Config, Repository)
 sampleRepository config =
-  let dirs = addImageToRepo config Map.empty (simpleRawImage config)
+  let dirs = addImageToRepo Map.empty (simpleRawImage config)
   in (config, startupRepository { repoDirs = dirs, repoSerial = 5 })
 
 -- | Decodes a repository cache, keeping only whether it worked, and

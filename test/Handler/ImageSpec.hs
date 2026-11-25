@@ -55,21 +55,32 @@ spec = parallel $ withApp $ do
     login
     get $ ImageR "2020-01-02-pano" "d_01-03"
     statusIs 200
-    bodyContains "Composite image of"
-    htmlAnyContain "a" "d_01"
-    htmlAnyContain "a" "d_02"
+    htmlCount "#composite-of a" 2
+    htmlAnyContain "#composite-of a" "images/d_01"
+    htmlAnyContain "#composite-of a" "images/d_02"
     -- d_03 doesn't exist: named, not linked.
-    htmlNoneContain "a" "d_03"
-    htmlAnyContain "span.text-muted" "d_03"
+    htmlNoneContain "#composite-of a" "d_03"
+    htmlAnyContain "#composite-of span.text-muted" "d_03"
+    htmlCount "#component-of" 0
     get $ ImageR "2020-01-02-pano" "d_02"
     statusIs 200
-    bodyContains "Component of"
-    htmlAnyContain "a" "d_01-03"
+    htmlCount "#component-of a" 1
+    htmlAnyContain "#component-of a" "images/d_01-03"
+    htmlCount "#composite-of" 0
   it "lists only the first names of a long range" $ do
     _ <- addScannedFolder "2020-01-03-stack" ["s_01-15.jpg"]
     login
     get $ ImageR "2020-01-03-stack" "s_01-15"
     statusIs 200
-    htmlAnyContain "span.text-muted" "s_10"
-    htmlNoneContain "span.text-muted" "s_11"
-    bodyContains "and 5 more"
+    htmlCount "#composite-of span.text-muted" 10
+    htmlAnyContain "#composite-of span.text-muted" "s_10"
+    htmlNoneContain "#composite-of span.text-muted" "s_11"
+    htmlAnyContain "#composite-of" "and 5 more"
+  it "lists only the first composite images covering a component" $ do
+    let composites = ["a_01-" <> show (n :: Int) <> ".jpg" | n <- [10..20]]
+    _ <- addScannedFolder "2020-01-04-many" ("a_01.jpg" : composites)
+    login
+    get $ ImageR "2020-01-04-many" "a_01"
+    statusIs 200
+    htmlCount "#component-of a" 10
+    htmlAnyContain "#component-of" "and 1 more"

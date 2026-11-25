@@ -61,6 +61,10 @@ spec = parallel $ do
         rangeNamesOf config "img_1-1025" `shouldBe` []
         rangeNamesOf config "img_3982-1773958749527" `shouldBe` []
         length (rangeNamesOf config "img_1-1024") `shouldBe` 1024
+      it "rejects numbers too large to read, instead of wrapping them" $ \config -> do
+        -- 2^64 + 3, which would wrap around to 3 when read as an Int.
+        rangeNamesOf config "img_1-18446744073709551619" `shouldBe` []
+        rangeNamesOf config "img_18446744073709551617-18446744073709551619" `shouldBe` []
       it "limits ranges to the configured size" $ \config' -> do
         let config = config' { cfgMaxRangeSize = 3 }
         rangeNamesOf config "img_1-3" `shouldBe` ["img_1", "img_2", "img_3"]
@@ -72,7 +76,12 @@ spec = parallel $ do
         rangeNamesOf config "dsc_1920-0002" `shouldBe` []
         -- Not four digits, or a last number of zero.
         rangeNamesOf config "dsc_998-002" `shouldBe` []
+        rangeNamesOf config "dsc_9998-02" `shouldBe` []
+        rangeNamesOf config "dsc_998-0002" `shouldBe` []
         rangeNamesOf config "dsc_9998-0000" `shouldBe` []
+        -- The limit, at the boundary.
+        length (rangeNamesOf config "dsc_9000-0024") `shouldBe` 1024
+        rangeNamesOf config "dsc_9000-0025" `shouldBe` []
         fmap rangeSize (snd $ parseImageName config "dsc_9998-0002") `shouldBe` Just 4
       it "decides between a copy and a range by the two numbers" $ \config -> do
         parseImageName config "dsc_1920-2" `shouldBe` ("dsc_1920", Nothing)

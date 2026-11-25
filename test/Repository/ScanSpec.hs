@@ -602,7 +602,7 @@ spec = parallel $ do
         let config = ctxConfig ctx
             untracked = mkImage config "sums" "folder" Nothing Nothing [] Nothing []
                           [simpleFile "SHA1SUMS"] Nothing MediaUnknown def
-            dirs = addImageToRepo config (repoDirs repo) untracked
+            dirs = addImageToRepo (repoDirs repo) untracked
             repo' = repo { repoDirs = dirs }
         null (renderableImages repo') `shouldBe` True
         pg <- forceBuildThumbCaches ctx repo'
@@ -637,7 +637,7 @@ spec = parallel $ do
               repo <- getRepo ctx
               let pictures = map (picture parent) names
               forM_ pictures $ mapM_ (writeNonEmpty . fileFullPath) . imgJpegPath
-              return repo { repoDirs = foldl' (addImageToRepo config) Map.empty pictures }
+              return repo { repoDirs = foldl' addImageToRepo Map.empty pictures }
             -- Which picture and size each error is about, from its
             -- item: the picture's name is in it, and the size ends it.
             about e = ( filter (\n -> ("/" <> n <> " ") `isInfixOf` peItem e) names
@@ -677,7 +677,7 @@ spec = parallel $ do
             picture name = mkImage config name "folder" Nothing Nothing
                              [(jpegFile ctx) { fileName = unImageName name <> ".jpg" }]
                              Nothing [] [] Nothing MediaImage def
-            dirs = foldl' (addImageToRepo config) (repoDirs repo) (map picture ["x", "y", "z"])
+            dirs = foldl' addImageToRepo (repoDirs repo) (map picture ["x", "y", "z"])
         _ <- forceBuildThumbCaches ctx repo { repoDirs = dirs }
         readChecked `shouldReturn` (3, 3)
       it "records a fully cached image as noops with an empty work goal" $ \ctx -> do

@@ -600,15 +600,14 @@ The combined file is named after the range of the files it was made
 from: for raw files `dsc_001` to `dsc_009`, an intermediate
 `dsc_001-009.tiff` and an output `dsc_001-009.jpeg`. Corydalis then
 links this composite image to its components, the images `dsc_001` to
-`dsc_009`, in both cases:
+`dsc_009`. In both cases the components count as processed, even
+those without an output of their own, as the work that remains is the
+composite image's; and without the intermediate file, the output
+isn't standalone: it counts as processed, as it was made from raw
+files in the library.
 
-- the components count as processed, even those without an output of
-  their own, as the work that remains is the composite image's;
-- without the intermediate file, the output isn't standalone: it
-  counts as processed, as it was made from raw files in the library.
-
-Each file still belongs to one image only, and the image page shows
-the link both ways. The full rules, with examples, are in
+Each file belongs to one image only, and the image page shows the
+link both ways. The full rules, with examples, are in
 [Composite images](composite-images.md).
 
 ## Old concepts

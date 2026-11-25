@@ -29,7 +29,7 @@ $# expected grid size, so it's important to allow overflow-break.
         $if not (null rangeShown)
           <tr>
             <td>Composite image of
-            <td>
+            <td #composite-of>
               $forall ((name, exists), isLast) <- rangeShown
                 $if exists
                   <a href=@{ImageR (imgParent img) name}>#{name}#
@@ -42,7 +42,7 @@ $# expected grid size, so it's important to allow overflow-break.
         $if not (null coveringShown)
           <tr>
             <td>Component of
-            <td>
+            <td #component-of>
               $forall (name, isLast) <- coveringShown
                 <a href=@{ImageR (imgParent img) name}>#{name}#
                 $if not isLast

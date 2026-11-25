@@ -57,10 +57,10 @@ dropCopySuffix cfg path =
 -- last component is matched): the image name, and the range in it, if
 -- it is a composite image.
 --
--- The range regex is tried first, on the whole name, and the range is
--- accepted when the two numbers allow it (see 'readRange'). Otherwise
--- the copy suffix is removed, and the range is tried again on what is
--- left: @dsc_1920-2@ is a copy of @dsc_1920@ (2 is below 1920), while
+-- The range regex is tried first, on the name before any copy suffix
+-- is removed, and the range is accepted when the two numbers allow it
+-- (see 'readRange'). Otherwise the copy suffix is removed, and the
+-- range is tried again on what is left: @dsc_1920-2@ is a copy of @dsc_1920@ (2 is below 1920), while
 -- @dsc_1920-1925@ is a range, and @d_01-03-Edit@ a copy of the
 -- composite image @d_01-03@.
 parseImageName :: Config -> FilePath -> (FilePath, Maybe ImageRange)
@@ -81,15 +81,16 @@ cameraCounterWidth = 4
 -- below the first, but not zero); and at most 'cfgMaxRangeSize' names
 -- in it. The limit keeps names that only look like ranges, such as
 -- @img_3982-1773958749527@ (a timestamp), from covering most of a
--- folder.
+-- folder, and from listing that many names (the links and the image
+-- page list the names of a range).
 readRange :: Config -> FilePath -> Maybe ImageRange
 readRange cfg path =
   -- The directory part, with its trailing separator (empty if none).
   let dir = replaceFileName path ""
   in case TDFA.match (reRegex $ cfgRangeRegex cfg) (Text.pack $ takeFileName path) of
        [[_, root, begin, end]] -> do
-         first' <- either (const Nothing) Just (parseDecimal begin)
-         last' <- either (const Nothing) Just (parseDecimal end)
+         first' <- readNumber begin
+         last' <- readNumber end
          let range = ImageRange { irRoot  = TS.fromText (Text.pack dir <> root)
                                 , irFirst = first'
                                 , irLast  = last'
@@ -102,6 +103,13 @@ readRange cfg path =
          guard $ rangeSize range <= toInteger (cfgMaxRangeSize cfg)
          return range
        _ -> Nothing
+  where
+    -- Read as an Integer first, as reading as an Int would wrap
+    -- around for numbers that are too large.
+    readNumber t = do
+      n <- either (const Nothing) Just (parseDecimal t) :: Maybe Integer
+      guard $ n <= toInteger (maxBound :: Int)
+      return $ fromInteger n
 
 -- | The numbers in a range, in order. A wrapped range (see
 -- 'readRange') runs up to the largest number of its width, then from 1.
