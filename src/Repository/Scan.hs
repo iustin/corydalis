@@ -56,7 +56,6 @@ import           Control.DeepSeq
 import qualified Data.Map.Strict         as Map
 import           Data.Semigroup
 import qualified Data.Set                as Set
-import qualified Data.Store
 import qualified Data.Text               as Text
 import qualified Data.Text.Short         as TS
 import           Data.Time.LocalTime
@@ -84,8 +83,9 @@ import           Utils.Storage           (resolveStorageDirs)
 import           Utils.Yaml              (loadYaml, maxYamlSize)
 
 import           Repository
-import           Repository.State
 import           Repository.Build
+import           Repository.Encoding     (decodeRepository, encodeRepository)
+import           Repository.State
 import           Pics
 
 neverRecurseDirs :: [String]
@@ -756,7 +756,7 @@ repoCachePath config = repoDiskPath config repoDiskFile
 
 writeDiskCache :: Config -> Repository -> IO ()
 writeDiskCache config repo =
-  writeCacheFile config repoDiskFile repoDiskPath (Data.Store.encode (config, repo))
+  writeCacheFile config repoDiskFile repoDiskPath (encodeRepository (config, repo))
 
 -- | Removes the repository cache, if there is one.
 --
@@ -775,7 +775,10 @@ removeDiskCache config =
 readDiskCache :: Config -> IO (Maybe Repository)
 readDiskCache config = do
   contents <- readCacheFile config repoDiskFile repoDiskPath False []
-  let decoded = contents >>= either (const Nothing) Just . Data.Store.decode
+  -- A cache of another format version (or from before versions) fails
+  -- to decode, so it is ignored, as one built with another
+  -- configuration is.
+  let decoded = contents >>= either (const Nothing) Just . decodeRepository
   return $ case decoded of
     Nothing -> Nothing
     Just (c, repo) -> if c == config
@@ -801,8 +804,8 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
        -- number of zero while any valid cache will have a positive
        -- serial.
        tryUpdateRepo ctx cached_r
-     -- Only a cache written by an earlier version: a scan now removes
-     -- the cache, rather than writing an unfinished one.
+     -- Not written by the current code, as a scan removes the cache
+     -- rather than writing an unfinished one; handled defensively.
      Just unfinished -> do
        logfn LevelWarn . toLogStr $ "Unfinished cache found, state: " ++ show (repoStatus unfinished)
        logfn LevelInfo "Restarting scan"

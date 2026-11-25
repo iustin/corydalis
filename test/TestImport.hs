@@ -65,7 +65,9 @@ import           Yesod.Default.Config2          (loadYamlSettings,
 import           Yesod.Test                     as X
 
 import qualified Control.Exception              as E
+import qualified Data.ByteString                as BS
 import qualified Data.ByteString.Char8          as BS8
+import           Data.Bits                      (xor)
 import           Data.Default
 import           Data.Either
 import qualified Data.Map                       as Map
@@ -753,3 +755,14 @@ writeNonEmpty :: FilePath -> IO ()
 writeNonEmpty path = do
   createDirectoryIfMissing True (takeDirectory path)
   writeFile path ("x" :: ByteString)
+
+-- | Changes the format version of an encoded repository cache. The
+-- version comes after a four-byte marker and its own length (an
+-- 'Int', eight bytes here), and is a hash, so changing one of its
+-- bytes gives another version.
+otherCacheVersion :: BS.ByteString -> BS.ByteString
+otherCacheVersion encoded =
+  let (prefix, rest) = BS.splitAt 12 encoded
+  in case BS.uncons rest of
+       Just (b, rest') -> prefix <> BS.cons (b `xor` 1) rest'
+       Nothing         -> encoded

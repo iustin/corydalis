@@ -28,6 +28,7 @@ import           Data.Default
 import           Data.Either      (isLeft, isRight)
 import qualified Data.Map         as Map
 import qualified Data.Set         as Set
+import qualified Data.Store
 import qualified Data.Text.Short  as TS
 import           Data.Time        (getZonedTime)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
@@ -49,6 +50,7 @@ import           Exif
 import           Pics
 import           Repository
 import           Repository.Build
+import           Repository.Encoding (encodeRepository)
 import           Repository.Scan
 import           Repository.State
 import           Utils.Yaml         (maxYamlSize)
@@ -218,6 +220,23 @@ spec = parallel $ do
         now <- getZonedTime
         let other = (ctxConfig ctx) { cfgThumbnailSize = cfgThumbnailSize (ctxConfig ctx) + 1 }
         writeDiskCache other (cached (finished now))
+        repo <- scanAll ctx
+        repoStatus repo `shouldSatisfy` isStarting
+        void $ waitForScan ctx
+      it "ignores a cache without a format version" $ \ctx -> do
+        now <- getZonedTime
+        let config = ctxConfig ctx
+        -- As written before the cache had a format version.
+        BS.writeFile (repoCachePath config)
+          (Data.Store.encode (config, cached (finished now)))
+        repo <- scanAll ctx
+        repoStatus repo `shouldSatisfy` isStarting
+        void $ waitForScan ctx
+      it "ignores a cache of another format version" $ \ctx -> do
+        now <- getZonedTime
+        let config = ctxConfig ctx
+            encoded = encodeRepository (config, cached (finished now))
+        BS.writeFile (repoCachePath config) (otherCacheVersion encoded)
         repo <- scanAll ctx
         repoStatus repo `shouldSatisfy` isStarting
         void $ waitForScan ctx

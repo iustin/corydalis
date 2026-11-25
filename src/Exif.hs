@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE CPP                #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE NumericUnderscores #-}
@@ -79,6 +80,7 @@ import           Data.Aeson
 import           Data.Aeson.Types          (Parser, modifyFailure, parseEither,
                                             parseMaybe, typeMismatch)
 import           Data.Bifunctor
+import           Data.Data                 (Data)
 import qualified Data.ByteString           as BS (ByteString, length, readFile)
 import qualified Data.ByteString.Lazy      as BSL (null)
 import           Data.Default
@@ -118,7 +120,7 @@ data Orientation
   | OrientationRightTop
   | OrientationRightBot
   | OrientationLeftBot
-  deriving (Show, Eq, Generic, Enum, Bounded)
+  deriving (Show, Eq, Generic, Enum, Bounded, Data)
 
 instance Default Orientation where
   def = OrientationTopLeft
@@ -210,7 +212,7 @@ optParsedValue parent key = do
 data LensFocalLength
   = Prime !Double
   | Zoom !Double !Double
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Generic, Data)
 
 instance Store LensFocalLength
 
@@ -232,7 +234,7 @@ instance NFData LensFocalLength where
 data LensAperture
   = FixedAperture !Double
   | VariableAperture !Double !Double
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Generic, Data)
 
 instance Store LensAperture
 
@@ -258,7 +260,7 @@ data LensInfo = LensInfo
   , liFL     :: !(Maybe LensFocalLength)
   , liAp     :: !(Maybe LensAperture)
   , liSerial :: !(Maybe SymbolizedItem)
-  } deriving (Show, Eq, Ord, Generic)
+  } deriving (Show, Eq, Ord, Generic, Data)
 
 -- FIXME: should we error out instead?
 instance Semigroup LensInfo where
@@ -376,7 +378,7 @@ parseStrOrNum v          = typeMismatch "string or number" v
 -- It's just an alias to ZonedTime, but with Eq (and thus Ord)
 -- instances.
 newtype ExifTime = ExifTime { etTime :: ZonedTime }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Data)
 
 formatExifTime :: ExifTime -> String
 formatExifTime =
@@ -414,7 +416,7 @@ data FlashSource
   = FlashSourceNone
   | FlashSourceInternal
   | FlashSourceExternal
-  deriving (Eq, Ord, Show, Generic, Enum, Bounded)
+  deriving (Eq, Ord, Show, Generic, Enum, Bounded, Data)
 
 instance Store FlashSource
 
@@ -435,7 +437,7 @@ parseFlashSource _ = Nothing
 data FlashInfo = FlashInfo
   { fiSource :: !(Maybe FlashSource)
   , fiMode   :: !(Maybe SymbolizedItem)
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, Data)
 
 instance Default FlashInfo where
   def = FlashInfo Nothing Nothing
@@ -579,7 +581,7 @@ data Exif = Exif
   , exifLensMake     :: !(Maybe SymbolizedItem)
   -- meta field
   , exifWarning      :: !(Set ShortText)
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, Data)
 
 instance Store Exif
 
@@ -717,7 +719,7 @@ data GroupExif = GroupExif
   , gExifDimensions :: !(NameStats (Int, Int))
   , gExifMegapixels :: !(NameStats Double)
   -- TODO: add warnings?
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Data)
 
 instance Store GroupExif
 

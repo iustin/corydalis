@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
@@ -105,6 +106,9 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
 import           Data.Char                  (isAlphaNum, isAscii)
+import           Data.Data                  (Constr, Data (..), DataType,
+                                             Fixity (Prefix), mkConstr,
+                                             mkDataType)
 import           Data.Default               (Default, def)
 import           Data.Functor.Contravariant (contramap)
 import qualified Data.Set                   as Set
@@ -157,6 +161,28 @@ instance Store Regex where
   poke = poke . reString
   peek = peek >>= mkRegex
 
+-- | Describes a regex as its pattern, which is what 'Store' writes. It
+-- is meant for the repository cache's format version (see
+-- "Repository.Encoding"), not for generic traversals. The version
+-- hashes the constructor's name and its field's type: if the 'Store'
+-- instance changes, change one of them (or 'Repository.CacheRevision').
+instance Data Regex where
+  gfoldl k z r = z regexFromPattern `k` reString r
+  gunfold k z _ = k (z regexFromPattern)
+  toConstr _ = regexConstr
+  dataTypeOf _ = regexDataType
+
+-- | Rebuilds a regex from a pattern that is known to be valid.
+regexFromPattern :: Text -> Regex
+regexFromPattern txt =
+  fromMaybe (error $ "Invalid regex pattern: " <> Text.unpack txt) (mkRegex txt)
+
+regexConstr :: Constr
+regexConstr = mkConstr regexDataType "Regex" [] Prefix
+
+regexDataType :: DataType
+regexDataType = mkDataType "Types.Regex" [regexConstr]
+
 -- | Wrapper over NominalDiffTime so that we can add our FromJSON
 -- instance without orphan instances warning (sigh).
 newtype JSDiffTime = JSDiffTime NominalDiffTime
@@ -205,7 +231,7 @@ data Config = Config
                                            -- ImageMagick policy to use.
     , cfgMaxFolderDepth  :: Int  -- ^ How deep below a source or output
                                  -- directory picture folders are looked for.
-    } deriving (Eq, Show, Generic)
+    } deriving (Eq, Show, Generic, Data)
 
 instance Store Config
 
@@ -382,7 +408,7 @@ data ImageStatus = ImageOrphaned
                  | ImageStandalone
                  | ImageUnprocessed
                  | ImageProcessed
-                   deriving (Show, Read, Eq, Ord, Enum, Bounded, Generic)
+                   deriving (Show, Read, Eq, Ord, Enum, Bounded, Generic, Data)
 
 instance Store ImageStatus
 
@@ -411,7 +437,7 @@ instance PathPiece ImageStatus where
 newtype ImageName = ImageName { unImageName :: ShortText }
   deriving (Show, Read, Eq, Ord, IsString, NFData,
             ToJSON, PersistField, PersistFieldSql,
-            Generic)
+            Generic, Data)
 
 instance ToMarkup ImageName where
   toMarkup = toMarkup . TS.toText . unImageName
@@ -427,7 +453,7 @@ data FolderClass = FolderEmpty
                  | FolderUnprocessed
                  | FolderProcessed
                  | FolderMixed
-                   deriving (Show, Read, Eq, Ord, Enum, Bounded, Generic)
+                   deriving (Show, Read, Eq, Ord, Enum, Bounded, Generic, Data)
 
 instance Store FolderClass
 
@@ -465,7 +491,7 @@ type LogFn = LogLevel -> LogStr -> IO ()
 data ProgressError = ProgressError
   { peItem  :: !Text
   , peError :: !Text
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Data)
 
 instance Store ProgressError
 
@@ -479,7 +505,7 @@ data Progress = Progress
   , pgDone   :: !Int             -- ^ Work that was attempted and succeeded.
   , pgGoal   :: !Int             -- ^ Target work goal.
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Data)
 
 instance Default Progress where
   def = Progress [] 0 0 0
@@ -551,7 +577,7 @@ incProgress e n d p@Progress{..} =
     }
 
 newtype WorkStart = WorkStart { wsStart :: ZonedTime }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Data)
 
 instance Store WorkStart
 
@@ -563,7 +589,7 @@ data WorkResults = WorkResults
   , wrEnd   :: !ZonedTime
   , wrDone  :: !Progress
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Data)
 
 instance Store WorkResults
 
@@ -697,6 +723,29 @@ instance Store SymbolizedItem where
   poke (SymbolizedItem s) = poke (unintern s::Text)
   peek = mkSymbolizedItem <$> (peek::Peek Text)
 
+-- | Describes a symbolized item as its text, which is what 'Store'
+-- writes. As for 'Regex', it is meant for the repository cache's
+-- format version, not for generic traversals: if the 'Store' instance
+-- changes, change the constructor's name or its field's type (or
+-- 'Repository.CacheRevision').
+instance Data SymbolizedItem where
+  gfoldl k z s = z symbolizedFromText `k` deSymbolizeItem s
+  gunfold k z _ = k (z symbolizedFromText)
+  toConstr _ = symbolizedItemConstr
+  dataTypeOf _ = symbolizedItemDataType
+
+-- | 'mkSymbolizedItem' at the type 'Data' needs.
+symbolizedFromText :: Text -> SymbolizedItem
+symbolizedFromText = mkSymbolizedItem
+
+symbolizedItemConstr :: Constr
+symbolizedItemConstr =
+  mkConstr symbolizedItemDataType "SymbolizedItem" [] Prefix
+
+symbolizedItemDataType :: DataType
+symbolizedItemDataType =
+  mkDataType "Types.SymbolizedItem" [symbolizedItemConstr]
+
 instance ToJSON SymbolizedItem where
   toJSON (SymbolizedItem s) = String (unintern s)
 
@@ -736,7 +785,7 @@ lookupSymbolized s = Symbolize.lookup s <&> fmap SymbolizedItem
 data EventSource
   = EventImplicit !SymbolizedItem
   | EventExplicit !(Maybe FilePath)
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Data)
 
 implicitDateRangeDesc :: SymbolizedItem
 implicitDateRangeDesc = mkSymbolizedItem ("Auto-computed on date range" :: Text)
@@ -753,7 +802,7 @@ data Event
   | GetawayEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
   | GrandVacationEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
   | WorkTripEvent { eventName :: !ShortText, eventPeople :: ![ShortText], eventSource :: !EventSource }
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Data)
 
 instance Store Event
 

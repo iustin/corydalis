@@ -97,6 +97,7 @@ dependencies:
   - scientific
   - shakespeare
   - store
+  - store-core
   - stm
   - symbolize
   - template-haskell
@@ -161,6 +162,7 @@ library:
     - Pics
     - Repository
     - Repository.Build
+    - Repository.Encoding
     - Repository.Names
     - Repository.Scan
     - Repository.State
