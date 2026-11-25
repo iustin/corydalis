@@ -385,6 +385,48 @@ spec = parallel $ do
       showLensType (lensType (LensInfo (mkSym "unknown") (mkSym "unknown") Nothing Nothing Nothing))
         `shouldBe` "unknown"
 
+  describe "fillCompositeExif" $ do
+    let date d = Just (ExifTime (ZonedTime (LocalTime (fromGregorian 2024 6 d) (TimeOfDay 10 0 0)) (TimeZone 0 False "")))
+        lens = LensInfo (mkSym "Lens A") (mkSym "Lens A") (Just (Prime 50)) Nothing Nothing
+        component = def { exifCreateDate = date 1
+                        , exifCamera = Just (mkSym "Cam A")
+                        , exifModel = Just (mkSym "Model A")
+                        , exifSerial = Just (mkSym "1")
+                        , exifMake = Just (mkSym "Make A")
+                        , exifLens = lens
+                        , exifLensMake = Just (mkSym "Lens make A")
+                        , exifCountry = Just (mkSym "Country A")
+                        , exifCity = Just (mkSym "City A")
+                        , exifPeople = setFromList [mkSym "Person A"]
+                        , exifKeywords = setFromList [mkSym "Keyword A"]
+                        , exifWidth = Just 6000
+                        , exifHeight = Just 4000
+                        , exifOrientation = OrientationRightTop
+                        , exifISO = Just 100
+                        }
+    it "takes the date, camera, lens and place the composite lacks" $ do
+      let filled = fillCompositeExif component def
+      exifCreateDate filled `shouldBe` exifCreateDate component
+      (exifCamera filled, exifModel filled, exifSerial filled, exifMake filled) `shouldBe`
+        (exifCamera component, exifModel component, exifSerial component, exifMake component)
+      (exifLens filled, exifLensMake filled) `shouldBe` (lens, exifLensMake component)
+      (exifCountry filled, exifCity filled) `shouldBe` (exifCountry component, exifCity component)
+    it "never takes the size, orientation, exposure, people or keywords" $ do
+      let filled = fillCompositeExif component def
+      (exifWidth filled, exifHeight filled) `shouldBe` (Nothing, Nothing)
+      exifOrientation filled `shouldBe` OrientationTopLeft
+      exifISO filled `shouldBe` Nothing
+      exifPeople filled `shouldBe` mempty
+      exifKeywords filled `shouldBe` mempty
+    it "keeps what the composite has, taking each group whole or not at all" $ do
+      let composite = def { exifCreateDate = date 5
+                          , exifModel = Just (mkSym "Model B")
+                          , exifLens = unknownLens { liFL = Just (Prime 24) }
+                          , exifLocation = Just (mkSym "Place B")
+                          }
+          filled = fillCompositeExif component composite
+      filled `shouldBe` composite
+
   describe "Person formatting" $ do
     it "formats slash and space-separated names" $ do
       formatPerson False "Doe/John" `shouldBe` "John Doe"

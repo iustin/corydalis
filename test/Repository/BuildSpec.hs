@@ -58,19 +58,28 @@ withProdNameRegexes config =
     }
 
 -- | The directories of a folder named "f", built as a scan does, from
--- the files (name and size) of its source and output directories.
+-- the files (name and size) of its source and output directories,
+-- without exif.
 compositeDirs :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> [PicDir]
-compositeDirs config srcs outs =
+compositeDirs = compositeDirsWith Map.empty
+
+-- | As 'compositeDirs', with the exif of the files named in the cache.
+compositeDirsWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> [PicDir]
+compositeDirsWith cache config srcs outs =
   let mk isSrc i files =
         buildFolderFromInodes config "f"
           ((if isSrc then "/src" else "/out") <> show (i :: Int) <> "/f") isSrc
-          (map (\(n, size) -> (mkInode n) { inodeSize = size }) files) Map.empty Nothing
+          (map (\(n, size) -> (mkInode n) { inodeSize = size }) files) cache Nothing
   in zipWith (mk True) [1..] srcs ++ zipWith (mk False) [1..] outs
 
 -- | The finished folder "f" (see 'compositeDirs').
 compositeFolder :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> PicDir
-compositeFolder config srcs outs =
-  finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirs config srcs outs) Map.! "f"
+compositeFolder = compositeFolderWith Map.empty
+
+-- | The finished folder "f" (see 'compositeDirsWith').
+compositeFolderWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> PicDir
+compositeFolderWith cache config srcs outs =
+  finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirsWith cache config srcs outs) Map.! "f"
 
 -- | A folder's stored counts: unprocessed, standalone, processed and
 -- movies.
@@ -424,6 +433,29 @@ spec = parallel $ do
         roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02", "d_03"]
         statusOf dir "d_01-03" `shouldBe` ImageOrphaned
         statusOf dir "d_01" `shouldBe` ImageProcessed
+      it "dates, and names the camera of, a composite from its first component" $ \config -> do
+        let output = def { exifPeople = setFromList [mkSym "Person"]
+                         , exifWidth = Just 9000
+                         }
+            cache = Map.fromList
+              [ ("d_02.nef", Right (datedExif 2024 6 2) { exifCamera = Just (mkSym "Cam")
+                                                        , exifWidth = Just 6000 })
+              , ("d_03.nef", Right (datedExif 2024 6 1))
+              , ("d_01-03.jpg", Right output)
+              ]
+            dir = compositeFolderWith cache config [[("d_02.nef", 10), ("d_03.nef", 10)]]
+                    [[("d_01-03.jpg", 50)]]
+            exifOf name = imgExif (pdImages dir Map.! name)
+            date = LocalTime (fromGregorian 2024 6 2) midnight
+        -- d_01 doesn't exist, so the first component is d_02, even if
+        -- d_03 is earlier.
+        exifLocalCreateDate (exifOf "d_01-03") `shouldBe` Just date
+        exifCamera (exifOf "d_01-03") `shouldBe` Just (mkSym "Cam")
+        exifWidth (exifOf "d_01-03") `shouldBe` Just 9000
+        Set.member (Just date, "d_01-03") (pdTimeSort dir) `shouldBe` True
+        -- A component gets nothing from the composite.
+        exifPeople (exifOf "d_02") `shouldBe` Set.empty
+        exifPeople (exifOf "d_01-03") `shouldBe` setFromList [mkSym "Person"]
       it "gives the same result whatever order the directories are in" $ \config -> do
         let srcs = [nefs ++ [("d_01-03.tif", 100)]]
             outs = [[("d_01-03.jpg", 50)], [("d_02.jpg", 5)]]
