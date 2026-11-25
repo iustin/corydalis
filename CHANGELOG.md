@@ -73,6 +73,11 @@
 - A failed scan is now logged, with its error; before, the error was
   only shown on the status page, and was lost if a newer scan had
   started meanwhile.
+- A search running while a rescan published its new data could cache
+  results computed from the previous data: later identical searches
+  then still listed the pictures removed (as broken entries), and
+  missed the new ones, until the next rescan. Such results are no
+  longer cached, and the search is done again on the new data.
 - The copy and range regexes are now matched against the file name
   only, not against its path relative to the folder: previously, a
   picture in a sub-directory whose name the regex matched (e.g.

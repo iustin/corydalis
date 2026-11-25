@@ -37,8 +37,8 @@ getBrowseImagesR :: Int -> Handler Html
 getBrowseImagesR page = do
   when (page < 0) $
     invalidArgs ["Negative page index"]
-  (ctx, config, params, atom, search_string, pics) <- searchContext
-  elems' <- liftIO $ Map.elems . fst <$> searchImages ctx atom pics
+  (ctx, config, params, atom, search_string, _) <- searchContext
+  elems' <- liftIO $ Map.elems . fst <$> searchImages ctx atom
   let pageSize = cfgPageSize config
       -- Computed as an Integer, as it can be past the largest Int
       -- (for a crafted page number). A page past the last image is

@@ -67,8 +67,8 @@ getBestHandler (Just ViewImagesGrid) True   = handlerImages
 
 getSearchViewR :: Handler Html
 getSearchViewR = do
-    (ctx, _, search_params, atom, search_string, pics) <- searchContext
-    images <- fst <$> liftIO (searchImages ctx atom pics)
+    (ctx, _, search_params, atom, search_string, _) <- searchContext
+    images <- fst <$> liftIO (searchImages ctx atom)
     case Map.minView images of
       Just (i, _) -> redirect (ViewR (imgParent i) (imgName i), search_params)
       Nothing     -> defaultLayout $ do

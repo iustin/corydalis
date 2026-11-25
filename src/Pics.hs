@@ -168,6 +168,7 @@ module Pics ( PicDir(..)
             , movieDemuxer
             , embeddedImagePath
             , newRepo
+            , updateRepo
             , forceBuildThumbCaches
             , runScanAction
             , examineCacheFile
@@ -718,11 +719,22 @@ type SearchResultsPics = Map (ShortText, ImageTimeKey) Image
 -- | Overall search results type alias.
 type SearchResults = (SearchResultsPics, Map ShortText Image)
 
--- | Type of the search cache.
-type SearchCache = LruCache UrlParams SearchResults
+-- | The search cache: the results of the latest searches, computed
+-- from the current data of the repository (see 'getSearchResults').
+data SearchCache = SearchCache
+  { scGeneration :: !Int
+    -- ^ The generation of the repository's data, increased each time
+    -- new data is published (see 'flushSearchCache').
+  , scResults    :: !(LruCache UrlParams SearchResults)
+    -- ^ The results, by search.
+  }
+
+-- | The number of searches whose results are kept.
+searchCacheSize :: Int
+searchCacheSize = 10
 
 emptySearchCache :: SearchCache
-emptySearchCache = LRU.empty 10
+emptySearchCache = SearchCache 0 (LRU.empty searchCacheSize)
 
 -- | The empty (zero) stats.
 zeroStats :: Stats
@@ -902,12 +914,7 @@ tryUpdateRepo ctx new = do
 -- the previous one, in full).
 --
 -- The search cache is flushed as for any other update, even though the
--- images don't change. This is on purpose: a search that read the
--- repository before a scan replaced its data can cache its results
--- after that; the flushes of the status updates that follow (rendering
--- done, cleanup done, or an error) remove such results, unless they
--- are cached after the last of them. ('newRepo' doesn't flush: no data
--- was replaced before it.)
+-- images don't change.
 updateRepoStatus :: Ctx -> Int -> RepoStatus -> IO (Maybe Repository)
 updateRepoStatus ctx !serial status = do
   -- Evaluated here, so that the transaction doesn't do it, and so that
@@ -942,38 +949,61 @@ checkScanOwnership ctx serial = do
   current <- readTVarIO (ctxRepo ctx)
   unless (repoSerial current == serial) ownershipChanged
 
--- | Returns the search results for the given key, from the cache if
--- present, otherwise the given (lazy) results, cached.
+-- | Returns the results of a search, under the given key, from the
+-- cache if present, otherwise computed from the current repository,
+-- and cached.
 --
--- The caller passes the results unevaluated (see 'searchImages'), so
--- that a cache hit doesn't compute them. On a miss, they are fully
--- evaluated before being cached, so that the cache only holds evaluated
--- results: an unevaluated entry would keep the repository it is
--- computed from alive, and leave the work to whoever reads it next.
+-- The results are computed, and fully evaluated, outside any
+-- transaction, so that a long search doesn't keep the cache from
+-- changing, nor is run again because it changed. They are only cached
+-- if no new data was published meanwhile (see 'scGeneration'), so that
+-- the cache never holds results computed from earlier data: these
+-- would list pictures a scan removed, and miss those it found, until
+-- they leave the cache.
 --
--- This evaluation happens inside the transaction, so a concurrent
--- change of the cache makes the transaction run again. That is cheap,
--- though: the results are a value built outside the transaction, so
--- the work already done on them is kept, and only the cache lookup and
--- insertion are repeated. Two identical searches at the same time both
+-- If new data was published meanwhile, the search is done once more,
+-- on that data; if that happens again, the second results are returned
+-- without caching them. Two identical searches at the same time both
 -- compute their results.
 --
--- The new cache is evaluated as well before being written, on a hit
+-- The cache is evaluated as well before being written, on a hit
 -- (which changes the order of the entries) as on a miss: an
 -- unevaluated one would keep the previous cache, and with it, on a
 -- miss with a full cache, the results just dropped.
-getSearchResults :: Ctx -> SearchResults -> UrlParams -> IO SearchResults
-getSearchResults ctx lazy key = atomically $ do
-  let cacheVar = ctxSearchCache ctx
-  oldCache <- readTVar cacheVar
-  case LRU.lookup key oldCache of
-    Just (results, cache) -> do
-      writeTVar cacheVar $! cache
-      return results
-    Nothing -> do
-      let !results = force lazy
-      writeTVar cacheVar $! LRU.insert key results oldCache
-      return results
+getSearchResults :: Ctx
+                 -> (Repository -> SearchResults)  -- ^ The search.
+                 -> UrlParams                      -- ^ Its key in the cache.
+                 -> IO SearchResults
+getSearchResults ctx search key = attempt True
+  where
+    cacheVar = ctxSearchCache ctx
+    attempt again = do
+      found <- atomically $ do
+        cache <- readTVar cacheVar
+        case LRU.lookup key (scResults cache) of
+          Just (results, entries) -> do
+            writeTVar cacheVar $! cache { scResults = entries }
+            return $ Right results
+          Nothing -> do
+            -- Read in the same transaction as the generation, so that
+            -- the generation is that of the data searched.
+            repo <- readTVar (ctxRepo ctx)
+            let !generation = scGeneration cache
+            return $ Left (generation, repo)
+      case found of
+        Right results -> return results
+        Left (generation, repo) -> do
+          results <- evaluate . force $ search repo
+          stored <- atomically $ do
+            cache <- readTVar cacheVar
+            let current = scGeneration cache == generation
+            when current $
+              writeTVar cacheVar $!
+                cache { scResults = LRU.insert key results (scResults cache) }
+            return current
+          if stored || not again
+            then return results
+            else attempt False
 
 -- | The images around a given image in search results, as used for
 -- navigating between them.
@@ -1006,8 +1036,14 @@ imageNeighbours (images, folders) img =
   where folder = imgParent img
         key = (folder, imageTimeKey img)
 
+-- | Empties the search cache, as new data is published, and increases
+-- its generation (see 'getSearchResults'). This must be done in the
+-- transaction that publishes the data.
 flushSearchCache :: TVar SearchCache -> STM ()
-flushSearchCache = flip writeTVar emptySearchCache
+flushSearchCache cacheVar = do
+  cache <- readTVar cacheVar
+  writeTVar cacheVar $! SearchCache (scGeneration cache + 1)
+                                    (LRU.empty searchCacheSize)
 
 -- | Selects the best master file between two masters.
 --

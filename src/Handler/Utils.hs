@@ -345,9 +345,10 @@ requireSymbolsAccess symbols = do
 getAtomAndSearch :: Handler (UrlParams, Atom, SearchResults)
 getAtomAndSearch = do
   (_, atom) <- getAtomParams
-  pics <- getPics
+  -- Loads the repository on the first request (the search reads it).
+  void getPics
   ctx <- getContext
-  images <- liftIO $ searchImages ctx atom pics
+  images <- liftIO $ searchImages ctx atom
   return (atomToParams atom, atom, images)
 
 atomAsParam :: Symbol -> Maybe ShortText -> (Text, Text)

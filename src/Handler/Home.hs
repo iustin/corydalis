@@ -93,7 +93,7 @@ getHomeR = do
                       , []
                       )
   ctx <- getContext
-  (allImages, _) <- liftIO $ searchImages ctx ConstTrue pics
+  (allImages, _) <- liftIO $ searchImages ctx ConstTrue
   randomImage <- liftIO $ randomPick allImages
   homeMessage <- appHomeMessage . appSettings <$> getYesod
   allowed <- getSymbolAccess

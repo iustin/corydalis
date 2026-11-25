@@ -189,7 +189,7 @@ handlerSpec = parallel $ withApp $ do
       let image = simpleRawImage (ctxConfig ctx)
           results = (Map.singleton ("a", (Nothing, "b")) image, Map.singleton "a" image)
           allparams = ("all", "0")
-      liftIO $ getSearchResults ctx results  [allparams] `shouldReturn` results
+      liftIO $ getSearchResults ctx (const results) [allparams] `shouldReturn` results
       login
       request $ do
         uncurry addGetParam allparams

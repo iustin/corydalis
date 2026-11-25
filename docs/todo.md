@@ -86,7 +86,7 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
   file, would let the later requests wait for the first build instead,
   then use its result; checking again for the cache file once given a
   slot would already avoid the later builds.
-- Make the search cache size (`emptySearchCache`, now 10 entries)
+- Make the search cache size (`searchCacheSize`, now 10 entries)
   configurable.
 - Previews are also built in sizes larger than the image itself; skip
   those (this needs the image size in `Image`), and leave them out of
