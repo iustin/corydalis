@@ -81,6 +81,13 @@ cases belong in a unit test.
 Many tests depend on the exact library made by `setup.sh` (folder and
 image counts, names, dates).
 
+The test files run in parallel (see `workers` in
+`playwright.config.ts`), while the tests in a file run in order. So a
+test that changes the server's state (e.g. flags an image) must use
+something that no test in another file reads or changes, as
+`flagging.spec.ts` (IMG_0001 of the first folder) and the viewer's
+flagging test (IMG_0002) do.
+
 ## Running
 
     npm ci && npm run build   # the bundles are embedded in the binaries
