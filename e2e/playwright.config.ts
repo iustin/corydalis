@@ -29,9 +29,15 @@ const out = process.env.E2E_OUT ?? 'test-results';
 export default defineConfig({
   testDir: './tests',
   outputDir: `${out}/test-results`,
-  // Some tests change the server's state (flagging), so run them one at
-  // a time; the whole run takes about a minute anyway.
-  workers: 1,
+  // Test files run in parallel, but the tests in a file run in order,
+  // one at a time. Four workers: the servers and the browsers share the
+  // machine, and more didn't help much locally. Only flagging.spec.ts
+  // and one test in viewer.spec.ts change the server's state, by
+  // flagging an image of FOLDER (fixtures.ts): IMG_0001 and IMG_0002,
+  // whose flags no other file reads or changes. A new test that
+  // changes the state must likewise use something no other file
+  // depends on, so that it doesn't race with them.
+  workers: 4,
   fullyParallel: false,
   // No retries: a test that passes only on a retry hides a real
   // problem (in the code, or in the test).
