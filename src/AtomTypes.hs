@@ -25,9 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -- | Base atom value types shared between search indexing and repository
 -- statistics.
 --
--- These types are deliberately independent of 'Pics' so that picture
--- metadata can be classified (season, month, day, flash, event kind)
--- while the repository is built.
+-- These types are deliberately independent of "Repository" so that
+-- picture metadata can be classified (season, month, day, flash, event
+-- kind) while the repository is built.
 
 module AtomTypes ( SeasonOp(..)
                  , MonthOp(..)

@@ -43,7 +43,7 @@ import qualified Database.Esqueleto.Legacy as E
 import           Handler.Utils
 import           Handler.Widgets
 import           Import
-import           Pics
+import           Repository
 
 getFlaggedImagesR :: Handler Html
 getFlaggedImagesR = do

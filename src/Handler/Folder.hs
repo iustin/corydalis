@@ -37,7 +37,7 @@ import           Handler.Widgets
 import           Import
 import           Indexer         (Symbol (TBirthday, TEvent, TGetaway, TGrandVacation, TPerson, TWorkTrip),
                                   symbolName)
-import           Pics
+import           Repository
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Set        as Set

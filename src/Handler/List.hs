@@ -40,7 +40,7 @@ import           Handler.Utils
 import           Handler.Widgets
 import           Import
 import           Indexer
-import           Pics
+import           Repository
 
 getListItemsR :: Symbol -> Handler Html
 getListItemsR atom = do

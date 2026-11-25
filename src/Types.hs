@@ -621,8 +621,8 @@ newToolLimits slots limit = do
 
 -- | Data representing the entirety of the application state.
 --
--- Sadly this is parametrized only to work around the big monolitic
--- Pics module, not because it needs to be parametrized.
+-- It is parametrized only because "Repository", which defines the
+-- repository, imports this module, so 'Context' can't name its types.
 data Context a b = Context
   { ctxConfig         :: !Config
   , ctxRepo           :: !(TVar a)

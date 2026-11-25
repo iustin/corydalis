@@ -39,7 +39,7 @@ import           Handler.Utils
 import           Handler.Widgets (noItemsFound)
 import           Import
 import           Indexer
-import           Pics            (imgName, imgParent)
+import           Repository (imgName, imgParent)
 
 -- | Dispatch for folders. It always goes to the List handler, until we
 -- have a better one.

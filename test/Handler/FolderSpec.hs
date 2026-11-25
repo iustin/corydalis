@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.FolderSpec (spec) where
 
 import qualified Data.ByteString as BS
-import           Pics            (launchScanFileSystem, waitForScan)
+import           Repository.Scan (launchScanFileSystem, waitForScan)
 
 import           Handler.Utils   (getStoragePathRenderer)
 import           TestImport

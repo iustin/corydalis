@@ -38,18 +38,20 @@ import           Database.Persist.Sql           (SqlPersistM,
 import           Exif                           (Exif (..), ExifTime (..))
 import           Foundation                     as X
 import           Model                          as X
-import           Pics                           (Ctx, File (..), Image (..),
+import           Repository                     (File (..), Image (..),
                                                  InodeInfo (..), MediaType (..),
                                                  PicDir (..), RepoDirs,
                                                  RepoStatus (..),
-                                                 Repository (..), addDirToRepo,
+                                                 Repository (..),
                                                  buildGroupExif, buildTimeSort,
                                                  computeImagesStats,
-                                                 computeRepoStats, initContext,
-                                                 launchScanFileSystem, mkImage,
-                                                 RepoStatus (..), repoGlobalExif,
-                                                 scanAll, startupRepository,
+                                                 computeRepoStats, mkImage,
+                                                 repoGlobalExif,
+                                                 startupRepository)
+import           Repository.Build               (addDirToRepo)
+import           Repository.Scan                (launchScanFileSystem, scanAll,
                                                  waitForScan)
+import           Repository.State               (Ctx, initContext)
 import           Test.Hspec                     as X
 import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
 import           Test.Hspec.QuickCheck          as X

@@ -97,8 +97,8 @@ import           Utils.Logging                             (sanitizeLogLines,
 
 import           Cache                                     (cacheTempDir,
                                                             resetCacheTempDir)
-import           Pics                                      (checkMagickPolicy,
-                                                            initContext)
+import           Pics                                      (checkMagickPolicy)
+import           Repository.State                          (initContext)
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!

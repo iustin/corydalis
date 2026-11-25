@@ -37,8 +37,9 @@ import           Exif
 import           Handler.Utils
 import           Import
 import           Indexer
-import           Pics
-import           Stats               (keeperRate)
+import           Repository
+import           Stats               (CameraInfo (..), Occurrence (..),
+                                      keeperRate)
 
 import qualified Data.Map.Strict     as Map
 import           Data.Time.Calendar

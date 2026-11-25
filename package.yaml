@@ -159,6 +159,11 @@ library:
     - Indexer
     - Model
     - Pics
+    - Repository
+    - Repository.Build
+    - Repository.Names
+    - Repository.Scan
+    - Repository.State
     - Settings
     - Settings.Development
     - Settings.StaticFiles

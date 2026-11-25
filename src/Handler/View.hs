@@ -61,6 +61,7 @@ import           Exif
 import           Handler.Utils
 import           Import
 import           Pics
+import           Repository
 
 data ImageInfo = ImageInfo
   { iiInfoUrl   :: Text

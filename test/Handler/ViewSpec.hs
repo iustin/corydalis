@@ -23,7 +23,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Handler.ViewSpec (spec) where
 
 import           Handler.View
-import           Pics
+import           Repository
+import           Repository.Scan
+import           Repository.State
 import           TestImport
 
 import           Data.Aeson

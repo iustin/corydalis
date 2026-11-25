@@ -29,7 +29,7 @@ import           Data.Time.LocalTime (LocalTime (..), TimeOfDay (..),
                                       ZonedTime (..), getZonedTime, utc)
 
 import           Handler.Status      (ProgressKind (..), remainingTime)
-import           Pics                (RepoStatus (..), Repository (..))
+import           Repository          (RepoStatus (..), Repository (..))
 
 -- | Sets the state of the repository, as shown by the status page.
 --

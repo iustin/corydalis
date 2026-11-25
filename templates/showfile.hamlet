@@ -1,14 +1,14 @@
 <table .table .m-0>
   <tr>
     <td>Name
-    <td><span class="monolight">#{Pics.fileRelPath f}</span>
+    <td><span class="monolight">#{Repository.fileRelPath f}</span>
   <tr>
     <td>Path
-    <td><span class="monolight">#{quoteMarkup $ showPath $ Pics.fileFullPath f}
+    <td><span class="monolight">#{quoteMarkup $ showPath $ Repository.fileFullPath f}
   <tr>
     <td>Last modified
-    <td><span class="monolight">#{showTimestamp $ Pics.fileMTime f}
+    <td><span class="monolight">#{showTimestamp $ Repository.fileMTime f}
   <tr>
     <td>Size
-    <td .numeric><span class="monolight">#{showBinary $ Pics.fileSize f}
+    <td .numeric><span class="monolight">#{showBinary $ Repository.fileSize f}
   ^{showExif (fileExif f)}

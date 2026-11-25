@@ -43,7 +43,7 @@ import           Exif                (formatPerson)
 import           Handler.Utils
 import           Import
 import           Indexer
-import           Pics                (Image (..))
+import           Repository          (Image (..))
 
 symbolPlCap :: Symbol -> Text
 symbolPlCap TCountry       = "Countries"

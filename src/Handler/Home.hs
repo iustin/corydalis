@@ -40,7 +40,7 @@ import           Handler.Items
 import           Handler.Utils
 import           Import
 import           Indexer
-import           Pics
+import           Repository
 
 -- FIXME: cleanup this list, it has become too big…
 specialViews :: [Symbol]

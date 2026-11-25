@@ -38,9 +38,9 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Exif
 import           Handler.Utils
 import           Indexer       (Symbol (..))
-import           Pics          (File (..), Image (..), Occurrence (..),
-                                PicDir (..), RepoDirs, imageTimeKey)
-import           Stats         (CameraInfo (..))
+import           Repository    (File (..), Image (..), PicDir (..), RepoDirs,
+                                imageTimeKey)
+import           Stats         (CameraInfo (..), Occurrence (..))
 
 spec :: Spec
 spec = do
