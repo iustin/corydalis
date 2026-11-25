@@ -45,17 +45,19 @@ cases belong in a unit test.
   - `viewer.spec.ts`: the viewer: navigation (buttons, keys, swipes,
     history), zoom and pan (keys, wheel, drag, double click), the
     overlays, downloading, flagging, and the keys that leave it;
-  - `movie.spec.ts`: a movie in the viewer (its first frame, and
-    playing it); it runs in the `public` project, whose library has
-    the movie;
+  - `movie.spec.ts`: movies in the viewer (the first frame, and
+    playing them), in both projects: next to a picture in the private
+    library, and on its own in the public one;
   - `public-site.spec.ts`: what anonymous visitors can and can't see
     or do on a public-site build, and that a logged in user still sees
     everything;
 - `setup.sh`: creates a work directory with a sample photo library (20
   folders, 120 small JPEG images with EXIF data), a `settings.yml` for
   it, and a test user;
-- `add-movie.sh`: adds a folder with a short movie (VP9 in MP4, which
-  Playwright's Chromium can play) to the library made by `setup.sh`;
+- `add-movie.sh`: adds a short movie (VP9 in MP4, which Playwright's
+  Chromium can play) to the library made by `setup.sh`: on its own in
+  a new folder, or with `--paired`, next to an existing picture (which
+  keeps the library's counts);
 - `add-problem.sh`: adds a folder with a picture that has a problem (a
   truncated JPEG, for which exiftool warns "JPEG format error") to the
   library made by `setup.sh`;
