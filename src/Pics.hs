@@ -913,8 +913,9 @@ tryUpdateRepo ctx new = do
 -- to keep the repository it started from (which, during a scan, is
 -- the previous one, in full).
 --
--- The search cache is flushed as for any other update, even though the
--- images don't change.
+-- The search cache is not flushed: the status is not searched, and the
+-- data doesn't change. (The cache can't hold results computed from
+-- earlier data either: see 'getSearchResults'.)
 updateRepoStatus :: Ctx -> Int -> RepoStatus -> IO (Maybe Repository)
 updateRepoStatus ctx !serial status = do
   -- Evaluated here, so that the transaction doesn't do it, and so that
@@ -927,7 +928,6 @@ updateRepoStatus ctx !serial status = do
       then do
         let new = current { repoStatus = status' }
         writeTVar rc $! new
-        flushSearchCache (ctxSearchCache ctx)
         return $ Just new
       else return Nothing
 

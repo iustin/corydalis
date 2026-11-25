@@ -76,8 +76,10 @@
 - A search running while a rescan published its new data could cache
   results computed from the previous data: later identical searches
   then still listed the pictures removed (as broken entries), and
-  missed the new ones, until the next rescan. Such results are no
-  longer cached, and the search is done again on the new data.
+  missed the new ones, for the rest of that rescan, or until the next
+  one. Such results are no longer cached, and the search is done again
+  on the new data. The search cache is also no longer emptied by the
+  rescan's status changes, only when it publishes new data.
 - The copy and range regexes are now matched against the file name
   only, not against its path relative to the folder: previously, a
   picture in a sub-directory whose name the regex matched (e.g.
