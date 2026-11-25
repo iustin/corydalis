@@ -7,6 +7,7 @@ nav:
 - Home: index.md
 - Installation guide: install.md
 - Manual: manual.md
+- Composite images: composite-images.md
 - Development notes: devel.md
 - TODOs: todo.md
 - Changelog: changelog.md

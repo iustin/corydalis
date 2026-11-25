@@ -91,8 +91,6 @@ Maybe generic (1 val, 2 val, 3 val, N val) auto-compute?
 - Previews are also built in sizes larger than the image itself; skip
   those (this needs the image size in `Image`), and leave them out of
   the viewer's image sizes too (`Handler.Widgets`).
-- Range files and their components get identical previews
-  (`loadCachedOrBuild`).
 - convert's warnings are dropped when it succeeds (e.g. "Premature end
   of JPEG file" for a truncated picture, whose preview is still built
   and cached); log them.

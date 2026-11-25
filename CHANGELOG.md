@@ -64,6 +64,31 @@
   an older version was only ignored if it failed to decode, and
   nothing guaranteed that it did. The first start after upgrading
   scans the library again, as the existing cache has no version.
+- Composite images (panoramas, HDR merges, stacks), which the manual
+  called "range" files, are now linked to their components instead of
+  lending them their files; the rules, with examples, are in the new
+  "Composite images" page of the documentation. What changes:
+  - The status and list pages count the components as processed, as
+    the folder pages already did; and every file's size counts once,
+    where a composite image's output was counted once per component
+    too. So the numbers change for folders with composite images.
+  - A component is viewed from its own files (its raw, if it has no
+    output of its own), not from the composite image's output.
+  - A composite image without a master is processed when any of its
+    components has a master, not only the first one.
+  - A composite image takes the date, camera, lens and place its own
+    files lack from its first component; and components no longer
+    get the composite image's people and keywords.
+  - The image page links a composite image to its components, and a
+    component to the composite images covering it.
+  - Names are read by their numbers: a name is a range when its last
+    number is not below the first, and a copy otherwise. So `x_1-3`
+    is now a composite image of `x_1` to `x_3`, not a copy of `x_1`,
+    while `dsc_1920-2` stays a copy of `dsc_1920`. A camera counter
+    that wrapped (e.g. `dsc_9998-0002`) is a range too.
+  - The most names a range can have is now the `maxrangesize` setting
+    (1024 by default, as before).
+  - A movie named like a range no longer covers anything.
 
 ### Fixed bugs
 
@@ -123,9 +148,23 @@
   pictures. This was a bug in the `vector-hashtables` library, used for
   interning names; Corydalis now builds with a fixed version of it (see
   Dependencies).
+- A composite image's components could stay unprocessed when the
+  composite image and the components' outputs were in different
+  directories of the same folder (e.g. two output directories), as
+  the links were lost when the directories were merged.
+- A folder's year and first date could disagree with its pictures'
+  dates, when the files of one picture carry different dates (e.g. a
+  raw and an output with a corrected clock): they were the earliest
+  over each directory's files, and are now the earliest of the
+  pictures' dates.
 
 ### Internal changes
 
+- `PicDir`'s `pdShadows` is gone: an image's `imgRole` holds its links
+  to composite images, set by `finishFolder`, which also computes all
+  of a folder's derived values (time index, year, statistics, group
+  exif, implicit event) once its directories are merged, instead of
+  per directory and again at each merge.
 - `Pics` is split by job: the repository's types and pure functions
   are in `Repository`, its live state (the context, ownership of
   updates, the search cache) in `Repository.State`, reading names in
