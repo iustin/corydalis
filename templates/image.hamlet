@@ -26,15 +26,29 @@ $# expected grid size, so it's important to allow overflow-break.
           <td>Flag image for review
           <td>
             ^{imageFlagActions (imgParent img) (imgName img) True}
-        $maybe range <- imgRange img
+        $if not (null rangeShown)
           <tr>
-           <td>Image is a composition based on
-           <td>
-             $with begin <- rangeName range (irFirst range)
-               <a href=@{ImageR (imgParent img) begin}>#{begin}
-             to
-             $with end <- rangeName range (irLast range)
-               <a href=@{ImageR (imgParent img) end}>#{end}
+            <td>Composite image of
+            <td>
+              $forall ((name, exists), isLast) <- rangeShown
+                $if exists
+                  <a href=@{ImageR (imgParent img) name}>#{name}#
+                $else
+                  <span .text-muted title="Not in this folder">#{name}#
+                $if not isLast
+                  , #
+              $if rangeMore > 0
+                \ and #{rangeMore} more
+        $if not (null coveringShown)
+          <tr>
+            <td>Component of
+            <td>
+              $forall (name, isLast) <- coveringShown
+                <a href=@{ImageR (imgParent img) name}>#{name}#
+                $if not isLast
+                  , #
+              $if coveringMore > 0
+                \ and #{coveringMore} more
         <tr>
           <td>Type
           <td>#{show $ imgType img}
