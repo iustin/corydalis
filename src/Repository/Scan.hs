@@ -583,8 +583,7 @@ scanFilesystem ctx serial = do
   scanned <- readTVarIO scanProgress
   end <- getZonedTime
   let repo = foldl' (flip (addDirToRepo config)) Map.empty $ concat asyncDirs
-  let repo' = Map.map (resolveProcessedRanges config .
-                       mergeShadows config) repo
+  let repo' = Map.map finishFolder repo
       stats = computeRepoStats repo'
       rexif = repoGlobalExif repo'
       wrscan = WorkResults { wrStart = start

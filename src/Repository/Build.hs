@@ -30,9 +30,10 @@ module Repository.Build
   ( addDirToRepo
   , isKnownMediaInode
   , buildFolderFromInodes
-  , mergeShadows
-  , resolveProcessedRanges
+  , finishFolder
 #ifdef TEST
+  , linkComposites
+  , linkedStatus
   , isBetterMaster
   , selectMasterFile
   , mergePictures
@@ -41,12 +42,12 @@ module Repository.Build
   , mkFileFromInode
   , implicitEventFromDateRange
   , loadImage
-  , maybeUpdateStandaloneRange
 #endif
   ) where
 
 import           Control.Applicative
 import           Control.DeepSeq
+import           Data.List.NonEmpty      (NonEmpty (..))
 import qualified Data.Map.Strict         as Map
 import qualified Data.Set                as Set
 import qualified Data.Text               as Text
@@ -144,37 +145,30 @@ mergePictures c x y =
                , imgExif        = exif
                }
 
+-- | Merges two directories of the same folder. The values derived
+-- from the images are left as they are (empty, for directories just
+-- built): 'finishFolder' computes them once all are merged.
 mergeFolders :: Config -> PicDir -> PicDir -> PicDir
 mergeFolders c x y =
   force $
   x { pdMainPath = pdMainPath bestMainPath
     , pdSecPaths = pdSecPaths x ++ pdMainPath otherMainPath:pdSecPaths y
     , pdImages = newimages
-    , pdTimeSort = buildTimeSort newimages
     , pdUntracked = newuntracked
-    , pdYear = min <$> pdYear x <*> pdYear y <|>
-               pdYear x <|>
-               pdYear y
-    , pdTimestamp = min <$> pdTimestamp x <*> pdTimestamp y <|>
-                    pdTimestamp x <|> pdTimestamp y
-    , pdExif = buildGroupExif newimages
-    -- Note: here we can't sum the stats from x and y, since their
-    -- merge can change an image's type, thus throwing off the stats
-    -- completely (e.g. in x is unprocessed, in y is standalone, in
-    -- x+y is processed).
-    , pdStats = stats
     -- FIXME: record error if we have duplicate event information
     , pdEvent = pickEvent (pdEvent x) (pdEvent y)
-                <|> implicitEventFromDateRange (pdName x) (sDateRange stats)
     }
   where
+    -- The main path is that of the directory with more pictures with
+    -- a master, then with more pictures.
     (bestMainPath, otherMainPath) =
-      case (compare `on` (\z -> (numRawPics z, numPics z))) x y of
+      case (compare `on` (\z -> (numMasters z, numPics z))) x y of
                                      GT -> (x, y)
                                      _  -> (y, x)
+    numMasters = Map.foldl' (\n img -> if isJust (imgRawPath img) then n + 1 else n)
+                            (0 :: Int) . pdImages
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     newuntracked = pdUntracked x ++ pdUntracked y
-    stats = addUntrackedFiles newuntracked (computeImagesStats newimages)
     pickEvent a b = explicitEvent a <|> explicitEvent b <|> a <|> b
     explicitEvent mev@(Just ev) =
       case eventSource ev of
@@ -190,9 +184,6 @@ addDirToRepo config dir =
 -- the Maybe type is not strict in its contained value.
 strictJust :: a -> Maybe a
 strictJust !a = Just a
-
-addImgs :: Config -> Map ImageName Image -> [Image] -> Map ImageName Image
-addImgs config = foldl' (addImg config)
 
 addImg :: Config -> Map ImageName Image -> Image -> Map ImageName Image
 addImg config m i = Map.insertWith (mergePictures config) (imgName i) i m
@@ -235,14 +226,14 @@ implicitEventFromDateRange name range = do
     then GrandVacationEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
     else GetawayEvent { eventName = name, eventPeople = [], eventSource = EventImplicit implicitDateRangeDesc }
 
--- | Classifies a scanned inode into an image and any range shadows.
+-- | Classifies a scanned inode into an image.
 loadImage :: Config
           -> ShortText           -- ^ Folder name.
           -> SymbolizedItem      -- ^ Parent directory path.
           -> Bool                -- ^ Whether the file comes from a source directory.
           -> Map Text EExif      -- ^ Exif cache keyed by inode full name.
           -> InodeInfo           -- ^ Filesystem inode to classify.
-          -> (Image, [Image])
+          -> Image
 loadImage config tname parent isSource lcache ii =
   let rawe = cfgRawExtsSet config
       side = cfgSidecarExts config
@@ -279,26 +270,19 @@ loadImage config tname parent isSource lcache ii =
       -- A movie is never a composite image (for now): its name is
       -- read as for the other files, but it has no range.
       range = if is_mov then Nothing else name_range
-      snames = maybe [] rangeNames range
       flags = Flags {
         flagsSoftMaster = isSoftMaster
         }
-      simgs = map (\expname ->
-                     mkImage config expname tname
-                             Nothing Nothing [file_obj] Nothing [] [] Nothing MediaImage emptyFlags
-                  ) snames
-      onlySidecar = isNothing raw_file && null jpeg_file && isJust sidecar_file
       mtype = if | is_mov     -> MediaMovie
                  | null untrk -> MediaImage
                  | otherwise  -> MediaUnknown
       untrk = case (raw_file, jpeg_file, sidecar_file, m_mov, p_mov) of
         (Nothing, [], Nothing, Nothing, []) -> [file_obj]
         _                                   -> []
-      img = force $
-        mkImage config (ImageName (TS.fromText base_name_text)) tname
-        raw_file sidecar_file jpeg_file m_mov p_mov
-        untrk range mtype flags
-  in (img, if onlySidecar then [] else simgs)
+  in force $
+       mkImage config (ImageName (TS.fromText base_name_text)) tname
+       raw_file sidecar_file jpeg_file m_mov p_mov
+       untrk range mtype flags
 
 -- | Builds a folder from already-scanned inodes and exif data.
 buildFolderFromInodes :: Config
@@ -314,70 +298,90 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
       dirpath = TS.fromString path
       parent = mkSymbolizedItem dirpath
       (known, otherFiles) = partition (isKnownMediaInode config) contents
-      -- A strict pair: with a lazy one, the maps would only be built
-      -- once the fold is done, from a chain of updates holding every
-      -- image still to be loaded.
-      StrictPair images shadows =
-        foldl' (\(StrictPair images' shadows') f ->
-                  let (img, newss) = loadImage config tname parent isSource lcache f
-                  in StrictPair (addImg config images' img) (addImgs config shadows' newss)
-               ) (StrictPair Map.empty Map.empty) known
+      images = foldl' (\images' f ->
+                         addImg config images' (loadImage config tname parent isSource lcache f)
+                      ) Map.empty known
       untracked = map (\ii -> mkFileFromInode parent ii def) otherFiles
-      -- The earliest date, evaluated at each step (not only down to
-      -- its Just).
-      timestamp = Map.foldl' (\a img ->
-                                case (a, imageLocalDate img) of
-                                  (Just x, Just y) -> Just $! min x y
-                                  (Nothing, d)     -> d
-                                  (_, Nothing)     -> a
-                             ) Nothing images
-      year = localDateToYear <$> timestamp
-      exif = buildGroupExif images
-      timesort = buildTimeSort images
-      pstats = addUntrackedFiles untracked (computeImagesStats images)
-      event = yamlEvent <|> implicitEventFromDateRange tname (sDateRange pstats)
+  -- The derived values are left empty: 'finishFolder' computes them,
+  -- once the folder's directories are merged.
   in PicDir { pdName = tname
             , pdMainPath = dirpath
             , pdSecPaths = []
             , pdImages = images
-            , pdTimeSort = timesort
-            , pdShadows = shadows
+            , pdTimeSort = Set.empty
             , pdUntracked = untracked
-            , pdYear = year
-            , pdTimestamp = timestamp
-            , pdExif = exif
-            , pdStats = pstats
-            , pdEvent = event }
+            , pdYear = Nothing
+            , pdTimestamp = Nothing
+            , pdExif = def
+            , pdStats = zeroStats
+            , pdEvent = yamlEvent }
 
-mergeShadows :: Config -> PicDir -> PicDir
-mergeShadows config picd =
-  let images' =
-        Map.foldlWithKey' (\imgs sname shadow ->
-                             Map.adjust (\i -> mergePictures config i shadow)
-                                sname imgs)
-             (pdImages picd) (pdShadows picd)
-  in picd { pdImages = images' }
+-- | Links the composite images of a folder to their components, by
+-- name: a composite image (an image with a range) lists the images of
+-- its range that exist, in order, and each of them lists the composite
+-- images covering it. A composite image is never linked as a
+-- component (with the sample regexes, a name can't be both, but the
+-- regexes can be changed).
+linkComposites :: Map ImageName Image -> Map ImageName Image
+linkComposites images =
+  Map.mapWithKey (\name img -> img { imgRole = role name }) images
+  where
+    composites = Map.mapMaybe (fmap (filter isComponent . rangeNames) . imgRange) images
+    isComponent name = maybe False (isNothing . imgRange) (Map.lookup name images)
+    -- In the order of the composite images' names.
+    coveredBy = Map.fromListWith (flip (<>))
+                  [ (component, composite :| [])
+                  | (composite, components) <- Map.toAscList composites
+                  , component <- components ]
+    role name =
+      case (Map.lookup name composites, Map.lookup name coveredBy) of
+        (Just components, _)  -> CompositeOf components
+        (Nothing, Just names) -> ComponentOf names
+        (Nothing, Nothing)    -> PlainImage
 
-maybeUpdateStandaloneRange :: Config -> PicDir -> Image -> Maybe Image
-maybeUpdateStandaloneRange config picd img = do
-  let iname = imgName img
-  begin <- headMay . rangeNames =<< imgRange img
-  _ <- if imgStatus img == ImageStandalone
-         then Just ()
-         else Nothing
-  root <- Map.lookup begin (pdImages picd)
-  _ <- imgRawPath root
-  return $ mkImage config iname (imgParent img) (imgRawPath root)
-           (imgSidecarPath img) (imgJpegPath img)
-           (imgMasterMov img) (imgMovs img) (imgUntracked img)
-           (imgRange img) (imgType img) (imgFlags img)
+-- | The status of an image once its folder's links are known. A
+-- component with a master and no output of its own counts as
+-- processed, as soon as a composite image covers it (even one
+-- without an output yet). A composite image without a master counts
+-- as processed when any of its components has a master, and stays
+-- standalone otherwise. Other images keep the status their files give.
+linkedStatus :: Map ImageName Image -> Image -> ImageStatus
+linkedStatus images img =
+  case (imgRole img, imgStatus img) of
+    (ComponentOf _, ImageUnprocessed) -> ImageProcessed
+    (CompositeOf components, ImageStandalone)
+      | any hasMaster components -> ImageProcessed
+    (_, status) -> status
+  where hasMaster name = maybe False (isJust . imgRawPath) (Map.lookup name images)
 
-resolveProcessedRanges :: Config -> PicDir -> PicDir
-resolveProcessedRanges config picd =
-  let images' =
-        Map.foldl' (\accimgs img ->
-                      case maybeUpdateStandaloneRange  config picd img of
-                        Nothing   -> accimgs
-                        Just img' -> Map.insert (imgName img') img' accimgs)
-             (pdImages picd) (pdImages picd)
-  in picd { pdImages = images' }
+-- | The earliest date among images, if any has one.
+earliestDate :: Map ImageName Image -> Maybe LocalTime
+earliestDate =
+  -- Evaluated at each step (not only down to its Just).
+  Map.foldl' (\a img ->
+                case (a, imageLocalDate img) of
+                  (Just x, Just y) -> Just $! min x y
+                  (Nothing, d)     -> d
+                  (_, Nothing)     -> a
+             ) Nothing
+
+-- | Finishes a folder, once all its directories are merged: links the
+-- composite images and their components, sets the statuses that
+-- depend on the links, and computes the values derived from the
+-- images, once, from the final images. Until then, these values are
+-- empty (see 'buildFolderFromInodes' and 'mergeFolders').
+finishFolder :: PicDir -> PicDir
+finishFolder dir =
+  let linked = linkComposites (pdImages dir)
+      images = Map.map (\img -> img { imgStatus = linkedStatus linked img }) linked
+      stats = addUntrackedFiles (pdUntracked dir) (computeImagesStats images)
+      timestamp = earliestDate images
+  in dir { pdImages = images
+         , pdTimeSort = buildTimeSort images
+         , pdYear = localDateToYear <$> timestamp
+         , pdTimestamp = timestamp
+         , pdExif = buildGroupExif images
+         , pdStats = stats
+         , pdEvent = pdEvent dir <|>
+                     implicitEventFromDateRange (pdName dir) (sDateRange stats)
+         }
