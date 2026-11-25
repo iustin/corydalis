@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { bootData, bootJSON } from './boot.ts';
 import { flagErrorMessage, sendFlag } from './flag.ts';
 import { type RequestEnv, getJSON, requestFailureMessage } from './http.ts';
-import { playFailureMessage } from './media.ts';
+import { LOAD_FAILURE_MESSAGE, playFailureMessage } from './media.ts';
 import {
   Cory,
   Dimensions,
@@ -877,6 +877,20 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
       video.onloadeddata = movieFrameAvailable;
       const source = document.createElement('source');
       source.setAttribute('src', info.movie);
+      // A failed load only fires this (see LOAD_FAILURE_MESSAGE).
+      source.addEventListener('error', () => {
+        if (cory.state.video !== video) {
+          // We already navigated away (which empties the source).
+          return;
+        }
+        console.error('Failed to load movie:', info.movie);
+        // Stop the pending play() (which then rejects with an
+        // AbortError, ignored), so that the state matches the icon.
+        video.pause();
+        moviePlaySpan.classList.remove('fa-pause');
+        moviePlaySpan.classList.add('fa-play');
+        writePersistent(LOAD_FAILURE_MESSAGE);
+      });
       video.appendChild(source);
       divMain.append(video);
       seekBar.disabled = true;

@@ -33,6 +33,7 @@ import {
   MOVIE_MESSAGE,
   type ViewInfo,
 } from './viewer-logic.ts';
+import { LOAD_FAILURE_MESSAGE } from './media.ts';
 
 const BASE = 'https://cory.example';
 
@@ -1329,6 +1330,28 @@ describe('movies', () => {
     assert.ok(playIcon(v).contains('fa-play'));
     assert.match(v.persistent() ?? '', /allow/);
     assert.equal(mock.callCount(), 1);
+  });
+
+  it('says when the movie fails to load', (t) => {
+    const mock = errors(t);
+    const v = movie();
+    v.key('p');
+    v.video.querySelector('source')!.dispatchEvent(new v.win.Event('error'));
+    assert.equal(v.media(v.video).paused, true);
+    assert.ok(playIcon(v).contains('fa-play'));
+    assert.equal(v.persistent(), LOAD_FAILURE_MESSAGE);
+    assert.equal(mock.callCount(), 1);
+  });
+
+  it('ignores load failures after moving to another image', (t) => {
+    const mock = errors(t);
+    const v = movie();
+    const source = v.video.querySelector('source')!;
+    v.load(v.imageFor(`${BASE}/bytes/n?`));
+    v.key('ArrowRight');
+    source.dispatchEvent(new v.win.Event('error'));
+    assert.equal(v.persistent(), '');
+    assert.equal(mock.callCount(), 0);
   });
 
   it('says nothing for interrupted plays', async (t) => {

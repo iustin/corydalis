@@ -39,3 +39,14 @@ export function playFailureMessage(err: unknown): string | null {
   const detail = err instanceof Error ? err.message : String(err);
   return `Cannot play the movie: ${detail}`;
 }
+
+/**
+ * The message to show when the movie itself can't be loaded (e.g. the
+ * server answers with an error).
+ *
+ * The movie's URL is on a `<source>` child of the video element, and
+ * when that fails, the browser only fires an `error` event on the source
+ * element: `play()` neither resolves nor rejects, as the element waits
+ * for another source to be added.
+ */
+export const LOAD_FAILURE_MESSAGE = 'The movie could not be loaded.';
