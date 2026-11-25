@@ -41,6 +41,19 @@ import           Import
 import           Repository
 import           Repository.Names    (rangeName)
 
+-- | How many names the image page lists, at most, for the components
+-- of a composite image or the composite images covering a component.
+linkListCap :: Int
+linkListCap = 10
+
+-- | The names of a list shown on the image page: the first
+-- 'linkListCap' ones, each with whether it is the last one shown (to
+-- separate them), and how many more there are.
+cappedList :: [a] -> ([(a, Bool)], Int)
+cappedList xs =
+  let (firstNames, rest) = splitAt linkListCap xs
+  in (zip firstNames [i == length firstNames | i <- [1..]], length rest)
+
 getImageR :: ShortText -> ImageName -> Handler Html
 getImageR folder iname = do
   dir <- getFolder folder
@@ -55,6 +68,19 @@ getImageR folder iname = do
                  else "(none)"
       lens = exifLens exif
       exif = imgExif img
+      -- The names of a composite image's range, each with whether it
+      -- exists, i.e. is a component; or the composite images covering
+      -- a component.
+      (rangeShown, rangeMore) =
+        case imgRole img of
+          CompositeOf components ->
+            cappedList [ (name, name `elem` components)
+                       | name <- maybe [] rangeNames (imgRange img) ]
+          _ -> ([], 0)
+      (coveringShown, coveringMore) =
+        case imgRole img of
+          ComponentOf composites -> cappedList (toList composites)
+          _                      -> ([], 0)
   defaultLayout $ do
     setHtmlTitle $ "image " <> TS.toText folder <> "/" <> (TS.toText . unImageName . imgName $ img)
     $(widgetFile "image")
