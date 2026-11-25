@@ -70,6 +70,9 @@
 - Two scans started at the same time (e.g. two rescan requests, or the
   first requests at startup without a cache) could leave the status at
   "starting", with no scan running, until the next rescan.
+- A failed scan is now logged, with its error; before, the error was
+  only shown on the status page, and was lost if a newer scan had
+  started meanwhile.
 - The copy and range regexes are now matched against the file name
   only, not against its path relative to the folder: previously, a
   picture in a sub-directory whose name the regex matched (e.g.

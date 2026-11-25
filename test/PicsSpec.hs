@@ -2229,6 +2229,39 @@ spec = parallel $ do
         repo' <- getRepo ctx
         errorMessage repo' >>= (`shouldSatisfy` ("scan exploded" `isInfixOf`))
         repoSerial repo' `shouldBe` serial
+      -- A context logging into a list, the latest message first.
+      let withLogs ctx0 = do
+            logs <- newIORef []
+            let logfn level msg = atomicModifyIORef' logs (\l -> ((level, fromLogStr msg):l, ()))
+            ctx <- atomically $
+              initContext (ctxConfig ctx0) logfn (ctxRenderToolLimits ctx0)
+                (ctxScanToolLimits ctx0)
+            return (ctx, readIORef logs)
+          loggedErrors = map snd . filter ((== LevelError) . fst)
+      it "logs scan failures" $ \ctx0 -> do
+        (ctx, logged) <- withLogs ctx0
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        _ <- runScanAction ctx serial (throwString "scan exploded")
+        errors <- loggedErrors <$> logged
+        errors `shouldSatisfy` any (\m -> "scan exploded" `BS.isInfixOf` m &&
+                                         ("Scan " <> fromString (show serial)) `BS.isInfixOf` m)
+      it "logs the failure of a superseded scan, which it can't record" $ \ctx0 -> do
+        (ctx, logged) <- withLogs ctx0
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        _ <- atomically $ newRepo (ctxRepo ctx)
+        runScanAction ctx serial (throwString "scan exploded")
+          `shouldThrow` isOwnershipAbort
+        errors <- loggedErrors <$> logged
+        errors `shouldSatisfy` any ("scan exploded" `BS.isInfixOf`)
+      it "doesn't log a superseded scan as failed" $ \ctx0 -> do
+        (ctx, logged) <- withLogs ctx0
+        serial <- atomically $ newRepo (ctxRepo ctx)
+        repo <- getRepo ctx
+        _ <- atomically $ newRepo (ctxRepo ctx)
+        -- Stops at its first check of the repository's ownership.
+        runScanAction ctx serial (forceBuildThumbCaches ctx repo >> getRepo ctx)
+          `shouldThrow` isOwnershipAbort
+        loggedErrors <$> logged `shouldReturn` []
       it "keeps the previous data when a scan fails before publishing" $ \ctx -> do
         setFolders ctx ["previous"]
         serial <- atomically $ newRepo (ctxRepo ctx)
