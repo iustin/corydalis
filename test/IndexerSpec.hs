@@ -81,16 +81,6 @@ mkImg name parent exif =
         , imgFlags = def
         }
 
-picDirWith :: ShortText -> [Image] -> PicDir
-picDirWith name images =
-  let imgMap = Map.fromList [(imgName i, i) | i <- images]
-  in (createTestPicDir name)
-       { pdImages = imgMap
-       , pdTimeSort = buildTimeSort imgMap
-       , pdStats = computeImagesStats imgMap
-       , pdExif = buildGroupExif imgMap
-       }
-
 testRepo :: [PicDir] -> Repository
 testRepo dirs = mkRepository $ Map.fromList [(pdName d, d) | d <- dirs]
 

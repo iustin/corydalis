@@ -51,7 +51,8 @@ import           Repository                     (File (..), Image (..),
 import           Repository.Build               (addDirToRepo)
 import           Repository.Scan                (launchScanFileSystem, scanAll,
                                                  waitForScan)
-import           Repository.State               (Ctx, initContext)
+import           Repository.State               (Ctx, getRepo,
+                                                 initContext)
 import           Test.Hspec                     as X
 import           Test.Hspec.Expectations.Lifted as THL (shouldSatisfy)
 import           Test.Hspec.QuickCheck          as X
@@ -78,6 +79,7 @@ import           Data.Time                      (LocalTime (..),
 import qualified Data.Text.Short                as TS
 import           Formatting
 import           Network.Wai.Test               (simpleHeaders)
+import           System.Posix.Types             (FileOffset)
 import           Control.Concurrent.STM.TSem    (waitTSem)
 import           GHC.Conc                       (BlockReason (..),
                                                  ThreadId, ThreadStatus (..),
@@ -666,3 +668,88 @@ shouldBeLeftWithMessage actual expected  = case actual of
     expectationFailure ("Expected Left with message: " ++ show expected ++ ", but got: " ++ show msg)
   Right val ->
     expectationFailure ("Expected Left with message: " ++ show expected ++ ", but got Right: " ++ show val)
+
+-- * Helpers for the repository and preview tests
+
+picDirWith :: ShortText -> [Image] -> PicDir
+picDirWith name images =
+  let imgMap = Map.fromList [(imgName i, i) | i <- images]
+  in (createTestPicDir name)
+       { pdImages = imgMap
+       , pdTimeSort = buildTimeSort imgMap
+       , pdStats = computeImagesStats imgMap
+       , pdExif = buildGroupExif imgMap
+       }
+
+fileSized :: Text -> FileOffset -> File
+fileSized name sz = (simpleFile name) { fileSize = sz }
+
+-- | Uses unanchored copy and range regexes (as in older sample
+-- settings), which also match across directory names: these check that
+-- only the file name is matched.
+withUnanchoredNameRegexes :: Config -> Config
+withUnanchoredNameRegexes config =
+  config
+    { cfgRangeRegex = fromMaybe (error "Invalid range regex") $
+        mkRegex "(.*_)([0-9]+)-([0-9]+)"
+    , cfgCopyRegex = fromMaybe (error "Invalid copy regex") $
+        mkRegex "(.*)(-([0-9]|Edit))"
+    }
+
+datedExif :: Integer -> Int -> Int -> Exif
+datedExif y m d =
+  def { exifCreateDate = Just (ExifTime (ZonedTime (LocalTime (fromGregorian y m d) midnight) utc)) }
+
+sourceDir :: Ctx -> FilePath
+sourceDir ctx =
+  fromMaybe (error "No source directory") (headMay $ cfgSourceDirs $ ctxConfig ctx)
+
+outputDir :: Ctx -> FilePath
+outputDir ctx =
+  fromMaybe (error "No output directory") (headMay $ cfgOutputDirs $ ctxConfig ctx)
+
+jpegFile :: Ctx -> File
+jpegFile ctx =
+  (simpleFile "a.jpg")
+    { fileParent = mkSym (pack $ outputDir ctx)
+    }
+
+insertJpeg :: Ctx -> File -> IO (Repository, Image)
+insertJpeg ctx jpeg = do
+  repo <- getRepo ctx
+  let config = ctxConfig ctx
+      img = mkImage config "a" "folder" Nothing Nothing [jpeg] Nothing [] [] Nothing MediaImage def
+      dirs = addImageToRepo config (repoDirs repo) img
+      repo' = repo { repoDirs = dirs
+                   , repoStats = computeRepoStats dirs
+                   , repoExif = repoGlobalExif dirs
+                   }
+  atomically $ writeTVar (ctxRepo ctx) repo'
+  return (repo', img)
+
+autoSizeList :: Ctx -> [Int]
+autoSizeList = Set.toList . cfgAutoImageSizes . ctxConfig
+
+-- | A time limit for tests that could block if they fail, so that they
+-- fail instead of blocking the test suite: only a last resort, not how
+-- the tests synchronise.
+lastResort :: Int
+lastResort = 30 * 1000000
+
+-- | Runs convert to create a test image, without the application's
+-- policy, which doesn't allow e.g. creating images from a colour.
+convertTestImage :: [String] -> IO ()
+convertTestImage args = do
+  (code, _, err) <- readProcess (proc "convert" args)
+  unless (code == ExitSuccess) $
+    expectationFailure ("Failed to create test image: " ++ show err)
+
+-- | Writes a real JPEG image, using ImageMagick.
+writeRealJpeg :: FilePath -> IO ()
+writeRealJpeg path = convertTestImage ["-size", "8x8", "xc:white", "jpeg:" ++ path]
+
+-- | Writes a non-empty file, creating its directory if needed.
+writeNonEmpty :: FilePath -> IO ()
+writeNonEmpty path = do
+  createDirectoryIfMissing True (takeDirectory path)
+  writeFile path ("x" :: ByteString)
