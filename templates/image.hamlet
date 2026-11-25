@@ -26,13 +26,15 @@ $# expected grid size, so it's important to allow overflow-break.
           <td>Flag image for review
           <td>
             ^{imageFlagActions (imgParent img) (imgName img) True}
-        $maybe (begin, end) <- imgRange img
+        $maybe range <- imgRange img
           <tr>
            <td>Image is a composition based on
            <td>
-             <a href=@{ImageR (imgParent img) begin}>#{begin}
+             $with begin <- rangeName range (irFirst range)
+               <a href=@{ImageR (imgParent img) begin}>#{begin}
              to
-             <a href=@{ImageR (imgParent img) end}>#{end}
+             $with end <- rangeName range (irLast range)
+               <a href=@{ImageR (imgParent img) end}>#{end}
         <tr>
           <td>Type
           <td>#{show $ imgType img}

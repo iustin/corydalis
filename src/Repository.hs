@@ -39,6 +39,7 @@ module Repository
   , Flags(..)
   , emptyFlags
   , MediaType(..)
+  , ImageRange(..)
   , Image(..)
   , InodeInfo(..)
   , inodeFullName
@@ -223,6 +224,26 @@ instance Store MediaType
 instance NFData MediaType where
   rnf = rwhnf
 
+-- | The range in a composite image's name, as the range regex reads
+-- it: @d_01-03@ has the root @d_@, the numbers 1 and 3, padded to two
+-- digits. The root includes the directory part of the name, for a
+-- picture in a sub-directory of its folder.
+--
+-- The last number is below the first for a camera counter that
+-- wrapped (see 'Repository.Names.parseImageName'): @dsc_9998-0002@
+-- runs up to 9999, then from 1.
+data ImageRange = ImageRange
+  { irRoot  :: !ShortText
+  , irFirst :: !Int
+  , irLast  :: !Int
+  , irWidth :: !Int  -- ^ The width the numbers are padded to.
+  } deriving (Show, Eq, Generic, Data)
+
+instance Store ImageRange
+
+instance NFData ImageRange where
+  rnf = rwhnf
+
 data Image = Image
     { imgName        :: !ImageName
     , imgParent      :: !ShortText
@@ -232,7 +253,7 @@ data Image = Image
     , imgMasterMov   :: !(Maybe File)
     , imgMovs        :: ![File]
     , imgUntracked   :: ![File]
-    , imgRange       :: !(Maybe (ImageName, ImageName))
+    , imgRange       :: !(Maybe ImageRange)
     , imgExif        :: !Exif
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
@@ -340,7 +361,7 @@ mkImage :: Config
         -> Maybe File         -- ^ Master movie
         -> [File]             -- ^ Movies
         -> [File]             -- ^ Untracked files
-        -> Maybe (ImageName, ImageName) -- ^ Range
+        -> Maybe ImageRange   -- ^ Range
         -> MediaType          -- ^ Media type
         -> Flags              -- ^ Flags
         -> Image
@@ -858,4 +879,4 @@ type CachedRepo = (CacheRevision, Config, Repository)
 -- It is defined here, not in "Repository.Encoding", because a value
 -- used at compile time can't come from the module that uses it.
 repoCacheVersion :: VersionConfig CachedRepo
-repoCacheVersion = hashedVersionConfig "YVU-vHGq7A9KetTAELp64BzOibo="
+repoCacheVersion = hashedVersionConfig "yCrY6AX3IqRuWm8J0_pv8_RU9nU="

@@ -39,6 +39,7 @@ import           Handler.Utils
 import           Handler.Widgets
 import           Import
 import           Repository
+import           Repository.Names    (rangeName)
 
 getImageR :: ShortText -> ImageName -> Handler Html
 getImageR folder iname = do
