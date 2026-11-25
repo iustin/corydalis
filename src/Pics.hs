@@ -1782,15 +1782,29 @@ waitForScan ctx = atomically $ do
 
 launchScanFileSystem :: Ctx -> IO ()
 launchScanFileSystem ctx = do
-  -- The cleanup only covers starting and registering the new scanner:
-  -- once the scanner runs, the status is its own to set, and a failure
-  -- while cancelling the previous one must not overwrite it.
-  previous <- bracketOnError
-    (atomically $ newRepo rc)
-    (\serial -> updateRepoStatus ctx serial (RepoError "unknown"))
-    $ \serial -> do
-      newscanner <- async (scanFSWrapper ctx serial)
-      atomically $ swapTVar scannerThread (Just newscanner)
+  -- The new serial is taken and the new scanner registered in a single
+  -- transaction, so that the registered scanner is always the one
+  -- owning the repository: with two separate steps, two launches at
+  -- the same time could each take a serial, and then register their
+  -- scanners in the other order, the later serial's scanner being
+  -- cancelled by the other launch, and the earlier one failing as it
+  -- no longer owns the repository; the status was then left at
+  -- "starting", with no scan running.
+  --
+  -- The scanner is therefore started first, waiting for its serial.
+  -- Asynchronous exceptions are masked until it is registered (neither
+  -- starting a thread nor a transaction that doesn't wait can be
+  -- interrupted), so that it can't be lost; the scanner itself runs
+  -- unmasked. If registering it fails, nothing was changed, and the
+  -- scanner, which hasn't started, is stopped.
+  previous <- mask_ $ do
+    serialVar <- newEmptyTMVarIO
+    newscanner <- asyncWithUnmask $ \unmask ->
+      unmask $ atomically (takeTMVar serialVar) >>= scanFSWrapper ctx
+    atomically (do serial <- newRepo rc
+                   putTMVar serialVar serial
+                   swapTVar scannerThread (Just newscanner))
+      `onException` uninterruptibleCancel newscanner
   forM_ previous $ \t -> do
     logfn LevelInfo "Cancelling previous scanner"
     cancel t
