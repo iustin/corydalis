@@ -86,11 +86,11 @@
   - The image page links a composite image to its components, and a
     component to the composite images covering it.
   - Names are read by their numbers: a name is a range when its last
-    number is not below the first (or it is a camera counter that
-    wrapped, e.g. `dsc_9998-0002`); otherwise the copy suffix is
-    removed as before. So `x_1-3` is now a composite image of `x_1`
-    to `x_3`, not a copy of `x_1`, while `dsc_1920-2` stays a copy of
-    `dsc_1920`.
+    number is not below the first and has at least as many digits
+    (or it is a camera counter that wrapped, e.g. `dsc_9998-0002`);
+    otherwise the copy suffix is removed as before. So `x_1-3` is now
+    a composite image of `x_1` to `x_3`, not a copy of `x_1`, while
+    `dsc_1920-2` and `dsc_0001-2` stay copies.
   - The most names a range can have is now the `maxrangesize` setting
     (1024 by default, as before).
   - A lone sidecar named like a range (e.g. `d_01-03.xmp`, left over

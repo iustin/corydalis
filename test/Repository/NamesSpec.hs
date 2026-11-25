@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Repository.NamesSpec (spec) where
 
+import qualified Data.Text.Short  as TS
+
 import           Repository          (ImageRange (..))
 import           Repository.Names
 import           TestImport
@@ -85,6 +87,12 @@ spec = parallel $ do
         fmap rangeSize (snd $ parseImageName config "dsc_9998-0002") `shouldBe` Just 4
       it "decides between a copy and a range by the two numbers" $ \config -> do
         parseImageName config "dsc_1920-2" `shouldBe` ("dsc_1920", Nothing)
+        -- A last number shorter than the first is a copy suffix,
+        -- whatever its value.
+        parseImageName config "dsc_0001-2" `shouldBe` ("dsc_0001", Nothing)
+        parseImageName config "dsc_0005-7" `shouldBe` ("dsc_0005", Nothing)
+        parseImageName config "d_098-99" `shouldBe` ("d_098-99", Nothing)
+        rangeNamesOf config "d_1-10" `shouldBe` map (ImageName . TS.fromString . ("d_" <>) . show) [1 .. 10 :: Int]
         fst (parseImageName config "dsc_1920-1925") `shouldBe` "dsc_1920-1925"
         rangeNamesOf config "dsc_1920-1925" `shouldBe`
           ["dsc_1920", "dsc_1921", "dsc_1922", "dsc_1923", "dsc_1924", "dsc_1925"]
