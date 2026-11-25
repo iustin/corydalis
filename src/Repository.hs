@@ -40,6 +40,7 @@ module Repository
   , emptyFlags
   , MediaType(..)
   , ImageRange(..)
+  , ImageRole(..)
   , Image(..)
   , InodeInfo(..)
   , inodeFullName
@@ -107,6 +108,7 @@ module Repository
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Data               (Data)
+import           Data.List.NonEmpty      (NonEmpty)
 import qualified Data.Foldable
 import qualified Data.Map.Strict         as Map
 import           Data.Semigroup
@@ -244,6 +246,27 @@ instance Store ImageRange
 instance NFData ImageRange where
   rnf = rwhnf
 
+-- | How an image relates to composite images, as linked by name in
+-- its folder: a composite image lists its components, and a component
+-- lists the composite images that cover it. An image is never both: a
+-- composite image is never linked as another one's component.
+data ImageRole
+  = PlainImage
+    -- ^ Neither a composite image nor a component.
+  | CompositeOf ![ImageName]
+    -- ^ A composite image (an image with a range), with the components
+    -- that exist in its folder, in the order of its range (maybe none).
+  | ComponentOf !(NonEmpty ImageName)
+    -- ^ A component of the composite images listed.
+  deriving (Show, Eq, Generic, Data)
+
+instance Store ImageRole
+
+instance NFData ImageRole where
+  rnf PlainImage       = ()
+  rnf (CompositeOf ns) = rnf ns
+  rnf (ComponentOf ns) = rnf ns
+
 data Image = Image
     { imgName        :: !ImageName
     , imgParent      :: !ShortText
@@ -254,6 +277,8 @@ data Image = Image
     , imgMovs        :: ![File]
     , imgUntracked   :: ![File]
     , imgRange       :: !(Maybe ImageRange)
+    , imgRole        :: !ImageRole  -- ^ Only set once its folder is
+                                    -- finished ('PlainImage' before).
     , imgExif        :: !Exif
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
@@ -272,6 +297,7 @@ instance NFData Image where
                   rnf imgMovs        `seq`
                   rnf imgUntracked   `seq`
                   rnf imgRange       `seq`
+                  rnf imgRole        `seq`
                   rnf imgExif        `seq`
                   rnf imgType        `seq`
                   rnf imgStatus      `seq`
@@ -374,15 +400,19 @@ mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
                (map fileExif jpegs)
                (fileExif <$> mmov)
                (map fileExif movs)
-  in Image name parent raw sidecar jpegs mmov movs untrk range exif mtype status
+  in Image name parent raw sidecar jpegs mmov movs untrk range PlainImage exif mtype status
 
+-- | A picture folder. The values derived from its images (the time
+-- index, year, first date, group exif, stats, and the implicit event)
+-- are computed once all its directories are merged, by
+-- 'Repository.Build.finishFolder'; until then they are empty, and the
+-- event is only the one from the folder's @corydalis.yaml@, if any.
 data PicDir = PicDir
   { pdName      :: !ShortText
   , pdMainPath  :: !ShortText
   , pdSecPaths  :: ![ShortText]
   , pdImages    :: !(Map ImageName Image)
   , pdTimeSort  :: !(Set ImageTimeKey)
-  , pdShadows   :: !(Map ImageName Image)
   , pdUntracked :: ![File]           -- ^ Files of unknown type, not treated as images.
   , pdYear      :: !(Maybe Integer)  -- ^ The approximate year of the
                                      -- earliest picture.
@@ -401,7 +431,6 @@ instance NFData PicDir where
                    rnf pdSecPaths  `seq`
                    rnf pdImages    `seq`
                    rnf pdTimeSort  `seq`
-                   rnf pdShadows   `seq`
                    rnf pdUntracked `seq`
                    rnf pdYear      `seq`
                    rnf pdTimestamp `seq`
@@ -879,4 +908,4 @@ type CachedRepo = (CacheRevision, Config, Repository)
 -- It is defined here, not in "Repository.Encoding", because a value
 -- used at compile time can't come from the module that uses it.
 repoCacheVersion :: VersionConfig CachedRepo
-repoCacheVersion = hashedVersionConfig "yCrY6AX3IqRuWm8J0_pv8_RU9nU="
+repoCacheVersion = hashedVersionConfig "nG_riv0nGzXQbYzz6UqtMDraQgM="

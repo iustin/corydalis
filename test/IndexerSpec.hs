@@ -78,6 +78,7 @@ mkImg name parent exif =
         , imgMovs = []
         , imgUntracked = []
         , imgRange = Nothing
+        , imgRole = PlainImage
         , imgFlags = def
         }
 
@@ -359,6 +360,7 @@ spec = parallel $ do
                       , imgMovs = []
                       , imgUntracked = []
                       , imgRange = Nothing
+                      , imgRole = PlainImage
                       , imgFlags = def
                       }
 

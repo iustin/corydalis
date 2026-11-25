@@ -23,24 +23,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Repository.BuildSpec (spec) where
 
 import           Data.Default
+import           Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Map         as Map
 import qualified Data.Set         as Set
+import qualified Data.Text.Short  as TS
 import           Data.Time (LocalTime (..), midnight)
 
 import           AtomTypes
 import           Exif
+import           Pics              (imageViewSource)
 import           Repository
 import           Repository.Build
+import           System.Posix.Types (FileOffset)
 import           TestImport
 
 parentSym :: SymbolizedItem
 parentSym = mkSym "/pics/folder"
 
-runLoad :: Config -> Bool -> InodeInfo -> (Image, [Image])
+runLoad :: Config -> Bool -> InodeInfo -> Image
 runLoad config isSource =
   loadImage config "folder" parentSym isSource Map.empty
 
-runLoadExif :: Config -> Bool -> InodeInfo -> Map Text EExif -> (Image, [Image])
+runLoadExif :: Config -> Bool -> InodeInfo -> Map Text EExif -> Image
 runLoadExif config isSource ii cache =
   loadImage config "folder" parentSym isSource cache ii
 
@@ -52,6 +56,31 @@ withProdNameRegexes config =
     , cfgCopyRegex = fromMaybe (cfgCopyRegex config) $
         mkRegex "^(.*)(-(close_view|copy_|publish|published|aspect_change))$"
     }
+
+-- | The directories of a folder named "f", built as a scan does, from
+-- the files (name and size) of its source and output directories.
+compositeDirs :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> [PicDir]
+compositeDirs config srcs outs =
+  let mk isSrc i files =
+        buildFolderFromInodes config "f"
+          ((if isSrc then "/src" else "/out") <> show (i :: Int) <> "/f") isSrc
+          (map (\(n, size) -> (mkInode n) { inodeSize = size }) files) Map.empty Nothing
+  in zipWith (mk True) [1..] srcs ++ zipWith (mk False) [1..] outs
+
+-- | The finished folder "f" (see 'compositeDirs').
+compositeFolder :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> PicDir
+compositeFolder config srcs outs =
+  finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirs config srcs outs) Map.! "f"
+
+-- | A folder's stored counts: unprocessed, standalone, processed and
+-- movies.
+folderCounts :: PicDir -> (Int, Int, Int, Int)
+folderCounts dir = let s = pdStats dir in (sRaw s, sStandalone s, sProcessed s, sMovies s)
+
+-- | A folder's stored sizes: raw, processed, standalone and movies.
+folderSizes :: PicDir -> (FileOffset, FileOffset, FileOffset, FileOffset)
+folderSizes dir =
+  let s = pdStats dir in (sRawSize s, sProcSize s, sStandaloneSize s, sMovieSize s)
 
 spec :: Spec
 spec = parallel $ do
@@ -123,75 +152,73 @@ spec = parallel $ do
 
     describe "loadImage" $ do
       it "treats a source raw as unprocessed" $ \config -> do
-        let (img, shadows) = runLoad config True (mkInode "a.nef")
+        let img = runLoad config True (mkInode "a.nef")
         imgName img `shouldBe` "a"
         imgStatus img `shouldBe` ImageUnprocessed
         imgType img `shouldBe` MediaImage
         isJust (imgRawPath img) `shouldBe` True
-        shadows `shouldBe` []
       it "treats an output jpeg as standalone" $ \config -> do
-        let (img, _) = runLoad config False (mkInode "a.jpg")
+        let img = runLoad config False (mkInode "a.jpg")
         imgStatus img `shouldBe` ImageStandalone
         null (imgJpegPath img) `shouldBe` False
         isNothing (imgRawPath img) `shouldBe` True
       it "treats a source jpeg as a soft master" $ \config -> do
-        let (img, _) = runLoad config True (mkInode "a.jpg")
+        let img = runLoad config True (mkInode "a.jpg")
         flagsSoftMaster (imgFlags img) `shouldBe` True
         isJust (imgRawPath img) `shouldBe` True
         imgJpegPath img `shouldBe` []
         imgStatus img `shouldBe` ImageUnprocessed
-      it "treats a sidecar-only file as orphaned without shadows" $ \config -> do
-        let (img, shadows) = runLoad config False (mkInode "a.xmp")
+      it "treats a sidecar-only file as orphaned" $ \config -> do
+        let img = runLoad config False (mkInode "a.xmp")
         imgStatus img `shouldBe` ImageOrphaned
         isJust (imgSidecarPath img) `shouldBe` True
-        shadows `shouldBe` []
       it "classifies source movies as master movies" $ \config -> do
-        let (img, _) = runLoad config True (mkInode "clip.mov")
+        let img = runLoad config True (mkInode "clip.mov")
         imgType img `shouldBe` MediaMovie
         isJust (imgMasterMov img) `shouldBe` True
         imgMovs img `shouldBe` []
       it "classifies output movies as processed movies" $ \config -> do
-        let (img, _) = runLoad config False (mkInode "clip.mp4")
+        let img = runLoad config False (mkInode "clip.mp4")
         imgType img `shouldBe` MediaMovie
         imgMasterMov img `shouldBe` Nothing
         null (imgMovs img) `shouldBe` False
       it "classifies unknown extensions as untracked" $ \config -> do
-        let (img, _) = runLoad config True (mkInode "notes.other")
+        let img = runLoad config True (mkInode "notes.other")
         imgType img `shouldBe` MediaUnknown
         null (imgUntracked img) `shouldBe` False
       it "classifies extensionless files as untracked" $ \config -> do
-        let (img, _) = runLoad config True (mkInode "SHA1SUMS")
+        let img = runLoad config True (mkInode "SHA1SUMS")
         imgType img `shouldBe` MediaUnknown
         null (imgUntracked img) `shouldBe` False
-      it "expands range jpegs into shadows" $ \config -> do
-        let (img, shadows) = runLoad (withProdNameRegexes config) False (mkInode "a_1-3.jpg")
+      it "reads the range of a range jpeg, as one image" $ \config -> do
+        let img = runLoad (withProdNameRegexes config) False (mkInode "a_1-3.jpg")
         imgName img `shouldBe` "a_1-3"
         imgRange img `shouldBe` Just (ImageRange "a_" 1 3 1)
-        map imgName shadows `shouldBe` ["a_1", "a_2", "a_3"]
+        -- Linked only when the folder is finished.
+        imgRole img `shouldBe` PlainImage
       it "gives a movie named like a range no range" $ \config -> do
-        let (img, shadows) = runLoad config False (mkInode "a_1-3.mov")
+        let img = runLoad config False (mkInode "a_1-3.mov")
         imgName img `shouldBe` "a_1-3"
         imgRange img `shouldBe` Nothing
-        map imgName shadows `shouldBe` []
       it "drops copy suffixes from the image name" $ \config -> do
-        let (img, _) = runLoad config True (mkInode "foo-1.nef")
+        let img = runLoad config True (mkInode "foo-1.nef")
         imgName img `shouldBe` "foo"
       it "warns when exif is missing from the cache" $ \config -> do
-        let (img, _) = runLoad config True (mkInode "a.nef")
+        let img = runLoad config True (mkInode "a.nef")
         imgProblems img `shouldBe` Set.singleton "exif: Internal error: exif not read"
       it "warns when exif reading failed" $ \config -> do
         let cache = Map.singleton "a.nef" (Left "boom")
-            (img, _) = runLoadExif config True (mkInode "a.nef") cache
+            img = runLoadExif config True (mkInode "a.nef") cache
         imgProblems img `shouldBe` Set.singleton "exif: Cannot read exif: boom"
       it "attaches a successful exif entry" $ \config -> do
         let ex = datedExif 2021 3 4
             cache = Map.singleton "a.nef" (Right ex)
-            (img, _) = runLoadExif config True (mkInode "a.nef") cache
+            img = runLoadExif config True (mkInode "a.nef") cache
         imageYear img `shouldBe` Just 2021
         imageYearMonth img `shouldBe` Just (2021, 3)
       it "classifies nested inodes as raw with relative dirs" $ \config -> do
         let ii = (mkInode "a.nef") { inodeDirs = ["sub"] }
-            (img, _) = runLoad config True ii
+            img = runLoad config True ii
         imgName img `shouldBe` "sub/a"
         fileRelPath <$> imgRawPath img `shouldBe` Just "sub/a.nef"
 
@@ -210,7 +237,7 @@ spec = parallel $ do
         let e1 = datedExif 2024 6 1
             e2 = datedExif 2024 6 5
             cache = Map.fromList [("a.nef", Right e1), ("b.nef", Right e2)]
-            folder = buildFolderFromInodes config "folder" "/p" True
+            folder = finishFolder $ buildFolderFromInodes config "folder" "/p" True
                        [mkInode "a.nef", mkInode "b.nef"] cache Nothing
         extractEventType (pdEvent folder) `shouldBe` EKGetaway
       it "dates a folder by its earliest dated image" $ \config -> do
@@ -220,12 +247,12 @@ spec = parallel $ do
                                  ]
             -- With undated images before, between and after.
             names = ["0.nef", "a.nef", "b.nef", "c.nef", "d.nef", "e.nef", "f.nef"]
-            folder = buildFolderFromInodes config "folder" "/p" True
+            folder = finishFolder $ buildFolderFromInodes config "folder" "/p" True
                        (map mkInode names) cache Nothing
         Map.size (pdImages folder) `shouldBe` length names
         pdTimestamp folder `shouldBe` Just (LocalTime (fromGregorian 2024 6 1) midnight)
         pdYear folder `shouldBe` Just 2024
-        let undated = buildFolderFromInodes config "folder" "/p" True
+        let undated = finishFolder $ buildFolderFromInodes config "folder" "/p" True
                         [mkInode "a.nef"] Map.empty Nothing
         pdTimestamp undated `shouldBe` Nothing
       it "keeps unknown and extensionless files out of the image map" $ \config -> do
@@ -237,7 +264,7 @@ spec = parallel $ do
               , ("SHA1SUMS", Right eOther)
               , ("corydalis.yaml", Right eOther)
               ]
-            folder = buildFolderFromInodes config "folder" "/p" True
+            folder = finishFolder $ buildFolderFromInodes config "folder" "/p" True
                        [ mkInode "a.nef"
                        , mkInode "notes.other"
                        , mkInode "SHA1SUMS"
@@ -300,10 +327,10 @@ spec = parallel $ do
             merged = mergeFolders config d1 d2
         pdMainPath merged `shouldBe` "/raw/trip"
         pdSecPaths merged `shouldContain` ["/jpg/trip"]
-      it "recomputes stats after raw and jpeg of the same image merge" $ \config -> do
+      it "counts raw and jpeg of the same image as one processed image" $ \config -> do
         let raw = simpleRawImage config
             jpegImg = mkImage config "a" "test" Nothing Nothing [simpleFile "a.jpg"] Nothing [] [] Nothing MediaImage def
-            merged = mergeFolders config (picDirWith "test" [raw]) (picDirWith "test" [jpegImg])
+            merged = finishFolder $ mergeFolders config (picDirWith "test" [raw]) (picDirWith "test" [jpegImg])
         imgStatus (pdImages merged Map.! "a") `shouldBe` ImageProcessed
         sProcessed (pdStats merged) `shouldBe` 1
         sRaw (pdStats merged) `shouldBe` 0
@@ -313,47 +340,117 @@ spec = parallel $ do
                    { pdUntracked = [fileSized "SHA1SUMS" 10] }
             d2 = (createTestPicDir "test")
                    { pdUntracked = [fileSized "notes.other" 7] }
-            merged = mergeFolders config d1 d2
+            merged = finishFolder $ mergeFolders config d1 d2
         map fileName (pdUntracked merged) `shouldMatchList` ["SHA1SUMS", "notes.other"]
         sUntracked (pdStats merged) `shouldBe` 2
         sUntrackedSize (pdStats merged) `shouldBe` 17
         Map.member "a" (pdImages merged) `shouldBe` True
 
-    describe "mergeShadows and ranges" $ do
-      it "applies shadows onto matching images" $ \config -> do
-        let raw = simpleRawImage config
-            shadow = mkImage config "a" "test" Nothing Nothing [simpleFile "a.jpg"] Nothing [] [] Nothing MediaImage def
-            dir = (createTestPicDir "test")
-                    { pdImages = Map.singleton "a" raw
-                    , pdShadows = Map.singleton "a" shadow
-                    }
-            merged = mergeShadows config dir
-        imgStatus (pdImages merged Map.! "a") `shouldBe` ImageProcessed
-      it "promotes a standalone range jpeg when the begin image has a raw" $ \config -> do
-        let root = mkImage config "a_1" "test" (Just $ simpleFile "a_1.nef") Nothing []
-                           Nothing [] [] Nothing MediaImage def
-            ranged = mkImage config "a_1-3" "test" Nothing Nothing [simpleFile "a_1-3.jpg"]
-                             Nothing [] [] (Just (ImageRange "a_" 1 3 1)) MediaImage def
-            dir = picDirWith "test" [root, ranged]
-        imgStatus ranged `shouldBe` ImageStandalone
-        case maybeUpdateStandaloneRange config dir ranged of
-          Nothing -> expectationFailure "expected standalone range to be updated"
-          Just img -> do
-            imgStatus img `shouldBe` ImageProcessed
-            isJust (imgRawPath img) `shouldBe` True
-      it "does nothing when the range begin has no raw" $ \config -> do
-        let begin = mkImage config "a_1" "test" Nothing Nothing [simpleFile "a_1.jpg"] Nothing [] [] Nothing MediaImage def
-            ranged = mkImage config "a_1-3" "test" Nothing Nothing [simpleFile "a_1-3.jpg"]
-                             Nothing [] [] (Just (ImageRange "a_" 1 3 1)) MediaImage def
-            dir = picDirWith "test" [begin, ranged]
-        maybeUpdateStandaloneRange config dir ranged `shouldBe` Nothing
-      it "rewrites standalone range images in the folder" $ \config -> do
-        let root = mkImage config "a_1" "test" (Just $ simpleFile "a_1.nef") Nothing []
-                           Nothing [] [] Nothing MediaImage def
-            ranged = mkImage config "a_1-3" "test" Nothing Nothing [simpleFile "a_1-3.jpg"]
-                             Nothing [] [] (Just (ImageRange "a_" 1 3 1)) MediaImage def
-            dir = resolveProcessedRanges config (picDirWith "test" [root, ranged])
-        imgStatus (pdImages dir Map.! "a_1-3") `shouldBe` ImageProcessed
+    describe "composite images" $ do
+      -- The cases of docs/composite-images.md: one folder, with three
+      -- raws in a source directory unless said otherwise. The sizes are
+      -- made up, to show double counting: a raw is 10, the range JPEG
+      -- 50, a TIFF or DNG 100, a component's own JPEG 5, a movie 70.
+      let nefs = [("d_01.nef", 10), ("d_02.nef", 10), ("d_03.nef", 10)]
+          check config srcs outs counts sizes = do
+            let dir = compositeFolder config srcs outs
+            folderCounts dir `shouldBe` counts
+            folderSizes dir `shouldBe` sizes
+            -- The stored numbers are the final ones.
+            show (pdStats dir) `shouldBe` show (computeFolderStats dir)
+            return dir
+          roleOf dir name = imgRole (pdImages dir Map.! name)
+          statusOf dir name = imgStatus (pdImages dir Map.! name)
+          viewedFrom config dir name =
+            fileName . fst <$> imageViewSource config (pdImages dir Map.! name)
+      it "links a range jpeg with its raws (case 1)" $ \config -> do
+        dir <- check config [nefs] [[("d_01-03.jpg", 50)]] (0, 0, 4, 0) (30, 50, 0, 0)
+        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02", "d_03"]
+        forM_ ["d_01", "d_02", "d_03"] $ \name -> do
+          roleOf dir name `shouldBe` ComponentOf ("d_01-03" :| [])
+          -- Each component is viewed from its own raw.
+          viewedFrom config dir name `shouldBe` Just (TS.fromString (TS.toString (unImageName name) <> ".nef"))
+        viewedFrom config dir "d_01-03" `shouldBe` Just "d_01-03.jpg"
+      it "counts an intermediate file as the master (case 2)" $ \config -> do
+        dir <- check config [nefs ++ [("d_01-03.tif", 100)]] [[("d_01-03.jpg", 50)]]
+                 (0, 0, 4, 0) (130, 50, 0, 0)
+        viewedFrom config dir "d_01" `shouldBe` Just "d_01.nef"
+      it "covers the components as soon as the composite exists (case 3)" $ \config -> do
+        dir <- check config [nefs ++ [("d_01-03.tif", 100)]] [] (1, 0, 3, 0) (130, 0, 0, 0)
+        statusOf dir "d_01-03" `shouldBe` ImageUnprocessed
+        statusOf dir "d_01" `shouldBe` ImageProcessed
+      it "keeps the links whatever directory has the composite (cases 4, 5)" $ \config -> do
+        void $ check config [nefs ++ [("d_01-03.tif", 100)]] [[("d_01.jpg", 5)]]
+                 (1, 0, 3, 0) (130, 5, 0, 0)
+        void $ check config [nefs] [[("d_01-03.jpg", 50)], [("d_02.jpg", 5)]]
+                 (0, 0, 4, 0) (30, 55, 0, 0)
+      it "doesn't make a movie a composite image (case 6)" $ \config -> do
+        dir <- check config [nefs] [[("d_01-03.mov", 70)]] (3, 0, 0, 1) (30, 0, 0, 70)
+        roleOf dir "d_01" `shouldBe` PlainImage
+        roleOf dir "d_01-03" `shouldBe` PlainImage
+      it "uses any component with a master (case 7)" $ \config -> do
+        dir <- check config [[("d_02.nef", 10), ("d_03.nef", 10)]] [[("d_01-03.jpg", 50)]]
+                 (0, 0, 3, 0) (20, 50, 0, 0)
+        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_02", "d_03"]
+        -- The composite keeps only its own files.
+        imgRawPath (pdImages dir Map.! "d_01-03") `shouldBe` Nothing
+      it "views components with their own jpeg from it (case 8)" $ \config -> do
+        dir <- check config [nefs] [[("d_01.jpg", 5), ("d_02.jpg", 5), ("d_03.jpg", 5), ("d_01-03.jpg", 50)]]
+                 (0, 0, 4, 0) (30, 65, 0, 0)
+        viewedFrom config dir "d_02" `shouldBe` Just "d_02.jpg"
+      it "reads an unpadded name as a range (case 9)" $ \config -> do
+        dir <- check config [[("x_1.nef", 10), ("x_2.nef", 10), ("x_3.nef", 10)]] [[("x_1-3.jpg", 50)]]
+                 (0, 0, 4, 0) (30, 50, 0, 0)
+        roleOf dir "x_1-3" `shouldBe` CompositeOf ["x_1", "x_2", "x_3"]
+      it "treats a range jpeg in a source directory as a master (case 10)" $ \config ->
+        void $ check config [nefs ++ [("d_01-03.jpg", 50)]] [] (1, 0, 3, 0) (80, 0, 0, 0)
+      it "links a component to all the composites covering it (case 11)" $ \config -> do
+        dir <- check config [nefs] [[("d_01-02.jpg", 50), ("d_02-03.jpg", 40)]]
+                 (0, 0, 5, 0) (30, 90, 0, 0)
+        roleOf dir "d_02" `shouldBe` ComponentOf ("d_01-02" :| ["d_02-03"])
+        roleOf dir "d_01" `shouldBe` ComponentOf ("d_01-02" :| [])
+      it "counts a range-named raw as the master (case 12)" $ \config ->
+        void $ check config [nefs ++ [("d_01-03.dng", 100)]] [[("d_01-03.jpg", 50)]]
+                 (0, 0, 4, 0) (130, 50, 0, 0)
+      it "keeps a copy of a range jpeg with the composite (case 13)" $ \config -> do
+        dir <- check config [nefs] [[("d_01-03.jpg", 50), ("d_01-03-Edit.jpg", 45)]]
+                 (0, 0, 4, 0) (30, 95, 0, 0)
+        viewedFrom config dir "d_01" `shouldBe` Just "d_01.nef"
+      it "leaves a composite without components standalone (case 14)" $ \config -> do
+        dir <- check config [] [[("d_01-03.jpg", 50)]] (0, 1, 0, 0) (0, 0, 50, 0)
+        roleOf dir "d_01-03" `shouldBe` CompositeOf []
+      it "covers the components of a composite that only has a sidecar" $ \config -> do
+        let dir = compositeFolder config [nefs] [[("d_01-03.xmp", 1)]]
+        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02", "d_03"]
+        statusOf dir "d_01-03" `shouldBe` ImageOrphaned
+        statusOf dir "d_01" `shouldBe` ImageProcessed
+      it "gives the same result whatever order the directories are in" $ \config -> do
+        let srcs = [nefs ++ [("d_01-03.tif", 100)]]
+            outs = [[("d_01-03.jpg", 50)], [("d_02.jpg", 5)]]
+            forward = compositeFolder config srcs outs
+            backward = finishFolder $
+                         foldl' (flip (addDirToRepo config)) Map.empty
+                           (reverse $ compositeDirs config srcs outs) Map.! "f"
+        -- The images' files can be listed in another order.
+        Map.map imgStatus (pdImages forward) `shouldBe` Map.map imgStatus (pdImages backward)
+        Map.map imgRole (pdImages forward) `shouldBe` Map.map imgRole (pdImages backward)
+        show (pdStats forward) `shouldBe` show (pdStats backward)
+      it "reads a range in a sub-directory of the folder" $ \config -> do
+        dir <- check config [[("sub/d_01.nef", 10), ("sub/d_02.nef", 10)]] [[("sub/d_01-02.jpg", 50)]]
+                 (0, 0, 3, 0) (20, 50, 0, 0)
+        roleOf dir "sub/d_01-02" `shouldBe` CompositeOf ["sub/d_01", "sub/d_02"]
+      it "links the names of a wrapped camera counter" $ \config -> do
+        dir <- check config [[("d_9999.nef", 10), ("d_0001.nef", 10)]] [[("d_9999-0001.jpg", 50)]]
+                 (0, 0, 3, 0) (20, 50, 0, 0)
+        roleOf dir "d_9999-0001" `shouldBe` CompositeOf ["d_9999", "d_0001"]
+      it "never links a composite image as a component" $ \config' -> do
+        -- A range regex under which a composite's name can be in
+        -- another one's range.
+        let config = config' { cfgRangeRegex = fromMaybe (error "Invalid range regex") $
+                                 mkRegex "^(.*_)([0-9]+)-([0-9]+)$" }
+            dir = compositeFolder config [] [[("a_1-2.jpg", 50), ("a_1-2_1-2.jpg", 50)]]
+        roleOf dir "a_1-2_1-2" `shouldBe` CompositeOf []
+        roleOf dir "a_1-2" `shouldBe` CompositeOf []
 
   withContext $ do
     describe "addDirToRepo event merge" $ do
