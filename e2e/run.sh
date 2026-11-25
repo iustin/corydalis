@@ -62,6 +62,7 @@ e2e/setup.sh "$WORK/normal" "$WORK/bin" &
 normal_setup=$!
 e2e/setup.sh "$WORK/public" "$WORK/public-bin"
 e2e/add-problem.sh "$WORK/public"
+e2e/add-movie.sh "$WORK/public"
 wait "$normal_setup"
 
 PIDS=()
