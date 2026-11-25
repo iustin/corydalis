@@ -43,7 +43,11 @@
   that memory still counted as used by the process until the system
   needed it (on a test library of 24,000 pictures, the resident memory
   after a rescan went from about 580 MB to about 230 MB with this
-  option).
+  option). The end of a scan also forces a garbage collection, so
+  that most of its memory is released when it ends, and not only at
+  the next major collection, which can be much later with a long idle
+  interval (`-I`); on the same library, the resident memory when a
+  rescan ends goes from 340 to 420 MB to about 290 MB.
 
 ### Fixed bugs
 
