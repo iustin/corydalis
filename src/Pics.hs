@@ -170,6 +170,7 @@ module Pics ( PicDir(..)
             , newRepo
             , forceBuildThumbCaches
             , runScanAction
+            , examineCacheFile
             , scaledImagePath
             , cacheFileNeedsBuild
             , upToDateCacheFile
@@ -217,6 +218,12 @@ import           System.Mem              (performMajorGC)
 import qualified System.Posix.Files      (fileSize)
 import           System.Posix.Files      hiding (fileSize)
 import           System.Posix.Types
+import           System.Posix.Directory  (closeDirStream, openDirStream)
+import           System.Posix.Directory.Internals
+                                         (dirEntName, dirEntType,
+                                          getRealDirType, isDirectoryType,
+                                          readDirStreamWith)
+import           System.Posix.Internals  (peekFilePath)
 import           System.Posix.IO         (OpenFileFlags (..), OpenMode (..),
                                           closeFd, defaultFileFlags,
                                           fdToHandle, openFd)
@@ -1181,14 +1188,11 @@ skipReason stat
 
 -- | Lists a directory, returning the sub-directories, the regular
 -- files, and the skipped entries (see 'skipReason') with the reason.
-getDirContents' :: Bool -> Config -> FilePath
-                -> IO ([FilePath], [InodeInfo], [(FilePath, Text)])
-getDirContents' filtered config root = do
+getDirContents :: Config -> FilePath
+               -> IO ([FilePath], [InodeInfo], [(FilePath, Text)])
+getDirContents config root = do
   contents <- getDirectoryContents root
-  let blkdirs = if filtered
-                then blacklistedDirs config
-                else neverRecurseDirs
-      allowed_names = filter (`notElem` blkdirs) contents
+  let allowed_names = filter (`notElem` blacklistedDirs config) contents
   (paths, skipped) <-
     foldM (\(acc, skip) path -> do
              stat <- getSymbolicLinkStatus $ root </> path
@@ -1207,10 +1211,6 @@ getDirContents' filtered config root = do
        ) ([], []) allowed_names
   let (dirs, files) = partition inodeIsDir paths
   return $!! (map inodeName dirs, files, skipped)
-
-getDirContents :: Config -> FilePath
-               -> IO ([FilePath], [InodeInfo], [(FilePath, Text)])
-getDirContents = getDirContents' True
 
 -- | Records the entries skipped while scanning as scan errors.
 reportSkipped :: Ctx
@@ -1307,31 +1307,52 @@ countDir config = countContainer 0
       subdirs <- mapConcurrently (countFolder . (path </>)) dirs
       return $!! sum subdirs + length files + length skipped
 
--- | Recursively count number of all files and directories under a directory.
+-- | Lists a directory, returning the names of its sub-directories and
+-- those of its other entries, without @.@ and @..@.
 --
--- This is used for the cache directory, where skipped entries are
--- counted (and handled) as files.
-countDirRaw :: Config -> String -> IO Int
-countDirRaw config path = do
-  (dirpaths, iinfo, skipped) <- getDirContents' False config path
-  subdirs <- mapConcurrently (\p -> countDirRaw config (path </> p)) dirpaths
-  let total = sum subdirs + length iinfo + length skipped
-  return $!! total
+-- Only the names and types the directory itself holds are read, with
+-- no status call per entry, unless the file system doesn't give the
+-- type (then the entry's own status is read, and an entry removed
+-- meanwhile is left out). Symbolic links are not followed: a link to a
+-- directory is an entry like a file.
+--
+-- The directory is read whole and closed before returning, so that a
+-- walk of a tree doesn't keep one open per level.
+listDirTyped :: FilePath -> IO ([FilePath], [FilePath])
+listDirTyped dir =
+  bracket (openDirStream dir) closeDirStream (readAll [] [])
+  where
+    readAll !dirs !others stream = do
+      next <- readDirStreamWith entry stream
+      case next of
+        Nothing                    -> return (dirs, others)
+        Just Nothing               -> readAll dirs others stream
+        Just (Just (name, True))   -> readAll (name:dirs) others stream
+        Just (Just (name, False))  -> readAll dirs (name:others) stream
+    entry ent = do
+      name <- dirEntName ent >>= peekFilePath
+      if name == "." || name == ".."
+        then return Nothing
+        else do
+          kind <- (Just <$> (dirEntType ent >>=
+                     getRealDirType (getSymbolicLinkStatus (dir </> name))))
+                    `catchIO` \e -> if isDoesNotExistError e
+                                       then return Nothing
+                                       else throwIO e
+          return $!! (\k -> (name, isDirectoryType k)) <$> kind
 
--- | Run action on all files under a given directory.
+-- | Runs an action on all entries under a directory (given relative to
+-- the root), except the directories themselves, which are walked into
+-- (see 'listDirTyped'): regular files, and also symbolic links and
+-- other special files.
 --
--- The skipped entries (e.g. symbolic links) are passed to the action
--- as well, like files.
-allPathFiles :: Config -> FilePath -> (FilePath -> IO ()) -> FilePath -> IO ()
-allPathFiles config root handler (makeRel -> subdir) = do
+-- The action gets each entry's path relative to the root.
+allPathFiles :: FilePath -> (FilePath -> IO ()) -> FilePath -> IO ()
+allPathFiles root handler (makeRel -> subdir) = do
   let buildsub p = if subdir == "." then p else subdir </> p
-  (dirpaths, iinfo, skipped) <- getDirContents' False config (root </> subdir)
-  -- execute the action on all files in the current (subdir) directory.
-  -- TODO: handle dirs vs just leaf? ignore dirs?
-  mapM_ (\name -> handler (subdir </> name)) $
-    map inodeName iinfo ++ map fst skipped
-  -- recurse into subdirectories.
-  mapM_ (allPathFiles config root handler . buildsub) dirpaths
+  (dirs, others) <- listDirTyped (root </> subdir)
+  mapM_ (handler . buildsub) others
+  mapM_ (allPathFiles root handler . buildsub) dirs
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
 addDirToRepo config dir =
@@ -1629,6 +1650,16 @@ cacheFileEndings config =
     map (Text.pack . show) (Set.toList (cfgAllImageSizes config)) ++
     ["exif", "bexif"]
 
+-- | The number of cache files expected for each file in the repository,
+-- for the estimated goal of the cache cleanup (see 'cleanupCache'): the
+-- two exif caches, and a preview per automatically built size.
+--
+-- It is only an estimate: not every file has previews (e.g. sidecars),
+-- while some have more cache files (e.g. the embedded image of a raw
+-- file, or previews built on demand).
+expectedCacheFiles :: Config -> Int
+expectedCacheFiles config = 2 + Set.size (cfgAutoImageSizes config)
+
 -- | Whether a cache file is in use: its path is exactly that of a file
 -- in the repository, followed by an ending in use (see
 -- 'cacheFileEndings').
@@ -1661,7 +1692,16 @@ examineCacheFile prefix cleanProgress endings iset logger path = do
   modifier <- if found
               then return incNoop
               else cleanCacheFile prefix logger path
-  atomically $ modifyTVar' cleanProgress modifier
+  atomically $ modifyTVar' cleanProgress (raiseGoal . modifier)
+  where
+    -- The goal is only an estimate (see 'cleanupCache'); it is kept
+    -- above the files examined so far.
+    raiseGoal p = p { pgGoal = max (pgGoal p) (withCleanupMargin (pgTotal p)) }
+
+-- | Adds a margin of 5% (rounded up) to a number of cache files, for
+-- the estimated goal of the cache cleanup (see 'cleanupCache').
+withCleanupMargin :: Int -> Int
+withCleanupMargin n = n + (n + 19) `div` 20
 
 -- | Cleans up a given cache file.
 cleanCacheFile :: FilePath       -- ^ Absolute prefix path on the filesystem
@@ -1680,10 +1720,14 @@ cleanCacheFile prefix logger path = do
 
 -- | Cleanups given directories under the cache dir.
 --
--- The goal of its progress is the number of files in these
--- directories, counted just before; as the cache can still change
--- meanwhile (e.g. previews built on demand), it is set to the number of
--- files actually examined once done, so that the results add up.
+-- The cache is walked once. The goal of the progress is therefore not
+-- known in advance: it starts from an estimate, the number of files in
+-- the repository times the cache files expected for each (see
+-- 'expectedCacheFiles'), plus a margin of 5% (see 'withCleanupMargin').
+-- It is kept that much above the number of files examined so far (see
+-- 'examineCacheFile'), so the progress stops short of complete until
+-- the end. Once done, it is set to the number of files actually
+-- examined, so that the results add up (and the progress is complete).
 cleanupCache :: Ctx         -- ^ Context
              -> Repository  -- ^ Repository with current set of images
              -> [FilePath]  -- ^ Set of directories to cleanup
@@ -1694,16 +1738,13 @@ cleanupCache ctx repo alldirs = do
       iset = Set.fromList $ map (Text.pack . fileFullPath) imgs
       config = ctxConfig ctx
       cacheDir = cfgCacheDir config
-      cachePaths = map (cacheDir </>) alldirs
       handler = examineCacheFile cacheDir cleanProgress
                   (cacheFileEndings config) iset (ctxLogger ctx)
-  -- Reset before counting, which can take a while, so that the status
-  -- page doesn't show the previous cleaning's results meanwhile.
-  atomically $ writeTVar cleanProgress def
-  ctxLogger ctx LevelInfo $ "Counting cache items under " <> toLogStr (show cachePaths)
-  cachecount <- sum <$> mapConcurrently (countDirRaw config) cachePaths
-  atomically . modifyTVar' cleanProgress $ \p -> p { pgGoal = cachecount }
-  mapM_ (allPathFiles config cacheDir handler) alldirs
+      estimate = withCleanupMargin (Set.size iset * expectedCacheFiles config)
+  ctxLogger ctx LevelInfo $ "Cleaning up cache items under " <>
+    toLogStr (show (map (cacheDir </>) alldirs))
+  atomically $ writeTVar cleanProgress $! def { pgGoal = estimate }
+  mapM_ (allPathFiles cacheDir handler) alldirs
   atomically $ do
     modifyTVar' cleanProgress $ \p -> p { pgGoal = pgTotal p }
     readTVar cleanProgress

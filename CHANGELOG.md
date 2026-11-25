@@ -48,6 +48,11 @@
   the next major collection, which can be much later with a long idle
   interval (`-I`); on the same library, the resident memory when a
   rescan ends goes from 340 to 420 MB to about 290 MB.
+- A rescan does less work: the cache cleanup reads the cache directory
+  once, instead of first counting its files, and only reads the names
+  and types of its entries. The progress of the cleanup on the status
+  page is now based on an estimate of the number of files, and stops
+  short of complete (by about 5%) until the cleanup ends.
 
 ### Fixed bugs
 
