@@ -134,6 +134,13 @@ for i in "${!names[@]}"; do
   fi
 done
 
+# Server errors the browser can't see (e.g. an error image sent with a
+# 200). The public library's problem picture (add-problem.sh) is
+# expected to fail.
+check "normal server log" e2e/check-log.sh "$WORK/normal/server.log"
+check "public server log" e2e/check-log.sh "$WORK/public/server.log" \
+  'Error for image 2024-12-01 Broken 99/IMG_BAD: '
+
 if [ ${#FAILED[@]} -gt 0 ]; then
   echo "Failed: ${FAILED[*]} (output in $WORK/out, server logs in $WORK/*/server.log)"
   exit 1

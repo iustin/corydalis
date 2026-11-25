@@ -48,6 +48,8 @@ cases belong in a unit test.
   - `movie.spec.ts`: movies in the viewer (the first frame, and
     playing them), in both projects: next to a picture in the private
     library, and on its own in the public one;
+  - `theme.spec.ts`: the colour theme button, the system's setting,
+    and the charts following the theme;
   - `public-site.spec.ts`: what anonymous visitors can and can't see
     or do on a public-site build, and that a logged in user still sees
     everything;
@@ -58,6 +60,10 @@ cases belong in a unit test.
   Chromium can play) to the library made by `setup.sh`: on its own in
   a new folder, or with `--paired`, next to an existing picture (which
   keeps the library's counts);
+- `check-log.sh`: checks a server log after the run, for errors the
+  browser can't see (error statuses, or error messages, e.g. a tool
+  failing behind an error image sent with a 200), except the expected
+  ones it is given;
 - `add-problem.sh`: adds a folder with a picture that has a problem (a
   truncated JPEG, for which exiftool warns "JPEG format error") to the
   library made by `setup.sh`;
@@ -87,9 +93,10 @@ extracted by the server). It builds the binaries (normal and public
 site, without optimisation, in `.stack-e2e` and `.stack-e2e-public`),
 makes the two libraries, starts a server for each (on ports 3001 and
 3002, so as not to conflict with a development server on 3000), runs
-the tests, then the recording scripts, and stops the servers. It exits
-with an error if any of them failed. Set `STACK_ARGS` for extra stack
-options (e.g. `--ghc-build tinfo6`).
+the tests, then the recording scripts, checks the server logs (with
+`check-log.sh`), and stops the servers. It exits with an error if any
+of them failed. Set `STACK_ARGS` for extra stack options (e.g.
+`--ghc-build tinfo6`).
 
 The output goes to `WORKDIR/out`: the HTML test report in `report/`
 (`npx playwright show-report WORKDIR/out/report`), the traces and

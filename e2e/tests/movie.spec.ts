@@ -61,7 +61,9 @@ test('shows the first frame, and says it is a movie', async ({ page }) => {
 
 const PLAY: [string, (p: Page) => Promise<void>][] = [
   ['the p key', (p) => p.keyboard.press('p')],
+  ['the space key', (p) => p.keyboard.press(' ')],
   ['the play button', (p) => p.click('#moviePlay')],
+  ['a tap on the picture', (p) => p.click('#imageCanvas')],
 ];
 
 for (const [how, play] of PLAY) {
@@ -90,3 +92,24 @@ for (const [how, play] of PLAY) {
     await expect.poll(time).toBe(at);
   });
 }
+
+test('the seek bar moves the movie', async ({ page }) => {
+  const video = page.locator('#main video');
+  const time = () => video.evaluate((v) => (v as HTMLVideoElement).currentTime);
+  await page.keyboard.press('p');
+  await expect.poll(time).toBeGreaterThan(0);
+  await page.keyboard.press('p');
+  await expect(page.locator('#moviePlay>span')).toHaveClass(/fa-play/);
+  // Half of the 10 s movie (see add-movie.sh).
+  await page.locator('#seekBar').fill('50');
+  await expect.poll(time).toBeCloseTo(5, 0);
+});
+
+test('a movie that fails to load says so', async ({ page, consoleErrors }) => {
+  consoleErrors.allow(/status of 404/);
+  consoleErrors.allow(/Failed to load movie/);
+  await page.route('**/image/movie/**', (r) => r.fulfill({ status: 404 }));
+  await page.keyboard.press('p');
+  await expect(page.locator('#persistBox')).toHaveText(/could not be loaded/);
+  await expect(page.locator('#moviePlay>span')).toHaveClass(/fa-play/);
+});
