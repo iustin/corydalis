@@ -32,6 +32,7 @@ import {
   groups,
   header,
   rerender,
+  type Page,
 } from './fixtures';
 
 const coll = new Intl.Collator(undefined, {
@@ -39,12 +40,31 @@ const coll = new Intl.Collator(undefined, {
   sensitivity: 'base',
 });
 const txt = (a: string, b: string) => coll.compare(a, b);
-const num = (a: string, b: string) => parseFloat(a) - parseFloat(b);
 const sortedBy = (
   rows: string[][],
   col: number,
   cmp: (a: string, b: string) => number,
 ) => rows.every((r, i) => i === 0 || cmp(rows[i - 1][col], r[col]) <= 0);
+
+/**
+ * Clicks the header of a column with distinct texts twice, and checks
+ * that the rows follow aria-sort each time (the first click's direction
+ * depends on the column's settings).
+ */
+async function checkSortToggle(page: Page, table: string, n: number) {
+  const texts = async () => (await dataRows(page, table)).map((r) => r[n - 1]);
+  await header(page, table, n).click();
+  const first = await texts();
+  expect(new Set(first).size, 'distinct texts').toBe(first.length);
+  const dir = (await ariaSort(page, table))[n - 1];
+  const sorted = [...first].sort(txt);
+  expect(first).toEqual(dir === 'ascending' ? sorted : sorted.reverse());
+  await header(page, table, n).click();
+  expect((await ariaSort(page, table))[n - 1]).toBe(
+    dir === 'ascending' ? 'descending' : 'ascending',
+  );
+  expect(await texts()).toEqual([...first].reverse());
+}
 
 test.describe('folder list', () => {
   const F = '#folderlist';
@@ -82,11 +102,17 @@ test.describe('folder list', () => {
     expect(t[0]).toMatch(/^Totals 120/);
   });
 
-  test('clicking Images sorts numerically, without groups', async ({
+  test('clicking Name sorts by it, both ways, without groups', async ({
     page,
   }) => {
+    await checkSortToggle(page, F, 2);
+    expect(await groups(page, F)).toEqual([]);
+  });
+
+  test('clicking Images marks it sorted, without groups', async ({ page }) => {
+    // All folders have 6 images, so the order itself can't be checked.
     await header(page, F, 4).click();
-    expect(sortedBy(await dataRows(page, F), 3, num)).toBe(true);
+    expect((await ariaSort(page, F))[3]).toBe('ascending');
     expect(await groups(page, F)).toEqual([]);
     await header(page, F, 4).click();
     expect((await ariaSort(page, F))[3]).toBe('descending');
@@ -107,10 +133,17 @@ test.describe('folder list', () => {
     const a = await ariaSort(page, F);
     expect(a[4]).toBe('ascending');
     expect(a[1]).toBe('ascending');
-    const italy = (await dataRows(page, F))
-      .filter((r) => r[4] === 'Italy')
-      .map((r) => r[1]);
-    expect(italy).toEqual([...italy].sort(txt));
+    const italy = async () =>
+      (await dataRows(page, F))
+        .filter((r) => r[4] === 'Italy')
+        .map((r) => r[1]);
+    const asc = await italy();
+    expect(asc).toHaveLength(4);
+    expect(asc).toEqual([...asc].sort(txt));
+    // A second shift-click reverses the secondary sort only.
+    await header(page, F, 2).click({ modifiers: ['Shift'] });
+    expect((await ariaSort(page, F))[4]).toBe('ascending');
+    expect(await italy()).toEqual([...asc].reverse());
   });
 
   test('text filter (case-insensitive substring), with groups', async ({
@@ -224,16 +257,17 @@ test('folder page: status select filter (on data-text)', async ({ page }) => {
   expect(await dataRows(page, I)).toHaveLength(6);
 });
 
-for (const [url, table, digitCol, sortedCol] of [
-  ['/stats/cameras', '#cameralist', 2, 2],
-  ['/stats/lenses', '#lenslist', 4, 4],
+// The counts are the same for all cameras and lenses in the sample
+// library, so sort by name to check the order.
+for (const [url, table, sortedCol] of [
+  ['/stats/cameras', '#cameralist', 2],
+  ['/stats/lenses', '#lenslist', 4],
 ] as const) {
   test(`${url}: sorted, sortable, with filters`, async ({ page }) => {
     await gotoTable(page, url, table);
     expect((await dataRows(page, table)).length).toBeGreaterThanOrEqual(3);
     expect((await ariaSort(page, table))[sortedCol]).toBe('descending');
-    await header(page, table, digitCol).click();
-    expect(sortedBy(await dataRows(page, table), digitCol - 1, num)).toBe(true);
+    await checkSortToggle(page, table, 1);
     expect(
       await page
         .locator(`${table} .filter-row input, ${table} .filter-row select`)
@@ -261,7 +295,9 @@ test('/stats/lenses: type select shows labels, filters on data-text', async ({
     tds.map((td) => (td as HTMLElement).dataset.text),
   );
   expect(types.length).toBeGreaterThan(0);
-  expect(types.length).toBeLessThanOrEqual(before);
+  // All the sample lenses have the same type, so the filter can't
+  // remove rows here; it still has to match on the data-text values.
+  expect(types.length).toBe(before);
   expect(types.every((t) => t === opts[1][0])).toBe(true);
 });
 

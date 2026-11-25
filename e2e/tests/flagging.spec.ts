@@ -25,14 +25,16 @@ const IMAGE = `${FOLDER_URL}/images/IMG_0001`;
 
 /** Clicks, and returns the flag request it sent and the toast text. */
 async function flagClick(page: Page, selector: string) {
-  const [req] = await Promise.all([
-    page.waitForRequest((r) => r.url().includes('/image/flag/')),
+  const [resp] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes('/image/flag/')),
     page.click(selector),
   ]);
+  const req = resp.request();
   const toast = page.locator('.toast-body').last();
   await expect(toast).toBeVisible();
   return {
     method: req.method(),
+    status: resp.status(),
     token: req.headers()['x-xsrf-token'] ?? null,
     toast: (await toast.innerText()).trim(),
   };
@@ -45,12 +47,13 @@ test('the flag button sends a PUT with the CSRF token', async ({ page }) => {
   const r = await flagClick(page, '[data-flag="true"]');
   expect(r.method).toBe('PUT');
   expect(r.token, 'CSRF token sent').toBeTruthy();
-  expect(r.toast).toMatch(/flagged/i);
+  expect(r.status).toBe(200);
+  expect(r.toast).toBe('Image flagged');
 });
 
 test('the image shows up in the flagged images', async ({ page }) => {
   await page.goto('/curate/flagged-images');
-  await expect(page.locator('body')).toContainText('IMG_0001');
+  await expect(page.locator('#main')).toContainText('IMG_0001');
 });
 
 test('a stale CSRF token asks to reload the page', async ({
@@ -74,5 +77,6 @@ test('the un-flag button sends a DELETE', async ({ page }) => {
   await page.goto(IMAGE);
   const r = await flagClick(page, '[data-flag="false"]');
   expect(r.method).toBe('DELETE');
-  expect(r.toast).toMatch(/flag removed|not flagged/i);
+  expect(r.status).toBe(200);
+  expect(r.toast).toBe('Image flag removed');
 });

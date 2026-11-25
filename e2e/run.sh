@@ -113,7 +113,7 @@ export CORYDALIS_PUBLIC_URL=http://localhost:3002
 export CORYDALIS_PUBLIC_PASSWORD_FILE=$WORK/public/password
 export CORYDALIS_PUBLIC_LIB=$WORK/public/lib
 export E2E_OUT=$WORK/out
-check tests npx playwright test -c e2e/playwright.config.ts
+check tests npx playwright test -c e2e/playwright.config.ts --forbid-only
 
 # These only record (reports and screenshots, for a person to look at);
 # they fail only if they crash or miss an element.

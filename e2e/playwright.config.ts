@@ -32,8 +32,9 @@ export default defineConfig({
   // a time; the whole run takes about a minute anyway.
   workers: 1,
   fullyParallel: false,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // No retries: a test that passes only on a retry hides a real
+  // problem (in the code, or in the test).
+  retries: 0,
   reporter: [
     ['list'],
     ['html', { outputFolder: `${out}/report`, open: 'never' }],

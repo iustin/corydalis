@@ -34,7 +34,7 @@ test('boots, sized to the page', async ({ page }) => {
   ]);
   expect(w).toBeGreaterThan(100);
   expect(h).toBeGreaterThan(100);
-  await expect(page.locator('footer')).toBeHidden();
+  await expect(page.locator('footer')).toHaveCSS('display', 'none');
 });
 
 test('next image updates the URL and the navigation bar', async ({ page }) => {
@@ -53,11 +53,12 @@ test('flag and un-flag via the keyboard', async ({ page }) => {
   let r = await flag('x');
   expect(r.request().method()).toBe('PUT');
   expect(r.request().headers()['x-xsrf-token'], 'CSRF token sent').toBeTruthy();
-  await expect(page.locator('#messageBox')).toContainText(/flagged/i);
+  expect(r.ok()).toBe(true);
+  await expect(page.locator('#messageBox')).toHaveText('Image flagged');
   r = await flag('n');
   expect(r.request().method()).toBe('DELETE');
   expect(r.ok()).toBe(true);
-  await expect(page.locator('#messageBox')).not.toHaveText('');
+  await expect(page.locator('#messageBox')).toHaveText('Image flag removed');
 });
 
 test('random image', async ({ page }) => {

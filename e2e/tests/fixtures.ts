@@ -46,7 +46,10 @@ function password(project: string): string {
   return fs.readFileSync(file, 'utf8').trim();
 }
 
-/** Logs in, then waits (up to two minutes) for the scan to find folders. */
+/** The number of folders in each project's library (see setup.sh). */
+const FOLDERS: Record<string, number> = { private: 20, public: 21 };
+
+/** Logs in, then waits (up to two minutes) for the scan to finish. */
 async function login(page: Page, project: string): Promise<void> {
   await page.goto('/auth/login');
   await page.fill('#floatingUsername', process.env.CORYDALIS_USER ?? 'tester');
@@ -59,11 +62,11 @@ async function login(page: Page, project: string): Promise<void> {
     .poll(
       async () => {
         await page.goto('/search/folders/list');
-        return page.locator('#folderlist tbody tr').count();
+        return page.locator('#folderlist tbody tr:not(.group-header)').count();
       },
       { timeout: 120_000, intervals: [2000], message: 'scan finished' },
     )
-    .toBeGreaterThan(0);
+    .toBe(FOLDERS[project]);
 }
 
 type ConsoleErrors = {
@@ -94,7 +97,8 @@ export const test = base.extend<
       await context.close();
       await use(file);
     },
-    { scope: 'worker' },
+    // Longer than the scan wait in login().
+    { scope: 'worker', timeout: 150_000 },
   ],
   consoleErrors: [
     async ({ page }, use) => {
@@ -107,6 +111,12 @@ export const test = base.extend<
       });
       const allowed: RegExp[] = [];
       await use({ allow: (re) => allowed.push(re) });
+      // Let the requests started at the end of the test finish (e.g. the
+      // next image's), so that their errors are seen. Best effort: pages
+      // that keep polling never become idle.
+      await page
+        .waitForLoadState('networkidle', { timeout: 5000 })
+        .catch(() => {});
       const unexpected = errors.filter((e) => {
         const i = allowed.findIndex((re) => re.test(e));
         if (i < 0) return true;
