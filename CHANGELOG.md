@@ -67,6 +67,9 @@
 - When a rescan started rendering the previews, the status page could
   show, for a moment, the previous rendering's progress as the new
   one's.
+- Two scans started at the same time (e.g. two rescan requests, or the
+  first requests at startup without a cache) could leave the status at
+  "starting", with no scan running, until the next rescan.
 - The copy and range regexes are now matched against the file name
   only, not against its path relative to the folder: previously, a
   picture in a sub-directory whose name the regex matched (e.g.

@@ -2060,6 +2060,24 @@ spec = parallel $ do
         final <- waitForScan ctx
         repoStatus final `shouldSatisfy` isFinished
         Map.keys (repoDirs final) `shouldBe` ["2020-01-01-trip"]
+      it "keeps a scan running when scans are launched at the same time" $ \ctx ->
+        -- Each launch takes a new serial and registers its scanner; the
+        -- scanner left registered must be the one owning the repository.
+        -- The launches race, so a regression is only caught some of the
+        -- time: with the race reintroduced, one round failed 8 of 20
+        -- runs, and five rounds 20 of 20.
+        forM_ [1 :: Int .. 5] $ \_ ->
+          (do replicateConcurrently_ 20 (launchScanFileSystem ctx)
+              final <- timeout lastResort (waitForScan ctx)
+              case final of
+                Just repo -> do
+                  repoStatus repo `shouldSatisfy` isFinished
+                  (repoSerial <$> getRepo ctx) `shouldReturn` repoSerial repo
+                Nothing -> expectationFailure "the scan didn't finish")
+            -- On a failure the scan is stopped too (and waited for), so
+            -- that it doesn't run on while the test's directories are
+            -- removed.
+            `onException` (readTVarIO (ctxScanner ctx) >>= mapM_ cancel)
     describe "scan tool limits" $ do
       -- Scans a folder with a picture, with the given time limits for
       -- the preview tools and the scan's exiftool runs, returning the
