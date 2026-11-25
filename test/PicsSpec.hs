@@ -41,11 +41,15 @@ import           Data.Char        (isDigit)
 import qualified Data.Text        as Text
 import           System.Directory (createDirectoryIfMissing,
                                    doesDirectoryExist, doesFileExist,
+                                   doesPathExist,
                                    listDirectory, renameFile)
 import           System.Exit      (ExitCode (..))
-import           System.FilePath  (splitFileName, takeDirectory,
+import           System.FilePath  (pathSeparator, splitFileName,
+                                   takeDirectory,
                                    takeFileName)
-import           System.Posix.Files (createNamedPipe, createSymbolicLink,
+import           System.Posix.Files (FileStatus, createNamedPipe,
+                                     createSymbolicLink,
+                                     getSymbolicLinkStatus,
                                      ownerReadMode, ownerWriteMode,
                                      unionFileModes)
 import           Control.Monad.Logger (LogLevel (..))
@@ -2135,6 +2139,61 @@ spec = parallel $ do
             doesFileExist (exifPath config picture) `shouldReturn` True
             doesFileExist (bExifPath config picture) `shouldReturn` True
           _ -> expectationFailure "expected an output directory and image sizes"
+      it "removes links and special files, without following the links" $ \ctx -> do
+        let config = ctxConfig ctx
+        case (cfgOutputDirs config, Set.toList (cfgAllImageSizes config)) of
+          (outRoot:_, size:_) -> do
+            let srcDir = outRoot </> "2020" </> "2020-01-01-trip"
+                picture = srcDir </> "a.jpg"
+                live = scaledImagePath config picture size
+                cacheFolder = takeDirectory live
+                -- Outside of the cache, with a file named as the
+                -- picture's cache file, which a walk following the
+                -- link would find.
+                outside = takeDirectory outRoot </> "outside"
+                outsideFile = outside </> takeFileName live
+                dirLink = cacheFolder </> "linked-dir"
+                fileLink = cacheFolder </> "linked-file"
+                pipe = cacheFolder </> "pipe"
+            createDirectoryIfMissing True srcDir
+            writeRealJpeg picture
+            writeNonEmpty live
+            writeNonEmpty outsideFile
+            createSymbolicLink outside dirLink
+            createSymbolicLink outsideFile fileLink
+            createNamedPipe pipe 0o600
+            launchScanFileSystem ctx
+            repo <- waitForScan ctx
+            case repoStatus repo of
+              RepoFinished {} -> return ()
+              status -> expectationFailure $ "The scan failed: " ++ show status
+            let present path = (,) path <$> doesPathExist path
+                -- A dangling link counts too.
+                entryExists path = (,) path . isRight <$>
+                  (try (getSymbolicLinkStatus path) :: IO (Either IOException FileStatus))
+            forM_ [dirLink, fileLink, pipe] $ \path ->
+              entryExists path `shouldReturn` (path, False)
+            present live `shouldReturn` (live, True)
+            present outsideFile `shouldReturn` (outsideFile, True)
+          _ -> expectationFailure "expected an output directory and image sizes"
+      it "keeps its estimated goal 5% above the files examined" $ \ctx -> do
+        let config = ctxConfig ctx
+            path = "dir" </> "a.jpg-64"
+            iset = Set.singleton (Text.pack $ pathSeparator : "dir" </> "a.jpg")
+            examine n pg = do
+              progress <- newTVarIO pg
+              -- A file in use, so that nothing is deleted.
+              replicateM_ n $
+                examineCacheFile (cfgCacheDir config) progress ["-64"] iset
+                  (\_ _ -> return ()) path
+              readTVarIO progress
+        raised <- examine 40 def { pgGoal = 1 }
+        (pgGoal raised, pgNoop raised) `shouldBe` (42, 40)
+        -- Rounded up, so never complete before the end.
+        few <- examine 3 def { pgGoal = 1 }
+        (pgGoal few, pgNoop few) `shouldBe` (4, 3)
+        kept <- examine 40 def { pgGoal = 100 }
+        (pgGoal kept, pgNoop kept) `shouldBe` (100, 40)
     describe "scan abort" $ do
       let errorMessage repo = case repoStatus repo of
             RepoError msg -> return msg
