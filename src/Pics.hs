@@ -872,9 +872,19 @@ updateRepo ctx new = atomically $ do
   return do_update
 
 -- | The failure of a scan that no longer owns the repository, as a
--- newer one was started (see 'newRepo').
+-- newer one was started (see 'newRepo'). It is its own type so that it
+-- can be told apart from the scan's real failures (see
+-- 'runScanAction').
+data OwnershipChanged = OwnershipChanged
+
+instance Show OwnershipChanged where
+  show OwnershipChanged = "Repository ownership changed, aborting"
+
+instance Exception OwnershipChanged
+
+-- | Fails with 'OwnershipChanged'.
 ownershipChanged :: IO a
-ownershipChanged = throwString "Repository ownership changed, aborting"
+ownershipChanged = throwIO OwnershipChanged
 
 tryUpdateRepo :: Ctx -> Repository -> IO Repository
 tryUpdateRepo ctx new = do
@@ -1844,13 +1854,29 @@ scanFSWrapper ctx serial = do
 -- rendering or cleaning up doesn't bring back the previous data, with
 -- the pictures the scan found to be gone.
 --
--- If a newer scan owns the repository, the status is left alone, and
--- this fails instead. Being cancelled is not a failure: asynchronous
--- exceptions are not handled here.
+-- The failure is logged first, so that it isn't lost if it can't be
+-- recorded: if a newer scan owns the repository, the status is left
+-- alone, and this fails instead.
+--
+-- Neither being cancelled nor being superseded by a newer scan (see
+-- 'OwnershipChanged') is a failure: a newer scan replaces this one, and
+-- this one is cancelled soon after, or stops at its next check. The
+-- former, an asynchronous exception, is not handled here; the latter
+-- is only logged as information, and passed on.
 runScanAction :: Ctx -> Int -> IO Repository -> IO Repository
 runScanAction ctx !serial action =
   action `catch` \(err :: SomeException) ->
-    tryUpdateRepoStatus ctx serial $ RepoError (sformat shown err)
+    case fromException err of
+      Just OwnershipChanged -> do
+        logfn LevelInfo $ "Scan " <> toLogStr (show serial) <>
+          " stopped, superseded by a newer scan"
+        throwIO err
+      Nothing -> do
+        let msg = sformat shown err
+        logfn LevelError $ "Scan " <> toLogStr (show serial) <>
+          " failed: " <> toLogStr msg
+        tryUpdateRepoStatus ctx serial (RepoError msg)
+  where logfn = ctxLogger ctx
 
 -- | Scans the file system, as the scan with the given serial (see
 -- 'newRepo', which also set the starting status).
