@@ -41,9 +41,18 @@ if [ -e "$DIR" ]; then
   echo "$DIR already exists, refusing to overwrite it" >&2
   exit 1
 fi
+if ! command -v ffmpeg > /dev/null; then
+  echo "ffmpeg not found; it is needed for the movie (see e2e/README.md)" >&2
+  exit 1
+fi
 
 mkdir -p "$DIR"
-# Two seconds of a moving test pattern, small and quick to make.
-ffmpeg -nostdin -loglevel error -f lavfi -i testsrc=duration=2:size=320x240:rate=10 \
+# Don't leave an empty or partial folder behind on failure.
+trap 'rm -rf "$DIR"' ERR
+# Ten seconds of a moving test pattern (long enough not to end while
+# tests/movie.spec.ts plays it), small and quick to make.
+ffmpeg -nostdin -loglevel error \
+  -f lavfi -i testsrc=duration=10:size=320x240:rate=10 \
   -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 100k "$DIR/MOV_0001.mp4"
+trap - ERR
 echo "Added $DIR, with the movie MOV_0001.mp4"

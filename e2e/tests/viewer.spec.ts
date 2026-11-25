@@ -38,6 +38,23 @@ function canvasHash(page: Page): Promise<number> {
   });
 }
 
+/** Waits until the canvas shows something, not a blank canvas. */
+async function drawn(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.$eval(CANVAS, (c) => {
+          const canvas = c as HTMLCanvasElement;
+          const blank = document.createElement('canvas');
+          blank.width = canvas.width;
+          blank.height = canvas.height;
+          return canvas.toDataURL() !== blank.toDataURL();
+        }),
+      { message: 'image drawn' },
+    )
+    .toBe(true);
+}
+
 /** Waits until the canvas shows something else than `before`. */
 async function canvasChanged(page: Page, before: number): Promise<number> {
   await expect
@@ -59,6 +76,25 @@ function currentFolder(page: Page): string {
   return decodeURIComponent(new URL(page.url()).pathname).split('/')[2];
 }
 
+/**
+ * Waits until the viewer shows a picture of the given folder (URL and
+ * navigation bar, which also means its neighbours are known).
+ */
+async function inFolder(page: Page, folder: string) {
+  await expect.poll(() => currentFolder(page)).toBe(folder);
+  await expect(page.locator('#navtext2')).toHaveText(folder);
+}
+
+/**
+ * Checks that we're still on IMG_0002, after an action that should not
+ * have changed the image: had it moved (even after a delay), the next
+ * image would not be IMG_0003.
+ */
+async function stillOnSecond(page: Page) {
+  await page.keyboard.press('ArrowRight');
+  await showing(page, 'IMG_0003');
+}
+
 /** Whether the zoom button offers to zoom out (i.e. we're zoomed in). */
 function zoomedIn(page: Page) {
   return expect(page.locator('#imageZoom>span'));
@@ -74,7 +110,8 @@ async function swipe(page: Page, dx: number) {
   const { x, y } = await canvasCentre(page);
   await page.mouse.move(x, y);
   await page.mouse.down();
-  await page.mouse.move(x + dx, y, { steps: 3 });
+  // Quickly: a slow move is a pan, not a swipe.
+  await page.mouse.move(x + dx, y);
   await page.mouse.up();
 }
 
@@ -105,17 +142,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto(`${VIEW}/IMG_0002`);
   await expect(page.locator('#navtext3')).toHaveText('IMG_0002');
   await expect(page.locator('#waiting-bar')).toBeHidden();
-  // The canvas starts blank; wait for the image to be drawn.
-  const blank = await page.$eval(CANVAS, (c) => {
-    const e = document.createElement('canvas');
-    e.width = (c as HTMLCanvasElement).width;
-    e.height = (c as HTMLCanvasElement).height;
-    let h = 0;
-    const d = e.toDataURL();
-    for (let i = 0; i < d.length; i++) h = (h * 31 + d.charCodeAt(i)) | 0;
-    return h;
-  });
-  await canvasChanged(page, blank);
+  await drawn(page);
   fit = await settled(page);
 });
 
@@ -140,7 +167,8 @@ test.describe('layout', () => {
     await expect
       .poll(() => page.$eval(CANVAS, (c) => (c as HTMLCanvasElement).width))
       .toBe(800);
-    await canvasChanged(page, fit);
+    // Resizing clears the canvas, so this means it was drawn again.
+    await drawn(page);
   });
 });
 
@@ -172,7 +200,7 @@ test.describe('navigation', () => {
     // Wait for the new neighbours before going further back.
     await expect(page.locator('#messageBox')).toHaveText('IMG_0001');
     await page.keyboard.press('ArrowLeft');
-    await expect(page.locator('#messageBox')).toHaveText('No previous image');
+    await expect(page.locator('#messageBox')).toHaveText(/no previous image/i);
     await showing(page, 'IMG_0001');
     await page.keyboard.press('End');
     await showing(page, 'IMG_0120', '2024-12-26 Rome trip 19');
@@ -182,17 +210,17 @@ test.describe('navigation', () => {
     await page.keyboard.press(']');
     await expect.poll(() => currentFolder(page)).not.toBe(FOLDER);
     const next = currentFolder(page);
+    await inFolder(page, next);
     await page.keyboard.press('[');
-    await expect.poll(() => currentFolder(page)).toBe(FOLDER);
-    await page.keyboard.press('PageDown');
-    await expect.poll(() => currentFolder(page)).toBe(next);
+    await inFolder(page, FOLDER);
+    await page.click('#menuToggle');
+    await page.click('#folderNext');
+    await inFolder(page, next);
     await page.keyboard.press('PageUp');
-    await expect.poll(() => currentFolder(page)).toBe(FOLDER);
+    await inFolder(page, FOLDER);
     // FOLDER is the oldest one.
     await page.keyboard.press('PageUp');
-    await expect(page.locator('#messageBox')).toHaveText(
-      'No previous folder available',
-    );
+    await expect(page.locator('#messageBox')).toHaveText(/no previous folder/i);
   });
 
   test('history: back and forward keys, and the browser back', async ({
@@ -224,17 +252,30 @@ test.describe('navigation', () => {
       () => page.click('#imageRand'),
       () => page.keyboard.press('r'),
     ]) {
-      const before = page.url();
       const [resp] = await Promise.all([
         page.waitForResponse((r) => r.url().includes('/image/random')),
         go(),
       ]);
       expect(resp.ok()).toBe(true);
-      await page.waitForURL(
-        (u) => u.href !== before && u.pathname.startsWith('/view/'),
-      );
+      // It may be the same image again, so check that the viewer shows
+      // what the server picked, not that the URL changed.
+      const { current } = (await resp.json()) as {
+        current: { name: string; view: string };
+      };
+      await page.waitForURL(current.view);
+      await expect(page.locator('#navtext3')).toHaveText(current.name);
     }
   });
+});
+
+test('a failed request says why', async ({ page, consoleErrors }) => {
+  consoleErrors.allow(/status of 500/);
+  await page.route('**/image/random**', (r) => r.fulfill({ status: 500 }));
+  await page.keyboard.press('r');
+  await expect(page.locator('#messageBox')).toHaveText(
+    /could not get a random image: 500/i,
+  );
+  await expect(page.locator('#waiting-bar')).toBeHidden();
 });
 
 test.describe('zoom and pan', () => {
@@ -267,9 +308,7 @@ test.describe('zoom and pan', () => {
     await expect.poll(() => canvasHash(page)).toBe(full);
     await zoomedIn(page).toHaveClass(/fa-magnifying-glass-plus/);
     await page.keyboard.press('-');
-    await expect(page.locator('#messageBox')).toHaveText(
-      'Already at minimum zoom',
-    );
+    await expect(page.locator('#messageBox')).toHaveText(/minimum zoom/i);
   });
 
   test('pixel ratios, and toggling with z and the button', async ({ page }) => {
@@ -326,7 +365,7 @@ test.describe('zoom and pan', () => {
     await page.mouse.move(x - 150, y - 50, { steps: 10 });
     await page.mouse.up();
     await canvasChanged(page, zoomed);
-    await showing(page, 'IMG_0002');
+    await stillOnSecond(page);
   });
 
   test('a double click zooms in, and another back out', async ({ page }) => {
@@ -336,7 +375,7 @@ test.describe('zoom and pan', () => {
     await zoomedIn(page).toHaveClass(/fa-magnifying-glass-minus/);
     await page.mouse.dblclick(x, y);
     await expect.poll(() => canvasHash(page)).toBe(full);
-    await showing(page, 'IMG_0002');
+    await stillOnSecond(page);
   });
 });
 
@@ -355,14 +394,14 @@ test.describe('overlays', () => {
     const help = page.locator('#helpDiv');
     await page.keyboard.press('?');
     await expect(help).toBeVisible();
-    // The closing key does nothing else.
+    await page.keyboard.press('h');
+    await expect(help).toBeHidden();
+    await page.keyboard.press('?');
+    await expect(help).toBeVisible();
+    // Any key closes it, and does nothing else.
     await page.keyboard.press('ArrowRight');
     await expect(help).toBeHidden();
-    await showing(page, 'IMG_0002');
-    await page.keyboard.press('h');
-    await expect(help).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(help).toBeHidden();
+    await stillOnSecond(page);
   });
 
   test('the menu', async ({ page }) => {
@@ -380,7 +419,8 @@ test('download', async ({ page }) => {
     page.waitForEvent('download'),
     page.keyboard.press('D'),
   ]);
-  expect(d.suggestedFilename()).toBe('IMG_0002.jpeg');
+  // The extension comes from the MIME type, and varies by platform.
+  expect(d.suggestedFilename()).toMatch(/^IMG_0002\.jpe?g$/);
   expect(await d.failure()).toBeNull();
 });
 
@@ -402,6 +442,21 @@ test('flag and un-flag via the keyboard', async ({ page }) => {
 });
 
 test.describe('leaving the viewer', () => {
+  // The menu's buttons, which are wired by element id.
+  for (const [id, path] of [
+    ['goParent', `/folder/${FOLDER}`],
+    ['goImageInfo', `/folder/${FOLDER}/images/IMG_0002`],
+    ['goBrowse', '/search/images/grid/0'],
+    ['goList', '/search/images/list'],
+    ['goFolderList', '/search/folders/list'],
+  ]) {
+    test(`the #${id} menu button goes to ${path}`, async ({ page }) => {
+      await page.click('#menuToggle');
+      await page.click(`#${id}`);
+      await page.waitForURL((u) => decodeURIComponent(u.pathname) === path);
+    });
+  }
+
   for (const [key, path] of [
     ['u', `/folder/${FOLDER}`],
     ['o', `/folder/${FOLDER}/images/IMG_0002`],

@@ -81,13 +81,13 @@ image counts, names, dates).
 
 This needs ImageMagick and exiftool, as for the application itself,
 and ffmpeg, for the movie (made by `add-movie.sh`, and its first frame
-extracted by the server). It builds the binaries (normal and public site, without optimisation, in
-`.stack-e2e` and `.stack-e2e-public`), makes the two libraries, starts
-a server for each (on ports 3001 and 3002, so as not to conflict with
-a development server on 3000), runs the tests, then the recording
-scripts, and stops the servers. It exits with an error if any of them
-failed. Set `STACK_ARGS` for extra stack options (e.g. `--ghc-build
-tinfo6`).
+extracted by the server). It builds the binaries (normal and public
+site, without optimisation, in `.stack-e2e` and `.stack-e2e-public`),
+makes the two libraries, starts a server for each (on ports 3001 and
+3002, so as not to conflict with a development server on 3000), runs
+the tests, then the recording scripts, and stops the servers. It exits
+with an error if any of them failed. Set `STACK_ARGS` for extra stack
+options (e.g. `--ghc-build tinfo6`).
 
 The output goes to `WORKDIR/out`: the HTML test report in `report/`
 (`npx playwright show-report WORKDIR/out/report`), the traces and
