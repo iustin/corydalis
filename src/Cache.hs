@@ -26,6 +26,8 @@ module Cache ( cachedBasename
              , CachePathTransformer
              , writeCacheFile
              , readCacheFile
+             , readCacheFileSince
+             , touchedAt
              , deleteCacheFile
              ) where
 
@@ -127,18 +129,30 @@ newestTime stat =
       ctime = statusChangeTimeHiRes stat
   in max mtime ctime
 
--- | Returns the last time a path was touched, or 0 if missing or inaccessible.
+-- | Returns the status of a path, or 'Nothing' if missing or
+-- inaccessible (permission denied).
 --
 -- Uses 'getFileStatus' as we don't recurse into the destination, so if
 -- it is a link, that's OK-ish.
+statusOf :: FilePath -> IO (Maybe FileStatus)
+statusOf path =
+  (Just <$> getFileStatus path) `catchIOError` (\e -> if isDoesNotExistError e ||
+                                                         isPermissionError e
+                                                      then return Nothing
+                                                      else ioError e)
+
+-- | Returns the last time a path was touched (the later of its
+-- modification and status-change times), or 'Nothing' if missing or
+-- inaccessible.
+touchedAt :: FilePath -> IO (Maybe POSIXTime)
+touchedAt path = fmap newestTime <$> statusOf path
+
+-- | Returns the last time a path was touched, or 0 if missing or
+-- inaccessible (see 'touchedAt').
 lastTouch :: FilePath     -- ^ Path to stat.
           -> IO POSIXTime -- ^ Latest of mtime and ctime, or 0 if missing
                           -- or inaccessible.
-lastTouch path =
-  (newestTime `fmap` getFileStatus path) `catchIOError` (\e -> if isDoesNotExistError e ||
-                                                                  isPermissionError e
-                                                               then return 0
-                                                               else ioError e)
+lastTouch path = fromMaybe 0 <$> touchedAt path
 
 -- | Checks whether the given paths have non-decreasing last-touch times.
 pathsSorted :: NonEmpty FilePath -- ^ Paths in expected chronological order.
@@ -175,6 +189,25 @@ readCacheFile config path fn validate extras = do
   if stale
     then return Nothing
     else readContents rpath
+
+-- | Reads a cache file, if it is at least as new (see 'touchedAt') as
+-- the given time, e.g. that of the file it was built from.
+--
+-- This is the cheaper form of 'readCacheFile', for reading many small
+-- cache files (e.g. the exif caches, during a scan): the time of the
+-- file it was built from is given, not looked up.
+--
+-- Only a regular file is read (reading a pipe would wait for a writer).
+-- A missing or unreadable file (permission denied), one that isn't a
+-- regular file, and one older than the given time give nothing.
+readCacheFileSince :: FilePath   -- ^ Path to the cache file.
+                   -> POSIXTime  -- ^ The time it must not be older than.
+                   -> IO (Maybe BS.ByteString)
+readCacheFileSince path since = do
+  stat <- statusOf path
+  case stat of
+    Just st | isRegularFile st && newestTime st >= since -> readContents path
+    _ -> return Nothing
 
 -- | Deletes a cache file, given that it lies under the cache directory.
 deleteCacheFile :: FilePath        -- ^ Path to the cache directory.

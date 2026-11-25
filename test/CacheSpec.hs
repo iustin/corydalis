@@ -27,7 +27,7 @@ import qualified Data.ByteString.Char8 as BS8
 import           Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
 import           System.Directory
 import           System.FilePath    (takeDirectory)
-import           System.Posix.Files (setFileTimesHiRes)
+import           System.Posix.Files (createNamedPipe, setFileTimesHiRes)
 
 import           Cache
 import           TestImport
@@ -107,6 +107,44 @@ spec = parallel $ withConfig $ do
       setMtimeOffset (extraPath config) 3600
       readCacheFile config (sourcePath config) cacheFn True [extraPath config]
         `shouldReturn` (Nothing :: Maybe BS8.ByteString)
+
+  describe "readCacheFileSince" $ do
+    let cachePath config = cfgCacheDir config </> "nested/cache.bin"
+        cacheData = BS8.pack "cache-data"
+        writeCache config = do
+          createDirectoryIfMissing True (takeDirectory (cachePath config))
+          BS8.writeFile (cachePath config) cacheData
+        -- With a last resort time limit, in case the read blocks.
+        readSince path since =
+          timeout (30 * 1000000) (readCacheFileSince path since)
+
+    it "reads a cache file at least as new as the given time" $ \config -> do
+      writeCache config
+      now <- getPOSIXTime
+      readSince (cachePath config) (now - 3600) `shouldReturn` Just (Just cacheData)
+      readSince (cachePath config) 0 `shouldReturn` Just (Just cacheData)
+
+    it "doesn't read a cache file older than the given time" $ \config -> do
+      writeCache config
+      now <- getPOSIXTime
+      readSince (cachePath config) (now + 3600) `shouldReturn` Just Nothing
+
+    it "returns Nothing for a missing cache file" $ \config ->
+      readSince (cachePath config) 0 `shouldReturn` Just Nothing
+
+    it "reads an empty cache file as empty" $ \config -> do
+      createDirectoryIfMissing True (takeDirectory (cachePath config))
+      BS8.writeFile (cachePath config) ""
+      readSince (cachePath config) 0 `shouldReturn` Just (Just "")
+
+    it "doesn't read a directory" $ \config -> do
+      createDirectoryIfMissing True (cachePath config)
+      readSince (cachePath config) 0 `shouldReturn` Just Nothing
+
+    it "doesn't read a pipe, without waiting for a writer" $ \config -> do
+      createDirectoryIfMissing True (takeDirectory (cachePath config))
+      createNamedPipe (cachePath config) 0o600
+      readSince (cachePath config) 0 `shouldReturn` Just Nothing
 
   describe "deleteCachedFile" $ do
     describe "refuses to delete file outside of cache" $ do

@@ -1583,7 +1583,8 @@ loadFolder ctx name path isSource = do
     toLogStr (show (length contents)) <> " inodes)"
   let known = filter (isKnownMediaInode config) contents
   (readexifs, lcache) <- getExif logfn (ctxScanToolLimits ctx) config path $
-                           map inodeFullName known
+                           map (\i -> (inodeFullName i, inodeMTime i `max` inodeCTime i))
+                               known
   logfn LevelDebug $ "loadFolder yaml " <> toLogStr path
   let warnYaml reason = logfn LevelWarn $ "Folder " <> toLogStr path <>
         ": " <> toLogStr folderYamlName <> " ignored: " <> toLogStr reason
