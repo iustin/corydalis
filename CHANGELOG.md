@@ -50,9 +50,13 @@
   rescan ends goes from 340 to 420 MB to about 290 MB.
 - A rescan does less work: the cache cleanup reads the cache directory
   once, instead of first counting its files, and only reads the names
-  and types of its entries. The progress of the cleanup on the status
-  page is now based on an estimate of the number of files, and stops
-  short of complete (by about 5%) until the cleanup ends.
+  and types of its entries; the check of the previews resolves the
+  picture directories once, instead of for each picture; and the exif
+  caches are read with fewer file system calls. On a test library of
+  24,000 pictures, a rescan where nothing changed allocates about a
+  sixth less. The progress of the cache cleanup on the status page is
+  now based on an estimate of the number of files, and stops short of
+  complete (by about 5%) until the cleanup ends.
 
 ### Fixed bugs
 

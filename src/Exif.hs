@@ -90,6 +90,7 @@ import           Data.Store
 import qualified Data.Text                 as Text
 import qualified Data.Text.Read            as Text
 import qualified Data.Text.Short           as TS
+import           Data.Time.Clock.POSIX     (POSIXTime)
 import           Data.Time.Format
 import           Data.Time.LocalTime
 import           System.Directory          (createDirectoryIfMissing)
@@ -1100,10 +1101,18 @@ writeBExif :: Config -> FilePath -> EExif -> IO ()
 writeBExif config path =
   writeCacheFile config path bExifPath . Data.Store.encode
 
--- | Tries to read the (binary) exif cache for a given file.
-readBExif :: Config -> FilePath -> IO (Maybe EExif)
-readBExif config path = do
-  contents <- readCacheFile config path bExifPath True [exifPath config path]
+-- | Tries to read the (binary) exif cache for a given file, given the
+-- file's last change (see 'touchedAt').
+--
+-- The cache is used only if it is at least as new as the raw exif cache,
+-- itself at least as new as the file; without the raw exif cache (missing
+-- or unreadable), it isn't used.
+readBExif :: Config -> POSIXTime -> FilePath -> IO (Maybe EExif)
+readBExif config fileTime path = do
+  rawTime <- touchedAt (exifPath config path)
+  contents <- case rawTime of
+                Just t | fileTime <= t -> readCacheFileSince (bExifPath config path) t
+                _                      -> return Nothing
   return $ contents >>= either (const Nothing) Just . Data.Store.decode
 
 -- | Writes the exif caches (raw and binary) for a given file.
@@ -1118,10 +1127,12 @@ writeExifs config dir er = do
   writeBExif config fpath e
   return (rpath, e)
 
--- | Tries to read the (raw) exif cache for a given file.
-readExif :: Config -> FilePath -> IO (Maybe (Either Text RawExif))
-readExif config path = do
-  contents <- readCacheFile config path exifPath True []
+-- | Tries to read the (raw) exif cache for a given file, given the
+-- file's last change (see 'touchedAt'): the cache is used only if it is
+-- at least as new.
+readExif :: Config -> POSIXTime -> FilePath -> IO (Maybe (Either Text RawExif))
+readExif config fileTime path = do
+  contents <- readCacheFileSince (exifPath config path) fileTime
   return $ contents >>= Just . first Text.pack . eitherDecodeStrict'
 
 -- | Insert an exif value after fully evaluating it so cache/JSON thunks
@@ -1136,29 +1147,35 @@ insertForced m k e = do
   return $! Map.insert k e' m
 
 -- | Try to get an exif value for a path, either from cache or from filesystem.
+--
+-- The files are given (relative to the directory) with their last
+-- change, the later of their modification and status change times (see
+-- 'touchedAt'), as the scan found them: the caches older than that are
+-- not used.
 getExif :: LogFn
         -> ToolLimits  -- ^ The limits of the scan's exiftool runs.
-        -> Config -> FilePath -> [FilePath] -> IO (Int, Map Text EExif)
-getExif logfn tools config dir paths = do
+        -> Config -> FilePath -> [(FilePath, POSIXTime)]
+        -> IO (Int, Map Text EExif)
+getExif logfn tools config dir files = do
   logfn LevelDebug $ "getExif " <> toLogStr dir <> ": " <>
-    toLogStr (show (length paths)) <> " paths"
-  (cache1, m1) <- foldM (\(c, m) p -> do
+    toLogStr (show (length files)) <> " paths"
+  (cache1, m1) <- foldM (\(c, m) f@(p, ftime) -> do
                             let fpath = buildPath dir p
-                            exif <- readBExif config fpath
+                            exif <- readBExif config ftime fpath
                             case exif of
-                              Nothing -> return (c, p:m)
+                              Nothing -> return (c, f:m)
                               Just e  -> do
                                 c' <- insertForced c (Text.pack p) e
                                 return (c', m)
-                        ) (Map.empty, []) paths
+                        ) (Map.empty, []) files
   logfn LevelDebug $ "getExif " <> toLogStr dir <> ": bexif hits=" <>
     toLogStr (show (Map.size cache1)) <> " misses=" <>
     toLogStr (show (length m1))
-  (cache2, m2) <- foldM (\(c, m) p -> do
+  (cache2, m2) <- foldM (\(c, m) (p, ftime) -> do
                             let fpath = buildPath dir p
-                            exif <- readExif config fpath
+                            exif <- readExif config ftime fpath
                             case exif of
-                              -- failed to find file, or file stale.
+                              -- missing, unreadable, not a regular file, or stale.
                               Nothing -> return (c, p:m)
                               -- found file, but parsing might have failed.
                               Just v -> do

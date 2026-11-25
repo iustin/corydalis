@@ -31,18 +31,20 @@ import           ClassyPrelude.Yesod
 import           Data.Aeson
 import           Data.Aeson.Types    (Parser, parseMaybe)
 import qualified Data.ByteString     as BS
+import qualified Data.Store
 import           Data.Either         (isLeft, isRight)
 import qualified Data.Map            as Map
+import           Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
 import           Data.Text.Arbitrary ()
 import           Data.Time           (LocalTime (..), TimeOfDay (..),
                                       ZonedTime (..), TimeZone (..),
                                       zonedTimeToLocalTime)
 import           System.Directory    (createDirectory, doesFileExist,
-                                      listDirectory)
+                                      listDirectory, removeFile)
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
 import           Cache               (cacheTempDir)
 import qualified System.IO
-import           System.Posix.Files  (createNamedPipe)
+import           System.Posix.Files  (createNamedPipe, setFileTimesHiRes)
 import           System.Process.Typed (createPipe, getStdin, getStdout, proc,
                                        setStdin, setStdout, withProcessWait)
 import           Test.QuickCheck
@@ -95,7 +97,7 @@ tmpFilesWhileRunning config dir = do
   let pipe = dir </> "pipe.jpg"
   createNamedPipe pipe 0o600
   -- Stopped (with exiftool) if the test fails before it finishes.
-  withAsync (getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]) $ \running -> do
+  withAsync (getExif noLog tools config dir (untimed ["normal.jpg", "pipe.jpg"])) $ \running -> do
     let writer = setStdin createPipe . setStdout createPipe $
                    proc "sh" ["-c", "exec 3>\"$0\"; echo open; read x", pipe]
     during <- withProcessWait writer $ \p -> do
@@ -109,6 +111,11 @@ tmpFilesWhileRunning config dir = do
       maybe (expectationFailure "exiftool never finished") (const (return ()))
     afterwards <- listDirectory (cacheTempDir config)
     return (during, afterwards)
+
+-- | Files given to 'getExif' without their last change: no exif cache
+-- is older than that.
+untimed :: [FilePath] -> [(FilePath, POSIXTime)]
+untimed = map (, 0)
 
 -- Arbitrary instances for testing
 
@@ -408,7 +415,7 @@ spec = parallel $ do
       tools <- testToolLimits
       let names = ["-Comment=x.jpg", "-Directory=moved.jpg", "normal.jpg"]
       dir <- populateSourceDir config $ map (, minimalJpeg) names
-      (readCount, exifs) <- getExif noLog tools config dir names
+      (readCount, exifs) <- getExif noLog tools config dir (untimed names)
       -- Nothing was renamed, moved or backed-up by a write mode run.
       (sort <$> listDirectory dir) `shouldReturn` sort names
       forM_ names $ \name ->
@@ -423,7 +430,7 @@ spec = parallel $ do
       let names = ["-empty.jpg", "normal.jpg"]
       dir <- populateSourceDir config
                [("-empty.jpg", BS.empty), ("normal.jpg", minimalJpeg)]
-      (_, exifs) <- getExif noLog tools config dir names
+      (_, exifs) <- getExif noLog tools config dir (untimed names)
       Map.keys exifs `shouldBe` map pack (sort names)
       (isLeft <$> lookup "-empty.jpg" exifs) `shouldBe` Just True
       (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
@@ -432,11 +439,62 @@ spec = parallel $ do
       requireExifTool
       tools <- testToolLimits
       dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
-      _ <- getExif noLog tools config dir ["normal.jpg"]
+      _ <- getExif noLog tools config dir (untimed ["normal.jpg"])
       rawCache <- BS.readFile (exifPath config (dir </> "normal.jpg"))
       let source = decodeStrict' rawCache >>=
                      parseMaybe (withObject "cached exif" (.: "SourceFile"))
       source `shouldBe` Just ("normal.jpg" :: Text)
+
+    it "uses the exif caches only if not older than the file" $ \config -> do
+      requireExifTool
+      tools <- testToolLimits
+      dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+      (initial, _) <- getExif noLog tools config dir (untimed ["normal.jpg"])
+      initial `shouldBe` 1
+      written <- getPOSIXTime
+      -- Not changed since: read from the cache.
+      (fromCache, exifs) <- getExif noLog tools config dir [("normal.jpg", written - 3600)]
+      fromCache `shouldBe` 0
+      (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
+      -- Changed after the caches were written: read again.
+      (reread, exifs') <- getExif noLog tools config dir [("normal.jpg", written + 3600)]
+      reread `shouldBe` 1
+      (isRight <$> lookup "normal.jpg" exifs') `shouldBe` Just True
+
+    it "doesn't use a binary exif cache older than the raw one" $ \config -> do
+      requireExifTool
+      tools <- testToolLimits
+      dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+      _ <- getExif noLog tools config dir (untimed ["normal.jpg"])
+      now <- getPOSIXTime
+      let picture = dir </> "normal.jpg"
+          stale = Left "stale binary cache" :: EExif
+          readAgain = getExif noLog tools config dir [("normal.jpg", now - 7200)]
+      -- A binary cache telling apart where the result comes from.
+      BS.writeFile (bExifPath config picture) (Data.Store.encode stale)
+      (fromBinary, exifs) <- readAgain
+      fromBinary `shouldBe` 0
+      lookup "normal.jpg" exifs `shouldBe` Just stale
+      -- The raw cache now newer than the binary one.
+      let later = now + 3600
+      setFileTimesHiRes (exifPath config picture) later later
+      (fromRaw, exifs') <- readAgain
+      -- Read from the raw cache, not by exiftool.
+      fromRaw `shouldBe` 0
+      (isRight <$> lookup "normal.jpg" exifs') `shouldBe` Just True
+
+    forM_ [("an hour ago", subtract 3600), ("at time 0", const 0)] $ \(name, timeOf) ->
+      it ("doesn't use a binary exif cache without the raw one, for a file changed " ++
+          name) $ \config -> do
+        requireExifTool
+        tools <- testToolLimits
+        dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+        _ <- getExif noLog tools config dir (untimed ["normal.jpg"])
+        now <- getPOSIXTime
+        removeFile (exifPath config (dir </> "normal.jpg"))
+        (reread, exifs) <- getExif noLog tools config dir [("normal.jpg", timeOf now)]
+        reread `shouldBe` 1
+        (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
 
     it "fails a batch which runs for too long, for all its files" $ \config -> do
       requireExifTool
@@ -446,7 +504,7 @@ spec = parallel $ do
       createNamedPipe (dir </> "pipe.jpg") 0o600
       -- With a last resort time limit, in case it isn't stopped.
       result <- timeout (30 * 1000000) $
-                  getExif noLog tools config dir ["normal.jpg", "pipe.jpg"]
+                  getExif noLog tools config dir (untimed ["normal.jpg", "pipe.jpg"])
       case result of
         Nothing -> expectationFailure "exiftool wasn't stopped"
         Just (_, exifs) -> do
@@ -459,7 +517,7 @@ spec = parallel $ do
       -- With the default limits: exiftool can take longer than the
       -- short one above to start, e.g. when the machine is busy.
       defaultTools <- testToolLimits
-      (_, retried) <- getExif noLog defaultTools config dir ["normal.jpg"]
+      (_, retried) <- getExif noLog defaultTools config dir (untimed ["normal.jpg"])
       (isRight <$> lookup "normal.jpg" retried) `shouldBe` Just True
 
     it "writes exiftool's output in the cache's temporary directory" $ \config -> do
@@ -490,7 +548,7 @@ spec = parallel $ do
       -- Taking the only slot, as a running exiftool would.
       atomically . waitTSem $ tlSlots tools
       -- Stopped if the test fails before it finishes.
-      withAsync (getExif noLog tools config dir ["normal.jpg"]) $ \running -> do
+      withAsync (getExif noLog tools config dir (untimed ["normal.jpg"])) $ \running -> do
         -- It does nothing else in STM, so it is then waiting for the slot.
         waitUntilBlockedInSTM (asyncThreadId running)
         doesFileExist (exifPath config (dir </> "normal.jpg")) `shouldReturn` False
