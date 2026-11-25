@@ -1807,16 +1807,15 @@ spec = parallel $ do
         getSearchResults ctx (const unevaluated) [] `shouldThrow` anyErrorCall
         -- Nothing was cached.
         getSearchResults ctx (const m1) [] `shouldReturn` m1
-      it "flushes the search cache when a scan's status changes" $ \ctx -> do
+      it "keeps the search cache when only a scan's status changes" $ \ctx -> do
         let image = simpleRawImage (ctxConfig ctx)
             m1 = (Map.singleton ("a", (Nothing, "b")) image,
                   Map.singleton "a" image)
-            m2 = (Map.empty, Map.empty)
         serial <- atomically $ newRepo (ctxRepo ctx)
         getSearchResults ctx (const m1) [] `shouldReturn` m1
-        -- A failing scan only changes the status.
+        -- A failing scan only changes the status, not the data.
         _ <- runScanAction ctx serial (throwString "scan exploded")
-        getSearchResults ctx (const m2) [] `shouldReturn` m2
+        getSearchResults ctx (error "Not cached") [] `shouldReturn` m1
       -- A search listing the repository's folders, which publishes new
       -- data (one more folder) while it runs, the given number of times:
       -- as a scan would, between the search reading the repository and
