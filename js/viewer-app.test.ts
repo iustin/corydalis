@@ -150,7 +150,13 @@ class FakeContext {
 }
 
 /** The state of a fake media element. */
-type Media = { paused: boolean; currentTime: number; duration: number };
+type Media = {
+  paused: boolean;
+  currentTime: number;
+  duration: number;
+  /** The number of load() calls. */
+  loads?: number;
+};
 
 type Route = (method: string) => Response | Promise<Response>;
 
@@ -269,6 +275,9 @@ function setup(options: SetupOptions = {}) {
   };
   mediaProto.pause = function (this: HTMLMediaElement) {
     mediaState(this).paused = true;
+  };
+  mediaProto.load = function (this: HTMLMediaElement) {
+    mediaState(this).loads = (mediaState(this).loads ?? 0) + 1;
   };
 
   // User-visible side effects.
@@ -1332,15 +1341,36 @@ describe('movies', () => {
     assert.equal(mock.callCount(), 1);
   });
 
-  it('says when the movie fails to load', (t) => {
-    const mock = errors(t);
+  for (const target of ['source', 'video']) {
+    it(`says when the movie fails (error on the ${target})`, (t) => {
+      const mock = errors(t);
+      const v = movie();
+      v.key('p');
+      const el =
+        target === 'source' ? v.video.querySelector('source')! : v.video;
+      el.dispatchEvent(new v.win.Event('error'));
+      assert.equal(v.media(v.video).paused, true);
+      assert.ok(playIcon(v).contains('fa-play'));
+      assert.equal(v.persistent(), LOAD_FAILURE_MESSAGE);
+      assert.equal(mock.callCount(), 1);
+    });
+  }
+
+  it('loads the movie again when playing after a failure', (t) => {
+    errors(t);
     const v = movie();
     v.key('p');
+    assert.equal(v.media(v.video).loads, undefined);
     v.video.querySelector('source')!.dispatchEvent(new v.win.Event('error'));
-    assert.equal(v.media(v.video).paused, true);
-    assert.ok(playIcon(v).contains('fa-play'));
-    assert.equal(v.persistent(), LOAD_FAILURE_MESSAGE);
-    assert.equal(mock.callCount(), 1);
+    v.key('p');
+    assert.equal(v.media(v.video).loads, 1);
+    assert.equal(v.media(v.video).paused, false);
+    assert.ok(playIcon(v).contains('fa-pause'));
+    assert.equal(v.persistent(), '');
+    // Only once per failure.
+    v.key('p');
+    v.key('p');
+    assert.equal(v.media(v.video).loads, 1);
   });
 
   it('ignores load failures after moving to another image', (t) => {

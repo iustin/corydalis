@@ -41,12 +41,14 @@ export function playFailureMessage(err: unknown): string | null {
 }
 
 /**
- * The message to show when the movie itself can't be loaded (e.g. the
- * server answers with an error).
+ * The message to show when the movie itself fails: it can't be loaded
+ * (e.g. the server answers with an error) or decoded, or it fails while
+ * playing.
  *
  * The movie's URL is on a `<source>` child of the video element, and
  * when that fails, the browser only fires an `error` event on the source
  * element: `play()` neither resolves nor rejects, as the element waits
- * for another source to be added.
+ * for another source to be added. Failures after the movie started
+ * loading fire an `error` event on the video element instead.
  */
-export const LOAD_FAILURE_MESSAGE = 'The movie could not be loaded.';
+export const LOAD_FAILURE_MESSAGE = 'The movie could not be loaded or played.';

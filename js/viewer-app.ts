@@ -804,6 +804,11 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
         // play() fails if the browser blocks playback, or the movie can't
         // be loaded; in that case, revert the optimistic icon change.
         const video = cory.state.video;
+        if (video.dataset.failed === 'true') {
+          // Try again from the start (see the error handling).
+          delete video.dataset.failed;
+          video.load();
+        }
         video.play().catch((err: unknown) => {
           if (cory.state.video !== video) {
             // We already navigated away; the button is no longer ours.
@@ -877,20 +882,25 @@ export function startViewer(win: ViewerWindow, deps: ViewerDeps): Cory | null {
       video.onloadeddata = movieFrameAvailable;
       const source = document.createElement('source');
       source.setAttribute('src', info.movie);
-      // A failed load only fires this (see LOAD_FAILURE_MESSAGE).
-      source.addEventListener('error', () => {
+      // See LOAD_FAILURE_MESSAGE for where failures are reported.
+      const failed = () => {
         if (cory.state.video !== video) {
-          // We already navigated away (which empties the source).
+          // We already navigated away (dropping the video).
           return;
         }
-        console.error('Failed to load movie:', info.movie);
+        console.error('Failed to load or play movie:', info.movie, video.error);
+        // Marks it for a new load on the next play request, as the
+        // element otherwise just keeps waiting for another source.
+        video.dataset.failed = 'true';
         // Stop the pending play() (which then rejects with an
         // AbortError, ignored), so that the state matches the icon.
         video.pause();
         moviePlaySpan.classList.remove('fa-pause');
         moviePlaySpan.classList.add('fa-play');
         writePersistent(LOAD_FAILURE_MESSAGE);
-      });
+      };
+      source.addEventListener('error', failed);
+      video.addEventListener('error', failed);
       video.appendChild(source);
       divMain.append(video);
       seekBar.disabled = true;
