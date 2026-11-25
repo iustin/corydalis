@@ -105,11 +105,25 @@ test('the seek bar moves the movie', async ({ page }) => {
   await expect.poll(time).toBeCloseTo(5, 0);
 });
 
-test('a movie that fails to load says so', async ({ page, consoleErrors }) => {
+test('a movie that fails to load says so, and can be retried', async ({
+  page,
+  consoleErrors,
+}) => {
   consoleErrors.allow(/status of 404/);
-  consoleErrors.allow(/Failed to load movie/);
+  consoleErrors.allow(/Failed to load or play movie/);
   await page.route('**/image/movie/**', (r) => r.fulfill({ status: 404 }));
   await page.keyboard.press('p');
   await expect(page.locator('#persistBox')).toHaveText(/could not be loaded/);
   await expect(page.locator('#moviePlay>span')).toHaveClass(/fa-play/);
+  // Once the server answers, playing again loads it.
+  await page.unroute('**/image/movie/**');
+  await page.keyboard.press('p');
+  await expect
+    .poll(() =>
+      page
+        .locator('#main video')
+        .evaluate((v) => (v as HTMLVideoElement).currentTime),
+    )
+    .toBeGreaterThan(0);
+  await expect(page.locator('#persistBox')).toHaveText('');
 });

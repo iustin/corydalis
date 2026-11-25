@@ -23,18 +23,31 @@ import { test, expect, type Page } from './fixtures';
 const theme = (page: Page) =>
   page.evaluate(() => document.documentElement.dataset.bsTheme);
 
+/** Lets the page see a change of the system's colour scheme. */
+async function systemScheme(page: Page, colorScheme: 'light' | 'dark') {
+  await page.emulateMedia({ colorScheme });
+  // The media query's change event comes with the next rendering.
+  await page.evaluate(
+    () =>
+      new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+  );
+}
+
 test('follows the system, then the button, and keeps the choice', async ({
   page,
 }) => {
-  await page.emulateMedia({ colorScheme: 'dark' });
+  await systemScheme(page, 'dark');
   await page.goto('/about');
   expect(await theme(page)).toBe('dark'); // automatic
+  await systemScheme(page, 'light');
+  expect(await theme(page)).toBe('light'); // still automatic
   const button = page.locator('#theme-toggle');
   await button.click();
   expect(await theme(page)).toBe('light');
   await button.click();
   expect(await theme(page)).toBe('dark');
-  await page.emulateMedia({ colorScheme: 'light' });
+  await systemScheme(page, 'dark');
+  await systemScheme(page, 'light');
   expect(await theme(page)).toBe('dark'); // chosen, so not the system's
   // Another page starts with the choice already applied.
   await page.goto('/status');

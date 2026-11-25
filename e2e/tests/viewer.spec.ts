@@ -381,15 +381,20 @@ test.describe('zoom and pan', () => {
 
 test('full screen, with the keys and the button', async ({ page }) => {
   const full = () => page.evaluate(() => document.fullscreenElement !== null);
+  const icon = page.locator('#imageFull>span');
   for (const toggle of [
     () => page.keyboard.press('f'),
     () => page.keyboard.press('ArrowUp'),
     () => page.click('#imageFull'),
   ]) {
+    // The icon changes once the viewer has seen the change, which must
+    // happen before toggling again.
     await toggle();
     await expect.poll(full).toBe(true);
+    await expect(icon).toHaveClass(/fa-minimize/);
     await toggle();
     await expect.poll(full).toBe(false);
+    await expect(icon).toHaveClass(/fa-maximize/);
   }
 });
 
