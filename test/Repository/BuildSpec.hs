@@ -81,6 +81,28 @@ compositeFolderWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] ->
 compositeFolderWith cache config srcs outs =
   finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirsWith cache config srcs outs) Map.! "f"
 
+-- | Checks that a finished folder's links agree with the images'
+-- ranges, and go both ways: exactly the images with a range are
+-- composite images, and a composite image lists a component exactly
+-- when the component lists it.
+linksAreConsistent :: PicDir -> Expectation
+linksAreConsistent dir =
+  forM_ (pdImages dir) $ \img -> do
+    let name = imgName img
+        roleOf n = imgRole <$> Map.lookup n (pdImages dir)
+    case imgRole img of
+      CompositeOf components -> do
+        isJust (imgRange img) `shouldBe` True
+        forM_ components $ \c -> case roleOf c of
+          Just (ComponentOf composites) -> toList composites `shouldContain` [name]
+          other -> expectationFailure $ show c ++ " is not a component: " ++ show other
+      ComponentOf composites -> do
+        isJust (imgRange img) `shouldBe` False
+        forM_ composites $ \c -> case roleOf c of
+          Just (CompositeOf components) -> components `shouldContain` [name]
+          other -> expectationFailure $ show c ++ " is not a composite: " ++ show other
+      PlainImage -> isJust (imgRange img) `shouldBe` False
+
 -- | A folder's stored counts: unprocessed, standalone, processed and
 -- movies.
 folderCounts :: PicDir -> (Int, Int, Int, Int)
@@ -328,6 +350,14 @@ spec = parallel $ do
         map fileName (imgJpegPath merged) `shouldBe` ["a.raf"]
 
     describe "mergeFolders" $ do
+      it "keeps the directory with more masters as main, before finishing" $ \config -> do
+        -- Directories as a scan builds them, with no stats yet.
+        let raws = buildFolderFromInodes config "trip" "/raw/trip" True
+                     [mkInode "a.nef"] Map.empty Nothing
+            jpegs = buildFolderFromInodes config "trip" "/jpg/trip" False
+                      [mkInode "b.jpg", mkInode "c.jpg"] Map.empty Nothing
+        pdMainPath (mergeFolders config raws jpegs) `shouldBe` "/raw/trip"
+        pdMainPath (mergeFolders config jpegs raws) `shouldBe` "/raw/trip"
       it "keeps the path with more raw files as main" $ \config -> do
         let raw = simpleRawImage config
             jpegImg = mkImage config "b" "trip" Nothing Nothing [simpleFile "b.jpg"] Nothing [] [] Nothing MediaImage def
@@ -367,6 +397,7 @@ spec = parallel $ do
             folderSizes dir `shouldBe` sizes
             -- The stored numbers are the final ones.
             show (pdStats dir) `shouldBe` show (computeFolderStats dir)
+            linksAreConsistent dir
             return dir
           roleOf dir name = imgRole (pdImages dir Map.! name)
           statusOf dir name = imgStatus (pdImages dir Map.! name)
@@ -477,12 +508,41 @@ spec = parallel $ do
         roleOf dir "d_9999-0001" `shouldBe` CompositeOf ["d_9999", "d_0001"]
       it "never links a composite image as a component" $ \config' -> do
         -- A range regex under which a composite's name can be in
-        -- another one's range.
+        -- another one's range: a_1-2-3 has the root a_1- and covers
+        -- a_1-2 (itself a composite image) and a_1-3.
         let config = config' { cfgRangeRegex = fromMaybe (error "Invalid range regex") $
-                                 mkRegex "^(.*_)([0-9]+)-([0-9]+)$" }
-            dir = compositeFolder config [] [[("a_1-2.jpg", 50), ("a_1-2_1-2.jpg", 50)]]
-        roleOf dir "a_1-2_1-2" `shouldBe` CompositeOf []
-        roleOf dir "a_1-2" `shouldBe` CompositeOf []
+                                 mkRegex "^(.*[_-])([0-9]+)-([0-9]+)$" }
+            dir = compositeFolder config [[("a_1.nef", 10)]]
+                    [[("a_1-2.jpg", 50), ("a_1-2-3.jpg", 50), ("a_1-3.jpg", 5)]]
+        roleOf dir "a_1-2-3" `shouldBe` CompositeOf []
+        roleOf dir "a_1-2" `shouldBe` CompositeOf ["a_1"]
+        roleOf dir "a_1-3" `shouldBe` CompositeOf ["a_1"]
+        linksAreConsistent dir
+      it "doesn't make components of frames without a master processed" $ \config -> do
+        -- Only JPEGs: the composite image, its components and their
+        -- statuses stay standalone.
+        dir <- check config [] [[("d_01.jpg", 5), ("d_02.jpg", 5), ("d_01-03.jpg", 50)]]
+                 (0, 3, 0, 0) (0, 0, 60, 0)
+        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02"]
+        forM_ ["d_01", "d_02", "d_01-03"] $ \name ->
+          statusOf dir name `shouldBe` ImageStandalone
+      it "leaves a component that is only a sidecar orphaned" $ \config -> do
+        let dir = compositeFolder config [] [[("d_01-03.jpg", 50), ("d_03.xmp", 1)]]
+        roleOf dir "d_03" `shouldBe` ComponentOf ("d_01-03" :| [])
+        statusOf dir "d_03" `shouldBe` ImageOrphaned
+        statusOf dir "d_01-03" `shouldBe` ImageStandalone
+      it "doesn't make a movie a composite image, even with a poster" $ \config -> do
+        let dir = compositeFolder config [nefs] [[("d_01-03.mov", 70), ("d_01-03.jpg", 50)]]
+        roleOf dir "d_01-03" `shouldBe` PlainImage
+        imgRange (pdImages dir Map.! "d_01-03") `shouldBe` Nothing
+        statusOf dir "d_01" `shouldBe` ImageUnprocessed
+        linksAreConsistent dir
+      it "doesn't link a movie as a component" $ \config -> do
+        let dir = compositeFolder config [[("d_01.nef", 10), ("d_02.mov", 70)]]
+                    [[("d_01-03.jpg", 50)]]
+        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01"]
+        roleOf dir "d_02" `shouldBe` PlainImage
+        linksAreConsistent dir
 
   withContext $ do
     describe "addDirToRepo event merge" $ do

@@ -65,13 +65,17 @@
   nothing guaranteed that it did. The first start after upgrading
   scans the library again, as the existing cache has no version.
 - Composite images (panoramas, HDR merges, stacks), which the manual
-  called "range" files, are now linked to their components instead of
-  lending them their files; the rules, with examples, are in the new
+  called "range" files, are now linked to their components by name,
+  instead of lending them their files (and borrowing the first
+  component's raw); the rules, with examples, are in the new
   "Composite images" page of the documentation. What changes:
-  - The status and list pages count the components as processed, as
-    the folder pages already did; and every file's size counts once,
-    where a composite image's output was counted once per component
-    too. So the numbers change for folders with composite images.
+  - The status and list pages now count the components, and a
+    composite image without a master, as processed, as the folder
+    pages already did. On the folder pages, sizes are no longer
+    counted twice: a composite image's output was counted once per
+    component too, and the first component's raw again for a
+    composite image without a master. So the numbers change for
+    folders with composite images.
   - A component is viewed from its own files (its raw, if it has no
     output of its own), not from the composite image's output.
   - A composite image without a master is processed when any of its
@@ -82,13 +86,19 @@
   - The image page links a composite image to its components, and a
     component to the composite images covering it.
   - Names are read by their numbers: a name is a range when its last
-    number is not below the first, and a copy otherwise. So `x_1-3`
-    is now a composite image of `x_1` to `x_3`, not a copy of `x_1`,
-    while `dsc_1920-2` stays a copy of `dsc_1920`. A camera counter
-    that wrapped (e.g. `dsc_9998-0002`) is a range too.
+    number is not below the first (or it is a camera counter that
+    wrapped, e.g. `dsc_9998-0002`); otherwise the copy suffix is
+    removed as before. So `x_1-3` is now a composite image of `x_1`
+    to `x_3`, not a copy of `x_1`, while `dsc_1920-2` stays a copy of
+    `dsc_1920`.
   - The most names a range can have is now the `maxrangesize` setting
     (1024 by default, as before).
-  - A movie named like a range no longer covers anything.
+  - A lone sidecar named like a range (e.g. `d_01-03.xmp`, left over
+    from a deleted panorama) is now a composite image too, so its
+    components count as processed; before, it covered nothing.
+  - Movies are no longer part of composite images: a movie named like
+    a range no longer covers anything, and a movie named like a frame
+    is not a component.
 
 ### Fixed bugs
 
@@ -149,9 +159,11 @@
   interning names; Corydalis now builds with a fixed version of it (see
   Dependencies).
 - A composite image's components could stay unprocessed when the
-  composite image and the components' outputs were in different
-  directories of the same folder (e.g. two output directories), as
-  the links were lost when the directories were merged.
+  folder also had files in a directory read after the composite
+  image's (e.g. a TIFF composite in the source directory, with an
+  output directory for the same folder; or a composite in the first
+  of two output directories), as only the last directory's links
+  survived the merge.
 - A folder's year and first date could disagree with its pictures'
   dates, when the files of one picture carry different dates (e.g. a
   raw and an output with a corrected clock): they were the earliest
@@ -160,11 +172,17 @@
 
 ### Internal changes
 
-- `PicDir`'s `pdShadows` is gone: an image's `imgRole` holds its links
-  to composite images, set by `finishFolder`, which also computes all
-  of a folder's derived values (time index, year, statistics, group
-  exif, implicit event) once its directories are merged, instead of
-  per directory and again at each merge.
+- `PicDir`'s `pdShadows` is gone: an image's `imgRole` holds its
+  links, to its components or to the composite images covering it,
+  set by `finishFolder`, which also computes all of a folder's derived
+  values (time index, year, first date, statistics, group exif,
+  implicit event) once its directories are merged, instead of per
+  directory and again at each merge. As the statistics are empty
+  until then, `mergeFolders` picks the main path by counting the
+  images with a master.
+- `imgRange` is now a `Maybe ImageRange` (root, numbers and padding)
+  instead of a pair of names, read by `parseImageName`; the range
+  limit is `cfgMaxRangeSize`.
 - `Pics` is split by job: the repository's types and pure functions
   are in `Repository`, its live state (the context, ownership of
   updates, the search cache) in `Repository.State`, reading names in

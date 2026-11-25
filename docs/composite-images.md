@@ -13,8 +13,9 @@ like work still to do.
   to `dsc_0105`.
 - **Component**: a picture whose name is in a composite image's
   range, in the same folder.
-- **Master**: the file an image is made from: a raw file, a TIFF or
-  DNG, or a JPEG in a source directory.
+- **Master**: the file an image is made from: a file with one of the
+  `rawexts` extensions (raw files, TIFF and DNG with the sample
+  settings), or a JPEG in a source directory.
 - **Output**: a processed file of an image, e.g. a JPEG in an output
   directory.
 - **Statuses**: an image is *unprocessed* (a master and no output),
@@ -29,11 +30,14 @@ last number; with the sample settings, `dsc_0101-0105` has the root
 `dsc_`, and the numbers 0101 and 0105.
 
 - The name is a range when the last number is not below the first.
+  The names it covers are padded to the width of the first number:
+  `d_01-03` covers `d_01`, `d_02` and `d_03`, while `d_1-03` covers
+  `d_1`, `d_2` and `d_3`.
 - A camera counter that wrapped is a range too: when both numbers have
   exactly four digits, as camera file numbers do (0001 to 9999), and
   the last is below the first, the range runs up to 9999 and continues
-  from 0001. `dsc_9998-0002` covers `dsc_9998`, `dsc_9999`,
-  `dsc_0001` and `dsc_0002`, in that order.
+  from 0001 (the last number can't be 0000). `dsc_9998-0002` covers
+  `dsc_9998`, `dsc_9999`, `dsc_0001` and `dsc_0002`, in that order.
 - A range has at most `maxrangesize` names (1024 by default), counting
   a wrapped range's names too; a longer one, e.g. a timestamp that
   looks like a range, is not a range. So `dsc_1920-0002` (8082 names)
@@ -43,10 +47,15 @@ last number; with the sample settings, `dsc_0101-0105` has the root
   sample settings, `dsc_1920-2` is a copy of `dsc_1920` (2 is below
   1920), while `dsc_1920-1925` and `x_1-3` are ranges, and
   `d_01-03-Edit` is a copy of the composite image `d_01-03`. Note that
-  a file meant as a copy of `x_1` and named `x_1-3` is a range.
+  a file meant as a copy of `x_1` and named `x_1-3` is a range; name
+  it `x_1-Edit` instead, or change `copyregex`.
 
-All of a composite image's files can be masters, outputs or sidecars;
-a movie is never a composite image, even when its name is a range.
+All of a composite image's files can be masters, outputs or sidecars,
+so even a lone sidecar named like a range is a composite image, and
+covers its components. Movies are not part of composite images: a
+movie is never a composite image, even when its name is a range (or
+another file of the same name, such as a poster, has one), and never
+a component.
 
 ## The link
 
@@ -57,6 +66,9 @@ a movie is never a composite image, even when its name is a range.
   components that exist.
 - It doesn't matter which source or output directories the composite
   image and its components are in, nor in which order they are read.
+  Within the folder, though, they must be in the same sub-directory:
+  `pano/d_01-03.jpg` covers `pano/d_01` to `pano/d_03`, not `d_01`
+  to `d_03`.
 - No file belongs to two images: the composite image has only its own
   files, and so does each component. The link is by name, in both
   directions.
@@ -74,15 +86,18 @@ there are.
 
 ## Statuses
 
-- A component with an output of its own is processed, as any image.
-- A component without an output of its own is processed as soon as a
-  composite image covers it, even one without an output yet: the work
-  that remains is the composite image's.
+- A component with an output of its own keeps its usual status:
+  processed with a master, standalone without.
+- A component with a master but no output of its own is processed as
+  soon as a composite image covers it, even one without an output
+  yet: the work that remains is the composite image's.
 - A composite image with a master follows the usual rule: unprocessed
   without an output, processed with one.
-- A composite image without a master is processed when at least one of
-  its components has a master (it was made from masters that are in
-  the library), and standalone otherwise.
+- A composite image with an output but no master is processed when at
+  least one of its components has a master (it was made from masters
+  that are in the library), and standalone otherwise.
+- Other images, such as one that is only a sidecar, keep their usual
+  status.
 
 Being a composite image or a component is not a status of its own.
 
@@ -101,9 +116,10 @@ read, so that every page shows the same numbers.
   they lack is taken from its first existing component (the first in
   the order of its range): the date, the camera, the lens and the
   place. The camera, the lens and the place are each taken whole, and
-  only when the composite image's files have none of it. The width,
-  height, orientation, exposure, people and keywords are never taken
-  from a component.
+  only when the composite image's files have no field of it (e.g. no
+  make, model or serial number for the camera). Nothing else is
+  taken from a component: e.g. the size, orientation, exposure, focal
+  length, rating, people and keywords.
 - A component's metadata comes from its own files only: it doesn't
   get the people or keywords of the composite image, as the frames of
   a panorama don't each show what the panorama shows.
@@ -137,7 +153,7 @@ made-up units: a raw is 10, a composite image's JPEG 50, a TIFF or DNG
 | Output: `d_01-02.jpg` (50) and `d_02-03.jpg` (40) | 5 processed. Raw 30, processed 90. `d_02` is linked to both |
 | Source: `d_01-03.dng`. Output: `d_01-03.jpg` | 4 processed. Raw 130, processed 50 |
 | Output: `d_01-03.jpg` and its copy `d_01-03-Edit.jpg` (45) | 4 processed. Raw 30, processed 95 |
-| No raws at all. Output: `d_01-03.jpg` | 1 standalone, 50 |
+| No raws at all. Output: `d_01-03.jpg` | 1 standalone. Standalone 50 |
 
 ## Scope
 

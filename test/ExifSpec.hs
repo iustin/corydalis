@@ -426,6 +426,38 @@ spec = parallel $ do
                           }
           filled = fillCompositeExif component composite
       filled `shouldBe` composite
+    it "fills each group on its own" $ do
+      let composite = def { exifCreateDate = date 5
+                          , exifCamera = Just (mkSym "Cam B")
+                          }
+          filled = fillCompositeExif component composite
+      exifCreateDate filled `shouldBe` date 5
+      -- The camera is the composite's own, without the component's
+      -- serial number or make.
+      (exifCamera filled, exifModel filled, exifSerial filled, exifMake filled) `shouldBe`
+        (Just (mkSym "Cam B"), Nothing, Nothing, Nothing)
+      -- The lens and the place come from the component.
+      (exifLens filled, exifLensMake filled) `shouldBe` (lens, exifLensMake component)
+      (exifCountry filled, exifCity filled) `shouldBe` (exifCountry component, exifCity component)
+    it "keeps a group whole when the composite has any one of its fields" $ do
+      let sym = Just (mkSym "B")
+          camera e = (exifCamera e, exifModel e, exifSerial e, exifMake e)
+          place e = (exifCountry e, exifProvince e, exifCity e, exifLocation e)
+          lensOf e = (exifLens e, exifLensMake e)
+          sameCamera a b = camera a == camera b
+          samePlace a b = place a == place b
+          sameLens a b = lensOf a == lensOf b
+          -- A composite with one field of a group, and that group.
+          composites =
+            [ (def { exifCamera = sym }, sameCamera), (def { exifModel = sym }, sameCamera)
+            , (def { exifSerial = sym }, sameCamera), (def { exifMake = sym }, sameCamera)
+            , (def { exifCountry = sym }, samePlace), (def { exifProvince = sym }, samePlace)
+            , (def { exifCity = sym }, samePlace), (def { exifLocation = sym }, samePlace)
+            , (def { exifLensMake = sym }, sameLens)
+            , (def { exifLens = unknownLens { liSerial = sym } }, sameLens)
+            ]
+      forM_ composites $ \(composite, sameGroup) ->
+        fillCompositeExif component composite `shouldSatisfy` sameGroup composite
 
   describe "Person formatting" $ do
     it "formats slash and space-separated names" $ do

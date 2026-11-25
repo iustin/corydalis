@@ -232,8 +232,8 @@ instance NFData MediaType where
 -- picture in a sub-directory of its folder.
 --
 -- The last number is below the first for a camera counter that
--- wrapped (see 'Repository.Names.parseImageName'): @dsc_9998-0002@
--- runs up to 9999, then from 1.
+-- wrapped (both numbers of four digits): @dsc_9998-0002@ runs up to
+-- 9999, then from 1 (see 'Repository.Names.rangeNames').
 data ImageRange = ImageRange
   { irRoot  :: !ShortText
   , irFirst :: !Int
@@ -278,7 +278,9 @@ data Image = Image
     , imgUntracked   :: ![File]
     , imgRange       :: !(Maybe ImageRange)
     , imgRole        :: !ImageRole  -- ^ Only set once its folder is
-                                    -- finished ('PlainImage' before).
+                                    -- finished ('PlainImage' before);
+                                    -- then 'CompositeOf' exactly for
+                                    -- the images with a range.
     , imgExif        :: !Exif
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
@@ -407,6 +409,8 @@ mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
 -- are computed once all its directories are merged, by
 -- 'Repository.Build.finishFolder'; until then they are empty, and the
 -- event is only the one from the folder's @corydalis.yaml@, if any.
+-- The images' roles, and the statuses and exif that depend on them,
+-- are also only final then.
 data PicDir = PicDir
   { pdName      :: !ShortText
   , pdMainPath  :: !ShortText

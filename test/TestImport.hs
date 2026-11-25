@@ -48,7 +48,7 @@ import           Repository                     (File (..), Image (..),
                                                  computeRepoStats, mkImage,
                                                  repoGlobalExif,
                                                  startupRepository)
-import           Repository.Build               (addDirToRepo)
+import           Repository.Build               (finishFolder)
 import           Repository.Scan                (launchScanFileSystem, scanAll,
                                                  waitForScan)
 import           Repository.State               (Ctx, getRepo,
@@ -639,7 +639,7 @@ injectImages images = do
   liftIO $ atomically $ do
     let ctx = appContext app
     repo <- readTVar (ctxRepo ctx)
-    let newDirs = foldl' (addImageToRepo (ctxConfig ctx)) (repoDirs repo) images
+    let newDirs = foldl' addImageToRepo (repoDirs repo) images
         newStats = computeRepoStats newDirs
         newExif = repoGlobalExif newDirs
         newRepo = repo { repoDirs = newDirs
@@ -650,17 +650,12 @@ injectImages images = do
     writeTVar (ctxRepo ctx) newRepo
 
 -- | Helper to add a single image to a test folder in RepoDirs
-addImageToRepo :: Config -> RepoDirs -> Image -> RepoDirs
-addImageToRepo config dirs img =
+addImageToRepo :: RepoDirs -> Image -> RepoDirs
+addImageToRepo dirs img =
   let folderName = imgParent img
       existingDir = Map.findWithDefault (createTestPicDir folderName) folderName dirs
       updatedImages = Map.insert (imgName img) img (pdImages existingDir)
-      updatedDir = existingDir { pdImages = updatedImages
-                               , pdTimeSort = buildTimeSort updatedImages
-                               , pdStats = computeImagesStats updatedImages
-                               , pdExif = buildGroupExif updatedImages
-                               }
-  in addDirToRepo config updatedDir dirs
+  in Map.insert folderName (finishFolder existingDir { pdImages = updatedImages }) dirs
 
 -- Various test utils
 shouldBeLeftWithMessage :: (Show a) => Either Text a -> Text -> Expectation
@@ -720,7 +715,7 @@ insertJpeg ctx jpeg = do
   repo <- getRepo ctx
   let config = ctxConfig ctx
       img = mkImage config "a" "folder" Nothing Nothing [jpeg] Nothing [] [] Nothing MediaImage def
-      dirs = addImageToRepo config (repoDirs repo) img
+      dirs = addImageToRepo (repoDirs repo) img
       repo' = repo { repoDirs = dirs
                    , repoStats = computeRepoStats dirs
                    , repoExif = repoGlobalExif dirs

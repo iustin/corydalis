@@ -1130,7 +1130,7 @@ spec = parallel $ do
             raw = rawFile ctx
             path = fileFullPath raw
             sizes = autoSizeList ctx
-            dirs = addImageToRepo config (repoDirs repo) (rawImage ctx raw)
+            dirs = addImageToRepo (repoDirs repo) (rawImage ctx raw)
             repo' = repo { repoDirs = dirs }
         writeFile path ("raw" :: ByteString)
         writeNonEmpty (embeddedImagePath config path)
@@ -1180,9 +1180,8 @@ spec = parallel $ do
             Left err -> expectationFailure $ "unexpected error: " ++ show err
       it "counts a failed extraction as an error of the build" $ \ctx -> do
         repo <- getRepo ctx
-        let config = ctxConfig ctx
-            movie = movieFile ctx
-            dirs = addImageToRepo config (repoDirs repo) (movieImage ctx movie)
+        let movie = movieFile ctx
+            dirs = addImageToRepo (repoDirs repo) (movieImage ctx movie)
             repo' = repo { repoDirs = dirs }
         writeFile (fileFullPath movie) ("not a movie" :: ByteString)
         pg <- forceBuildThumbCaches ctx repo'

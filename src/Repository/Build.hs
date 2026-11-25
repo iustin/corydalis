@@ -117,6 +117,9 @@ selectMasterFile rexts pathfn x y =
        (Nothing, Just _)   -> (yraw, ysoft, [])
        _                   -> (Nothing, False, [])
 
+-- | Merges two images of the same name, from different files. This
+-- is only for images not linked yet (see 'finishFolder'): their role
+-- is left as is.
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
   let (rawPath, softmaster, extrajpeg) = selectMasterFile (cfgRawExts c) imgRawPath x y
@@ -141,7 +144,11 @@ mergePictures c x y =
                , imgMovs        = movs
                , imgUntracked   = untrk
                , imgType        = ityp
-               , imgRange       = imgRange x <|> imgRange y
+               -- A movie is never a composite image, even if another
+               -- file of the same name (e.g. a poster) has a range.
+               , imgRange       = if ityp == MediaMovie
+                                    then Nothing
+                                    else imgRange x <|> imgRange y
                , imgStatus      = status
                , imgExif        = exif
                }
@@ -268,8 +275,8 @@ loadImage config tname parent isSource lcache ii =
                 else Nothing
       jpeg_file = [file_obj | is_jpeg && not isSource]
       p_mov = [file_obj | is_mov && not isSource]
-      -- A movie is never a composite image (for now): its name is
-      -- read as for the other files, but it has no range.
+      -- A movie is never a composite image: its name is read as for
+      -- the other files, but it has no range.
       range = if is_mov then Nothing else name_range
       flags = Flags {
         flagsSoftMaster = isSoftMaster
@@ -322,13 +329,16 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
 -- its range that exist, in order, and each of them lists the composite
 -- images covering it. A composite image is never linked as a
 -- component (with the sample regexes, a name can't be both, but the
--- regexes can be changed).
+-- regexes can be changed), and neither is a movie, as movies are not
+-- part of composite images.
 linkComposites :: Map ImageName Image -> Map ImageName Image
 linkComposites images =
   Map.mapWithKey (\name img -> img { imgRole = role name }) images
   where
     composites = Map.mapMaybe (fmap (filter isComponent . rangeNames) . imgRange) images
-    isComponent name = maybe False (isNothing . imgRange) (Map.lookup name images)
+    isComponent name =
+      maybe False (\img -> isNothing (imgRange img) && imgType img /= MediaMovie)
+            (Map.lookup name images)
     -- In the order of the composite images' names.
     coveredBy = Map.fromListWith (flip (<>))
                   [ (component, composite :| [])
@@ -341,11 +351,11 @@ linkComposites images =
         (Nothing, Nothing)    -> PlainImage
 
 -- | The status of an image once its folder's links are known. A
--- component with a master and no output of its own counts as
--- processed, as soon as a composite image covers it (even one
--- without an output yet). A composite image without a master counts
--- as processed when any of its components has a master, and stays
--- standalone otherwise. Other images keep the status their files give.
+-- component with a master and no output of its own (unprocessed)
+-- counts as processed, as soon as a composite image covers it (even
+-- one without an output yet). A composite image with an output and no
+-- master (standalone) counts as processed when any of its components
+-- has a master. Other images keep the status their files give.
 linkedStatus :: Map ImageName Image -> Image -> ImageStatus
 linkedStatus images img =
   case (imgRole img, imgStatus img) of

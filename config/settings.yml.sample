@@ -214,9 +214,9 @@ config:
   # pictures, e.g. panoramas; exactly three groups are expected, in
   # order: base filename, start index, end index.
   rangeregex: "^(.*_)([0-9]+)-([0-9]+)$"
-  # The most names a range can have (the default is 1024): a name
-  # with a longer range, e.g. a timestamp that looks like one, is not
-  # read as a range.
+  # The most pictures a range name can cover; must be positive, and
+  # the default is 1024. A name with a longer range, e.g. a timestamp
+  # that looks like one, is not read as a range.
   # maxrangesize: 1024
   # Copy regex: the first group is the base filename, any other
   # groups are ignored:
