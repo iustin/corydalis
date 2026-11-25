@@ -178,10 +178,10 @@ jobs:
           node-version-file: '.node-version'
           cache: 'npm'
 
-      - name: Install exiftool and ImageMagick
+      - name: Install exiftool, ImageMagick and ffmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libimage-exiftool-perl imagemagick
+          sudo apt-get install -y --no-install-recommends libimage-exiftool-perl imagemagick ffmpeg
 
       - name: Create git-version
         run: make git-version

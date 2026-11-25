@@ -46,8 +46,11 @@ function password(project: string): string {
   return fs.readFileSync(file, 'utf8').trim();
 }
 
-/** The number of folders in each project's library (see setup.sh). */
-const FOLDERS: Record<string, number> = { private: 20, public: 21 };
+/**
+ * The number of folders in each project's library (see setup.sh; the
+ * public one also has those of add-problem.sh and add-movie.sh).
+ */
+const FOLDERS: Record<string, number> = { private: 20, public: 22 };
 
 /** Logs in, then waits (up to two minutes) for the scan to finish. */
 async function login(page: Page, project: string): Promise<void> {

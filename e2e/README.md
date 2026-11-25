@@ -42,13 +42,20 @@ cases belong in a unit test.
     and a stale one);
   - `charts.spec.ts`: the charts are drawn, with hover labels, working
     update menus and resizing;
-  - `viewer.spec.ts`: the viewer (navigation, flagging, random images);
+  - `viewer.spec.ts`: the viewer: navigation (buttons, keys, swipes,
+    history), zoom and pan (keys, wheel, drag, double click), the
+    overlays, downloading, flagging, and the keys that leave it;
+  - `movie.spec.ts`: a movie in the viewer (its first frame, and
+    playing it); it runs in the `public` project, whose library has
+    the movie;
   - `public-site.spec.ts`: what anonymous visitors can and can't see
     or do on a public-site build, and that a logged in user still sees
     everything;
 - `setup.sh`: creates a work directory with a sample photo library (20
   folders, 120 small JPEG images with EXIF data), a `settings.yml` for
   it, and a test user;
+- `add-movie.sh`: adds a folder with a short movie (VP9 in MP4, which
+  Playwright's Chromium can play) to the library made by `setup.sh`;
 - `add-problem.sh`: adds a folder with a picture that has a problem (a
   truncated JPEG, for which exiftool warns "JPEG format error") to the
   library made by `setup.sh`;
@@ -72,8 +79,9 @@ image counts, names, dates).
     npx playwright install chromium   # once
     make e2e    # or: e2e/run.sh WORKDIR (default _run/e2e)
 
-This needs ImageMagick and exiftool, as for the application itself. It
-builds the binaries (normal and public site, without optimisation, in
+This needs ImageMagick and exiftool, as for the application itself,
+and ffmpeg, for the movie (made by `add-movie.sh`, and its first frame
+extracted by the server). It builds the binaries (normal and public site, without optimisation, in
 `.stack-e2e` and `.stack-e2e-public`), makes the two libraries, starts
 a server for each (on ports 3001 and 3002, so as not to conflict with
 a development server on 3000), runs the tests, then the recording
