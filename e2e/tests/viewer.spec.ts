@@ -379,6 +379,20 @@ test.describe('zoom and pan', () => {
   });
 });
 
+test('full screen, with the keys and the button', async ({ page }) => {
+  const full = () => page.evaluate(() => document.fullscreenElement !== null);
+  for (const toggle of [
+    () => page.keyboard.press('f'),
+    () => page.keyboard.press('ArrowUp'),
+    () => page.click('#imageFull'),
+  ]) {
+    await toggle();
+    await expect.poll(full).toBe(true);
+    await toggle();
+    await expect.poll(full).toBe(false);
+  }
+});
+
 test.describe('overlays', () => {
   test('image information', async ({ page }) => {
     const info = page.locator('#imageInfo');
