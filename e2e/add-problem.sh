@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Adds a folder with a picture that has a problem to the sample library
-# made by setup.sh, for public-site.cjs (see README.md). The other
+# made by setup.sh, for tests/public-site.spec.ts (see README.md). The other
 # scripts expect the library as setup.sh makes it, so use a separate
 # work directory for this.
 #

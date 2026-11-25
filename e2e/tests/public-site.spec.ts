@@ -47,6 +47,7 @@ test.describe('anonymous visitor', () => {
   test.use(anonymous);
   let ctx: APIRequestContext;
   test.beforeAll(async ({}, testInfo) => {
+    test.setTimeout(200_000); // longer than the scan wait below
     ctx = await request.newContext({ baseURL: testInfo.project.use.baseURL });
     // The problem folder is added last, so wait until the scan found it.
     await expect
@@ -174,6 +175,10 @@ test.describe('anonymous visitor', () => {
     test(`the browser loads ${p}`, async ({ page }) => {
       const resp = await page.goto(p, { waitUntil: 'networkidle' });
       expect(resp?.status()).toBe(200);
+      // Not sent to the login page (which also answers 200).
+      expect(new URL(page.url()).pathname).toBe(
+        new URL(p, page.url()).pathname,
+      );
     });
   }
 

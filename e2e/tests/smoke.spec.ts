@@ -76,7 +76,7 @@ for (const url of PAGES) {
 // These redirect to the first matching image or result.
 for (const [url, to] of [
   ['/search/images/view', /^\/view\//],
-  ['/search/quick?q=Zurich', /^\/search/],
+  ['/search/quick?q=Zurich', /^\/search\/images\/grid\//],
 ] as const) {
   test(`${url} redirects and loads`, async ({ page }) => {
     await loads(page, url);
