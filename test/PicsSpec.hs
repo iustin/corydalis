@@ -63,6 +63,7 @@ import           AtomTypes
 import           Cache              (cacheTempDir, cachedBasename)
 import           Exif
 import           Pics
+import           Utils.Storage      (resolveStorageDirs)
 import           Utils.Tools        (decodeToolOutput, readToolProcess)
 import           Utils.Yaml         (maxYamlSize)
 import           TestImport
@@ -2401,7 +2402,9 @@ spec = parallel $ do
           movieFile ctx = (simpleFile "m.mov") { fileParent = mkSym (pack $ outputDir ctx) }
           movieImage ctx m = mkImage (ctxConfig ctx) "m" "folder" Nothing Nothing []
                                (Just m) [] [] Nothing MediaMovie def
-          pendingOf ctx img = imagePendingSizes noLog (ctxConfig ctx) img (autoSizeList ctx)
+          pendingOf ctx img = do
+            dirs <- resolveStorageDirs noLog (ctxConfig ctx)
+            imagePendingSizes noLog (ctxConfig ctx) dirs img (autoSizeList ctx)
           shouldPend ctx img expected = pendingOf ctx img >>= \case
             Right sizes -> sizes `shouldBe` expected
             Left err    -> expectationFailure $ "unexpected error: " ++ show err
@@ -2466,6 +2469,17 @@ spec = parallel $ do
         pg <- forceBuildThumbCaches ctx repo
         pgGoal pg `shouldBe` length (autoSizeList ctx)
         pgNoop pg `shouldBe` 0
+        pgNumErrors pg `shouldBe` length (autoSizeList ctx)
+      it "rejects a picture replaced by a symbolic link" $ \ctx -> do
+        let jpeg = jpegFile ctx
+            secret = cfgCacheDir (ctxConfig ctx) </> "secret.jpg"
+        writeFile secret ("" :: ByteString)
+        createSymbolicLink secret (fileFullPath jpeg)
+        (repo, img) <- insertJpeg ctx jpeg
+        pendingOf ctx img >>= \case
+          Left (ImageError _) -> return ()
+          other -> expectationFailure $ "expected the check to fail, got " ++ show other
+        pg <- forceBuildThumbCaches ctx repo
         pgNumErrors pg `shouldBe` length (autoSizeList ctx)
       it "builds from an already extracted preview or frame" $ \ctx -> do
         let config = ctxConfig ctx
