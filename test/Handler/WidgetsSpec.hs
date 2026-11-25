@@ -32,7 +32,7 @@ import           Data.Time                     (LocalTime (..), midnight)
 import           Exif
 import           Handler.Widgets
 import           Indexer                       (Atom (..))
-import           Pics                          (Image (..), MediaType (..))
+import           Repository                    (Image (..), MediaType (..))
 import           TestImport
 
 -- | Renders a widget's body.

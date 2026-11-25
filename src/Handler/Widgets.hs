@@ -41,9 +41,10 @@ import           Handler.Utils
 import           Import
 import           Indexer
 import           Pics
+import           Repository
 import           Stats               (DateRange)
 
-showFile :: Pics.File -> Widget
+showFile :: Repository.File -> Widget
 showFile f = do
   showPath <- handlerToWidget getStoragePathRenderer
   $(widgetFile "showfile")
@@ -269,7 +270,7 @@ movieViewActions :: Image -> UrlParams -> Widget
 movieViewActions img params = do
   let folder = imgParent img
       image = imgName img
-      download = maybe "" Pics.fileName (bestMovie img)
+      download = maybe "" Repository.fileName (bestMovie img)
   toWidget [hamlet|
             <a href=@?{(ViewR folder image, params)} title="View movie in Corydalis">
               <span .fa-regular .fa-image .fa-lg>#

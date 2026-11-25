@@ -38,7 +38,7 @@ import           Exif
 import           Handler.Utils
 import           Handler.Widgets
 import           Import
-import           Pics
+import           Repository
 
 getImageR :: ShortText -> ImageName -> Handler Html
 getImageR folder iname = do

@@ -64,6 +64,12 @@ import           AtomTypes
 import           Cache              (cacheTempDir, cachedBasename)
 import           Exif
 import           Pics
+import           Repository
+import           Repository.Build
+import           Repository.Names
+import           Repository.Scan
+import           Repository.State
+import           System.Posix.Types (FileOffset)
 import           Utils.Storage      (resolveStorageDirs)
 import           Utils.Tools        (decodeToolOutput, readToolProcess)
 import           Utils.Yaml         (maxYamlSize)

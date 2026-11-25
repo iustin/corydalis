@@ -92,8 +92,8 @@
         <ul>
           $forall f <- pdUntracked dir
             <li>
-              <span .monolight>#{Pics.fileRelPath f}
-              \ (#{showBinary $ Pics.fileSize f})
+              <span .monolight>#{Repository.fileRelPath f}
+              \ (#{showBinary $ Repository.fileSize f})
 
   <div .col-6 .col-md-3 .mb-4>
    <div .card>

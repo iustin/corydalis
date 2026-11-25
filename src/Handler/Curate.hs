@@ -41,7 +41,8 @@ import           Handler.Utils
 import           Handler.Widgets (showDateRange)
 import           Import          hiding (Status)
 import           Indexer
-import           Pics
+import           Repository
+import           Stats               (Occurrence (..))
 
 -- | Data of a chart's series; the text shown is escaped (see 'PlotText').
 data XGraphData a b = XGraphData

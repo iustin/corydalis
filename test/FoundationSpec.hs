@@ -39,8 +39,8 @@ import           Yesod.Auth.Util.PasswordStore (passwordStrength)
 import           Handler.Cookies
 import           Settings              (AppSettings (..))
 import           Settings.StaticFiles  (manifest_json)
-import           Pics                  (RepoStatus (..), Repository (..),
-                                        waitForScan)
+import           Repository            (RepoStatus (..), Repository (..))
+import           Repository.Scan       (waitForScan)
 import           TestImport
 import           Users                 (addOrUpdateUser, deleteUser,
                                         logoutUser)

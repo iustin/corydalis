@@ -83,7 +83,9 @@ import qualified Data.Text.Short      as TS
 
 import           Handler.Cookies
 import           Indexer
-import           Pics
+import           Repository
+import           Repository.Scan
+import           Repository.State
 import           Utils.Logging        (sanitizeLogStr)
 import           Utils.Session        (requestNewCsrfToken,
                                        rotatingCsrfSessions)

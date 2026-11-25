@@ -34,8 +34,8 @@ import           Handler.Search   (getQuickSearchR, getSearchR,
 import           Handler.View     (getRandomImageInfoR)
 import           Indexer         (Atom (..), StrOp (..),
                                   maxQuickSearchLength)
-import           Pics            (getSearchResults, launchScanFileSystem,
-                                  waitForScan)
+import           Repository.Scan  (launchScanFileSystem, waitForScan)
+import           Repository.State (getSearchResults)
 import           TestImport
 
 checkRedirAndHeader :: YesodExample App ()

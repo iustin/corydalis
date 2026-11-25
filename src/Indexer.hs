@@ -95,7 +95,8 @@ import           Yesod                       (PathPiece (..))
 
 import           AtomTypes
 import           Exif
-import           Pics
+import           Repository
+import           Repository.State
 
 import           Types
 import           Utils.Parsing               (parseDecimal, parseReal)

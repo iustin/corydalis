@@ -40,7 +40,7 @@ import           Test.QuickCheck     (Arbitrary (..), chooseEnum)
 import           AtomTypes
 import           Exif
 import           Indexer
-import           Pics
+import           Repository
 import           TestImport
 
 instance Arbitrary FolderClass where

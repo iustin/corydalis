@@ -26,7 +26,7 @@ import           TestImport
 
 import           Exif       (Exif (..))
 import           Handler.Curate (getCurateR)
-import           Pics       (Image (..))
+import           Repository (Image (..))
 
 -- | A picture taken with a camera whose name contains markup.
 cameraWithMarkup :: Config -> Image

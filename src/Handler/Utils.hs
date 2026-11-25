@@ -28,6 +28,11 @@ import           Exif
 import           Import
 import           Indexer
 import           Pics
+import           Repository
+import           Repository.Scan
+import           Repository.State
+import           Stats                 (Occurrence (..), Trends)
+import           System.Posix.Types    (FileOffset)
 import           Utils.Parsing         (parseDecimal)
 import           Utils.Storage         (relativeStoragePath)
 
