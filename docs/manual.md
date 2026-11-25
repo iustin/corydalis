@@ -578,15 +578,15 @@ movies are 'processed'.
 ### For files
 
 There are two types of processed files that Corydalis treats
-differently: additional copies and what it calls "range" files, used
-mostly for panoramas or HDR combinations.
+differently: additional copies and composite images, such as
+panoramas or HDR merges.
 
 Additional copies are simple files that share the same base name but
 usually with some suffix appended (configurable); these are not
 treated then as standalone files but as more outputs from the same raw
 file.
 
-#### Panorama/HDR outputs
+#### Composite images
 
 My usual workflow for a panorama or HDR file is as follows:
 
@@ -596,18 +596,20 @@ My usual workflow for a panorama or HDR file is as follows:
   "source format" (e.g. `TIFF` file), or only directly as processed
   output (`JPEG`);
 
-Corydalis supports both these cases:
+The combined file is named after the range of the files it was made
+from: for raw files `dsc_001` to `dsc_009`, an intermediate
+`dsc_001-009.tiff` and an output `dsc_001-009.jpeg`. Corydalis then
+links this composite image to its components, the images `dsc_001` to
+`dsc_009`, in both cases:
 
-- for base file names `dsc_001` to `dsc_009`, an intermediate
-  `dsc_001-009.tiff`, and output file `dsc_001-009.jpeg`, it will
-  associate the `jpeg` file to the `tiff` one, and also to the
-  individual raw files; this means that no raw/source file will be
-  considered unprocessed.
-- for base file names `dsc_001` to `dsc_009`, and output file
-  `dsc_001-009.jpeg` (without intermediate `tiff` file), it will
-  associate the `jpeg` file to all raw files; this means that the raw
-  files will be considered processed, and that the `jpeg` file won't
-  be considered as standalone.
+- the components count as processed, even those without an output of
+  their own, as the work that remains is the composite image's;
+- without the intermediate file, the output isn't standalone: it
+  counts as processed, as it was made from raw files in the library.
+
+Each file still belongs to one image only, and the image page shows
+the link both ways. The full rules, with examples, are in
+[Composite images](composite-images.md).
 
 ## Old concepts
 
