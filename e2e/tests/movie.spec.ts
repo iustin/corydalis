@@ -15,31 +15,37 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-// Movies in the viewer: the first frame (extracted by the server with
-// ffmpeg) is shown with a note, and playing switches to the video
-// element, served by the server. The movie is added by add-movie.sh,
-// to the public project's library.
+// Movies in the viewer: the first frame is shown with a note, and
+// playing switches to the video element, served by the server. The
+// movies are added by add-movie.sh: in the private project's library,
+// next to a picture (which is the frame shown); in the public one, on
+// its own (so the server extracts its first frame with ffmpeg).
 
 import type { Response } from '@playwright/test';
 import { test, expect, type Page } from './fixtures';
 
-const MOVIE = '/view/2024-12-02 Movie 98/MOV_0001';
+const MOVIES: Record<string, { folder: string; name: string }> = {
+  private: { folder: '2021-01-01 Zurich trip 0', name: 'IMG_0005' },
+  public: { folder: '2024-12-02 Movie 98', name: 'MOV_0001' },
+};
+let movie: { folder: string; name: string };
 
 /** Whether the response is for the movie (not its neighbours). */
 const isMovie = (r: Response, kind: string) =>
   r.url().includes(`/image/${kind}/`) &&
-  decodeURIComponent(r.url()).includes('Movie 98/MOV_0001');
+  decodeURIComponent(r.url()).includes(`${movie.folder}/${movie.name}`);
 
 // The first frame's response; the server answers a failure (e.g. no
 // ffmpeg) with an error image, also with status 200.
 let frame: Response;
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  movie = MOVIES[testInfo.project.name];
   [frame] = await Promise.all([
     page.waitForResponse((r) => isMovie(r, 'bytes')),
-    page.goto(MOVIE),
+    page.goto(`/view/${movie.folder}/${movie.name}`),
   ]);
-  await expect(page.locator('#navtext3')).toHaveText('MOV_0001');
+  await expect(page.locator('#navtext3')).toHaveText(movie.name);
   await expect(page.locator('#persistBox')).toHaveText(/This is a movie/);
 });
 
@@ -49,7 +55,7 @@ test('shows the first frame, and says it is a movie', async ({ page }) => {
   await expect(page.locator('#imageCanvas')).toBeVisible();
   // The note goes away on the next picture.
   await page.keyboard.press('ArrowRight');
-  await expect(page.locator('#navtext3')).not.toHaveText('MOV_0001');
+  await expect(page.locator('#navtext3')).not.toHaveText(movie.name);
   await expect(page.locator('#persistBox')).toHaveText('');
 });
 

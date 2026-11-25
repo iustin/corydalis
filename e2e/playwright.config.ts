@@ -19,7 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // servers are started by run.sh, which sets the environment variables
 // below; the "private" project uses the normal server and library, the
 // "public" one the public-site server and the library with a problem
-// picture and a movie (so the movie tests run there too).
+// picture. Both libraries have a movie (see add-movie.sh), so the
+// movie tests run in both.
 
 import { defineConfig } from '@playwright/test';
 
@@ -47,7 +48,7 @@ export default defineConfig({
   projects: [
     {
       name: 'private',
-      testIgnore: /public-site|movie/,
+      testIgnore: /public-site/,
       use: { baseURL: process.env.CORYDALIS_URL ?? 'http://localhost:3001' },
     },
     {

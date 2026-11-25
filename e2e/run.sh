@@ -58,7 +58,8 @@ build .stack-e2e-public "$WORK/public-bin" --flag corydalis:public-site
 
 echo "== Making the libraries"
 # Both at once, as they take a while (one exiftool run per image).
-e2e/setup.sh "$WORK/normal" "$WORK/bin" &
+(e2e/setup.sh "$WORK/normal" "$WORK/bin" &&
+   e2e/add-movie.sh --paired "$WORK/normal") &
 normal_setup=$!
 e2e/setup.sh "$WORK/public" "$WORK/public-bin"
 e2e/add-problem.sh "$WORK/public"
