@@ -34,6 +34,7 @@ module Repository.Build
 #ifdef TEST
   , linkComposites
   , linkedStatus
+  , linkedExif
   , isBetterMaster
   , selectMasterFile
   , mergePictures
@@ -365,15 +366,27 @@ earliestDate =
                   (_, Nothing)     -> a
              ) Nothing
 
+-- | Fills in a composite image's exif from its first component's (see
+-- 'fillCompositeExif'). Other images are left as they are.
+linkedExif :: Map ImageName Image -> Image -> Exif
+linkedExif images img =
+  case imgRole img of
+    CompositeOf (name:_) | Just component <- Map.lookup name images ->
+      fillCompositeExif (imgExif component) (imgExif img)
+    _ -> imgExif img
+
 -- | Finishes a folder, once all its directories are merged: links the
--- composite images and their components, sets the statuses that
--- depend on the links, and computes the values derived from the
--- images, once, from the final images. Until then, these values are
--- empty (see 'buildFolderFromInodes' and 'mergeFolders').
+-- composite images and their components, sets the statuses and the
+-- composite images' exif that depend on the links, and computes the
+-- values derived from the images, once, from the final images. Until
+-- then, these values are empty (see 'buildFolderFromInodes' and
+-- 'mergeFolders').
 finishFolder :: PicDir -> PicDir
 finishFolder dir =
   let linked = linkComposites (pdImages dir)
-      images = Map.map (\img -> img { imgStatus = linkedStatus linked img }) linked
+      images = Map.map (\img -> img { imgStatus = linkedStatus linked img
+                                    , imgExif = linkedExif linked img
+                                    }) linked
       stats = addUntrackedFiles (pdUntracked dir) (computeImagesStats images)
       timestamp = earliestDate images
   in dir { pdImages = images

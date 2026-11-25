@@ -41,6 +41,7 @@ module Exif ( Exif(..)
             , getExif
             , exifLocalCreateDate
             , promoteFileExif
+            , fillCompositeExif
             , addExifToGroup
             , affineTransform
             , unknown
@@ -1093,6 +1094,42 @@ promoteFileExif re se je mm me =
           , exifMake         = exifMake'
           , exifLensMake     = exifLensMake'
           }
+
+-- | Fills in what a composite image's exif lacks from that of its
+-- first component: the date, the camera, the lens and the place. The
+-- last three are groups of fields, each taken whole and only when the
+-- composite has none of the group's fields, so that a composite never
+-- mixes, say, its own camera model with a component's serial number.
+-- Everything else (the size, the orientation, the people and
+-- keywords, the exposure) stays the composite's own.
+fillCompositeExif :: Exif  -- ^ The first component's exif.
+                  -> Exif  -- ^ The composite image's exif.
+                  -> Exif
+fillCompositeExif component composite =
+  let withDate e = e { exifCreateDate = exifCreateDate composite <|> exifCreateDate component }
+      noCamera = all (\f -> isNothing (f composite)) [exifCamera, exifModel, exifSerial, exifMake]
+      withCamera e
+        | noCamera = e { exifCamera = exifCamera component
+                       , exifModel  = exifModel component
+                       , exifSerial = exifSerial component
+                       , exifMake   = exifMake component
+                       }
+        | otherwise = e
+      noLens = exifLens composite == unknownLens && isNothing (exifLensMake composite)
+      withLens e
+        | noLens = e { exifLens     = exifLens component
+                     , exifLensMake = exifLensMake component
+                     }
+        | otherwise = e
+      noPlace = all (\f -> isNothing (f composite)) [exifCountry, exifProvince, exifCity, exifLocation]
+      withPlace e
+        | noPlace = e { exifCountry  = exifCountry component
+                      , exifProvince = exifProvince component
+                      , exifCity     = exifCity component
+                      , exifLocation = exifLocation component
+                      }
+        | otherwise = e
+  in withDate . withCamera . withLens . withPlace $ composite
 
 -- TODO: make this saner/ensure it's canonical path.
 buildPath :: FilePath -> FilePath -> FilePath
