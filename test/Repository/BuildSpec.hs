@@ -81,27 +81,23 @@ compositeFolderWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] ->
 compositeFolderWith cache config srcs outs =
   finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirsWith cache config srcs outs) Map.! "f"
 
--- | Checks that a finished folder's links agree with the images'
--- ranges, and go both ways: exactly the images with a range are
--- composite images, and a composite image lists a component exactly
--- when the component lists it.
+-- | Checks that a finished folder's links go both ways: a composite
+-- image lists a component exactly when the component lists it.
 linksAreConsistent :: PicDir -> Expectation
 linksAreConsistent dir =
   forM_ (pdImages dir) $ \img -> do
     let name = imgName img
         roleOf n = imgRole <$> Map.lookup n (pdImages dir)
     case imgRole img of
-      CompositeOf components -> do
-        isJust (imgRange img) `shouldBe` True
+      CompositeOf _ components ->
         forM_ components $ \c -> case roleOf c of
           Just (ComponentOf composites) -> toList composites `shouldContain` [name]
           other -> expectationFailure $ show c ++ " is not a component: " ++ show other
-      ComponentOf composites -> do
-        isJust (imgRange img) `shouldBe` False
+      ComponentOf composites ->
         forM_ composites $ \c -> case roleOf c of
-          Just (CompositeOf components) -> components `shouldContain` [name]
+          Just (CompositeOf _ components) -> components `shouldContain` [name]
           other -> expectationFailure $ show c ++ " is not a composite: " ++ show other
-      PlainImage -> isJust (imgRange img) `shouldBe` False
+      PlainImage -> return ()
 
 -- | A folder's stored counts: unprocessed, standalone, processed and
 -- movies.
@@ -224,13 +220,12 @@ spec = parallel $ do
       it "reads the range of a range jpeg, as one image" $ \config -> do
         let img = runLoad (withProdNameRegexes config) False (mkInode "a_1-3.jpg")
         imgName img `shouldBe` "a_1-3"
-        imgRange img `shouldBe` Just (ImageRange "a_" 1 3 1)
-        -- Linked only when the folder is finished.
-        imgRole img `shouldBe` PlainImage
+        -- Linked only when the folder is finished: no components yet.
+        imgRole img `shouldBe` CompositeOf (ImageRange "a_" 1 3 1) []
       it "gives a movie named like a range no range" $ \config -> do
         let img = runLoad config False (mkInode "a_1-3.mov")
         imgName img `shouldBe` "a_1-3"
-        imgRange img `shouldBe` Nothing
+        imgRole img `shouldBe` PlainImage
       it "drops copy suffixes from the image name" $ \config -> do
         let img = runLoad config True (mkInode "foo-1.nef")
         imgName img `shouldBe` "foo"
@@ -425,12 +420,15 @@ spec = parallel $ do
             linksAreConsistent dir
             return dir
           roleOf dir name = imgRole (pdImages dir Map.! name)
+          componentsOf dir name = case roleOf dir name of
+                                    CompositeOf _ components -> Just components
+                                    _                        -> Nothing
           statusOf dir name = imgStatus (pdImages dir Map.! name)
           viewedFrom config dir name =
             fileName . fst <$> imageViewSource config (pdImages dir Map.! name)
       it "links a range jpeg with its raws (case 1)" $ \config -> do
         dir <- check config [nefs] [[("d_01-03.jpg", 50)]] (0, 0, 4, 0) (30, 50, 0, 0)
-        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02", "d_03"]
+        componentsOf dir "d_01-03" `shouldBe` Just ["d_01", "d_02", "d_03"]
         forM_ ["d_01", "d_02", "d_03"] $ \name -> do
           roleOf dir name `shouldBe` ComponentOf ("d_01-03" :| [])
           -- Each component is viewed from its own raw.
@@ -456,7 +454,7 @@ spec = parallel $ do
       it "uses any component with a master (case 7)" $ \config -> do
         dir <- check config [[("d_02.nef", 10), ("d_03.nef", 10)]] [[("d_01-03.jpg", 50)]]
                  (0, 0, 3, 0) (20, 50, 0, 0)
-        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_02", "d_03"]
+        componentsOf dir "d_01-03" `shouldBe` Just ["d_02", "d_03"]
         -- The composite keeps only its own files.
         imgRawPath (pdImages dir Map.! "d_01-03") `shouldBe` Nothing
       it "views components with their own jpeg from it (case 8)" $ \config -> do
@@ -466,7 +464,7 @@ spec = parallel $ do
       it "reads an unpadded name as a range (case 9)" $ \config -> do
         dir <- check config [[("x_1.nef", 10), ("x_2.nef", 10), ("x_3.nef", 10)]] [[("x_1-3.jpg", 50)]]
                  (0, 0, 4, 0) (30, 50, 0, 0)
-        roleOf dir "x_1-3" `shouldBe` CompositeOf ["x_1", "x_2", "x_3"]
+        componentsOf dir "x_1-3" `shouldBe` Just ["x_1", "x_2", "x_3"]
       it "treats a range jpeg in a source directory as a master (case 10)" $ \config ->
         void $ check config [nefs ++ [("d_01-03.jpg", 50)]] [] (1, 0, 3, 0) (80, 0, 0, 0)
       it "links a component to all the composites covering it (case 11)" $ \config -> do
@@ -483,10 +481,10 @@ spec = parallel $ do
         viewedFrom config dir "d_01" `shouldBe` Just "d_01.nef"
       it "leaves a composite without components standalone (case 14)" $ \config -> do
         dir <- check config [] [[("d_01-03.jpg", 50)]] (0, 1, 0, 0) (0, 0, 50, 0)
-        roleOf dir "d_01-03" `shouldBe` CompositeOf []
+        componentsOf dir "d_01-03" `shouldBe` Just []
       it "covers the components of a composite that only has a sidecar" $ \config -> do
         let dir = compositeFolder config [nefs] [[("d_01-03.xmp", 1)]]
-        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02", "d_03"]
+        componentsOf dir "d_01-03" `shouldBe` Just ["d_01", "d_02", "d_03"]
         statusOf dir "d_01-03" `shouldBe` ImageOrphaned
         statusOf dir "d_01" `shouldBe` ImageProcessed
       it "dates, and names the camera of, a composite from its first component" $ \config -> do
@@ -526,11 +524,11 @@ spec = parallel $ do
       it "makes a composite processed by components with a JPEG master" $ \config -> do
         dir <- check config [[("d_01.jpg", 10), ("d_02.jpg", 10), ("d_03.jpg", 10)]] [[("d_01-03.jpg", 50)]]
                  (0, 0, 4, 0) (30, 50, 0, 0)
-        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02", "d_03"]
+        componentsOf dir "d_01-03" `shouldBe` Just ["d_01", "d_02", "d_03"]
       it "doesn't link across sub-directories of the folder" $ \config -> do
         dir <- check config [[("d_01.nef", 10), ("d_02.nef", 10)]] [[("sub/d_01-02.jpg", 50)]]
                  (2, 1, 0, 0) (20, 0, 50, 0)
-        roleOf dir "sub/d_01-02" `shouldBe` CompositeOf []
+        componentsOf dir "sub/d_01-02" `shouldBe` Just []
         roleOf dir "d_01" `shouldBe` PlainImage
         dir' <- check config [[("sub/d_01.nef", 10)]] [[("d_01-02.jpg", 50)]]
                   (1, 1, 0, 0) (10, 0, 50, 0)
@@ -538,11 +536,11 @@ spec = parallel $ do
       it "reads a range in a sub-directory of the folder" $ \config -> do
         dir <- check config [[("sub/d_01.nef", 10), ("sub/d_02.nef", 10)]] [[("sub/d_01-02.jpg", 50)]]
                  (0, 0, 3, 0) (20, 50, 0, 0)
-        roleOf dir "sub/d_01-02" `shouldBe` CompositeOf ["sub/d_01", "sub/d_02"]
+        componentsOf dir "sub/d_01-02" `shouldBe` Just ["sub/d_01", "sub/d_02"]
       it "links the names of a wrapped camera counter" $ \config -> do
         dir <- check config [[("d_9999.nef", 10), ("d_0001.nef", 10)]] [[("d_9999-0001.jpg", 50)]]
                  (0, 0, 3, 0) (20, 50, 0, 0)
-        roleOf dir "d_9999-0001" `shouldBe` CompositeOf ["d_9999", "d_0001"]
+        componentsOf dir "d_9999-0001" `shouldBe` Just ["d_9999", "d_0001"]
       it "never links a composite image as a component" $ \config' -> do
         -- A range regex under which a composite's name can be in
         -- another one's range: a_1-2-3 has the root a_1- and covers
@@ -551,16 +549,16 @@ spec = parallel $ do
                                  mkRegex "^(.*[_-])([0-9]+)-([0-9]+)$" }
             dir = compositeFolder config [[("a_1.nef", 10)]]
                     [[("a_1-2.jpg", 50), ("a_1-2-3.jpg", 50), ("a_1-3.jpg", 5)]]
-        roleOf dir "a_1-2-3" `shouldBe` CompositeOf []
-        roleOf dir "a_1-2" `shouldBe` CompositeOf ["a_1"]
-        roleOf dir "a_1-3" `shouldBe` CompositeOf ["a_1"]
+        componentsOf dir "a_1-2-3" `shouldBe` Just []
+        componentsOf dir "a_1-2" `shouldBe` Just ["a_1"]
+        componentsOf dir "a_1-3" `shouldBe` Just ["a_1"]
         linksAreConsistent dir
       it "doesn't make components of frames without a master processed" $ \config -> do
         -- Only JPEGs: the composite image, its components and their
         -- statuses stay standalone.
         dir <- check config [] [[("d_01.jpg", 5), ("d_02.jpg", 5), ("d_01-03.jpg", 50)]]
                  (0, 3, 0, 0) (0, 0, 60, 0)
-        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02"]
+        componentsOf dir "d_01-03" `shouldBe` Just ["d_01", "d_02"]
         forM_ ["d_01", "d_02", "d_01-03"] $ \name ->
           statusOf dir name `shouldBe` ImageStandalone
       it "leaves a component that is only a sidecar orphaned" $ \config -> do
@@ -571,13 +569,12 @@ spec = parallel $ do
       it "doesn't make a movie a composite image, even with a poster" $ \config -> do
         let dir = compositeFolder config [nefs] [[("d_01-03.mov", 70), ("d_01-03.jpg", 50)]]
         roleOf dir "d_01-03" `shouldBe` PlainImage
-        imgRange (pdImages dir Map.! "d_01-03") `shouldBe` Nothing
         statusOf dir "d_01" `shouldBe` ImageUnprocessed
         linksAreConsistent dir
       it "doesn't link a movie as a component" $ \config -> do
         let dir = compositeFolder config [[("d_01.nef", 10), ("d_02.mov", 70)]]
                     [[("d_01-03.jpg", 50)]]
-        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01"]
+        componentsOf dir "d_01-03" `shouldBe` Just ["d_01"]
         roleOf dir "d_02" `shouldBe` PlainImage
         linksAreConsistent dir
 

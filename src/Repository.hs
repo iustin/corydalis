@@ -41,6 +41,7 @@ module Repository
   , MediaType(..)
   , ImageRange(..)
   , ImageRole(..)
+  , imageRange
   , Image(..)
   , InodeInfo(..)
   , inodeFullName
@@ -253,9 +254,10 @@ instance NFData ImageRange where
 data ImageRole
   = PlainImage
     -- ^ Neither a composite image nor a component.
-  | CompositeOf ![ImageName]
-    -- ^ A composite image (an image with a range), with the components
-    -- that exist in its folder, in the order of its range (maybe none).
+  | CompositeOf !ImageRange ![ImageName]
+    -- ^ A composite image: the range read from its name, and the
+    -- components that exist in its folder, in the order of the range
+    -- (maybe none).
   | ComponentOf !(NonEmpty ImageName)
     -- ^ A component of the composite images listed.
   deriving (Show, Eq, Generic, Data)
@@ -263,9 +265,9 @@ data ImageRole
 instance Store ImageRole
 
 instance NFData ImageRole where
-  rnf PlainImage       = ()
-  rnf (CompositeOf ns) = rnf ns
-  rnf (ComponentOf ns) = rnf ns
+  rnf PlainImage         = ()
+  rnf (CompositeOf r ns) = rnf r `seq` rnf ns
+  rnf (ComponentOf ns)   = rnf ns
 
 data Image = Image
     { imgName        :: !ImageName
@@ -276,11 +278,11 @@ data Image = Image
     , imgMasterMov   :: !(Maybe File)
     , imgMovs        :: ![File]
     , imgUntracked   :: ![File]
-    , imgRange       :: !(Maybe ImageRange)
-    , imgRole        :: !ImageRole  -- ^ Only set once its folder is
-                                    -- finished ('PlainImage' before);
-                                    -- then 'CompositeOf' exactly for
-                                    -- the images with a range.
+    , imgRole        :: !ImageRole  -- ^ The links are only set once
+                                    -- its folder is finished; before,
+                                    -- a composite image lists no
+                                    -- components, and the other
+                                    -- images are 'PlainImage'.
     , imgExif        :: !Exif
     , imgType        :: !MediaType
     , imgStatus      :: !ImageStatus
@@ -298,7 +300,6 @@ instance NFData Image where
                   rnf imgMasterMov   `seq`
                   rnf imgMovs        `seq`
                   rnf imgUntracked   `seq`
-                  rnf imgRange       `seq`
                   rnf imgRole        `seq`
                   rnf imgExif        `seq`
                   rnf imgType        `seq`
@@ -359,6 +360,12 @@ imageLocalDate = exifLocalCreateDate . imgExif
 
 type ImageTimeKey = (Maybe LocalTime, ImageName)
 
+-- | The range of a composite image (read from its name), if it is one.
+imageRange :: Image -> Maybe ImageRange
+imageRange img = case imgRole img of
+  CompositeOf range _ -> Just range
+  _                   -> Nothing
+
 imageTimeKey :: Image -> ImageTimeKey
 imageTimeKey img = (imageLocalDate img, imgName img)
 
@@ -402,7 +409,8 @@ mkImage config name parent raw sidecar jpegs mmov movs untrk range mtype =
                (map fileExif jpegs)
                (fileExif <$> mmov)
                (map fileExif movs)
-  in Image name parent raw sidecar jpegs mmov movs untrk range PlainImage exif mtype status
+      role = maybe PlainImage (`CompositeOf` []) range
+  in Image name parent raw sidecar jpegs mmov movs untrk role exif mtype status
 
 -- | A picture folder. The values derived from its images (the time
 -- index, year, first date, group exif, stats, and the implicit event)
@@ -912,4 +920,4 @@ type CachedRepo = (CacheRevision, Config, Repository)
 -- It is defined here, not in "Repository.Encoding", because a value
 -- used at compile time can't come from the module that uses it.
 repoCacheVersion :: VersionConfig CachedRepo
-repoCacheVersion = hashedVersionConfig "nG_riv0nGzXQbYzz6UqtMDraQgM="
+repoCacheVersion = hashedVersionConfig "qnMbemvlEj9jeEhIuoLY46qZkkE="

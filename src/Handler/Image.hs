@@ -73,9 +73,9 @@ getImageR folder iname = do
       -- exists, i.e. is a component.
       (rangeShown, rangeMore) =
         case imgRole img of
-          CompositeOf components ->
+          CompositeOf range components ->
             cappedList [ (name, name `elem` components)
-                       | name <- maybe [] rangeNames (imgRange img) ]
+                       | name <- rangeNames range ]
           _ -> ([], 0)
       -- The composite images covering a component.
       (coveringShown, coveringMore) =
