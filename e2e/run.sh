@@ -47,7 +47,7 @@ build() {
   # -O0 overrides the -O2 of non-dev builds: much faster to compile,
   # and the behaviour checked here doesn't depend on optimisation.
   "$STACK" "${STACK_ARGS[@]}" --work-dir "$workdir" build \
-    --flag corydalis:-dev "$@" --ghc-options=-O0 \
+    --pedantic --flag corydalis:-dev "$@" --ghc-options=-O0 \
     --copy-bins --local-bin-path "$bin"
 }
 echo "== Building the binaries"
