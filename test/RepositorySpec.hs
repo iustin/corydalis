@@ -96,6 +96,19 @@ spec = parallel $ do
         ]
 
   withConfig $ do
+    describe "isHiddenComponent and imagesShownFor" $ do
+      it "hide a component without a JPEG of its own" $ \config -> do
+        let dir = compositeFolder config
+                    [[("d_01.nef", 10), ("d_02.nef", 10), ("d_03.nef", 10), ("x.nef", 10)]]
+                    [[("d_01-03.jpg", 50), ("d_02.jpg", 5)]]
+            img n = pdImages dir Map.! n
+            shown n = map imgName (imagesShownFor dir (img n))
+        map (isHiddenComponent . img) ["d_01", "d_02", "d_03", "d_01-03", "x"]
+          `shouldBe` [True, False, True, False, False]
+        shown "d_01" `shouldBe` ["d_01-03"]
+        shown "d_02" `shouldBe` ["d_02"]
+        shown "d_01-03" `shouldBe` ["d_01-03"]
+        shown "x" `shouldBe` ["x"]
     describe "NFData" $ do
       it "forces the media type" $ \_ ->
         evaluate (rnf (error "type" :: MediaType)) `shouldThrow` anyErrorCall

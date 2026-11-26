@@ -171,6 +171,16 @@ addNavigationImages = do
                , exifImage config "nav-b" "2" id
                ]
 
+-- | Adds folder @f@: raws @d_01@ to @d_03@, covered by the composite
+-- image @d_01-03@, and so hidden components.
+addCompositeImages :: YesodExample App ()
+addCompositeImages = do
+  config <- ctxConfig . appContext <$> getTestYesod
+  let dir = compositeFolder config
+              [[("d_01.nef", 10), ("d_02.nef", 10), ("d_03.nef", 10)]]
+              [[("d_01-03.jpg", 50)]]
+  injectImages (toList (pdImages dir))
+
 spec :: Spec
 spec = parallel $ do
   describe "Internal functionality" $ do
@@ -229,6 +239,18 @@ spec = parallel $ do
         -- The navigation information is embedded in the page.
         bodyContains "/image/info/nav-b/1"
         bodyContains "/image/info/nav-b/2"
+      it "views a hidden component, opened from its folder's page" $ do
+        addCompositeImages
+        login
+        get $ ViewR "f" "d_02"
+        statusIs 200
+      it "returns 404 for a hidden component whose composite is filtered out" $ do
+        addCompositeImages
+        login
+        request $ do
+          setUrl $ ViewR "f" "d_02"
+          addGetParam "folder" "nav-a"
+        statusIs 404
       it "returns 404 for an image filtered out by the search" $ do
         addNavigationImages
         login
@@ -271,6 +293,22 @@ spec = parallel $ do
         jsonShouldBe v ["prev"] Null
         jsonShouldBe v ["prevfolder"] Null
         jsonShouldBe v ["nextfolder", "info"] "http://localhost:3000/image/info/nav-b/1?all=0"
+      it "steps from a composite image over its hidden components" $ do
+        addCompositeImages
+        login
+        get $ ImageInfoR "f" "d_01-03"
+        statusIs 200
+        v <- responseJson
+        jsonShouldBe v ["prev"] Null
+        jsonShouldBe v ["next"] Null
+        -- From a hidden component, the composite image is a neighbour.
+        get $ ImageInfoR "f" "d_02"
+        statusIs 200
+        v' <- responseJson
+        jsonShouldBe v' ["image"] "d_02"
+        let neighbours = mapMaybe (\k -> jsonAt [k, "info"] v') ["prev", "next"]
+        liftIO $ neighbours `shouldBe`
+          [String "http://localhost:3000/image/info/f/d_01-03?all=0"]
       it "keeps the search parameters in the navigation links" $ do
         addNavigationImages
         login
