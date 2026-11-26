@@ -215,6 +215,13 @@ executables:
     main: main.hs
     source-dirs: app
     ghc-options:
+      - -Wall
+      - -Wcompat
+      - -Wincomplete-record-updates
+      - -Wincomplete-uni-patterns
+      - -Wredundant-constraints
+      - -Werror
+      - -fwarn-tabs
       - -threaded
       - -rtsopts
       - '"-with-rtsopts=-N --disable-delayed-os-memory-return"'
@@ -227,6 +234,13 @@ executables:
     main: scanner.hs
     source-dirs: app
     ghc-options:
+      - -Wall
+      - -Wcompat
+      - -Wincomplete-record-updates
+      - -Wincomplete-uni-patterns
+      - -Wredundant-constraints
+      - -Werror
+      - -fwarn-tabs
       - -threaded
       - -rtsopts
       - '"-with-rtsopts=-N --disable-delayed-os-memory-return"'
@@ -239,6 +253,13 @@ executables:
     main: db-util.hs
     source-dirs: app
     ghc-options:
+      - -Wall
+      - -Wcompat
+      - -Wincomplete-record-updates
+      - -Wincomplete-uni-patterns
+      - -Wredundant-constraints
+      - -Werror
+      - -fwarn-tabs
       - -threaded
       - -rtsopts
       - '"-with-rtsopts=-N --disable-delayed-os-memory-return"'
