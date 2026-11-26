@@ -607,8 +607,10 @@ isn't standalone: it counts as processed, as it was made from raw
 files in the library.
 
 Each file belongs to one image only, and the image page shows the
-link both ways. The full rules, with examples, are in
-[Composite images](composite-images.md).
+link both ways. When browsing, a composite image is shown instead of
+its components that have no output of their own; they are still
+counted, and listed on the folder's page. The full rules, with
+examples, are in [Composite images](composite-images.md).
 
 ## Old concepts
 
