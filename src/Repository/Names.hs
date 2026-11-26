@@ -110,10 +110,12 @@ readRange cfg path =
        _ -> Nothing
   where
     -- Read as an Integer first, as reading as an Int would wrap
-    -- around for numbers that are too large.
+    -- around for numbers that are too large. parseDecimal accepts a
+    -- sign, which a custom range regex could capture: refuse negative
+    -- numbers.
     readNumber t = do
       n <- either (const Nothing) Just (parseDecimal t) :: Maybe Integer
-      guard $ n <= toInteger (maxBound :: Int)
+      guard $ n >= 0 && n <= toInteger (maxBound :: Int)
       return $ fromInteger n
 
 -- | The numbers in a range, in order. A wrapped range (see

@@ -67,6 +67,14 @@ spec = parallel $ do
         -- 2^64 + 3, which would wrap around to 3 when read as an Int.
         rangeNamesOf config "img_1-18446744073709551619" `shouldBe` []
         rangeNamesOf config "img_18446744073709551617-18446744073709551619" `shouldBe` []
+      it "refuses signed numbers that a custom regex captures" $ \config' -> do
+        let config = config' { cfgRangeRegex = fromMaybe (error "Invalid range regex") $
+                                 mkRegex "^(.*_)([-+]?[0-9]+)_([-+]?[0-9]+)$" }
+        rangeNamesOf config "d_1_3" `shouldBe` ["d_1", "d_2", "d_3"]
+        -- Without the check, these would be the ranges -2 to 2 and
+        -- -1 to 0.
+        rangeNamesOf config "d_-2_02" `shouldBe` []
+        rangeNamesOf config "d_-1_00" `shouldBe` []
       it "limits ranges to the configured size" $ \config' -> do
         let config = config' { cfgMaxRangeSize = 3 }
         rangeNamesOf config "img_1-3" `shouldBe` ["img_1", "img_2", "img_3"]
