@@ -97,7 +97,10 @@ flagging test (IMG_0002) do.
 This needs ImageMagick and exiftool, as for the application itself,
 and ffmpeg, for the movie (made by `add-movie.sh`, and its first frame
 extracted by the server). It builds the binaries (normal and public
-site, without optimisation, in `.stack-e2e` and `.stack-e2e-public`),
+site, without optimisation, in `.stack-e2e` and `.stack-e2e-public`;
+with `--pedantic`, as the release, so that on pull requests warnings
+also fail the non-dev code, e.g. the executables, which the dev flag
+doesn't build),
 makes the two libraries, starts a server for each (on ports 3001 and
 3002, so as not to conflict with a development server on 3000), runs
 the tests, then the recording scripts, checks the server logs (with
