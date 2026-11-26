@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 
 import           Import
-import           Pics
 import           Repository
 import           Repository.Scan
 import           Repository.State
