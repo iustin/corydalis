@@ -35,7 +35,8 @@ import           ClassyPrelude                  as X hiding (Handler, delete,
 import           Database.Persist               as X hiding (get)
 import           Database.Persist.Sql           (SqlPersistM,
                                                  runSqlPersistMPool)
-import           Exif                           (Exif (..), ExifTime (..))
+import           Exif                           (EExif, Exif (..),
+                                                 ExifTime (..))
 import           Foundation                     as X
 import           Model                          as X
 import           Repository                     (File (..), Image (..),
@@ -48,7 +49,9 @@ import           Repository                     (File (..), Image (..),
                                                  computeRepoStats, mkImage,
                                                  repoGlobalExif,
                                                  startupRepository)
-import           Repository.Build               (finishFolder)
+import           Repository.Build               (addDirToRepo,
+                                                 buildFolderFromInodes,
+                                                 finishFolder)
 import           Repository.Scan                (launchScanFileSystem, scanAll,
                                                  waitForScan)
 import           Repository.State               (Ctx, getRepo,
@@ -573,6 +576,30 @@ mkRepository dirs =
                     , repoStats = computeRepoStats dirs
                     , repoExif = repoGlobalExif dirs
                     }
+
+-- | The directories of a folder named "f", built as a scan does, from
+-- the files (name and size) of its source and output directories,
+-- without exif.
+compositeDirs :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> [PicDir]
+compositeDirs = compositeDirsWith Map.empty
+
+-- | As 'compositeDirs', with the exif of the files named in the cache.
+compositeDirsWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> [PicDir]
+compositeDirsWith cache config srcs outs =
+  let mk isSrc i files =
+        buildFolderFromInodes config "f"
+          ((if isSrc then "/src" else "/out") <> show (i :: Int) <> "/f") isSrc
+          (map (\(n, size) -> (mkInode n) { inodeSize = size }) files) cache Nothing
+  in zipWith (mk True) [1..] srcs ++ zipWith (mk False) [1..] outs
+
+-- | The finished folder "f" (see 'compositeDirs').
+compositeFolder :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> PicDir
+compositeFolder = compositeFolderWith Map.empty
+
+-- | The finished folder "f" (see 'compositeDirsWith').
+compositeFolderWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> PicDir
+compositeFolderWith cache config srcs outs =
+  finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirsWith cache config srcs outs) Map.! "f"
 
 -- | Create a minimal PicDir for testing
 createTestPicDir :: ShortText -> PicDir

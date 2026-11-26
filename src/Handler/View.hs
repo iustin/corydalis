@@ -196,11 +196,19 @@ instance ToJSON ViewInfo where
            , "last"         .= viLast
            ]
 
--- | Ensure that requested image is present in the (filtered) map.
-locateCurrentImage :: ShortText -> ImageName -> SearchResultsPics -> Handler Image
-locateCurrentImage fname iname images = do
-  unfiltered <- getImage fname iname
-  maybe notFound return $ Map.lookup (fname, imageTimeKey unfiltered) images
+-- | Ensure that requested image is present in the (filtered) map. A
+-- hidden component is never in it, as the results show the composite
+-- images covering it instead (see 'imagesShownFor'), but it can still
+-- be viewed, e.g. from its folder's page, when one of these is in the
+-- results; its previous and next are then the results around it.
+locateCurrentImage :: PicDir -> ImageName -> SearchResultsPics -> Handler Image
+locateCurrentImage dir iname images = do
+  img <- getFolderImage dir iname
+  let inResults i = Map.member (imgParent i, imageTimeKey i) images
+      viaComposite = isHiddenComponent img && any inResults (imagesShownFor dir img)
+  if inResults img || viaComposite
+    then return img
+    else notFound
 
 getViewR :: ShortText -> ImageName -> Handler Html
 getViewR folder iname = do
@@ -326,7 +334,7 @@ viewInfoForImage :: UrlParams -> SearchResults -> ShortText -> ImageName -> Hand
 viewInfoForImage params (images, folders) folder iname = do
   picdir <- getFolder folder
   render <- getUrlRenderParams
-  img <- locateCurrentImage folder iname images
+  img <- locateCurrentImage picdir iname images
   let ImageNeighbours {..} = imageNeighbours (images, folders) img
       mk i = mkImageInfo i render params
       y = maybe "?" (Text.pack . show) $ pdYear picdir

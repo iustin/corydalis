@@ -42,6 +42,8 @@ module Repository
   , ImageRange(..)
   , ImageRole(..)
   , imageRange
+  , isHiddenComponent
+  , imagesShownFor
   , Image(..)
   , InodeInfo(..)
   , inodeFullName
@@ -367,6 +369,28 @@ imageRange :: Image -> Maybe ImageRange
 imageRange img = case imgRole img of
   CompositeOf range _ -> Just range
   _                   -> Nothing
+
+-- | Whether an image is hidden when browsing: a component (covered by
+-- a composite image, even one without an output yet) that has no JPEG
+-- of its own ('imgJpegPath', which also holds a camera JPEG next to a
+-- raw, as for the statuses). Browsing, the viewer and search results
+-- show its composite images instead (see 'imagesShownFor'), folder
+-- covers are never one, and the preview rendering after a scan skips
+-- it; the statistics, the folder's image table and the image pages
+-- list it as any image.
+isHiddenComponent :: Image -> Bool
+isHiddenComponent img = case imgRole img of
+  ComponentOf _ -> null (imgJpegPath img)
+  _             -> False
+
+-- | The images browsing shows for an image of a folder: the image
+-- itself, or, for a hidden component (see 'isHiddenComponent'), the
+-- composite images covering it, from the same folder.
+imagesShownFor :: PicDir -> Image -> [Image]
+imagesShownFor dir img = case imgRole img of
+  ComponentOf composites | isHiddenComponent img ->
+    mapMaybe (`Map.lookup` pdImages dir) (Data.Foldable.toList composites)
+  _ -> [img]
 
 imageTimeKey :: Image -> ImageTimeKey
 imageTimeKey img = (imageLocalDate img, imgName img)

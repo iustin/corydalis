@@ -1720,7 +1720,13 @@ earliestImage a b =
   then a
   else b
 
--- | Build image map (with static sorting).
+-- | Build image map (sorted by folder and time): the images matching
+-- the search, as browsing shows them. A matching hidden component is
+-- replaced by the composite images covering it (see
+-- 'imagesShownFor'); as the results are keyed by folder and time, a
+-- composite image appears once, however many of its components match.
+-- The folder map, of each folder's earliest image, only sees the
+-- images shown.
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
   -- Both maps are evaluated at each step, the last one included (a
@@ -1728,11 +1734,16 @@ buildImageMap atom =
   -- would only build them at the end, from a chain of insertions as
   -- long as the results.
   (\(StrictPair mimg mfld) -> (mimg, mfld)) .
-  foldl' (\(StrictPair mimg mfld) img ->
-             StrictPair (Map.insert (imgParent img, imageTimeKey img) img mimg)
-                        (Map.insertWith earliestImage (imgParent img) img mfld)
-         ) (StrictPair Map.empty Map.empty) .
-  filterImagesBy (imageSearchFunction atom)
+  foldl' addFolder (StrictPair Map.empty Map.empty) . Map.elems . repoDirs
+  where
+    matches = imageSearchFunction atom
+    addFolder acc dir =
+      Map.foldl' (\a img -> if matches img
+                              then foldl' addImage a (imagesShownFor dir img)
+                              else a) acc (pdImages dir)
+    addImage (StrictPair mimg mfld) img =
+      StrictPair (Map.insert (imgParent img, imageTimeKey img) img mimg)
+                 (Map.insertWith earliestImage (imgParent img) img mfld)
 
 -- | Build image map (with static sorting).
 buildFolderMap :: Atom -> Repository -> RepoDirs

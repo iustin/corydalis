@@ -1012,3 +1012,42 @@ spec = parallel $ do
       -- The allowed symbols still work as prefixes.
       genQuickSearchParams noProblems populatedRepo "country:Spain"
         `shouldBe` genQuickSearchParams allSymbols populatedRepo "country:Spain"
+  withConfig $ describe "buildImageMap and composite images" $ do
+    -- Three raws, covered by the composite image d_01-03; d_02 also has
+    -- its own JPEG, so it stays visible.
+    let compositeRepo config =
+          testRepo [compositeFolder config
+                      [[("d_01.nef", 10), ("d_02.nef", 10), ("d_03.nef", 10)]]
+                      [[("d_01-03.jpg", 50), ("d_02.jpg", 5)]]]
+        found config atom = map imgName . Map.elems . fst $ buildImageMap atom (compositeRepo config)
+    it "shows the composite image, not its hidden components" $ \config -> do
+      found config ConstTrue `shouldMatchList` ["d_01-03", "d_02"]
+      -- The folder's earliest image is one of those shown.
+      let folders = snd $ buildImageMap ConstTrue (compositeRepo config)
+      map imgName (Map.elems folders) `shouldSatisfy` all (`elem` ["d_01-03", "d_02"])
+    it "shows the composite image for a hidden component found" $ \config -> do
+      found config (FileName (OpEqual "d_01")) `shouldBe` ["d_01-03"]
+    it "shows the composite image once, however many components are found" $ \config ->
+      found config (Any [FileName (OpEqual "d_01"), FileName (OpEqual "d_03")])
+        `shouldBe` ["d_01-03"]
+    it "shows a component with its own output" $ \config ->
+      found config (FileName (OpEqual "d_02")) `shouldBe` ["d_02"]
+    it "shows every composite image covering a hidden component" $ \config -> do
+      let repo = testRepo [compositeFolder config
+                             [[("d_01.nef", 10), ("d_02.nef", 10), ("d_03.nef", 10),
+                               ("d_04.nef", 10)]]
+                             [[("d_01-03.jpg", 50), ("d_03-04.jpg", 40)]]]
+          names atom = map imgName . Map.elems . fst $ buildImageMap atom repo
+      names ConstTrue `shouldMatchList` ["d_01-03", "d_03-04"]
+      names (FileName (OpEqual "d_03")) `shouldMatchList` ["d_01-03", "d_03-04"]
+    it "shows the composite image for any search its components match" $ \config ->
+      -- Even a negated one: the composite image doesn't match, but its
+      -- hidden components do.
+      found config (Not (FileName (OpEqual "d_01-03"))) `shouldMatchList` ["d_01-03", "d_02"]
+    it "hides the components of a composite image without an output yet" $ \config -> do
+      -- The composite image is only a sidecar: it still hides its
+      -- components, and is shown itself.
+      let repo = testRepo [compositeFolder config
+                             [[("d_01.nef", 10), ("d_02.nef", 10)]]
+                             [[("d_01-02.xmp", 1)]]]
+      map imgName (Map.elems . fst $ buildImageMap ConstTrue repo) `shouldBe` ["d_01-02"]

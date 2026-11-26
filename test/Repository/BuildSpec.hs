@@ -57,30 +57,6 @@ withProdNameRegexes config =
         mkRegex "^(.*)(-(close_view|copy_|publish|published|aspect_change))$"
     }
 
--- | The directories of a folder named "f", built as a scan does, from
--- the files (name and size) of its source and output directories,
--- without exif.
-compositeDirs :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> [PicDir]
-compositeDirs = compositeDirsWith Map.empty
-
--- | As 'compositeDirs', with the exif of the files named in the cache.
-compositeDirsWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> [PicDir]
-compositeDirsWith cache config srcs outs =
-  let mk isSrc i files =
-        buildFolderFromInodes config "f"
-          ((if isSrc then "/src" else "/out") <> show (i :: Int) <> "/f") isSrc
-          (map (\(n, size) -> (mkInode n) { inodeSize = size }) files) cache Nothing
-  in zipWith (mk True) [1..] srcs ++ zipWith (mk False) [1..] outs
-
--- | The finished folder "f" (see 'compositeDirs').
-compositeFolder :: Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> PicDir
-compositeFolder = compositeFolderWith Map.empty
-
--- | The finished folder "f" (see 'compositeDirsWith').
-compositeFolderWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] -> [[(FilePath, FileOffset)]] -> PicDir
-compositeFolderWith cache config srcs outs =
-  finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirsWith cache config srcs outs) Map.! "f"
-
 -- | Checks that a finished folder's links go both ways: a composite
 -- image lists a component exactly when the component lists it.
 linksAreConsistent :: PicDir -> Expectation
