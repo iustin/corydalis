@@ -131,7 +131,38 @@ read, so that every page shows the same numbers.
 ## Viewing
 
 Every image is viewed from its own files: a component without an
-output is viewed from its master, as any unprocessed image is.
+output is viewed from its master, as any unprocessed image is. A
+hidden component (see below) can still be opened in the viewer, for
+example from its folder's page; its previous and next are then the
+images around it that browsing shows.
+
+## Browsing
+
+When browsing, a composite image is seen once, not again as each of
+its frames:
+
+- Browsing, the viewer (with its previous and next) and search
+  results leave out hidden components: the components without an
+  output of their own. A component with its own output, such as a
+  JPEG, is shown as any image.
+- A component is hidden as soon as a composite image covers it, even
+  one without an output yet; that composite image is shown as any
+  image.
+- A search that finds a hidden component shows the composite images
+  covering it instead, each once, however many of its components the
+  search finds. This holds for any search, a negated one included:
+  `not person:Alice` finds the components of a panorama tagged with
+  Alice (if they are not tagged themselves), so it shows the
+  panorama.
+- A folder's cover is never a hidden component: a matching one gives
+  its composite image instead. The preview rendering after a scan
+  skips hidden components: their previews are built when first
+  requested, for example as thumbnails on the folder's page.
+- Hiding is only about browsing: hidden components keep their
+  status, count in the library and folder statistics, and are listed
+  in the folder's image table and on the page of each composite image
+  covering them. The image page's previous and next go through all
+  the folder's images, hidden components included.
 
 ## Examples
 
