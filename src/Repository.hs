@@ -108,8 +108,8 @@ module Repository
 import           Control.Applicative
 import           Control.DeepSeq
 import           Data.Data               (Data)
-import           Data.List.NonEmpty      (NonEmpty)
 import qualified Data.Foldable
+import           Data.List.NonEmpty      (NonEmpty)
 import qualified Data.Map.Strict         as Map
 import           Data.Semigroup
 import qualified Data.Set                as Set

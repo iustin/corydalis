@@ -34,7 +34,7 @@ $# expected grid size, so it's important to allow overflow-break.
                 $if exists
                   <a href=@{ImageR (imgParent img) name}>#{name}#
                 $else
-                  <span .text-muted title="Not in this folder">#{name}#
+                  <span .text-muted title="Not a component">#{name}#
                 $if not isLast
                   , #
               $if rangeMore > 0

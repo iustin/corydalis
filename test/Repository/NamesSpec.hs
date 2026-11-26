@@ -92,6 +92,10 @@ spec = parallel $ do
         parseImageName config "dsc_0001-2" `shouldBe` ("dsc_0001", Nothing)
         parseImageName config "dsc_0005-7" `shouldBe` ("dsc_0005", Nothing)
         parseImageName config "d_098-99" `shouldBe` ("d_098-99", Nothing)
+        -- The names are padded to the width of the first number.
+        rangeNamesOf config "d_1-03" `shouldBe` ["d_1", "d_2", "d_3"]
+        -- A range of one name is a range.
+        rangeNamesOf config "d_01-01" `shouldBe` ["d_01"]
         rangeNamesOf config "d_1-10" `shouldBe` map (ImageName . TS.fromString . ("d_" <>) . show) [1 .. 10 :: Int]
         fst (parseImageName config "dsc_1920-1925") `shouldBe` "dsc_1920-1925"
         rangeNamesOf config "dsc_1920-1925" `shouldBe`
