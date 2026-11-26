@@ -178,11 +178,14 @@ mergeFolders c x y =
     newimages = Map.unionWith (mergePictures c) (pdImages x) (pdImages y)
     newuntracked = pdUntracked x ++ pdUntracked y
     pickEvent a b = explicitEvent a <|> explicitEvent b <|> a <|> b
-    explicitEvent mev@(Just ev) =
-      case eventSource ev of
-        EventExplicit {} -> mev
-        EventImplicit {} -> Nothing
-    explicitEvent Nothing = Nothing
+
+-- | Keeps only an explicit event (one from a @corydalis.yaml@).
+explicitEvent :: Maybe Event -> Maybe Event
+explicitEvent mev@(Just ev) =
+  case eventSource ev of
+    EventExplicit {} -> mev
+    EventImplicit {} -> Nothing
+explicitEvent Nothing = Nothing
 
 addDirToRepo :: Config -> PicDir -> RepoDirs -> RepoDirs
 addDirToRepo config dir =
@@ -405,6 +408,8 @@ finishFolder dir =
          , pdTimestamp = timestamp
          , pdExif = buildGroupExif images
          , pdStats = stats
-         , pdEvent = pdEvent dir <|>
+         -- An implicit event is computed again, so that finishing a
+         -- folder twice gives the same result.
+         , pdEvent = explicitEvent (pdEvent dir) <|>
                      implicitEventFromDateRange (pdName dir) (sDateRange stats)
          }

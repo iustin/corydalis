@@ -283,6 +283,31 @@ spec = parallel $ do
         Map.size (pdImages folder) `shouldBe` length names
         pdTimestamp folder `shouldBe` Just (LocalTime (fromGregorian 2024 6 1) midnight)
         pdYear folder `shouldBe` Just 2024
+      it "dates a folder over all its directories, once merged" $ \config -> do
+        let src = buildFolderFromInodes config "folder" "/src/folder" True [mkInode "a.nef"]
+                    (Map.fromList [("a.nef", Right (datedExif 2023 6 20))]) Nothing
+            out = buildFolderFromInodes config "folder" "/out/folder" False [mkInode "b.jpg"]
+                    (Map.fromList [("b.jpg", Right (datedExif 2023 6 1))]) Nothing
+            folder = finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty [src, out] Map.! "folder"
+        pdTimestamp folder `shouldBe` Just (LocalTime (fromGregorian 2023 6 1) midnight)
+        pdYear folder `shouldBe` Just 2023
+        -- The event spans both directories' dates.
+        extractEventType (pdEvent folder) `shouldBe` EKGrandVacation
+      it "keeps an explicit yaml event over the dates of a finished folder" $ \config -> do
+        let ev = BirthdayEvent { eventName = "Birthday", eventPeople = [], eventSource = EventExplicit Nothing }
+            cache = Map.fromList [("a.nef", Right (datedExif 2024 6 1)), ("b.nef", Right (datedExif 2024 6 20))]
+            folder = finishFolder $ buildFolderFromInodes config "folder" "/p" True
+                       [mkInode "a.nef", mkInode "b.nef"] cache (Just ev)
+        pdEvent folder `shouldBe` Just ev
+      it "computes the implicit event again when finishing a folder again" $ \config -> do
+        let cache = Map.fromList [("a.nef", Right (datedExif 2024 6 1)), ("b.nef", Right (datedExif 2024 6 4))]
+            folder = finishFolder $ buildFolderFromInodes config "folder" "/p" True
+                       [mkInode "a.nef", mkInode "b.nef"] cache Nothing
+            later = mkImage config "c" "folder" Nothing Nothing [simpleFile "c.jpg"] Nothing [] [] Nothing MediaImage def
+            dated = later { imgExif = datedExif 2024 6 20 }
+            again = finishFolder folder { pdImages = Map.insert "c" dated (pdImages folder) }
+        extractEventType (pdEvent folder) `shouldBe` EKGetaway
+        extractEventType (pdEvent again) `shouldBe` EKGrandVacation
         let undated = finishFolder $ buildFolderFromInodes config "folder" "/p" True
                         [mkInode "a.nef"] Map.empty Nothing
         pdTimestamp undated `shouldBe` Nothing
@@ -498,6 +523,18 @@ spec = parallel $ do
         Map.map imgStatus (pdImages forward) `shouldBe` Map.map imgStatus (pdImages backward)
         Map.map imgRole (pdImages forward) `shouldBe` Map.map imgRole (pdImages backward)
         show (pdStats forward) `shouldBe` show (pdStats backward)
+      it "makes a composite processed by components with a JPEG master" $ \config -> do
+        dir <- check config [[("d_01.jpg", 10), ("d_02.jpg", 10), ("d_03.jpg", 10)]] [[("d_01-03.jpg", 50)]]
+                 (0, 0, 4, 0) (30, 50, 0, 0)
+        roleOf dir "d_01-03" `shouldBe` CompositeOf ["d_01", "d_02", "d_03"]
+      it "doesn't link across sub-directories of the folder" $ \config -> do
+        dir <- check config [[("d_01.nef", 10), ("d_02.nef", 10)]] [[("sub/d_01-02.jpg", 50)]]
+                 (2, 1, 0, 0) (20, 0, 50, 0)
+        roleOf dir "sub/d_01-02" `shouldBe` CompositeOf []
+        roleOf dir "d_01" `shouldBe` PlainImage
+        dir' <- check config [[("sub/d_01.nef", 10)]] [[("d_01-02.jpg", 50)]]
+                  (1, 1, 0, 0) (10, 0, 50, 0)
+        roleOf dir' "sub/d_01" `shouldBe` PlainImage
       it "reads a range in a sub-directory of the folder" $ \config -> do
         dir <- check config [[("sub/d_01.nef", 10), ("sub/d_02.nef", 10)]] [[("sub/d_01-02.jpg", 50)]]
                  (0, 0, 3, 0) (20, 50, 0, 0)

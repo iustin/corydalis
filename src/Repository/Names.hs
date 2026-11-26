@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -}
 
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
@@ -24,11 +25,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- | Reading image names from file names: copy suffixes and ranges.
 module Repository.Names
-  ( dropCopySuffix
-  , parseImageName
-  , rangeSize
+  ( parseImageName
   , rangeNames
-  , rangeName
+#ifdef TEST
+  , dropCopySuffix
+  , rangeSize
+#endif
   ) where
 
 import           Data.Semigroup

@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Repository.EncodingSpec (spec) where
 
+import           Data.Default
+import           Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Map         as Map
 import qualified Data.Store
 
@@ -29,10 +31,16 @@ import           Repository
 import           Repository.Encoding
 import           TestImport
 
--- | A repository with one folder and one image, and its configuration.
+-- | A repository with one folder holding a composite image and its
+-- component, and its configuration.
 sampleRepository :: Config -> (Config, Repository)
 sampleRepository config =
-  let dirs = addImageToRepo Map.empty (simpleRawImage config)
+  let image name files range =
+        mkImage config name "test" Nothing Nothing (map simpleFile files) Nothing [] [] range MediaImage def
+      dirs = foldl' addImageToRepo Map.empty
+               [ image "d_01" ["d_01.jpg"] Nothing
+               , image "d_01-02" ["d_01-02.jpg"] (Just (ImageRange "d_" 1 2 2))
+               ]
   in (config, startupRepository { repoDirs = dirs, repoSerial = 5 })
 
 -- | Decodes a repository cache, keeping only whether it worked, and
@@ -46,6 +54,9 @@ spec = parallel $ withConfig $ do
   describe "encodeRepository and decodeRepository" $ do
     it "decode what was encoded" $ \config -> do
       let (c, repo) = sampleRepository config
+          roles = map imgRole . Map.elems . pdImages =<< Map.elems (repoDirs repo)
+      -- The sample has the links, to check that they are encoded.
+      roles `shouldMatchList` [ComponentOf ("d_01-02" :| []), CompositeOf ["d_01"]]
       decodeShown (encodeRepository (c, repo)) `shouldBe` Just (c, show repo)
     it "refuse another format version" $ \config -> do
       let encoded = encodeRepository (sampleRepository config)
