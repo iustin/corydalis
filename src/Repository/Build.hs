@@ -339,14 +339,28 @@ linkComposites :: Map ImageName Image -> Map ImageName Image
 linkComposites images =
   Map.mapWithKey (\name img -> img { imgRole = role name img }) images
   where
-    composites = Map.mapMaybe (fmap (filter isComponent . rangeNames) . imageRange) images
-    isComponent name =
+    -- Each composite image, with the names of its range that are
+    -- components (a map of names to lists of names). For each image,
+    -- 'imageRange' gives Nothing if it is not a composite image, and
+    -- 'Map.mapMaybe' drops it; otherwise, inside the Just ('fmap'),
+    -- the names of the range are listed and only the components kept.
+    -- E.g. @d_01-03@ gives @[d_01, d_03]@ when @d_02@ is missing.
+    composites = Map.mapMaybe (fmap (filter canBeComponent . rangeNames) . imageRange) images
+    -- Whether a name can be a component: an image of the folder that
+    -- is neither a composite image itself nor a movie.
+    canBeComponent name =
       maybe False (\img -> isNothing (imageRange img) && imgType img /= MediaMovie)
             (Map.lookup name images)
-    -- In the order of the composite images' names.
-    coveredBy = Map.fromListWith (flip (<>))
+    -- The reverse of 'composites': each component, with the composite
+    -- images covering it, in the order of their names. It is built
+    -- from all the (component, composite) pairs, merging the lists of
+    -- the same component. 'Map.fromListWith' calls its function as
+    -- @f new old@: going through the composite images in descending
+    -- order, and putting the new one first, gives ascending lists, at
+    -- a constant cost per pair (as '<>' walks only its left side).
+    coveredBy = Map.fromListWith (<>)
                   [ (component, composite :| [])
-                  | (composite, components) <- Map.toAscList composites
+                  | (composite, components) <- Map.toDescList composites
                   , component <- components ]
     -- A composite image keeps its range, and gets its components from
     -- 'composites'. That lookup can't fail, as 'composites' has an

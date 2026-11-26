@@ -27,9 +27,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Repository.Names
   ( parseImageName
   , rangeNames
+  , rangeName
+  , rangeSize
 #ifdef TEST
   , dropCopySuffix
-  , rangeSize
 #endif
   ) where
 

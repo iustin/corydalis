@@ -239,7 +239,9 @@ data ImageRange = ImageRange
   { irRoot  :: !ShortText
   , irFirst :: !Int
   , irLast  :: !Int
-  , irWidth :: !Int  -- ^ The width the numbers are padded to.
+  , irWidth :: !Int  -- ^ The width of the first number as written,
+                     -- leading zeros included, which all names are
+                     -- padded to.
   } deriving (Show, Eq, Generic, Data)
 
 instance Store ImageRange
