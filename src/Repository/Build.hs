@@ -118,8 +118,8 @@ selectMasterFile rexts pathfn x y =
        _                   -> (Nothing, False, [])
 
 -- | Merges two images of the same name, from different files. This
--- is only for images not linked yet (see 'finishFolder'): their role
--- is left as is.
+-- is only for images not linked yet (see 'finishFolder'): the merged
+-- image is a composite image if either was (with no components yet).
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
   let (rawPath, softmaster, extrajpeg) = selectMasterFile (cfgRawExts c) imgRawPath x y
@@ -145,10 +145,11 @@ mergePictures c x y =
                , imgUntracked   = untrk
                , imgType        = ityp
                -- A movie is never a composite image, even if another
-               -- file of the same name (e.g. a poster) has a range.
-               , imgRange       = if ityp == MediaMovie
-                                    then Nothing
-                                    else imgRange x <|> imgRange y
+               -- file of the same name (e.g. a poster) brings a range.
+               , imgRole        = case (ityp, imgRole x) of
+                                    (MediaMovie, _)    -> PlainImage
+                                    (_, CompositeOf{}) -> imgRole x
+                                    _                  -> imgRole y
                , imgStatus      = status
                , imgExif        = exif
                }
@@ -336,22 +337,25 @@ buildFolderFromInodes config name path isSource contents lcache yamlEvent =
 -- part of composite images.
 linkComposites :: Map ImageName Image -> Map ImageName Image
 linkComposites images =
-  Map.mapWithKey (\name img -> img { imgRole = role name }) images
+  Map.mapWithKey (\name img -> img { imgRole = role name img }) images
   where
-    composites = Map.mapMaybe (fmap (filter isComponent . rangeNames) . imgRange) images
+    composites = Map.mapMaybe (fmap (filter isComponent . rangeNames) . imageRange) images
     isComponent name =
-      maybe False (\img -> isNothing (imgRange img) && imgType img /= MediaMovie)
+      maybe False (\img -> isNothing (imageRange img) && imgType img /= MediaMovie)
             (Map.lookup name images)
     -- In the order of the composite images' names.
     coveredBy = Map.fromListWith (flip (<>))
                   [ (component, composite :| [])
                   | (composite, components) <- Map.toAscList composites
                   , component <- components ]
-    role name =
-      case (Map.lookup name composites, Map.lookup name coveredBy) of
-        (Just components, _)  -> CompositeOf components
-        (Nothing, Just names) -> ComponentOf names
-        (Nothing, Nothing)    -> PlainImage
+    -- A composite image keeps its range, and gets its components from
+    -- 'composites'. That lookup can't fail, as 'composites' has an
+    -- entry for every image with a range, but the types can't say so:
+    -- the default is never used.
+    role name img =
+      case imgRole img of
+        CompositeOf range _ -> CompositeOf range (Map.findWithDefault [] name composites)
+        _                   -> maybe PlainImage ComponentOf (Map.lookup name coveredBy)
 
 -- | The status of an image once its folder's links are known. A
 -- component with a master and no output of its own (unprocessed)
@@ -363,7 +367,7 @@ linkedStatus :: Map ImageName Image -> Image -> ImageStatus
 linkedStatus images img =
   case (imgRole img, imgStatus img) of
     (ComponentOf _, ImageUnprocessed) -> ImageProcessed
-    (CompositeOf components, ImageStandalone)
+    (CompositeOf _ components, ImageStandalone)
       | any hasMaster components -> ImageProcessed
     (_, status) -> status
   where hasMaster name = maybe False (isJust . imgRawPath) (Map.lookup name images)
@@ -384,7 +388,7 @@ earliestDate =
 linkedExif :: Map ImageName Image -> Image -> Exif
 linkedExif images img =
   case imgRole img of
-    CompositeOf (name:_) | Just component <- Map.lookup name images ->
+    CompositeOf _ (name:_) | Just component <- Map.lookup name images ->
       fillCompositeExif (imgExif component) (imgExif img)
     _ -> imgExif img
 

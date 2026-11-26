@@ -56,7 +56,7 @@ spec = parallel $ withConfig $ do
       let (c, repo) = sampleRepository config
           roles = map imgRole . Map.elems . pdImages =<< Map.elems (repoDirs repo)
       -- The sample has the links, to check that they are encoded.
-      roles `shouldMatchList` [ComponentOf ("d_01-02" :| []), CompositeOf ["d_01"]]
+      roles `shouldMatchList` [ComponentOf ("d_01-02" :| []), CompositeOf (ImageRange "d_" 1 2 2) ["d_01"]]
       decodeShown (encodeRepository (c, repo)) `shouldBe` Just (c, show repo)
     it "refuse another format version" $ \config -> do
       let encoded = encodeRepository (sampleRepository config)
