@@ -597,6 +597,13 @@ spec = parallel $ do
         pgNoop pg `shouldBe` 0
         pgDone pg `shouldBe` 0
         pgNumErrors pg `shouldBe` 0
+      it "does not render hidden components" $ \ctx -> do
+        let dir = compositeFolder (ctxConfig ctx)
+                    [[("d_01.nef", 10), ("d_02.nef", 10), ("d_03.nef", 10)]]
+                    [[("d_01-03.jpg", 50), ("d_02.jpg", 5)]]
+            repo = mkRepository (Map.singleton "f" dir)
+        -- d_02 has its own JPEG, so it is not hidden.
+        map imgName (renderableImages repo) `shouldMatchList` ["d_01-03", "d_02"]
       it "does not try to render untracked-only files" $ \ctx -> do
         repo <- getRepo ctx
         let config = ctxConfig ctx
