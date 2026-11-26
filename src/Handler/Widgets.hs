@@ -53,7 +53,13 @@ folderCover :: Int -> Bool -> UrlParams -> Atom -> PicDir -> Widget
 folderCover size browsing params atom folder = do
   let name = pdName folder
       all_images = Map.elems (pdImages folder)
-      images = imageSearchFunction atom `filter` all_images ++ all_images
+      -- The cover candidates: the images browsing shows for the
+      -- search (a matching hidden component gives its composite
+      -- images instead), then every image that isn't a hidden
+      -- component, so that the cover is never one.
+      matching = concatMap (imagesShownFor folder) $
+                   imageSearchFunction atom `filter` all_images
+      images = matching ++ filter (not . isHiddenComponent) all_images
       images' = filter (not . null . allViewableImageFiles) images ++ images
       bytes_fn = if browsing
         then imageBytesForFolder

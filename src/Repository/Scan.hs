@@ -658,9 +658,13 @@ scanFilesystem ctx serial = do
   traceMarkerIO "scanFilesystem done"
   return r4
 
--- | Computes the list of images that can be rendered.
+-- | The images whose previews are rendered after a scan: those that
+-- can be rendered, except hidden components (see
+-- 'isHiddenComponent'), whose previews are built when first requested
+-- (e.g. as thumbnails on their folder's page).
 renderableImages :: Repository -> [Image]
 renderableImages =
+  filter (not . isHiddenComponent) .
   filter (not . null . allViewableImageFiles) .
   filterImagesByClass [ImageUnprocessed, ImageProcessed, ImageStandalone]
 

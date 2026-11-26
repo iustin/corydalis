@@ -31,7 +31,7 @@ import           Data.Time                     (LocalTime (..), midnight)
 
 import           Exif
 import           Handler.Widgets
-import           Indexer                       (Atom (..))
+import           Indexer                       (Atom (..), StrOp (..))
 import           Repository                    (Image (..), MediaType (..))
 import           TestImport
 
@@ -132,6 +132,21 @@ spec = parallel $ withApp $ do
       browsing `shouldContainAll` ["Folder 'empty-folder' contains no viewable images"]
       listing <- renderWidget $ folderCover 100 False [] (All []) dir
       listing `shouldContainAll` ["N/A"]
+    it "never shows a hidden component" $ do
+      config <- ctxConfig . appContext <$> getTestYesod
+      -- d_01 comes first by name, but is hidden by d_01-03.
+      let dir = compositeFolder config [[("d_01.nef", 10), ("d_02.nef", 10)]]
+                  [[("d_01-03.jpg", 50)]]
+      cover <- renderWidget $ folderCover 100 True [] (All []) dir
+      cover `shouldContainAll` ["/f/d_01-03"]
+      liftIO $ cover `shouldNotSatisfy` isInfixOf "/f/d_01?"
+      -- A search that finds only a hidden component shows its
+      -- composite image, even if another image comes first.
+      let dir' = compositeFolder config [[("d_01.nef", 10), ("d_02.nef", 10)]]
+                   [[("a.jpg", 5), ("d_01-03.jpg", 50)]]
+      found <- renderWidget $ folderCover 100 True [] (FileName (OpEqual "d_02")) dir'
+      found `shouldContainAll` ["/f/d_01-03"]
+      liftIO $ found `shouldNotSatisfy` isInfixOf "/f/a?"
   describe "imageSrcSet" $
     it "lists the sizes from the given minimum" $ do
       config <- ctxConfig . appContext <$> getTestYesod
