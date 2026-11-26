@@ -118,8 +118,7 @@ selectMasterFile rexts pathfn x y =
        _                   -> (Nothing, False, [])
 
 -- | Merges two images of the same name, from different files. This
--- is only for images not linked yet (see 'finishFolder'): the merged
--- image is a composite image if either was (with no components yet).
+-- is only for images not linked yet (see 'finishFolder').
 mergePictures :: Config -> Image -> Image -> Image
 mergePictures c x y =
   let (rawPath, softmaster, extrajpeg) = selectMasterFile (cfgRawExts c) imgRawPath x y
@@ -144,12 +143,21 @@ mergePictures c x y =
                , imgMovs        = movs
                , imgUntracked   = untrk
                , imgType        = ityp
-               -- A movie is never a composite image, even if another
-               -- file of the same name (e.g. a poster) brings a range.
-               , imgRole        = case (ityp, imgRole x) of
-                                    (MediaMovie, _)    -> PlainImage
-                                    (_, CompositeOf{}) -> imgRole x
-                                    _                  -> imgRole y
+               -- Only part of the role matters here:
+               -- - whether the image is a composite image, and its
+               --   range, must be carried forward: 'finishFolder'
+               --   reads them from the role, and never sets them. It
+               --   is one if either file brings a range (both have the
+               --   same name, so the same range);
+               -- - but a movie never is, even if another file of the
+               --   same name (e.g. a poster) brings a range;
+               -- - the links (a composite image's components, and
+               --   'ComponentOf') don't matter: 'finishFolder'
+               --   recomputes them all, so they start empty here.
+               , imgRole        = case (ityp, imageRange x <|> imageRange y) of
+                                    (MediaMovie, _) -> PlainImage
+                                    (_, Just range) -> CompositeOf range []
+                                    (_, Nothing)    -> PlainImage
                , imgStatus      = status
                , imgExif        = exif
                }
