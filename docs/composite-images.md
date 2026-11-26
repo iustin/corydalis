@@ -80,11 +80,11 @@ a component.
   as copies do for any image.
 - A composite image is never another one's component.
 
-The image page shows the link both ways: a composite image lists the
-names of its range, with links to the components and the missing
-names as plain text, and a component lists the composite images that
-cover it. Both lists show the first ten names, then how many more
-there are.
+The image page shows the link both ways: a composite image shows its
+range (its first and last names, and how many names it has) and links
+to its components, and a component links to the composite images
+that cover it. Both lists show the first ten names, then how many
+more there are.
 
 ## Statuses
 

@@ -26,19 +26,23 @@ $# expected grid size, so it's important to allow overflow-break.
           <td>Flag image for review
           <td>
             ^{imageFlagActions (imgParent img) (imgName img) True}
-        $if not (null rangeShown)
+        $maybe (rangeFirst, rangeLast, rangeCount) <- compositeRange
           <tr>
             <td>Composite image of
             <td #composite-of>
-              $forall ((name, exists), isLast) <- rangeShown
-                $if exists
+              #{rangeFirst} to #{rangeLast} (#{rangeCount} names)
+          <tr>
+            <td>Components
+            <td #components>
+              $if null componentsShown
+                none
+              $else
+                $forall (name, isLast) <- componentsShown
                   <a href=@{ImageR (imgParent img) name}>#{name}#
-                $else
-                  <span .text-muted title="Not a component">#{name}#
-                $if not isLast
-                  , #
-              $if rangeMore > 0
-                \ and #{rangeMore} more
+                  $if not isLast
+                    , #
+                $if componentsMore > 0
+                  \ and #{componentsMore} more
         $if not (null coveringShown)
           <tr>
             <td>Component of

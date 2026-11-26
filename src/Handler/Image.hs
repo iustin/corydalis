@@ -39,11 +39,10 @@ import           Handler.Utils
 import           Handler.Widgets
 import           Import
 import           Repository
-import           Repository.Names    (rangeNames)
+import           Repository.Names    (rangeName, rangeSize)
 
--- | How many names the image page lists, at most, for the names of a
--- composite image's range or the composite images covering a
--- component.
+-- | How many names the image page lists, at most, for the components
+-- of a composite image or the composite images covering a component.
 linkListCap :: Int
 linkListCap = 10
 
@@ -69,14 +68,18 @@ getImageR folder iname = do
                  else "(none)"
       lens = exifLens exif
       exif = imgExif img
-      -- The names of a composite image's range, each with whether it
-      -- exists, i.e. is a component.
-      (rangeShown, rangeMore) =
+      -- A composite image's range (its first and last names, and how
+      -- many names it has), and its components.
+      compositeRange =
         case imgRole img of
-          CompositeOf range components ->
-            cappedList [ (name, name `elem` components)
-                       | name <- rangeNames range ]
-          _ -> ([], 0)
+          CompositeOf range _ ->
+            Just (rangeName range (irFirst range), rangeName range (irLast range),
+                  rangeSize range)
+          _ -> Nothing
+      (componentsShown, componentsMore) =
+        case imgRole img of
+          CompositeOf _ components -> cappedList components
+          _                        -> ([], 0)
       -- The composite images covering a component.
       (coveringShown, coveringMore) =
         case imgRole img of

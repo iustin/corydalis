@@ -55,27 +55,38 @@ spec = parallel $ withApp $ do
     login
     get $ ImageR "2020-01-02-pano" "d_01-03"
     statusIs 200
-    htmlCount "#composite-of a" 2
-    htmlAnyContain "#composite-of a" "images/d_01"
-    htmlAnyContain "#composite-of a" "images/d_02"
-    -- d_03 doesn't exist: named, not linked.
-    htmlNoneContain "#composite-of a" "d_03"
-    htmlAnyContain "#composite-of span.text-muted" "d_03"
+    htmlAnyContain "#composite-of" "d_01 to d_03 (3 names)"
+    htmlCount "#components a" 2
+    htmlAnyContain "#components a" "images/d_01"
+    htmlAnyContain "#components a" "images/d_02"
+    -- d_03 doesn't exist: only in the range.
+    htmlNoneContain "#components" "d_03"
     htmlCount "#component-of" 0
     get $ ImageR "2020-01-02-pano" "d_02"
     statusIs 200
     htmlCount "#component-of a" 1
     htmlAnyContain "#component-of a" "images/d_01-03"
     htmlCount "#composite-of" 0
-  it "lists only the first names of a long range" $ do
+    htmlCount "#components" 0
+  it "shows a composite image without components" $ do
     _ <- addScannedFolder "2020-01-03-stack" ["s_01-15.jpg"]
     login
     get $ ImageR "2020-01-03-stack" "s_01-15"
     statusIs 200
-    htmlCount "#composite-of span.text-muted" 10
-    htmlAnyContain "#composite-of span.text-muted" "s_10"
-    htmlNoneContain "#composite-of span.text-muted" "s_11"
-    htmlAnyContain "#composite-of" "and 5 more"
+    htmlAnyContain "#composite-of" "s_01 to s_15 (15 names)"
+    htmlCount "#components a" 0
+    htmlAnyContain "#components" "none"
+  it "lists only the first components of a composite image" $ do
+    let components = ["s_" <> pad (n :: Int) <> ".jpg" | n <- [1..15]]
+        pad n = (if n < 10 then "0" else "") <> show n
+    _ <- addScannedFolder "2020-01-05-stack" ("s_01-15.jpg" : components)
+    login
+    get $ ImageR "2020-01-05-stack" "s_01-15"
+    statusIs 200
+    htmlCount "#components a" 10
+    htmlAnyContain "#components a" "images/s_10"
+    htmlNoneContain "#components a" "s_11"
+    htmlAnyContain "#components" "and 5 more"
   it "lists only the first composite images covering a component" $ do
     let composites = ["a_01-" <> show (n :: Int) <> ".jpg" | n <- [10..20]]
     _ <- addScannedFolder "2020-01-04-many" ("a_01.jpg" : composites)
