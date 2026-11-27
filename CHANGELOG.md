@@ -58,10 +58,10 @@
   now based on an estimate of the number of files, and stops short of
   complete (by about 5%) until the cleanup ends.
 - After a restart, the library read from the repository cache takes
-  about as much memory as after a scan: reading the cache made copies of
+  as much memory as after a scan: reading the cache made copies of
   values that a scan shares (e.g. each picture's exif data with that
   of its files), so the library took about a quarter more memory
-  (105 MB instead of 83 MB on another test library, of 25,000
+  (105 MB instead of 82 MB on another test library, of 25,000
   pictures).
   Reading the cache takes slightly longer (about 0.2 s more on the
   same library).

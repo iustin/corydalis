@@ -811,8 +811,15 @@ loadCacheOrScan ctx old@(repoStatus -> RepoEmpty) = do
        -- 'restoreSharing'), and the result fully evaluated before it
        -- is published, so that the decoded values it replaces can be
        -- freed.
-       restored <- evaluate $ force
-                     cached_r { repoDirs = Map.map restoreSharing (repoDirs cached_r) }
+       -- The folders are also keyed by their own names, as after a scan
+       -- (see 'addDirToRepo'), and not by the decoded keys, which are
+       -- copies of them; as each key equals its folder's name, the list
+       -- is still in ascending order.
+       let dirs = Map.fromDistinctAscList
+                    [ (pdName dir', dir')
+                    | (_, dir) <- Map.toAscList (repoDirs cached_r)
+                    , let dir' = restoreSharing dir ]
+       restored <- evaluate $ force cached_r { repoDirs = dirs }
        tryUpdateRepo ctx restored
      -- Not written by the current code, as a scan removes the cache
      -- rather than writing an unfinished one; handled defensively.
