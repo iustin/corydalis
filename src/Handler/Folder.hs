@@ -96,7 +96,7 @@ getFolderR name = do
   let allpaths = map (showPath . TS.toString) $ pdMainPath dir:pdSecPaths dir
       thumbsize = cfgThumbnailSize config
   defaultLayout $ do
-    let stats = computeFolderStats dir
+    let stats = pdStats dir
         people = sPeople stats
         daterange = sDateRange stats
         fc = folderClassFromStats stats

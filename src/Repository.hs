@@ -792,8 +792,10 @@ hasViewablePics folder =
   numProcessedPics folder > 0 ||
   numStandalonePics folder > 0
 
+-- | The class of a folder, from its stats (final once the folder is
+-- finished: see 'Repository.Build.finishFolder').
 folderClass :: PicDir -> FolderClass
-folderClass = folderClassFromStats . computeFolderStats
+folderClass = folderClassFromStats . pdStats
 
 folderClassFromStats :: Stats -> FolderClass
 folderClassFromStats stats@Stats {..} =
