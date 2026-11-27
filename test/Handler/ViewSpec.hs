@@ -309,6 +309,18 @@ spec = parallel $ do
         let neighbours = mapMaybe (\k -> jsonAt [k, "info"] v') ["prev", "next"]
         liftIO $ neighbours `shouldBe`
           [String "http://localhost:3000/image/info/f/d_01-03?all=0"]
+      it "steps over the hidden components found by a file name search" $ do
+        addCompositeImages
+        login
+        request $ do
+          setUrl $ ImageInfoR "f" "d_02"
+          addGetParam "filename" "~d_0"
+        statusIs 200
+        v <- responseJson
+        -- All four images match, and are sorted by name (none has a
+        -- date).
+        jsonShouldBe v ["prev", "info"] "http://localhost:3000/image/info/f/d_01-03?filename=~d_0"
+        jsonShouldBe v ["next", "info"] "http://localhost:3000/image/info/f/d_03?filename=~d_0"
       it "keeps the search parameters in the navigation links" $ do
         addNavigationImages
         login

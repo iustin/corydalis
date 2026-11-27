@@ -26,12 +26,13 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Yesod.Core
 
 import           Data.Default                  (def)
+import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set
 import           Data.Time                     (LocalTime (..), midnight)
 
 import           Exif
 import           Handler.Widgets
-import           Indexer                       (Atom (..), StrOp (..))
+import           Indexer                       (Atom (..), NumOp (..), StrOp (..))
 import           Repository                    (Image (..), MediaType (..))
 import           TestImport
 
@@ -136,7 +137,7 @@ spec = parallel $ withApp $ do
       browsing `shouldContainAll` ["Folder 'empty-folder' contains no viewable images"]
       listing <- renderWidget $ folderCover 100 False [] (All []) dir
       listing `shouldContainAll` ["N/A"]
-    it "never shows a hidden component" $ do
+    it "shows a hidden component only for a search about the files" $ do
       config <- ctxConfig . appContext <$> getTestYesod
       -- d_01 comes first by name, but is hidden by d_01-03.
       let dir = compositeFolder config [[("d_01.nef", 10), ("d_02.nef", 10)]]
@@ -146,11 +147,16 @@ spec = parallel $ withApp $ do
       cover `shouldContainNone` ["/f/d_01?"]
       -- A search that finds only a hidden component shows its
       -- composite image, even if another image comes first.
-      let dir' = compositeFolder config [[("d_01.nef", 10), ("d_02.nef", 10)]]
+      let dir' = compositeFolderWith (Map.fromList [("d_02.nef", Right def { exifISO = Just 200 })])
+                   config [[("d_01.nef", 10), ("d_02.nef", 10)]]
                    [[("a.jpg", 5), ("d_01-03.jpg", 50)]]
-      found <- renderWidget $ folderCover 100 True [] (FileName (OpEqual "d_02")) dir'
+      found <- renderWidget $ folderCover 100 True [] (Iso (OpEq 200)) dir'
       found `shouldContainAll` ["/f/d_01-03"]
-      found `shouldContainNone` ["/f/a?"]
+      found `shouldContainNone` ["/f/a?", "/f/d_02?"]
+      -- But one about the files shows the hidden component itself.
+      named <- renderWidget $ folderCover 100 True [] (FileName (OpEqual "d_02")) dir'
+      named `shouldContainAll` ["/f/d_02?"]
+      named `shouldContainNone` ["/f/a?", "/f/d_01-03"]
   describe "imageSrcSet" $
     it "lists the sizes from the given minimum" $ do
       config <- ctxConfig . appContext <$> getTestYesod

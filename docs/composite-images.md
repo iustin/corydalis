@@ -154,10 +154,18 @@ its frames:
   `not person:Alice` finds the components of a panorama tagged with
   Alice (if they are not tagged themselves), so it shows the
   panorama.
-- A folder's cover is never a hidden component: a matching one gives
-  its composite image instead. The preview rendering after a scan
-  skips hidden components: their previews are built when first
-  requested, for example as thumbnails on the folder's page.
+- Except for a search about the files themselves: one that uses a
+  file name or a problem anywhere, even negated or combined with
+  other conditions. It shows the hidden components it finds, as any
+  image: `filename:d_02` shows `d_02`, not the panorama it is part
+  of. As only the kind of condition counts, a broad one such as
+  `problem` alone (images without problems) shows almost all hidden
+  components.
+- A folder's cover is a hidden component only for such a search
+  about the files: otherwise, a matching one gives its composite
+  image instead. The preview rendering after a scan skips hidden
+  components: their previews are built when first requested, for
+  example as thumbnails on the folder's page.
 - Hiding is only about browsing: hidden components keep their
   status, count in the library and folder statistics, and are listed
   in the folder's image table and on the page of each composite image
