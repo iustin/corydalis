@@ -394,6 +394,7 @@ spec = parallel $ do
             -- The stored numbers are the final ones.
             show (pdStats dir) `shouldBe` show (computeFolderStats dir)
             linksAreConsistent dir
+            restoresAsIs dir
             return dir
           roleOf dir name = imgRole (pdImages dir Map.! name)
           componentsOf dir name = case roleOf dir name of
@@ -486,6 +487,29 @@ spec = parallel $ do
         -- A component gets nothing from the composite.
         exifPeople (exifOf "d_02") `shouldBe` Set.empty
         exifPeople (exifOf "d_01-03") `shouldBe` setFromList [mkSym "Person"]
+        restoresAsIs dir
+      it "leaves a finished folder unchanged when restoring its sharing" $ \config -> do
+        let dir = compositeFolder config [nefs ++ [("d_01-03.tif", 100)]]
+                    [[("d_01-03.jpg", 50)], [("d_02.jpg", 5)]]
+            explicit = Just BirthdayEvent { eventName = "f"
+                                          , eventPeople = []
+                                          , eventSource = EventExplicit (Just "corydalis.yaml")
+                                          }
+        restoresAsIs dir
+        restoresAsIs dir { pdEvent = explicit }
+      it "leaves a folder with merged exif unchanged when restoring its sharing" $ \config -> do
+        let dir = mixedExifFolder config
+            exifOf name = imgExif (pdImages dir Map.! name)
+        -- The folder is what it should be: the images' exif come from
+        -- several files, and differ.
+        length (imgJpegPath (pdImages dir Map.! "a")) `shouldBe` 2
+        exifCamera (exifOf "a") `shouldBe` Just (mkSym "NefCam")
+        exifKeywords (exifOf "a") `shouldBe` setFromList [mkSym "K1", mkSym "K2"]
+        exifPeople (exifOf "a") `shouldBe` setFromList [mkSym "P"]
+        exifCamera (exifOf "d_01-02") `shouldBe` Just (mkSym "Cam")
+        length (imgMovs (pdImages dir Map.! "b")) `shouldBe` 1
+        pdUntracked dir `shouldNotBe` []
+        restoresAsIs dir
       it "gives the same result whatever order the directories are in" $ \config -> do
         let srcs = [nefs ++ [("d_01-03.tif", 100)]]
             outs = [[("d_01-03.jpg", 50)], [("d_02.jpg", 5)]]
@@ -584,3 +608,8 @@ spec = parallel $ do
             mergedOld = addDirToRepo (ctxConfig ctx) picDirImplicitEvent (Map.singleton "trip" picDirExplicitEvent)
         pdEvent (mergedNew Map.! "trip") `shouldBe` explicitEv
         pdEvent (mergedOld Map.! "trip") `shouldBe` explicitEv
+
+-- | Checks that restoring the sharing in a finished folder (as when it
+-- is read from the repository cache) gives the same folder.
+restoresAsIs :: PicDir -> Expectation
+restoresAsIs dir = show (restoreSharing dir) `shouldBe` show dir

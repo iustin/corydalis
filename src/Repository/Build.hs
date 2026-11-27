@@ -31,6 +31,7 @@ module Repository.Build
   , isKnownMediaInode
   , buildFolderFromInodes
   , finishFolder
+  , restoreSharing
 #ifdef TEST
   , linkComposites
   , linkedStatus
@@ -413,6 +414,33 @@ linkedExif images img =
     CompositeOf _ (name:_) | Just component <- Map.lookup name images ->
       fillCompositeExif (imgExif component) (imgExif img)
     _ -> imgExif img
+
+-- | Restores, in a folder read from the repository cache, the sharing
+-- between its values that a scan builds, and that reading the cache
+-- loses, as each value is decoded on its own, as a copy. Without it, a
+-- repository read from the cache takes more memory than the one the
+-- scan built, e.g. an image's exif is then a copy of what it takes
+-- from its files' exif, and the time index holds copies of the images'
+-- names and of the parts of their dates.
+--
+-- Each image's exif is computed again from its files' exif, as a scan
+-- does ('promoteFileExif', as in 'mkImage' and 'mergePictures'), the
+-- images are keyed by their own names, and the folder is finished
+-- again ('finishFolder'), which builds the links, the composite
+-- images' exif, and the values derived from the images, from the
+-- images. Finishing a folder a second time gives the same folder, so
+-- the result is equal to the folder read.
+restoreSharing :: PicDir -> PicDir
+restoreSharing dir =
+  let fromFiles img =
+        img { imgExif = promoteFileExif (fileExif <$> imgRawPath img)
+                                        (fileExif <$> imgSidecarPath img)
+                                        (map fileExif (imgJpegPath img))
+                                        (fileExif <$> imgMasterMov img)
+                                        (map fileExif (imgMovs img)) }
+      images = Map.fromDistinctAscList
+                 [ (imgName img, fromFiles img) | img <- Map.elems (pdImages dir) ]
+  in finishFolder dir { pdImages = images }
 
 -- | Finishes a folder, once all its directories are merged: links the
 -- composite images and their components, sets the statuses and the
