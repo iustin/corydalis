@@ -30,9 +30,11 @@ import qualified Data.Map              as Map
 import qualified Data.Set              as Set
 import           Data.Store            (Store, decodeEx, encode)
 import           Data.Time             (LocalTime (..), TimeOfDay (..),
-                                        ZonedTime (..),
+                                        TimeZone (..), ZonedTime (..),
                                         hoursToTimeZone, utc)
 import           System.Mem.StableName (makeStableName)
+import           Test.QuickCheck       (Gen, counterexample, elements, forAll,
+                                        ioProperty, vectorOf, (.&&.), (===))
 
 import           Exif
 import           Repository
@@ -158,6 +160,26 @@ fieldsSharedOf fields expected x y = do
   results <- forM fields $ \(name, check) -> (,) name <$> check x y
   results `shouldBe` map (\(name, _) -> (name, expected)) fields
 
+-- | A date, from a few that are equal or close: the same local time
+-- in different zones, the same instant in different zones, zones that
+-- differ only by their name or their summer-only flag, and fractions
+-- of a second.
+genDate :: Gen ExifTime
+genDate = do
+  day <- elements [fromGregorian 2024 6 2, fromGregorian 2024 6 3]
+  time <- elements [TimeOfDay 10 0 0, TimeOfDay 12 0 0, TimeOfDay 10 0 0.5]
+  zone <- elements [ utc, hoursToTimeZone 0, hoursToTimeZone 2
+                   , TimeZone 120 False "CEST", TimeZone 120 True "CEST"
+                   , TimeZone 60 False "CET", TimeZone (-330) False "" ]
+  return $ ExifTime (ZonedTime (LocalTime day time) zone)
+
+-- | All of a date, field by field: 'show' leaves out a zone's offset
+-- when it has a name, and its summer-only flag. Matched by position,
+-- so that a new field breaks the build.
+exactDate :: ExifTime -> (LocalTime, Int, Bool, String)
+exactDate (ExifTime (ZonedTime local (TimeZone minutes summerOnly name))) =
+  (local, minutes, summerOnly, name)
+
 spec :: Spec
 spec = withConfig $ do
   describe "shareFolder" $ do
@@ -218,6 +240,18 @@ spec = withConfig $ do
                           _                     -> False
       isNegZero "a.nef" `shouldBe` False
       isNegZero "a.jpg" `shouldBe` True
+    it "keeps each date as it is, and shares the equal ones" $ \config ->
+      forAll (vectorOf 4 genDate) $ \dates -> ioProperty $ do
+        let given = Map.fromList (zip [1..] dates)
+            exifOf i = def { exifCreateDate = copyOf i <$> Map.lookup i given }
+            exifs = filesExif (folderWith config exifOf)
+            names = ["a.nef", "a.jpg", "b.nef", "b.jpg"]
+            kept = [ (n, exifCreateDate =<< Map.lookup n exifs) | n <- names ]
+        shared <- forM [ (x, y) | (x:ys) <- tails kept, y <- ys
+                                , (exactDate <$> snd x) == (exactDate <$> snd y) ] $
+          \((nx, dx), (ny, dy)) -> (,) (nx, ny) <$> sameObject dx dy
+        return $ map (fmap exactDate . snd) kept === map (Just . exactDate) dates
+            .&&. counterexample "equal dates not shared" (all snd shared)
   describe "restoreSharing" $
     it "shares the equal values of a folder read from the cache" $ \config -> do
       let dir = restoreSharing (copyOf 1 (folderWith config (`copyOf` richExif)))
