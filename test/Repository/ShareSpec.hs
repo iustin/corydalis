@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Repository.ShareSpec (spec) where
 
+import           Data.Data             (Data, cast, constrFields, gmapQ,
+                                        gmapQi, toConstr)
 import           Data.Default
 import qualified Data.Map              as Map
 import qualified Data.Set              as Set
@@ -34,7 +36,8 @@ import           Data.Time             (LocalTime (..), TimeOfDay (..),
                                         hoursToTimeZone, utc)
 import           System.Mem.StableName (makeStableName)
 import           Test.QuickCheck       (Gen, counterexample, elements, forAll,
-                                        ioProperty, vectorOf, (.&&.), (===))
+                                        ioProperty, sublistOf, vectorOf,
+                                        (.&&.), (===))
 
 import           Exif
 import           Repository
@@ -105,45 +108,27 @@ folderWith config exifOf =
   in compositeFolderWith cache config
        [[("a.nef", 10), ("b.nef", 10)]] [[("a.jpg", 5), ("b.jpg", 5)]]
 
+-- | Every exif in a value, at any depth. Found through 'Data', so that
+-- a new field that holds files or exifs, in any form, is found too.
+allExifs :: Data d => d -> [Exif]
+allExifs d = maybe (concat (gmapQ allExifs d)) pure (cast d)
+
 -- | The exif of each image file of a folder, by relative path.
 filesExif :: PicDir -> Map Text Exif
 filesExif dir =
   Map.fromList [ (pack (fileRelPath f), fileExif f)
                | img <- Map.elems (pdImages dir), f <- allImageFiles img ]
 
--- | Each field that is shared, as a check of two exifs.
+-- | Each field that is shared, as a check of two exifs. Read from the
+-- type, so that a new field is checked too: all but the orientation
+-- (constants) and the warnings, which are not shared.
 sharedFields :: [(String, Exif -> Exif -> IO Bool)]
 sharedFields =
-  [ ("people",       same exifPeople)
-  , ("keywords",     same exifKeywords)
-  , ("country",      same exifCountry)
-  , ("province",     same exifProvince)
-  , ("city",         same exifCity)
-  , ("location",     same exifLocation)
-  , ("camera",       same exifCamera)
-  , ("model",        same exifModel)
-  , ("serial",       same exifSerial)
-  , ("lens",         same exifLens)
-  , ("date",         same exifCreateDate)
-  , ("title",        same exifTitle)
-  , ("caption",      same exifCaption)
-  , ("aperture",     same exifAperture)
-  , ("focal length", same exifFocalLength)
-  , ("FL35mm",       same exifFL35mm)
-  , ("ISO",          same exifISO)
-  , ("speed desc",   same exifSSpeedDesc)
-  , ("speed",        same exifSSpeedVal)
-  , ("shutters",     same exifShutterCount)
-  , ("MIME type",    same exifMimeType)
-  , ("rating",       same exifRating)
-  , ("flash",        same exifFlashInfo)
-  , ("width",        same exifWidth)
-  , ("height",       same exifHeight)
-  , ("megapixels",   same exifMegapixels)
-  , ("make",         same exifMake)
-  , ("lens make",    same exifLensMake)
-  ]
-  where same field x y = sameObject (field x) (field y)
+  [ (name, same i)
+  | (i, name) <- zip [0..] (constrFields (toConstr richExif))
+  , name `notElem` ["exifOrientation", "exifWarning"] ]
+  where same i x y = gmapQi i (\fx -> gmapQi i (maybe (error "fields of different types")
+                                                      (sameObject fx) . cast) y) x
 
 -- | Checks that each shared field of two exifs is (or isn't) the same
 -- object.
@@ -153,7 +138,7 @@ fieldsShared = fieldsSharedOf sharedFields
 -- | 'fieldsShared' for an image's exif and a file's: an image's exif
 -- has no MIME type.
 imageFieldsShared :: Exif -> Exif -> Expectation
-imageFieldsShared = fieldsSharedOf (filter ((/= "MIME type") . fst) sharedFields) True
+imageFieldsShared = fieldsSharedOf (filter ((/= "exifMimeType") . fst) sharedFields) True
 
 fieldsSharedOf :: [(String, Exif -> Exif -> IO Bool)] -> Bool -> Exif -> Exif -> Expectation
 fieldsSharedOf fields expected x y = do
@@ -179,6 +164,36 @@ genDate = do
 exactDate :: ExifTime -> (LocalTime, Int, Bool, String)
 exactDate (ExifTime (ZonedTime local (TimeZone minutes summerOnly name))) =
   (local, minutes, summerOnly, name)
+
+-- | An exif whose texts come from a few that are equal or close: the
+-- same word in other cases, "ü" as one code point or as "u" and a
+-- combining diaeresis, with a trailing space.
+genTextExif :: Gen Exif
+genTextExif = do
+  let pool = ["Zurich", "zurich", "ZURICH", "Z\252rich", "Zu\776rich", "Zurich "]
+      text = elements (Nothing : map (Just . mkSym) pool)
+  camera <- text
+  city <- text
+  title <- text
+  make <- text
+  lens <- elements pool
+  mode <- text
+  keywords <- sublistOf pool
+  return def { exifCamera    = camera
+             , exifCity      = city
+             , exifTitle     = title
+             , exifMake      = make
+             , exifLens      = (exifLens def) { liName = mkSym lens }
+             , exifFlashInfo = FlashInfo Nothing mode
+             , exifKeywords  = Set.fromList (map mkSym keywords)
+             }
+
+-- | The texts of an exif that 'genTextExif' sets.
+texts :: Exif -> ( Maybe SymbolizedItem, Maybe SymbolizedItem, Maybe SymbolizedItem
+                 , Maybe SymbolizedItem, SymbolizedItem, Maybe SymbolizedItem
+                 , Set SymbolizedItem )
+texts e = ( exifCamera e, exifCity e, exifTitle e, exifMake e
+          , liName (exifLens e), fiMode (exifFlashInfo e), exifKeywords e )
 
 spec :: Spec
 spec = withConfig $ do
@@ -252,6 +267,31 @@ spec = withConfig $ do
           \((nx, dx), (ny, dy)) -> (,) (nx, ny) <$> sameObject dx dy
         return $ map (fmap exactDate . snd) kept === map (Just . exactDate) dates
             .&&. counterexample "equal dates not shared" (all snd shared)
+    it "keeps each text as it is, and shares the equal ones" $ \config ->
+      forAll (vectorOf 4 genTextExif) $ \given -> ioProperty $ do
+        let exifOf i = maybe def (copyOf i) (Map.lookup i (Map.fromList (zip [1..] given)))
+            exifs = filesExif (folderWith config exifOf)
+            kept = mapMaybe (`Map.lookup` exifs) ["a.nef", "a.jpg", "b.nef", "b.jpg"]
+        shared <- forM [ (x, y) | (x:ys) <- tails kept, y <- ys
+                                , exifCamera x == exifCamera y ] $ \(x, y) ->
+          sameObject (exifCamera x) (exifCamera y)
+        -- 'show' gives the texts as they are.
+        return $ map (show . texts) kept === map (show . texts) given
+            .&&. counterexample "equal cameras not shared" (and shared)
+    it "shares the values of every exif of the folder, wherever it is" $ \config -> do
+      -- Files of each kind (raw, sidecar, JPEGs, movies, composite
+      -- images and their components), each with its own copy.
+      let names = ["a.nef", "a.xmp", "a.jpg", "a.jpeg", "b.mov", "b.mp4", "d_01.nef", "d_02.nef", "d_01-02.jpg"]
+          cache = Map.fromList [ (n, Right (copyOf i richExif)) | (i, n) <- zip [1..] names ]
+          dir = compositeFolderWith cache config
+                  [[("a.nef", 10), ("a.xmp", 1), ("b.mov", 70), ("d_01.nef", 10), ("d_02.nef", 10)]]
+                  [[("a.jpg", 5), ("b.mp4", 60), ("d_01-02.jpg", 50)], [("a.jpeg", 5)]]
+          found = allExifs dir
+      -- One for each file and each image (a.jpeg is a second JPEG of a).
+      length found `shouldBe` length names + Map.size (pdImages dir)
+      case found of
+        e0:rest -> forM_ rest $ imageFieldsShared e0
+        []      -> expectationFailure "no exif found"
   describe "restoreSharing" $
     it "shares the equal values of a folder read from the cache" $ \config -> do
       let dir = restoreSharing (copyOf 1 (folderWith config (`copyOf` richExif)))
