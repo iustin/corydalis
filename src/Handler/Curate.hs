@@ -154,7 +154,7 @@ getCurateR = do
                             }:a)
               ([]::[XGraphData PlotText Int64]) top10l'
       perFolderStats = Map.foldl'
-                       (\l f -> let stats = computeFolderStats f
+                       (\l f -> let stats = pdStats f
                                 in (fromIntegral $ totalStatsSize stats,
                                     fromIntegral $ totalStatsCount stats,
                                     pdName f):l) [] (repoDirs pics)

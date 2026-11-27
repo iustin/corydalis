@@ -31,6 +31,7 @@ import           Data.Time (LocalTime (..), ZonedTime (..), midnight,
 import           AtomTypes
 import           Exif
 import           Repository
+import           Repository.Build  (finishFolder)
 import           TestImport
 
 -- | A file for which exiftool reported the given MIME type.
@@ -183,9 +184,9 @@ spec = parallel $ do
         folderClassFromStats (zeroStats { sOrphaned = 1 }) `shouldBe` FolderMixed
         folderClassFromStats (zeroStats { sProcessed = 1 }) `shouldBe` FolderProcessed
         folderClassFromStats (zeroStats { sMovies = 1 }) `shouldBe` FolderProcessed
-      it "computes folderClass from images" $ \config -> do
+      it "computes folderClass from the folder's stats" $ \config -> do
         folderClass (createTestPicDir "empty") `shouldBe` FolderEmpty
-        folderClass ((createTestPicDir "empty") { pdUntracked = [simpleFile "SHA1SUMS"] })
+        folderClass (finishFolder (createTestPicDir "empty") { pdUntracked = [simpleFile "SHA1SUMS"] })
           `shouldBe` FolderEmpty
         folderClass (picDirWith "raw" [simpleRawImage config]) `shouldBe` FolderRaw
 
