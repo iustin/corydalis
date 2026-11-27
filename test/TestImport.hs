@@ -601,6 +601,31 @@ compositeFolderWith :: Map Text EExif -> Config -> [[(FilePath, FileOffset)]] ->
 compositeFolderWith cache config srcs outs =
   finishFolder $ foldl' (flip (addDirToRepo config)) Map.empty (compositeDirsWith cache config srcs outs) Map.! "f"
 
+-- | A finished folder "f" whose files have different exif: images
+-- merged from a raw, a sidecar and JPEGs in two output directories, a
+-- master movie with another movie, a composite image with dated
+-- components, and an untracked file.
+mixedExifFolder :: Config -> PicDir
+mixedExifFolder config =
+  let dated y m d f = Right (f (datedExif y m d))
+      cache = Map.fromList
+        [ ("a.nef", dated 2024 6 2 $ \e -> e { exifCamera = Just (mkSym "NefCam")
+                                             , exifCity = Just (mkSym "C1") })
+        , ("a.xmp", Right def { exifPeople = Set.fromList [mkSym "P"] })
+        , ("a.jpg", dated 2024 6 3 $ \e -> e { exifCity = Just (mkSym "C2")
+                                             , exifKeywords = Set.fromList [mkSym "K1"] })
+        , ("a.jpeg", Right def { exifKeywords = Set.fromList [mkSym "K2"]
+                               , exifCamera = Just (mkSym "JpegCam") })
+        , ("b.mov", dated 2024 6 4 id)
+        , ("b.mp4", dated 2024 6 5 id)
+        , ("d_01.nef", dated 2024 6 1 $ \e -> e { exifCamera = Just (mkSym "Cam") })
+        , ("d_02.nef", dated 2024 6 6 id)
+        , ("d_01-02.jpg", Right def { exifPeople = Set.fromList [mkSym "Q"] })
+        ]
+  in compositeFolderWith cache config
+       [[("a.nef", 10), ("a.xmp", 1), ("b.mov", 70), ("d_01.nef", 10), ("d_02.nef", 10), ("notes.txt", 1)]]
+       [[("a.jpg", 5), ("b.mp4", 60), ("d_01-02.jpg", 50)], [("a.jpeg", 5)]]
+
 -- | Create a minimal PicDir for testing
 createTestPicDir :: ShortText -> PicDir
 createTestPicDir name =

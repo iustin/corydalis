@@ -209,6 +209,16 @@ spec = parallel $ do
         repoStatus repo `shouldSatisfy` isFinished
         current <- getRepo ctx
         repoSerial current `shouldBe` 5
+      it "reads a cached repository with its folders unchanged" $ \ctx -> do
+        now <- getZonedTime
+        let written = (mkRepository (Map.singleton "f" (mixedExifFolder (ctxConfig ctx))))
+                        { repoStatus = finished now, repoSerial = 5 }
+        writeDiskCache (ctxConfig ctx) written
+        void $ scanAll ctx
+        current <- getRepo ctx
+        repoSerial current `shouldBe` 5
+        Map.keys (repoDirs current) `shouldBe` ["f"]
+        show (repoDirs current) `shouldBe` show (repoDirs written)
       it "scans again after an unfinished cached repository" $ \ctx -> do
         now <- getZonedTime
         writeDiskCache (ctxConfig ctx) (cached (RepoScanning (WorkStart now)))
