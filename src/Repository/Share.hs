@@ -139,9 +139,12 @@ shareLens l = keep tLenses (\t ts -> ts { tLenses = t }) (lensKey l) l
 shareFlash :: FlashInfo -> Share FlashInfo
 shareFlash f@(FlashInfo src mode) = keep tFlashes (\t ts -> ts { tFlashes = t }) (src, mode) f
 
+-- | Keyed by both fields of the 'ZonedTime', matched by position, so
+-- that a new field breaks the build instead of being left out of the
+-- key.
 shareDate :: Maybe ExifTime -> Share (Maybe ExifTime)
 shareDate = keepJust tDates (\t ts -> ts { tDates = t })
-              (\(ExifTime zt) -> (zonedTimeToLocalTime zt, zonedTimeZone zt))
+              (\(ExifTime (ZonedTime local zone)) -> (local, zone))
 
 shareExif :: Exif -> Share Exif
 shareExif Exif{..} = do
