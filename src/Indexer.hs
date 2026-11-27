@@ -1742,10 +1742,16 @@ imagesShownForAtom atom
 -- | Build image map (sorted by folder and time): the images matching
 -- the search, as browsing shows them. A matching hidden component is
 -- replaced by the composite images covering it, unless the search is
--- about the files (see 'imagesShownForAtom'); as the results are
--- keyed by folder and time, a composite image appears once, however
--- many of its components match. The folder map, of each folder's
--- earliest image, only sees the images shown.
+-- about the files (see 'imagesShownForAtom').
+--
+-- A composite image appears once, however many of its components
+-- match: the results are keyed by folder, date and name, and the date
+-- is computed from the image itself, so within a folder (where names
+-- are unique) one image always has the same key. Adding a composite
+-- image again, from another of its components, replaces it with the
+-- same image (both come from the same folder's images), so the order
+-- doesn't matter. The folder map, of each folder's earliest image,
+-- only sees the images shown.
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
   -- Both maps are evaluated at each step, the last one included (a
