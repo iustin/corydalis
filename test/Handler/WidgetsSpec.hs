@@ -47,6 +47,10 @@ renderWidget w =
 shouldContainAll :: Text -> [Text] -> YesodExample App ()
 shouldContainAll html = liftIO . mapM_ (\t -> html `shouldSatisfy` isInfixOf t)
 
+-- | Checks that the rendered widget contains none of the given texts.
+shouldContainNone :: Text -> [Text] -> YesodExample App ()
+shouldContainNone html = liftIO . mapM_ (\t -> html `shouldNotSatisfy` isInfixOf t)
+
 spec :: Spec
 spec = parallel $ withApp $ do
   describe "showExif" $ do
@@ -139,14 +143,14 @@ spec = parallel $ withApp $ do
                   [[("d_01-03.jpg", 50)]]
       cover <- renderWidget $ folderCover 100 True [] (All []) dir
       cover `shouldContainAll` ["/f/d_01-03"]
-      liftIO $ cover `shouldNotSatisfy` isInfixOf "/f/d_01?"
+      cover `shouldContainNone` ["/f/d_01?"]
       -- A search that finds only a hidden component shows its
       -- composite image, even if another image comes first.
       let dir' = compositeFolder config [[("d_01.nef", 10), ("d_02.nef", 10)]]
                    [[("a.jpg", 5), ("d_01-03.jpg", 50)]]
       found <- renderWidget $ folderCover 100 True [] (FileName (OpEqual "d_02")) dir'
       found `shouldContainAll` ["/f/d_01-03"]
-      liftIO $ found `shouldNotSatisfy` isInfixOf "/f/a?"
+      found `shouldContainNone` ["/f/a?"]
   describe "imageSrcSet" $
     it "lists the sizes from the given minimum" $ do
       config <- ctxConfig . appContext <$> getTestYesod
