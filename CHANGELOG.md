@@ -65,6 +65,15 @@
   pictures).
   Reading the cache takes slightly longer (about 0.2 s more on the
   same library).
+- The library takes about half as much memory as before, both after a
+  scan and after a restart: equal exif values (the same camera, lens,
+  place, keywords, exposure values, or the capture date of a raw and
+  its JPEG) are now kept once per folder, instead of once for each
+  file and picture. On a generated library of 25,800 pictures, each
+  with a raw and a JPEG, the memory the library itself takes (its
+  live heap) goes from 89 MB to 45 MB. Reading the cache takes about
+  0.3 s more on that library (from about 1.0 s to 1.3 s), and a scan
+  does the same extra work.
 
 - The repository cache now has a format version, which changes with
   the shape of the data it holds, and a cache of another version is
