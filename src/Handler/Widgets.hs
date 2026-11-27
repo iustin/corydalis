@@ -55,9 +55,10 @@ folderCover size browsing params atom folder = do
       all_images = Map.elems (pdImages folder)
       -- The cover candidates: the images browsing shows for the
       -- search (a matching hidden component gives its composite
-      -- images instead), then every image that isn't a hidden
-      -- component, so that the cover is never one.
-      matching = concatMap (imagesShownFor folder) $
+      -- images instead, unless the search is about the files), then
+      -- every image that isn't a hidden component, so that only such
+      -- a search can make one the cover.
+      matching = concatMap (imagesShownForAtom atom folder) $
                    imageSearchFunction atom `filter` all_images
       images = matching ++ filter (not . isHiddenComponent) all_images
       images' = filter (not . null . allViewableImageFiles) images ++ images

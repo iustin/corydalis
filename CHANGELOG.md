@@ -88,10 +88,11 @@
   - Browsing, the viewer and search results show a composite image
     instead of its components that have no output of their own, and
     a search that finds such a component shows the composite images
-    covering it, each once. The folder covers and the preview
-    rendering after a scan skip these components too. They are still
-    counted, listed on the folder's page and the composite image's,
-    and can be opened from there.
+    covering it, each once; a search by file name or problem shows
+    the component itself. The folder covers and the preview rendering
+    after a scan skip these components too. They are still counted,
+    listed on the folder's page and the composite image's, and can be
+    opened from there.
   - Names are read by their numbers: a name is a range when its last
     number is not below the first and has at least as many digits
     (or it is a camera counter that wrapped, e.g. `dsc_9998-0002`);

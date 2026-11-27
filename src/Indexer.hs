@@ -45,6 +45,8 @@ module Indexer ( Symbol(..)
                , getAtoms
                , parseAtomParams
                , buildImageMap
+               , atomIsAboutFiles
+               , imagesShownForAtom
                , buildFolderMap
                , searchImages
                , genQuickSearchParams
@@ -1720,13 +1722,30 @@ earliestImage a b =
   then a
   else b
 
+-- | Whether a search is about the files themselves, not about the
+-- pictures they show: it names a file (by its name, or by a problem
+-- with it). Such a search finds the files as they are, so it shows a
+-- hidden component, instead of its composite images.
+atomIsAboutFiles :: Atom -> Bool
+atomIsAboutFiles = any (`elem` [TFileName, TProblem]) . atomSymbols
+
+-- | The images a search shows for a matching image of a folder: the
+-- image itself, or for a hidden component, the composite images
+-- covering it (see 'imagesShownFor'), unless the search is about the
+-- files (see 'atomIsAboutFiles'). Meant to be applied to the atom
+-- once, and the result used for all images.
+imagesShownForAtom :: Atom -> PicDir -> Image -> [Image]
+imagesShownForAtom atom
+  | atomIsAboutFiles atom = \_ img -> [img]
+  | otherwise             = imagesShownFor
+
 -- | Build image map (sorted by folder and time): the images matching
 -- the search, as browsing shows them. A matching hidden component is
--- replaced by the composite images covering it (see
--- 'imagesShownFor'); as the results are keyed by folder and time, a
--- composite image appears once, however many of its components match.
--- The folder map, of each folder's earliest image, only sees the
--- images shown.
+-- replaced by the composite images covering it, unless the search is
+-- about the files (see 'imagesShownForAtom'); as the results are
+-- keyed by folder and time, a composite image appears once, however
+-- many of its components match. The folder map, of each folder's
+-- earliest image, only sees the images shown.
 buildImageMap :: Atom -> Repository -> SearchResults
 buildImageMap atom =
   -- Both maps are evaluated at each step, the last one included (a
@@ -1737,9 +1756,10 @@ buildImageMap atom =
   foldl' addFolder (StrictPair Map.empty Map.empty) . Map.elems . repoDirs
   where
     matches = imageSearchFunction atom
+    shownFor = imagesShownForAtom atom
     addFolder acc dir =
       Map.foldl' (\a img -> if matches img
-                              then foldl' addImage a (imagesShownFor dir img)
+                              then foldl' addImage a (shownFor dir img)
                               else a) acc (pdImages dir)
     addImage (StrictPair mimg mfld) img =
       StrictPair (Map.insert (imgParent img, imageTimeKey img) img mimg)
