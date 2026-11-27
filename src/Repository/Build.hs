@@ -425,7 +425,8 @@ linkedExif images img =
 --
 -- Each image's exif is computed again from its files' exif, as a scan
 -- does ('promoteFileExif', as in 'mkImage' and 'mergePictures'), the
--- images are keyed by their own names, and the folder is finished
+-- images are keyed by their own names and get the folder's name as
+-- their parent's (as a scan gives them), and the folder is finished
 -- again ('finishFolder'), which builds the links, the composite
 -- images' exif, and the values derived from the images, from the
 -- images. Finishing a folder a second time gives the same folder, so
@@ -433,13 +434,17 @@ linkedExif images img =
 restoreSharing :: PicDir -> PicDir
 restoreSharing dir =
   let fromFiles img =
-        img { imgExif = promoteFileExif (fileExif <$> imgRawPath img)
+        img { imgParent = pdName dir
+            , imgExif = promoteFileExif (fileExif <$> imgRawPath img)
                                         (fileExif <$> imgSidecarPath img)
                                         (map fileExif (imgJpegPath img))
                                         (fileExif <$> imgMasterMov img)
                                         (map fileExif (imgMovs img)) }
+      -- Keyed by the images' own names, not by the decoded keys, which
+      -- are copies of them. As each key equals its image's name, the
+      -- list is still in ascending order.
       images = Map.fromDistinctAscList
-                 [ (imgName img, fromFiles img) | img <- Map.elems (pdImages dir) ]
+                 [ (imgName img, fromFiles img) | (_, img) <- Map.toAscList (pdImages dir) ]
   in finishFolder dir { pdImages = images }
 
 -- | Finishes a folder, once all its directories are merged: links the
