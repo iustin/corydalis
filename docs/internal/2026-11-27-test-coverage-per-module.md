@@ -1,8 +1,8 @@
 # Coverage only for the code under test: hpc off per test module
 
 Date: 2026-11-27. Status: accepted; applied only where needed (so far
-`test/Repository/ShareSpec.hs`, from
-[PR #110](https://github.com/iustin/corydalis/pull/110)). Written on
+`test/Repository/ShareSpec.hs`, from [PR
+#110](https://github.com/iustin/corydalis/pull/110)). Written on
 2026-11-28, from the investigation notes.
 
 ## Context
@@ -15,8 +15,8 @@ changes what some tests see:
 
 - a value passed to a function, or stored in a lazy field after a bang
   pattern, is a fresh thunk, so tests of evaluation see thunks the
-  normal build doesn't have (see
-  [Strictness tests observe behaviour](2026-11-24-behaviour-tests-not-heap-inspection.md));
+  normal build doesn't have (see [Strictness tests observe
+  behaviour](2026-11-24-behaviour-tests-not-heap-inspection.md));
 - `makeStableName v` names a fresh tick thunk at each use of `v`, so a
   value is never the same object as itself, and identity checks fail.
 
@@ -25,9 +25,9 @@ without hpc, keeping coverage for the library and the executables.
 
 ## Decision
 
-hpc is turned off with a pragma, `{-# OPTIONS_GHC -fno-hpc #-}`, only
-in the test modules that need it, i.e. that check identity or
-evaluation. ShareSpec is the first.
+hpc is turned off with a pragma, `{-# OPTIONS_GHC -fno-hpc #-}`, only in
+the test modules that need it, i.e. that check identity or evaluation.
+ShareSpec is the first.
 
 ## Alternatives
 
@@ -46,30 +46,30 @@ library's coverage too.
 the test time didn't change, so a 48-file change bought nothing.
 Rejected.
 
-**`makeStableName $! v`** in identity tests instead of the pragma.
-Noted as an option at the time; each use must remember it, while the
-pragma covers the whole module.
+**`makeStableName $! v`** in identity tests instead of the pragma. Noted
+as an option at the time; each use must remember it, while the pragma
+covers the whole module.
 
 ## Measurements
 
-The pragma in all 48 test modules, against main of 2026-11-27, with
-the coverage build CI uses (`stack test --coverage --flag
-corydalis:dev`): the library's and executables' coverage (lcov from
-`hpc-codecov`) was identical line by line and branch by branch (6,358
-lines, 5,961 hit), CI's `hpc-codecov stack:test` and `make coverage-hs`
-still worked, and the test time stayed about 17 s. The machine was a
-cloud development machine; its model wasn't recorded.
+The pragma in all 48 test modules, against main of 2026-11-27, with the
+coverage build CI uses (`stack test --coverage --flag corydalis:dev`):
+the library's and executables' coverage (lcov from `hpc-codecov`) was
+identical line by line and branch by branch (6,358 lines, 5,961 hit),
+CI's `hpc-codecov stack:test` and `make coverage-hs` still worked, and
+the test time stayed about 17 s. The machine was a cloud development
+machine; its model wasn't recorded.
 
 ## Consequences
 
-- The pragma only helps when the values checked are made and compared
-  in the test module itself, as in ShareSpec. It wouldn't have saved
-  the heap walker of
-  [Strictness tests observe behaviour](2026-11-24-behaviour-tests-not-heap-inspection.md):
-  the closures it walked are built by library code, which CI still
-  compiles with hpc.
+- The pragma only helps when the values checked are made and compared in
+  the test module itself, as in ShareSpec. It wouldn't have saved the
+  heap walker of [Strictness tests observe
+  behaviour](2026-11-24-behaviour-tests-not-heap-inspection.md): the
+  closures it walked are built by library code, which CI still compiles
+  with hpc.
 - A new test of identity or evaluation needs the pragma in its module,
-  and should be run in both builds (`make test` and the coverage
-  build) before relying on it.
-- The modules with the pragma report no coverage of themselves, which
-  is not used anyway.
+  and should be run in both builds (`make test` and the coverage build)
+  before relying on it.
+- The modules with the pragma report no coverage of themselves, which is
+  not used anyway.
