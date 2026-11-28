@@ -416,20 +416,26 @@ responseLocation = withResponse $ \response ->
 testToolLimits :: IO ToolLimits
 testToolLimits = atomically $ newToolLimits defaultToolSlots defaultRenderToolTimeout
 
--- | Waits until the given thread is blocked in STM, e.g. waiting for a
--- tool slot (see 'withToolSlot'), failing if it finishes first. There
--- is a last resort time limit, in case it never blocks.
-waitUntilBlockedInSTM :: ThreadId -> IO ()
-waitUntilBlockedInSTM tid =
-  timeout (30 * 1000000) loop >>=
+-- | Waits until the given thread is blocked for the given reason,
+-- failing if it finishes first. There is a last resort time limit, in
+-- case it never blocks.
+waitUntilBlocked :: BlockReason -> ThreadId -> IO ()
+waitUntilBlocked reason tid =
+  timeout lastResort loop >>=
     maybe (expectationFailure "The thread never blocked") return
   where loop = do
           status <- threadStatus tid
           case status of
-            ThreadBlocked BlockedOnSTM -> return ()
+            ThreadBlocked r | r == reason -> return ()
             ThreadFinished -> expectationFailure "The thread didn't block"
             ThreadDied -> expectationFailure "The thread didn't block"
             _ -> yield >> loop
+
+-- | Waits until the given thread is blocked in STM, e.g. waiting for a
+-- tool slot (see 'withToolSlot'), failing if it finishes first. There
+-- is a last resort time limit, in case it never blocks.
+waitUntilBlockedInSTM :: ThreadId -> IO ()
+waitUntilBlockedInSTM = waitUntilBlocked BlockedOnSTM
 
 -- | Counts the free slots of the given tool limits, taking them all.
 takeFreeSlots :: ToolLimits -> IO Int

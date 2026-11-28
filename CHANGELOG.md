@@ -202,6 +202,10 @@
   raw and an output with a corrected clock): they were the earliest
   over each directory's files, and are now the earliest of the
   pictures' dates.
+- Cancelling an external tool run right as the tool started could
+  skip killing its process group, leaving the run waiting for the
+  tool to exit on its own (and occasionally failing with a "No child
+  processes" error).
 
 ### Internal changes
 
