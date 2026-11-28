@@ -77,7 +77,7 @@ import           UnliftIO.Exception
 
 import           Cache
 import           Compat.Orphans          ()
-import           Exif
+import           Exif.Load               (getExif)
 import           Import.NoFoundation     hiding (fileName, fileSize, path)
 import           Utils.Storage           (resolveStorageDirs)
 import           Utils.Yaml              (loadYaml, maxYamlSize)

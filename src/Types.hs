@@ -638,7 +638,7 @@ defaultRenderToolTimeout = 300 * 1000000
 
 -- | The default time limit for a run of exiftool reading the metadata
 -- during the scan (see the scan-tool-timeout setting): ten minutes, as
--- it reads a batch of up to 32 files (exifToolBatchSize in Exif), which
+-- it reads a batch of up to 32 files (exifToolBatchSize in Exif.Load), which
 -- can be large, on a possibly slow (e.g. network) filesystem.
 defaultScanToolTimeout :: Int
 defaultScanToolTimeout = 600 * 1000000
