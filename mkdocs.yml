@@ -11,6 +11,18 @@ nav:
 - Development notes: devel.md
 - Internal notes:
   - internal/index.md
+  - internal/2025-09-26-dev-flag-executables.md
+  - internal/2026-11-24-behaviour-tests-not-heap-inspection.md
+  - internal/2026-11-24-rescan-memory.md
+  - internal/2026-11-24-static-files.md
+  - internal/2026-11-24-vector-hashtables-pin.md
+  - internal/2026-11-25-composite-images.md
+  - internal/2026-11-25-repository-cache-format-version.md
+  - internal/2026-11-25-repository-modules.md
+  - internal/2026-11-25-search-cache-generation.md
+  - internal/2026-11-27-exif-sharing.md
+  - internal/2026-11-27-restore-sharing-on-cache-load.md
+  - internal/2026-11-27-test-coverage-per-module.md
   - internal/2026-11-28-bexif-format-version.md
 - TODOs: todo.md
 - Changelog: changelog.md
