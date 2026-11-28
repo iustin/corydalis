@@ -708,8 +708,9 @@ type CachedExif = (BExifRevision, EExif)
 -- hash here (in the build error, it is the one called \"expected\",
 -- the one called \"specified\" being this one). As the repository
 -- cache holds 'Exif' too, a change to its shape (or to that of a type
--- it uses) changes 'Repository.repoCacheVersion' as well. It is defined here, not in "Exif.Load", because a value
--- used at compile time can't come from the module that uses it.
+-- it uses) changes 'Repository.repoCacheVersion' as well. It is
+-- defined here, not in "Exif.Load", because a value used at compile
+-- time can't come from the module that uses it.
 bExifCacheVersion :: VersionConfig CachedExif
 bExifCacheVersion = hashedVersionConfig "6DIMxrWdqTB_sNgivDN2dYpmJsA="
 
