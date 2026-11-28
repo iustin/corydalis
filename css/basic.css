@@ -9,6 +9,29 @@
     --cory-mono-bg: #1c2935;
 }
 
+/* Bootstrap's dark theme puts the page, the card headers, the navbar
+ * and the light buttons on nearly the same shade, which makes the pages
+ * look flat compared to the light theme (white page, light gray bars
+ * and buttons). Spread these layers apart: a darker page, slightly
+ * lighter cards, and clearly lighter bars and buttons. */
+[data-bs-theme="dark"] {
+    --bs-body-bg: #131518;
+    --bs-body-bg-rgb: 19, 21, 24;
+    --bs-tertiary-bg: #343a40;
+    --bs-tertiary-bg-rgb: 52, 58, 64;
+    --bs-secondary-bg: #454c54;
+    --bs-secondary-bg-rgb: 69, 76, 84;
+}
+
+/* The cards' own background, also used by the tables, list groups and
+ * form controls in them, which take Bootstrap's body background. */
+[data-bs-theme="dark"] .card {
+    --bs-body-bg: #1c1f23;
+    --bs-body-bg-rgb: 28, 31, 35;
+    --bs-card-bg: var(--bs-body-bg);
+    --bs-card-cap-bg: var(--bs-tertiary-bg);
+}
+
 /* Bootstrap's light buttons stay light in the dark theme (they are meant
  * for dark backgrounds); make them match the theme instead, as we use
  * them as the default, discreet buttons. */
