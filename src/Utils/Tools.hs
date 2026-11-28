@@ -32,6 +32,7 @@ module Utils.Tools ( ToolSlot
                    ) where
 
 import           Control.Concurrent.STM.TSem (signalTSem, waitTSem)
+import qualified Control.Exception       as E (bracket, finally)
 import qualified Data.Text               as Text (strip)
 import qualified Data.Text.Lazy          as TextL
 import           Data.Text.Encoding.Error (lenientDecode)
@@ -126,30 +127,24 @@ runToolWith (ToolSlot limit) output pconfig =
     pconfig' = setCreateGroup True
                . setStderr byteStringOutput
                $ pconfig
-    run = withProcessTerm pconfig' $ \p -> do
-      -- After killing the tool, this waits for typed-process to record
-      -- its exit; otherwise, its cleanup can interrupt the thread
-      -- waiting for the tool right after the tool was reaped, but
-      -- before its exit was recorded, and then fail waiting for it
-      -- again ("No child processes"). The group's id is the tool's
-      -- process id. Failing to send the signal (e.g. the tool has just
-      -- exited, and been reaped, along with the rest of its group) is
-      -- ignored.
-      let stop = do
-            mpid <- getPid p
-            case mpid of
-              Just pid -> void . tryIO $ signalProcessGroup sigKILL pid
-              Nothing  -> return ()
-            void . atomically $ waitExitCodeSTM p
+    -- Starting and stopping the process in one bracket (instead of
+    -- withProcessTerm with an inner onException) avoids a gap where an
+    -- asynchronous exception arriving during startProcess fires as soon
+    -- as bracket unmasks for the body, skipping our kill and leaving
+    -- stopProcess to run with a live child (which can wait for stderr
+    -- EOF and then race on waitForProcess). Control.Exception's
+    -- bracket/finally are used (as withProcessTerm does), not
+    -- UnliftIO's, so stopProcess stays interruptible if a background
+    -- child outlives the leader and keeps stderr open.
+    run = E.bracket (startProcess pconfig') cleanup $ \p -> do
       result <- timeout limit
                   (atomically $ (,,) <$> waitExitCodeSTM p
                                      <*> output (getStdout p)
                                      <*> getStderr p)
-                `onException` stop
       case result of
         Just r  -> return $ Right r
         Nothing -> do
-          stop
+          stop p
           -- What the tool wrote to its error output before it was
           -- stopped, e.g. which file it was reading, if it said so.
           -- With the tool's process group killed, its error output is
@@ -158,6 +153,24 @@ runToolWith (ToolSlot limit) output pconfig =
           -- open.
           err <- timeout 1000000 (atomically $ getStderr p)
           return . Left $ withOutput (fromMaybe "" err) timedOut
+    -- After killing the tool, this waits for typed-process to record
+    -- its exit; otherwise, its cleanup can interrupt the thread
+    -- waiting for the tool right after the tool was reaped, but
+    -- before its exit was recorded, and then fail waiting for it
+    -- again ("No child processes"). The group's id is the tool's
+    -- process id. Failing to send the signal (e.g. the tool has just
+    -- exited, and been reaped, along with the rest of its group) is
+    -- ignored. Masked uninterruptibly so a second async exception
+    -- between SIGKILL and waitExitCodeSTM can't re-expose that race;
+    -- once the tool has already exited, getPid is Nothing and
+    -- waitExitCodeSTM returns at once.
+    stop p = uninterruptibleMask_ $ do
+      mpid <- getPid p
+      case mpid of
+        Just pid -> void . tryIO $ signalProcessGroup sigKILL pid
+        Nothing  -> return ()
+      void . atomically $ waitExitCodeSTM p
+    cleanup p = stop p `E.finally` stopProcess p
     timedOut = sformat ("External tool timed out after " % int % " second" % string)
                  secs (if secs == 1 then "" else "s")
     withOutput err msg =
