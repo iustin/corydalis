@@ -66,5 +66,5 @@ kept result saves during a rescan.
 - `getSearchResults` reads the repository itself, taking the search
   function rather than its results.
 - Cached results always come from the current data.
-- A search racing with two publishes in a row computes up to two more
-  times; its last results aren't cached.
+- A search racing with two publishes in a row computes once more (two
+  computations in all); its second results aren't cached.

@@ -42,19 +42,32 @@ even recompile). Cabal has no per-component coverage switch
 `-fhpc`, but apply to the whole package, so they would drop the
 library's coverage too.
 
-**The pragma in all test modules.** Works: tried on all 48 test
-modules, the library's and executables' coverage was identical line by
-line and branch by branch (6,358 lines, 5,961 hit), and CI's
-`hpc-codecov stack:test` and `make coverage-hs` still worked. But the
-test time didn't change (about 17 s), so a 48-file change bought
-nothing. Rejected.
+**The pragma in all test modules.** Works (see the measurements), but
+the test time didn't change, so a 48-file change bought nothing.
+Rejected.
 
 **`makeStableName $! v`** in identity tests instead of the pragma.
 Noted as an option at the time; each use must remember it, while the
 pragma covers the whole module.
 
+## Measurements
+
+The pragma in all 48 test modules, against main of 2026-11-27, with
+the coverage build CI uses (`stack test --coverage --flag
+corydalis:dev`): the library's and executables' coverage (lcov from
+`hpc-codecov`) was identical line by line and branch by branch (6,358
+lines, 5,961 hit), CI's `hpc-codecov stack:test` and `make coverage-hs`
+still worked, and the test time stayed about 17 s. The machine was a
+cloud development machine; its model wasn't recorded.
+
 ## Consequences
 
+- The pragma only helps when the values checked are made and compared
+  in the test module itself, as in ShareSpec. It wouldn't have saved
+  the heap walker of
+  [Strictness tests observe behaviour](2026-11-24-behaviour-tests-not-heap-inspection.md):
+  the closures it walked are built by library code, which CI still
+  compiles with hpc.
 - A new test of identity or evaluation needs the pragma in its module,
   and should be run in both builds (`make test` and the coverage
   build) before relying on it.
