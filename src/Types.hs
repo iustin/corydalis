@@ -734,10 +734,11 @@ instance Store SymbolizedItem where
   peek = mkSymbolizedItem <$> (peek::Peek Text)
 
 -- | Describes a symbolized item as its text, which is what 'Store'
--- writes. As for 'Regex', it is meant for the repository cache's
--- format version, not for generic traversals: if the 'Store' instance
--- changes, change the constructor's name or its field's type (or
--- 'Repository.CacheRevision').
+-- writes. As for 'Regex', it is meant for the format versions of the
+-- repository cache and of the binary exif cache, not for generic
+-- traversals: if the 'Store' instance changes, change the
+-- constructor's name or its field's type (or both
+-- 'Repository.CacheRevision' and 'Exif.BExifRevision').
 instance Data SymbolizedItem where
   gfoldl k z s = z symbolizedFromText `k` deSymbolizeItem s
   gunfold k z _ = k (z symbolizedFromText)

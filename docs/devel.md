@@ -184,10 +184,38 @@ constructor's name can be changed), and that of `ShortText` in
 encodes a type whose name stays the same. For these, rename the
 constructor of `CacheRevision` (in `Repository`) to the next number:
 it is written in no byte of the cache, but it is part of the shape.
+The binary exif cache holds `ShortText` and `SymbolizedItem` too, so
+for these two rename `BExifRevision` (in `Exif`) as well (see below).
 
 The names of library types are part of the shape too, so a resolver
 upgrade can change the hash with no change to the code; update it then
 as well.
+
+## The binary exif cache's format version
+
+Each media file's exif data is cached twice: as exiftool's JSON
+output (`<file>-exif`), and, once decoded, encoded with `store`
+(`<file>-bexif`), which a scan reads first. The binary files have a
+format version too, computed the same way, from the shape of
+`CachedExif` (in `Exif`). A file with another version, or from before
+versions, isn't used: the scan reads the JSON file instead, without
+running exiftool, and writes the binary file again. Each file starts
+with the version (a 32-byte prefix: a 4-byte marker, the hash's length
+and the 20-byte hash), as a file is only rewritten when a scan reads
+it, so files with different versions can be in the cache at the same
+time: for example those of a source directory taken out of the
+configuration and added back later, or when builds of different
+versions share a cache directory.
+
+The expected hash is pinned in `bExifCacheVersion` (`src/Exif.hs`),
+and updated as for the repository cache. As the repository cache
+holds `Exif` too, a change to the shape of `Exif` (or of a type it
+uses) changes both hashes; renaming `BExifRevision` only changes this
+one. For an
+encoding change that the shape doesn't show (the hand-written `Store`
+instances of `SymbolizedItem` and `ShortText`, or a library's), rename
+the constructor of `BExifRevision` (in `Exif`) to the next number, as
+well as that of `CacheRevision`.
 
 ## Middlewares: where headers and checks go
 
@@ -234,8 +262,9 @@ the `corydalis` binary, so they don't need to be copied; you need the
 ### Haskell code
 
 - bump stack version in `stack.yaml`, run `make devel`, fix issues
-  (this includes the repository cache's format version, see "The
-  repository cache's format version")
+  (this includes the format versions of the repository cache and of
+  the binary exif cache, see "The repository cache's format version"
+  and "The binary exif cache's format version")
 - recommend to commit minimal diff to fix building with newer version, and run
   proper cleanup afterwards.
 

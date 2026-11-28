@@ -127,6 +127,14 @@
 
 ### Fixed bugs
 
+- The binary exif cache files (`*-bexif` in the cache directory) now
+  have a format version, as the repository cache does. A file written
+  with another format, which could be decoded into wrong values, is
+  now ignored: the exif data is read again from the raw exif cache
+  (`*-exif`), without running exiftool, and the binary file is
+  rewritten. After upgrading, the first scan (at the first start, as
+  the repository cache is ignored too, see above) does this for every
+  file, so it takes somewhat longer.
 - If a rescan fails while rendering the previews or cleaning up the
   cache, the application keeps the pictures that scan found (with the
   error on the status page, as before); it used to go back to the
@@ -197,6 +205,13 @@
 
 ### Internal changes
 
+- The loading of the exif data (`getExif`, with the exif caches and the
+  exiftool runs) moved from `Exif` to a new `Exif.Load` module, which
+  encodes the binary exif cache behind a format version computed at
+  compile time, like the repository cache's. The expected hash is
+  pinned in `bExifCacheVersion` (in `Exif`); a change to the shape of
+  `Exif` now fails the build until both it and `repoCacheVersion` are
+  updated. See the development notes.
 - `PicDir`'s `pdShadows` is gone: an image's `imgRole` holds its
   links, to its components or to the composite images covering it,
   set by `finishFolder`, which also computes all of a folder's derived

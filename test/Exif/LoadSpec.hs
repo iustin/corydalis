@@ -193,7 +193,7 @@ spec = parallel $ do
           stale = Left "stale binary cache" :: EExif
           readAgain = getExif noLog tools config dir [("normal.jpg", now - 7200)]
       -- A binary cache telling apart where the result comes from.
-      BS.writeFile (bExifPath config picture) (Data.Store.encode stale)
+      BS.writeFile (bExifPath config picture) (encodeBExif stale)
       (fromBinary, exifs) <- readAgain
       fromBinary `shouldBe` 0
       lookup "normal.jpg" exifs `shouldBe` Just stale
@@ -204,6 +204,40 @@ spec = parallel $ do
       -- Read from the raw cache, not by exiftool.
       fromRaw `shouldBe` 0
       (isRight <$> lookup "normal.jpg" exifs') `shouldBe` Just True
+
+    let planted = Left "planted binary cache" :: EExif
+    forM_ [ ("from before the format version", Data.Store.encode planted)
+          , ("of another format version", otherCacheVersion (encodeBExif planted))
+          ] $ \(name, contents) ->
+      it ("rewrites a binary exif cache " ++ name ++ " from the raw one") $ \config -> do
+        requireExifTool
+        tools <- testToolLimits
+        dir <- populateSourceDir config [("normal.jpg", minimalJpeg)]
+        (_, initial) <- getExif noLog tools config dir (untimed ["normal.jpg"])
+        now <- getPOSIXTime
+        let picture = dir </> "normal.jpg"
+            expected = lookup "normal.jpg" initial
+            readAgain = getExif noLog tools config dir [("normal.jpg", now - 7200)]
+        (isRight <$> expected) `shouldBe` Just True
+        -- Telling apart where the result comes from.
+        BS.writeFile (bExifPath config picture) contents
+        (fromRaw, exifs) <- readAgain
+        -- Read from the raw cache, not by exiftool.
+        fromRaw `shouldBe` 0
+        lookup "normal.jpg" exifs `shouldBe` expected
+        -- And the binary cache written again, with the version.
+        rewritten <- BS.readFile (bExifPath config picture)
+        either (const Nothing) Just (decodeBExif rewritten) `shouldBe` expected
+        -- Which the next scan uses: with the raw cache now invalid, the
+        -- result can only come from the binary one. That one is made
+        -- newer, as it must be (only its times change, not what it
+        -- holds), since writing the raw one changed its status time.
+        let later = now + 3600
+        BS.writeFile (exifPath config picture) "not JSON"
+        setFileTimesHiRes (bExifPath config picture) later later
+        (fromBinary, exifs') <- readAgain
+        fromBinary `shouldBe` 0
+        lookup "normal.jpg" exifs' `shouldBe` expected
 
     forM_ [("an hour ago", subtract 3600), ("at time 0", const 0)] $ \(name, timeOf) ->
       it ("doesn't use a binary exif cache without the raw one, for a file changed " ++
@@ -280,3 +314,21 @@ spec = parallel $ do
         case result of
           Just (_, exifs) -> (isRight <$> lookup "normal.jpg" exifs) `shouldBe` Just True
           Nothing -> expectationFailure "exiftool never finished"
+
+  describe "binary exif cache encoding" $ do
+    let exif = def { exifCamera = Just (mkSym "D850 (#1234)")
+                   , exifPeople = setFromList [mkSym "Ann"]
+                   } :: Exif
+        values = [Right exif, Left "no exif data"] :: [EExif]
+    it "decodes what it encodes" $
+      forM_ values $ \e -> decodeBExif (encodeBExif e) `shouldBe` Right e
+    it "doesn't decode a cache from before the format version" $
+      forM_ values $ \e -> decodeBExif (Data.Store.encode e) `shouldSatisfy` isLeft
+    it "doesn't decode a cache with another format version" $
+      forM_ values $ \e ->
+        decodeBExif (otherCacheVersion (encodeBExif e)) `shouldSatisfy` isLeft
+    it "doesn't decode a truncated cache, or one with more data" $
+      forM_ values $ \e -> do
+        let encoded = encodeBExif e
+        decodeBExif (BS.take (BS.length encoded - 1) encoded) `shouldSatisfy` isLeft
+        decodeBExif (encoded <> "x") `shouldSatisfy` isLeft

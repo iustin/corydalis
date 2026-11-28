@@ -20,9 +20,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
--- | Loading the exif data of a folder's files: from the exif caches,
--- or by running exiftool (which then writes the caches).
+-- | Loading the exif data of a folder's files: from the exif caches
+-- (the binary one, behind its format version, see 'bExifCacheVersion',
+-- then the raw one), or by running exiftool. The caches are written
+-- for the files exiftool read, and the binary one again for those read
+-- from the raw one.
 module Exif.Load ( getExif
 #ifdef TEST
                  , exifToolBatchSize
@@ -30,6 +34,8 @@ module Exif.Load ( getExif
                  , exifToolArgs
                  , exifPath
                  , bExifPath
+                 , encodeBExif
+                 , decodeBExif
 #endif
                  ) where
 
@@ -39,7 +45,10 @@ import           Data.Bifunctor
 import qualified Data.ByteString           as BS (ByteString, length, readFile)
 import qualified Data.ByteString.Lazy      as BSL (null)
 import qualified Data.Map.Strict           as Map
-import           Data.Store
+import           Data.Store                (PeekException, decodeWith)
+import           Data.Store.Core           (unsafeEncodeWith)
+import           Data.Store.Version        (decodeWithVersionQ,
+                                            encodeWithVersionQ)
 import qualified Data.Text                 as Text
 import           Data.Time.Clock.POSIX     (POSIXTime)
 import           System.Directory          (createDirectoryIfMissing)
@@ -56,24 +65,42 @@ import           Utils.Tools               (decodeToolOutput, runToolToFile,
 buildPath :: FilePath -> FilePath -> FilePath
 buildPath dir name = dir ++ "/" ++ name
 
+-- | Encodes an exif value for the binary exif cache, behind its format
+-- version (see 'bExifCacheVersion').
+encodeBExif :: EExif -> ByteString
+encodeBExif e =
+  let (len, pokeIt) = $(encodeWithVersionQ bExifCacheVersion)
+                        ((BExifRevision1, e) :: CachedExif)
+  in unsafeEncodeWith pokeIt len
+
+-- | Decodes a binary exif cache, failing if it has another format
+-- version (or none).
+decodeBExif :: ByteString -> Either PeekException EExif
+decodeBExif encoded = snd <$> decodeCached encoded
+  where decodeCached :: ByteString -> Either PeekException CachedExif
+        decodeCached = decodeWith $(decodeWithVersionQ bExifCacheVersion)
+
 -- | Writes the (binary) exif cache for a given file.
 writeBExif :: Config -> FilePath -> EExif -> IO ()
 writeBExif config path =
-  writeCacheFile config path bExifPath . Data.Store.encode
+  writeCacheFile config path bExifPath . encodeBExif
 
 -- | Tries to read the (binary) exif cache for a given file, given the
 -- file's last change (see 'touchedAt').
 --
 -- The cache is used only if it is at least as new as the raw exif cache,
 -- itself at least as new as the file; without the raw exif cache (missing
--- or unreadable), it isn't used.
+-- or unreadable), it isn't used. Nor is one that doesn't decode, e.g.
+-- one with another format version (see 'bExifCacheVersion'), or from
+-- before versions; 'getExif' then reads the raw exif cache, and writes
+-- the binary one again.
 readBExif :: Config -> POSIXTime -> FilePath -> IO (Maybe EExif)
 readBExif config fileTime path = do
   rawTime <- touchedAt (exifPath config path)
   contents <- case rawTime of
                 Just t | fileTime <= t -> readCacheFileSince (bExifPath config path) t
                 _                      -> return Nothing
-  return $ contents >>= either (const Nothing) Just . Data.Store.decode
+  return $ contents >>= either (const Nothing) Just . decodeBExif
 
 -- | Writes the exif caches (raw and binary) for a given file.
 writeExifs :: Config -> FilePath -> ERawExif -> IO (FilePath, EExif)
