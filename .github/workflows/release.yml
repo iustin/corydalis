@@ -1,0 +1,96 @@
+# Release builds, kept separate from ci.yml so that they don't show up
+# (as skipped) on pull requests. Releases take long to build, so they
+# only run for release tags, pushes to main (to catch problems specific
+# to the release configurations, e.g. code only compiled without the
+# dev flag), the weekly runs, and when manually requested.
+#
+# Being in a separate workflow, they can't wait for "Build and test" in
+# ci.yml, so they run alongside it.
+#
+# The "Version tags" ruleset requires the "Build normal release" and
+# "Build public release" checks by name: renaming the job or the matrix
+# entries needs the ruleset updated too.
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+  workflow_dispatch:
+  # Weekly run to account for
+  # changed dependencies.
+  schedule:
+    - cron: '17 03 * * 0'
+
+name: Release builds
+permissions:
+  contents: read
+jobs:
+  release:
+    name: Build ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: normal release
+            target: release
+            artifact: release
+          - name: public release
+            target: demo-release
+            artifact: demo-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Haskell
+        uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
+        with:
+          enable-stack: true
+          stack-version: 'latest'
+
+      # Only restores the build job's cache (ci.yml): these jobs run
+      # alongside it, and saving from here could store one without the
+      # test dependencies under its key.
+      - name: Restore the Haskell dependencies
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.stack
+          key: v3-haskell-deps-${{ runner.os }}-store-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('package.yaml') }}
+          restore-keys: |
+            v3-haskell-deps-${{ runner.os }}-store-
+            v3-haskell-deps-
+            v2-haskell-deps-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Install mkdocs
+        run: pip install --upgrade pip mkdocs
+
+      - name: Setup GHC for the resolver
+        run: stack setup --no-terminal
+
+      - name: Install hlint
+        run: stack install hlint
+
+      - name: Build ${{ matrix.name }}
+        run: make ${{ matrix.target }}
+
+      - name: Upload ${{ matrix.name }} artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ./dist/
+          compression-level: 9 # large binaries
+          if-no-files-found: error
