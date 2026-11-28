@@ -38,6 +38,9 @@ module Exif ( Exif(..)
             , FlashInfo(..)
             , NameStats
             , EExif
+            , BExifRevision(..)
+            , CachedExif
+            , bExifCacheVersion
             , RawExif(rExifSrcFile, rExifRaw)
             , ERawExif
             , FailRExif(..)
@@ -84,6 +87,7 @@ import           Data.Scientific           (toBoundedInteger)
 import           Data.Semigroup
 import qualified Data.Set                  as Set
 import           Data.Store
+import           Data.Store.Version        (VersionConfig, hashedVersionConfig)
 import qualified Data.Text                 as Text
 import qualified Data.Text.Read            as Text
 import qualified Data.Text.Short           as TS
@@ -675,6 +679,39 @@ instance Default Exif where
 -- | Type alias for either an error or the exif data (which, of
 -- course, might be fully "empty" itself).
 type EExif = Either Text Exif
+
+-- | A revision marker for the binary exif cache. 'Store' writes nothing
+-- for it, but the name of its constructor is part of the shape that
+-- 'bExifCacheVersion' hashes. Rename the constructor (to the next
+-- number) when an encoding changes in a way the shape doesn't show,
+-- so that older binary caches are ignored: a change to a hand-written
+-- 'Store' instance (that of 'ShortText' in "Compat.Orphans", or that of
+-- 'SymbolizedItem'), or to a library's encoding of a type whose name
+-- stays the same. Such a change needs a new 'Repository.CacheRevision'
+-- too, as the repository cache holds the same types.
+data BExifRevision = BExifRevision1
+  deriving (Show, Eq, Generic, Data)
+
+instance Store BExifRevision
+
+-- | What a binary exif cache file holds: the revision marker, and the
+-- file's exif data or why it couldn't be read.
+type CachedExif = (BExifRevision, EExif)
+
+-- | The expected format version of the binary exif cache, which
+-- "Exif.Load" uses. The version written to each cache file is a hash
+-- of the shape of 'CachedExif' (the names of its types, constructors
+-- and fields, and the types of the fields), computed when compiling; a
+-- file with another version, or none, isn't used. The hash here is only checked
+-- against the computed one, and the build fails when they differ: then
+-- check that the change is the intended one, and copy the computed
+-- hash here (in the build error, it is the one called \"expected\",
+-- the one called \"specified\" being this one). As the repository
+-- cache holds 'Exif' too, a change to its shape (or to that of a type
+-- it uses) changes 'Repository.repoCacheVersion' as well. It is defined here, not in "Exif.Load", because a value
+-- used at compile time can't come from the module that uses it.
+bExifCacheVersion :: VersionConfig CachedExif
+bExifCacheVersion = hashedVersionConfig "6DIMxrWdqTB_sNgivDN2dYpmJsA="
 
 -- | Data type for raw exif parse failures.
 data FailRExif = FailRExif

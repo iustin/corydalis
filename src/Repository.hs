@@ -927,7 +927,9 @@ repoProblems =
 -- so that older caches are ignored: a change to a hand-written 'Store'
 -- instance (that of 'ShortText' in "Compat.Orphans", or those of
 -- 'Regex' and 'SymbolizedItem'), or to a library's encoding of a type
--- whose name stays the same.
+-- whose name stays the same. For a type that 'Exif' uses too (such as
+-- 'ShortText' and 'SymbolizedItem'), rename 'Exif.BExifRevision' as
+-- well, for the binary exif cache.
 data CacheRevision = CacheRevision1
   deriving (Show, Eq, Generic, Data)
 

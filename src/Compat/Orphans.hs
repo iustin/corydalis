@@ -55,9 +55,10 @@ instance PersistField ShortText where
 instance PersistFieldSql ShortText where
   sqlType _ = SqlString
 
--- | Encodes the text. The repository cache's format version doesn't
--- see this encoding, only the name of the type: if it changes, rename
--- 'Repository.CacheRevision'.
+-- | Encodes the text. The format versions of the repository cache and
+-- of the binary exif cache don't see this encoding, only the name of
+-- the type: if it changes, rename 'Repository.CacheRevision' and
+-- 'Exif.BExifRevision'.
 instance Store ShortText where
   size = contramap toText (size :: Size Text)
   poke = poke . toText
