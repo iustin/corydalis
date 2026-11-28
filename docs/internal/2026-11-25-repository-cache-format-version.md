@@ -1,26 +1,25 @@
 # A format version for the repository cache
 
-Date: 2026-11-25. Status: accepted, in
-[PR #104](https://github.com/iustin/corydalis/pull/104) (commit
-94fa36c). Written on 2026-11-28, from the commit and the composite
-images specification.
+Date: 2026-11-25. Status: accepted, in [PR
+#104](https://github.com/iustin/corydalis/pull/104) (commit 94fa36c).
+Written on 2026-11-28, from the commit and the composite images
+specification.
 
 ## Context
 
 At the end of a scan, the whole repository (with the configuration it
 was built from) is written to a cache file, and a restart loads it
-instead of scanning. The cache was `Store.encode (config, repo)`, and
-an old cache was only rejected when it failed to decode.
+instead of scanning. The cache was `Store.encode (config, repo)`, and an
+old cache was only rejected when it failed to decode.
 
 `store` doesn't describe the data it writes: it decodes by position,
-trusting that the bytes have the layout of the type it is asked for.
-So nothing guaranteed that a cache written for older types fails to
-decode with newer ones; it could be read as something else, without an
-error. The composite images redesign (see
-[Composite images](2026-11-25-composite-images.md)) was about to change
-the cached types, and its specification also needed old caches to be
-rejected, so that their stale derived values (shadows, stats) are
-never loaded.
+trusting that the bytes have the layout of the type it is asked for. So
+nothing guaranteed that a cache written for older types fails to decode
+with newer ones; it could be read as something else, without an error.
+The composite images redesign (see [Composite
+images](2026-11-25-composite-images.md)) was about to change the cached
+types, and its specification also needed old caches to be rejected, so
+that their stale derived values (shadows, stats) are never loaded.
 
 ## Decision
 
@@ -41,17 +40,17 @@ shape of a cached type fails the build until the pin is updated.
 - The hash doesn't see encoding changes that keep the shape (the
   hand-written `Store` instances, `ShortText`'s, a library changing an
   encoding). For those, the cache holds a `CacheRevision` marker, which
-  `store` writes as nothing, but whose constructor's name is part of
-  the shape: renaming it (`CacheRevision1` to `CacheRevision2`) gives a
-  new version.
+  `store` writes as nothing, but whose constructor's name is part of the
+  shape: renaming it (`CacheRevision1` to `CacheRevision2`) gives a new
+  version.
 
 ## Alternatives
 
 **Relying on failed decodes.** Rejected: not guaranteed, see above.
 
 **A version number bumped by hand.** Rejected: forgetting to bump it is
-exactly the failure to prevent. The hash changes by itself, and the
-pin turns the change into a build failure.
+exactly the failure to prevent. The hash changes by itself, and the pin
+turns the change into a build failure.
 
 **A pass over old caches on load that fixes their derived values**
 (planned in the rescan work for stale stats). No longer needed once old
@@ -59,8 +58,8 @@ caches are rejected by version.
 
 ## Measurements
 
-None taken for this change. The binary exif cache's record measures
-the cost of the same scheme per file.
+None taken for this change. The binary exif cache's record measures the
+cost of the same scheme per file.
 
 ## Consequences
 
@@ -70,5 +69,5 @@ the cost of the same scheme per file.
   names of library types are part of the shape), fails the build until
   `repoCacheVersion` is updated; the development notes ("The repository
   cache's format version") say how.
-- The binary exif cache later got the same scheme; see
-  [A format version for the binary exif cache](2026-11-28-bexif-format-version.md).
+- The binary exif cache later got the same scheme; see [A format version
+  for the binary exif cache](2026-11-28-bexif-format-version.md).
