@@ -59,5 +59,6 @@ feel free to [file bugs](https://github.com/iustin/corydalis/issues), or support
 me on [ko-fi](https://ko-fi.com/iustin).
 
 [![Continuous Integration](https://github.com/iustin/corydalis/actions/workflows/ci.yml/badge.svg)](https://github.com/iustin/corydalis/actions/workflows/ci.yml)
+[![Release builds](https://github.com/iustin/corydalis/actions/workflows/release.yml/badge.svg)](https://github.com/iustin/corydalis/actions/workflows/release.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/iustin/corydalis)](https://codecov.io/gh/iustin/corydalis)
 [![Documentation Status](https://img.shields.io/readthedocs/corydalis/latest)](https://corydalis.readthedocs.io/en/latest/?badge=latest)
