@@ -212,6 +212,10 @@
   pinned in `bExifCacheVersion` (in `Exif`); a change to the shape of
   `Exif` now fails the build until both it and `repoCacheVersion` are
   updated. See the development notes.
+- A new "Internal notes" section of the documentation (`docs/internal`)
+  records design decisions: the alternatives considered, and the
+  measurements behind them. The first one is about the binary exif
+  cache's format version.
 - `PicDir`'s `pdShadows` is gone: an image's `imgRole` holds its
   links, to its components or to the composite images covering it,
   set by `finishFolder`, which also computes all of a folder's derived

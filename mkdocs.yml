@@ -9,5 +9,8 @@ nav:
 - Manual: manual.md
 - Composite images: composite-images.md
 - Development notes: devel.md
+- Internal notes:
+  - internal/index.md
+  - internal/2026-11-28-bexif-format-version.md
 - TODOs: todo.md
 - Changelog: changelog.md

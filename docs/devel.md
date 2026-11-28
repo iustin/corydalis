@@ -217,6 +217,11 @@ instances of `SymbolizedItem` and `ShortText`, or a library's), rename
 the constructor of `BExifRevision` (in `Exif`) to the next number, as
 well as that of `CacheRevision`.
 
+Why the binary cache has a version in each file, rather than one for
+the whole cache, and what that costs, is in the internal note
+[A format version for the binary exif
+cache](internal/2026-11-28-bexif-format-version.md).
+
 ## Middlewares: where headers and checks go
 
 Requests go through two layers of middleware, which see different
