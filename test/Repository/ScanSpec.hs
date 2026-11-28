@@ -47,6 +47,7 @@ import           System.Log.FastLogger (fromLogStr)
 
 import           Cache              (cacheTempDir, cachedBasename)
 import           Exif
+import           Exif.Load          (bExifPath, exifPath)
 import           Pics
 import           Repository
 import           Repository.Build

@@ -135,6 +135,7 @@ library:
     - AtomTypes
     - Cache
     - Exif
+    - Exif.Load
     - Foundation
     - Handler.Browse
     - Handler.Camera
